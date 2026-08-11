@@ -1,0 +1,22 @@
+{
+  "name": "nirman-app",
+  "version": "1.0.0",
+  "description": "NirmanSite application monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @nirman-app/shared build && turbo dev",
+    "mobile:lan": "pnpm --filter @nirman-app/mobile start:lan",
+    "mobile:tunnel": "pnpm --filter @nirman-app/mobile start:tunnel",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:migrate": "pnpm --filter @nirman-app/api db:migrate",
+    "db:migrate:status": "pnpm --filter @nirman-app/api db:migrate:status",
+    "db:seed": "pnpm --filter @nirman-app/api db:seed"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "latest"
+  },
+  "packageManager": "pnpm@11.5.2"
+}

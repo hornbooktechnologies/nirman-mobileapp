@@ -1,0 +1,244 @@
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.frame {
+  overflow: hidden;
+  border: 1px solid var(--preview-border);
+  border-radius: var(--preview-radius-overlay);
+  background: var(--preview-surface);
+}
+
+.scroll {
+  width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.table {
+  width: 100%;
+  min-width: 1020px;
+  border-spacing: 0;
+  border-collapse: separate;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.head {
+  position: relative;
+  z-index: 3;
+}
+
+.headerCell {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  height: 40px;
+  padding: 0 12px;
+  color: var(--preview-text-muted);
+  border-bottom: 1px solid var(--preview-border);
+  background: var(--preview-surface-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dataCell {
+  height: 48px;
+  padding: 4px 12px;
+  color: var(--preview-text);
+  border-bottom: 1px solid var(--preview-border);
+  background: var(--preview-surface);
+  font-size: var(--preview-type-body-size);
+  line-height: var(--preview-type-body-line);
+  vertical-align: middle;
+  transition: background var(--preview-motion-fast) var(--preview-ease);
+}
+
+.table[data-density="compact"] .headerCell {
+  height: 36px;
+}
+
+.table[data-density="compact"] .dataCell {
+  height: 40px;
+  padding-block: 3px;
+}
+
+.row:last-child .dataCell {
+  border-bottom: 0;
+}
+
+.row:hover .dataCell {
+  background: var(--preview-surface-hover);
+}
+
+.row[data-selected] .dataCell {
+  background: var(--preview-accent-soft);
+}
+
+.row:focus-within .dataCell {
+  background: var(--preview-focus-soft);
+}
+
+.headerCell[data-align="center"],
+.dataCell[data-align="center"] {
+  text-align: center;
+}
+
+.headerCell[data-align="right"],
+.dataCell[data-align="right"] {
+  text-align: right;
+}
+
+.headerCell[data-pin="select"],
+.dataCell[data-pin="select"] {
+  left: 0;
+  width: 44px;
+  padding-inline: 6px;
+  text-align: center;
+}
+
+.headerCell[data-pin="primary"],
+.dataCell[data-pin="primary"] {
+  left: 44px;
+  width: 294px;
+}
+
+.headerCell[data-pin="actions"],
+.dataCell[data-pin="actions"] {
+  right: 0;
+  width: 52px;
+  padding-inline: 10px;
+  text-align: center;
+}
+
+.headerCell[data-pin],
+.dataCell[data-pin] {
+  position: sticky;
+}
+
+.headerCell[data-pin] {
+  z-index: 6;
+}
+
+.dataCell[data-pin] {
+  z-index: 2;
+}
+
+.headerCell[data-pin="primary"],
+.dataCell[data-pin="primary"] {
+  box-shadow: 1px 0 0 var(--preview-border);
+}
+
+.headerCell[data-pin="actions"],
+.dataCell[data-pin="actions"] {
+  box-shadow: -1px 0 0 var(--preview-border);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 4px;
+  margin-left: -4px;
+  color: inherit;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sortButton[data-align="right"] {
+  margin-right: -4px;
+  margin-left: auto;
+}
+
+.sortButton:hover {
+  color: var(--preview-text);
+  background: var(--preview-surface-hover);
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.messageCell {
+  height: 320px;
+  padding: 32px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+@media (max-width: 1279px) {
+  .headerCell[data-priority="tertiary"],
+  .dataCell[data-priority="tertiary"] {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .headerCell[data-priority="secondary"],
+  .dataCell[data-priority="secondary"] {
+    display: none;
+  }
+
+  .table {
+    min-width: 820px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .headerCell[data-pin="primary"],
+  .dataCell[data-pin="primary"] {
+    width: 236px;
+  }
+
+  .headerCell[data-pin="select"],
+  .dataCell[data-pin="select"] {
+    padding-inline: 0;
+  }
+
+  .headerCell[data-pin="actions"],
+  .dataCell[data-pin="actions"] {
+    padding-inline: 4px;
+  }
+
+  .headerCell {
+    height: 44px;
+  }
+
+  .sortButton {
+    height: 44px;
+  }
+
+  .dataCell {
+    height: 52px;
+    padding-block: 4px;
+  }
+
+  .table[data-density="compact"] .headerCell,
+  .table[data-density="compact"] .dataCell {
+    height: 44px;
+  }
+
+  .table[data-density="compact"] .dataCell {
+    padding-block: 0;
+  }
+
+  .messageCell {
+    height: 280px;
+  }
+}

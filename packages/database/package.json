@@ -1,0 +1,16 @@
+{
+  "name": "@nirman-app/database",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Database package archived; active mysql2 runtime lives in apps/api'",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nirman-app/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "typescript": "latest"
+  }
+}

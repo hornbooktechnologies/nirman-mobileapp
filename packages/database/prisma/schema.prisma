@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  isSystem    Boolean      @default(false)
+  users       User[]
+  permissions Permission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  @@map("role")
+}
+
+model Permission {
+  id       String @id @default(uuid())
+  resource String
+  action   String
+  roleId   String
+  role     Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([resource, action, roleId])
+  @@map("permission")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  phone         String?
+  avatar        String?
+  isActive      Boolean        @default(true)
+  roleId        String
+  role          Role           @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+  createdFiles  FileAsset[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  @@map("user")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refreshtoken")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("systemsetting")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@map("auditlog")
+}
+
+model FileAsset {
+  id        String   @id @default(uuid())
+  filename  String
+  key       String
+  url       String
+  mimeType  String
+  size      Int
+  context   String?
+  contextId String?
+  createdBy String?
+  creator   User?    @relation(fields: [createdBy], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("fileasset")
+}

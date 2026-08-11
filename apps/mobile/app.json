@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "NirmanSite",
+    "slug": "nirmansite-mobile",
+    "scheme": "nirmansite",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/brand/logo-mark.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nirmansite.mobile"
+    },
+    "android": {
+      "package": "com.nirmansite.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/logo-mark.png",
+        "backgroundColor": "#FAF8F5"
+      }
+    },
+    "splash": {
+      "image": "./assets/brand/logo-mark.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF8F5"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

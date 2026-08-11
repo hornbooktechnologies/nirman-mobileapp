@@ -1,0 +1,27 @@
+import { Redirect, Stack } from 'expo-router';
+
+import { LoadingScreen } from '../../src/components/common';
+import { useSession } from '../../src/providers';
+
+export default function ProtectedLayout() {
+  const { isLoading, session } = useSession();
+
+  if (isLoading) {
+    return <LoadingScreen message="Checking session" />;
+  }
+
+  if (!session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="dashboard" />
+      <Stack.Screen name="project-detail" />
+      <Stack.Screen name="workers" />
+      <Stack.Screen name="workflows" />
+      <Stack.Screen name="design-system" />
+      <Stack.Screen name="menu" />
+    </Stack>
+  );
+}

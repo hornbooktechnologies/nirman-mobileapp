@@ -1,0 +1,154 @@
+.previewTheme {
+  --preview-brand-olive: #676f4b;
+  --preview-brand-olive-deep: #4f573a;
+  --preview-brand-olive-soft: #eef0e7;
+  --preview-brand-copper: #c16c31;
+  --preview-brand-copper-soft: #f8ede5;
+  --preview-action-primary: #a95e29;
+  --preview-action-primary-hover: #8e4e22;
+  --preview-action-primary-pressed: #743f1b;
+  --preview-canvas: #f7f5f2;
+  --preview-surface: #ffffff;
+  --preview-surface-subtle: #faf9f7;
+  --preview-surface-hover: #f5f2ee;
+  --preview-accent-soft: #eef0e7;
+  --preview-text: #2f2010;
+  --preview-text-muted: #6f675e;
+  --preview-text-faint: #796f66;
+  --preview-border: #ded8d0;
+  --preview-border-strong: #91877b;
+  --preview-focus: #176b87;
+  --preview-success: #194826;
+  --preview-success-soft: #eaf4ec;
+  --preview-warning: #7a4f00;
+  --preview-warning-soft: #fff5d6;
+  --preview-danger: #b42318;
+  --preview-danger-hover: #8f1d15;
+  --preview-danger-soft: #fdecea;
+  --preview-info: #176b87;
+  --preview-info-soft: #e8f5f8;
+  --preview-neutral-soft: #f0eeeb;
+  --preview-on-color: #ffffff;
+  --preview-brand-olive-border: #ced9bb;
+  --preview-brand-olive-hover: rgb(103 111 75 / 12%);
+  --preview-success-border: #bfd7c4;
+  --preview-warning-border: #ead59b;
+  --preview-warning-muted: #6f5c31;
+  --preview-danger-border: #e8bcb7;
+  --preview-info-border: #b8d9e0;
+  --preview-focus-soft: #f3fafb;
+  --preview-progress-track: #e7e3de;
+  --preview-skeleton: #e9e5e0;
+  --preview-selection: #d9eff3;
+  --preview-scrollbar: #b8afa5;
+  --preview-scrim: rgb(47 32 16 / 34%);
+
+  --preview-type-page-size: 28px;
+  --preview-type-page-line: 34px;
+  --preview-type-section-size: 18px;
+  --preview-type-section-line: 24px;
+  --preview-type-body-size: 14px;
+  --preview-type-body-line: 20px;
+  --preview-type-control-size: 13px;
+  --preview-type-control-line: 16px;
+  --preview-type-caption-size: 12px;
+  --preview-type-caption-line: 16px;
+
+  --preview-space-1: 4px;
+  --preview-space-2: 8px;
+  --preview-space-3: 12px;
+  --preview-space-4: 16px;
+  --preview-space-5: 20px;
+  --preview-space-6: 24px;
+  --preview-space-8: 32px;
+  --preview-space-10: 40px;
+  --preview-space-12: 48px;
+
+  --preview-radius-tooltip: 6px;
+  --preview-radius-control: 8px;
+  --preview-radius-overlay: 10px;
+  --preview-radius-surface: 12px;
+  --preview-shadow-1: 0 1px 2px rgb(47 32 16 / 6%);
+  --preview-shadow-2: 0 8px 24px rgb(47 32 16 / 12%);
+  --preview-shadow-3: 0 16px 40px rgb(47 32 16 / 16%);
+
+  --preview-motion-fast: 120ms;
+  --preview-motion-normal: 180ms;
+  --preview-ease: cubic-bezier(0.2, 0, 0, 1);
+  --preview-z-sticky: 20;
+  --preview-z-popover: 60;
+  --preview-z-overlay: 80;
+  --preview-z-toast: 100;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  min-width: 360px;
+  min-height: 100dvh;
+  overflow: hidden;
+  color: var(--preview-text);
+  background: var(--preview-canvas);
+  font-family: var(--preview-font-inter), Inter, system-ui, "Segoe UI", Arial,
+    sans-serif;
+  font-size: var(--preview-type-body-size);
+  font-weight: 400;
+  line-height: var(--preview-type-body-line);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.previewTheme,
+.previewTheme * {
+  box-sizing: border-box;
+}
+
+.previewTheme button,
+.previewTheme input,
+.previewTheme select,
+.previewTheme textarea {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.previewTheme button,
+.previewTheme [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.previewTheme ::selection {
+  color: var(--preview-text);
+  background: var(--preview-selection);
+}
+
+.previewTheme *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.previewTheme *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.previewTheme *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background: var(--preview-scrollbar);
+  background-clip: padding-box;
+}
+
+.previewTheme *::-webkit-scrollbar-thumb:hover {
+  background: #91877b;
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewTheme,
+  .previewTheme * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

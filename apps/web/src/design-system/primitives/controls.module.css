@@ -1,0 +1,661 @@
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.button,
+.iconButton,
+.selectTrigger,
+.searchField {
+  border: 1px solid var(--preview-border-strong);
+  border-radius: var(--preview-radius-control);
+  background: var(--preview-surface);
+  transition:
+    color var(--preview-motion-fast) var(--preview-ease),
+    background var(--preview-motion-fast) var(--preview-ease),
+    border-color var(--preview-motion-fast) var(--preview-ease);
+}
+
+.button:focus-visible,
+.iconButton:focus-visible,
+.selectTrigger:focus-visible,
+.searchField:has(.searchInput:focus-visible) {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.button {
+  position: relative;
+  display: inline-grid;
+  grid-template-areas: "content";
+  align-items: center;
+  justify-content: center;
+  gap: var(--preview-space-2);
+  min-width: 0;
+  height: 40px;
+  padding: 0 16px;
+  color: var(--preview-text);
+  font-size: var(--preview-type-control-size);
+  font-weight: 600;
+  line-height: var(--preview-type-control-line);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.buttonContent {
+  grid-area: content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--preview-space-2);
+}
+
+.buttonContentLoading {
+  visibility: hidden;
+}
+
+.buttonSpinner {
+  animation: button-spin 800ms linear infinite;
+}
+
+.buttonLoadingContent {
+  grid-area: content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--preview-space-2);
+  white-space: nowrap;
+}
+
+.button svg {
+  flex: 0 0 auto;
+}
+
+.button_compact {
+  height: 32px;
+  padding-inline: 12px;
+}
+
+.button_primary {
+  color: var(--preview-on-color);
+  border-color: var(--preview-action-primary);
+  background: var(--preview-action-primary);
+}
+
+.button_primary:hover:not(:disabled) {
+  border-color: var(--preview-action-primary-hover);
+  background: var(--preview-action-primary-hover);
+}
+
+.button_primary:active:not(:disabled) {
+  border-color: var(--preview-action-primary-pressed);
+  background: var(--preview-action-primary-pressed);
+}
+
+.button_secondary:hover:not(:disabled),
+.iconButton:hover:not(:disabled),
+.selectTrigger:hover:not(:disabled) {
+  border-color: var(--preview-text-muted);
+  background: var(--preview-surface-hover);
+}
+
+.button_tertiary {
+  color: var(--preview-text-muted);
+  border-color: transparent;
+  background: transparent;
+}
+
+.button_tertiary:hover:not(:disabled) {
+  color: var(--preview-text);
+  background: var(--preview-surface-hover);
+}
+
+.button_destructive {
+  color: var(--preview-on-color);
+  border-color: var(--preview-danger);
+  background: var(--preview-danger);
+}
+
+.button_destructive:hover:not(:disabled) {
+  border-color: var(--preview-danger-hover);
+  background: var(--preview-danger-hover);
+}
+
+.button:disabled,
+.iconButton:disabled,
+.selectTrigger:disabled {
+  color: var(--preview-text-faint);
+  border-color: var(--preview-border);
+  background: var(--preview-neutral-soft);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.tooltipAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--preview-text-muted);
+  cursor: pointer;
+}
+
+.iconButton_compact {
+  width: 32px;
+  height: 32px;
+}
+
+.iconButton_danger {
+  color: var(--preview-danger);
+}
+
+.tooltip {
+  position: absolute;
+  z-index: var(--preview-z-toast);
+  left: 50%;
+  top: calc(100% + 8px);
+  width: max-content;
+  max-width: 180px;
+  padding: 4px 8px;
+  border-radius: var(--preview-radius-tooltip);
+  color: var(--preview-on-color);
+  background: var(--preview-text);
+  box-shadow: var(--preview-shadow-2);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -2px);
+  transition:
+    opacity var(--preview-motion-fast) var(--preview-ease),
+    transform var(--preview-motion-fast) var(--preview-ease);
+}
+
+.tooltipAnchor:hover .tooltip,
+.tooltipAnchor:focus-within .tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(360px, 100%);
+  height: 40px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--preview-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 100%;
+  padding: 0 40px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--preview-type-control-size);
+  line-height: var(--preview-type-control-line);
+}
+
+.searchInput::placeholder {
+  color: var(--preview-text-faint);
+  opacity: 1;
+}
+
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchClear {
+  position: absolute;
+  right: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--preview-text-muted);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.searchClear:hover {
+  color: var(--preview-text);
+  background: var(--preview-surface-hover);
+}
+
+.searchClear:focus-visible {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.selectRoot {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 148px;
+}
+
+.fieldLabel {
+  color: var(--preview-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 18px;
+}
+
+.selectTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--preview-space-2);
+  width: 100%;
+  height: 40px;
+  padding: 0 8px 0 12px;
+  color: var(--preview-text);
+  font-size: var(--preview-type-control-size);
+  font-weight: 600;
+  line-height: var(--preview-type-control-line);
+  text-align: left;
+  cursor: pointer;
+}
+
+.controlCompact .selectTrigger,
+.controlCompact.searchField {
+  height: 32px;
+}
+
+.selectValue {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerIcon,
+.chevron {
+  flex: 0 0 auto;
+  color: var(--preview-text-muted);
+}
+
+.chevron {
+  transition: transform var(--preview-motion-fast) var(--preview-ease);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.selectPopover {
+  position: fixed;
+  z-index: var(--preview-z-popover);
+  max-width: calc(100vw - 16px);
+  padding: 4px;
+  border: 1px solid var(--preview-border);
+  border-radius: var(--preview-radius-overlay);
+  background: var(--preview-surface);
+  box-shadow: var(--preview-shadow-2);
+}
+
+.listbox {
+  max-height: 248px;
+  overflow-y: auto;
+  outline: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--preview-text);
+  font-size: var(--preview-type-control-size);
+  font-weight: 500;
+  line-height: var(--preview-type-control-line);
+  cursor: default;
+}
+
+.optionActive {
+  background: var(--preview-accent-soft);
+}
+
+.optionSelected {
+  color: var(--preview-brand-olive-deep);
+  font-weight: 650;
+}
+
+.optionDisabled {
+  color: var(--preview-text-faint);
+  opacity: 0.65;
+}
+
+.checkboxLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.checkboxLabelVisible {
+  justify-content: flex-start;
+  gap: 8px;
+  width: auto;
+  min-height: 36px;
+}
+
+.checkboxText {
+  color: var(--preview-text);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 18px;
+}
+
+.checkboxInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.checkboxBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--preview-on-color);
+  border: 1px solid var(--preview-border-strong);
+  border-radius: 5px;
+  background: var(--preview-surface);
+  transition:
+    border-color var(--preview-motion-fast) var(--preview-ease),
+    background var(--preview-motion-fast) var(--preview-ease);
+}
+
+.checkboxInput:checked + .checkboxBox,
+.checkboxInput:indeterminate + .checkboxBox {
+  border-color: var(--preview-brand-olive-deep);
+  background: var(--preview-brand-olive-deep);
+}
+
+.checkboxInput:focus-visible + .checkboxBox {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.checkboxInput:disabled + .checkboxBox {
+  border-color: var(--preview-border);
+  background: var(--preview-neutral-soft);
+  opacity: 0.7;
+}
+
+.indeterminateMark {
+  width: 9px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--preview-on-color);
+}
+
+.textFieldRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textInputWrap {
+  position: relative;
+  display: block;
+}
+
+.textInput {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  color: var(--preview-text);
+  border: 1px solid var(--preview-border-strong);
+  border-radius: var(--preview-radius-control);
+  outline: 0;
+  background: var(--preview-surface);
+  font-size: var(--preview-type-control-size);
+  line-height: var(--preview-type-control-line);
+  transition:
+    border-color var(--preview-motion-fast) var(--preview-ease),
+    background var(--preview-motion-fast) var(--preview-ease);
+}
+
+.textInput:hover:not(:disabled) {
+  border-color: var(--preview-text-muted);
+}
+
+.textInput:focus-visible {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.textInput::placeholder {
+  color: var(--preview-text-faint);
+  opacity: 1;
+}
+
+.textInputWrap[data-error] .textInput {
+  padding-right: 36px;
+  border-color: var(--preview-danger);
+}
+
+.errorIcon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--preview-danger);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.helpText {
+  color: var(--preview-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.errorText {
+  color: var(--preview-danger);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status_success {
+  color: var(--preview-success);
+  border-color: var(--preview-success-border);
+  background: var(--preview-success-soft);
+}
+
+.status_warning {
+  color: var(--preview-warning);
+  border-color: var(--preview-warning-border);
+  background: var(--preview-warning-soft);
+}
+
+.status_danger {
+  color: var(--preview-danger);
+  border-color: var(--preview-danger-border);
+  background: var(--preview-danger-soft);
+}
+
+.status_info {
+  color: var(--preview-info);
+  border-color: var(--preview-info-border);
+  background: var(--preview-info-soft);
+}
+
+.status_neutral {
+  color: var(--preview-text-muted);
+  border-color: var(--preview-border);
+  background: var(--preview-neutral-soft);
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 3px 4px 3px 8px;
+  color: var(--preview-text);
+  border: 1px solid var(--preview-brand-olive-border);
+  border-radius: 7px;
+  background: var(--preview-brand-olive-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.filterChipLabel {
+  color: var(--preview-text-muted);
+  font-weight: 500;
+}
+
+.filterChip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  color: var(--preview-text-muted);
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.filterChip button:hover {
+  color: var(--preview-text);
+  background: var(--preview-brand-olive-hover);
+}
+
+.filterChip button:focus-visible {
+  outline: 2px solid var(--preview-focus);
+  outline-offset: 2px;
+}
+
+.skeleton {
+  display: inline-block;
+  height: 10px;
+  max-width: 100%;
+  border-radius: 4px;
+  background: var(--preview-skeleton);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1023px) {
+  .button,
+  .selectTrigger,
+  .searchField,
+  .textInput {
+    min-height: 44px;
+  }
+
+  .iconButton,
+  .iconButton_compact,
+  .checkboxLabel {
+    width: 44px;
+    height: 44px;
+  }
+
+  .controlCompact .selectTrigger,
+  .controlCompact.searchField {
+    height: 44px;
+  }
+
+  .searchInput {
+    padding-right: 48px;
+  }
+
+  .searchClear {
+    right: 0;
+    width: 44px;
+    height: 44px;
+  }
+
+  .option,
+  .checkboxLabelVisible {
+    min-height: 44px;
+  }
+
+  .checkboxLabelVisible {
+    width: auto;
+  }
+
+  .filterChip {
+    min-height: 44px;
+  }
+
+  .filterChip button {
+    width: 44px;
+    height: 44px;
+  }
+}

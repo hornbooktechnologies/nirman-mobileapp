@@ -1,0 +1,226 @@
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.pageHeaderCopy {
+  min-width: 0;
+}
+
+.pageHeader h1 {
+  margin: 0;
+  color: var(--preview-text);
+  font-size: var(--preview-type-page-size);
+  font-weight: 650;
+  line-height: var(--preview-type-page-line);
+  letter-spacing: -0.45px;
+}
+
+.pageHeader p {
+  max-width: 72ch;
+  margin: 8px 0 0;
+  color: var(--preview-text-muted);
+  font-size: var(--preview-type-body-size);
+  line-height: var(--preview-type-body-line);
+}
+
+.pageActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.collectionSurface {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--preview-border);
+  border-radius: var(--preview-radius-surface);
+  background: var(--preview-surface);
+  box-shadow: var(--preview-shadow-1);
+}
+
+.toolbar {
+  min-height: 64px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--preview-border);
+}
+
+.activeFilters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--preview-border);
+  background: var(--preview-surface-subtle);
+}
+
+.collectionBody {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.collectionFooter {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  border-top: 1px solid var(--preview-border);
+  background: var(--preview-surface);
+}
+
+.bulkBar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+}
+
+.bulkCount {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--preview-brand-olive-deep);
+  border-radius: 6px;
+  background: var(--preview-brand-olive-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.bulkDivider {
+  width: 1px;
+  height: 24px;
+  margin-inline: 2px;
+  background: var(--preview-border);
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staleBanner {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 16px;
+  color: var(--preview-warning);
+  border-bottom: 1px solid var(--preview-warning-border);
+  background: var(--preview-warning-soft);
+}
+
+.staleBanner > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.staleBanner strong {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 17px;
+}
+
+.staleBanner span {
+  color: var(--preview-warning-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.state {
+  display: flex;
+  width: min(440px, 100%);
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 32px;
+  margin: auto;
+  text-align: center;
+}
+
+.stateIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 16px;
+  color: var(--preview-brand-olive-deep);
+  border: 1px solid var(--preview-brand-olive-border);
+  border-radius: var(--preview-radius-control);
+  background: var(--preview-brand-olive-soft);
+}
+
+.stateError .stateIcon {
+  color: var(--preview-danger);
+  border-color: var(--preview-danger-border);
+  background: var(--preview-danger-soft);
+}
+
+.state h2 {
+  margin: 0;
+  color: var(--preview-text);
+  font-size: var(--preview-type-section-size);
+  font-weight: 650;
+  line-height: var(--preview-type-section-line);
+}
+
+.state p {
+  max-width: 54ch;
+  margin: 8px 0 0;
+  color: var(--preview-text-muted);
+  font-size: var(--preview-type-body-size);
+  line-height: var(--preview-type-body-line);
+}
+
+.stateAction {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 1023px) {
+  .pageHeader {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .pageActions {
+    width: 100%;
+  }
+
+  .toolbar {
+    padding: 12px;
+  }
+
+  .activeFilters {
+    padding-inline: 12px;
+  }
+
+  .bulkBar {
+    overflow-x: auto;
+  }
+
+  .staleBanner {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+
+  .staleBanner > :last-child {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

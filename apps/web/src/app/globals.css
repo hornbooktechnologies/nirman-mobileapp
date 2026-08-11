@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --color-canvas: #f6f8f5;
+  --color-card: #ffffff;
+  --color-surface: #ffffff;
+  --color-sunken: #f0f4f1;
+  --color-ink: #1b241b;
+  --color-body: #1b241b;
+  --color-sub: #526052;
+  --color-muted: #889687;
+  --color-hairline: rgba(27, 36, 27, 0.12);
+  --color-lime: #c16c31;
+  --color-lime-pale: #e08744;
+  --color-lime-ink: #ffffff;
+  --color-lime-sub: #a65922;
+  --color-lime-faint: rgba(193, 108, 49, 0.12);
+  --color-success: #1b5e20;
+  --color-danger: #d32f2f;
+  --color-warning: #b78103;
+  --color-info: #0288d1;
+  --color-purple: #7b1fa2;
+  --color-blueprint: #263238;
+  --glass-card: rgba(255, 255, 255, 0.92);
+  --glass-elevated: rgba(255, 255, 255, 0.98);
+  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 4px 20px -2px rgba(27, 36, 27, 0.06), 0 2px 6px -1px rgba(27, 36, 27, 0.04);
+  --shadow-copper: 0 8px 24px -4px rgba(193, 108, 49, 0.28);
+  --shadow-floating: 0 16px 36px -6px rgba(27, 36, 27, 0.12);
+}
+
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-card: var(--color-card);
+  --color-surface: var(--color-surface);
+  --color-sunken: var(--color-sunken);
+  --color-ink: var(--color-ink);
+  --color-body: var(--color-body);
+  --color-sub: var(--color-sub);
+  --color-muted: var(--color-muted);
+  --color-hairline: var(--color-hairline);
+  --color-lime: var(--color-lime);
+  --color-lime-pale: var(--color-lime-pale);
+  --color-lime-ink: var(--color-lime-ink);
+  --color-lime-sub: var(--color-lime-sub);
+  --color-lime-faint: var(--color-lime-faint);
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+  --color-warning: var(--color-warning);
+  --color-info: var(--color-info);
+  --color-purple: var(--color-purple);
+  --color-blueprint: var(--color-blueprint);
+  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --radius-card: 16px;
+  --radius-inner-lg: 14px;
+  --radius-inner: 12px;
+  --radius-sub: 10px;
+  --radius-check: 6px;
+  --shadow-pill: 0 2px 8px rgba(27, 36, 27, 0.05);
+  --shadow-card: var(--shadow-card);
+  --shadow-copper: var(--shadow-copper);
+  --shadow-floating: var(--shadow-floating);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@keyframes mobile-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.9), transparent 28rem),
+    radial-gradient(circle at 90% 12%, rgba(193, 108, 49, 0.06), transparent 32rem),
+    linear-gradient(160deg, #f4f7f4 0%, #f7f9f6 50%, #fafbfc 100%);
+  color: var(--color-body);
+  font-family: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: 14px;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(27, 36, 27, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(27, 36, 27, 0.28);
+}
