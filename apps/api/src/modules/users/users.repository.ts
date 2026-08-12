@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { DatabaseService } from '../../database/database.service';
-import { QueryParam } from '../../database/database.types';
-import { CreateUserDto } from './dto/create-user.dto';
-import { QueryUserDto } from './dto/query-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { RoleEntity, UserEntity, UserRow } from './users.types';
+import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import { DatabaseService } from "../../database/database.service";
+import { DbRow, QueryParam } from "../../database/database.types";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { QueryUserDto } from "./dto/query-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { RoleEntity, UserEntity, UserRow } from "./users.types";
 
 const USER_SORT_COLUMNS = {
-  name: 'u.name',
-  email: 'u.email',
-  createdAt: 'u.createdAt',
+  name: "u.name",
+  email: "u.email",
+  createdAt: "u.createdAt",
 } as const;
 
 const USER_SELECT = `SELECT
@@ -70,20 +70,21 @@ export class UsersRepository {
     const params: QueryParam[] = [];
 
     if (query.roleId) {
-      where.push('u.roleId = ?');
+      where.push("u.roleId = ?");
       params.push(query.roleId);
     }
 
     if (query.search) {
-      where.push('(u.name LIKE ? OR u.email LIKE ?)');
+      where.push("(u.name LIKE ? OR u.email LIKE ?)");
       params.push(`%${query.search}%`, `%${query.search}%`);
     }
 
-    const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+    const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
     const sortColumn =
-      USER_SORT_COLUMNS[(query.sortBy ?? 'createdAt') as keyof typeof USER_SORT_COLUMNS] ??
-      USER_SORT_COLUMNS.createdAt;
-    const sortOrder = query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+      USER_SORT_COLUMNS[
+        (query.sortBy ?? "createdAt") as keyof typeof USER_SORT_COLUMNS
+      ] ?? USER_SORT_COLUMNS.createdAt;
+    const sortOrder = query.sortOrder === "asc" ? "ASC" : "DESC";
 
     const [rows, totalRows] = await Promise.all([
       this.database.query<UserRow>(
@@ -128,6 +129,19 @@ export class UsersRepository {
     return rows[0] ? mapUserRow(rows[0]) : null;
   }
 
+  async findRoleById(roleId: string) {
+    const rows = await this.database.query<
+      DbRow & { id: string; name: string; isSystem: number | boolean }
+    >("SELECT id, name, isSystem FROM `role` WHERE id = ? LIMIT 1", [roleId]);
+    return rows[0]
+      ? {
+          id: rows[0].id,
+          name: rows[0].name,
+          isSystem: Boolean(rows[0].isSystem),
+        }
+      : null;
+  }
+
   async create(data: CreateUserDto & { password: string }) {
     const id = randomUUID();
     await this.database.execute(
@@ -159,14 +173,14 @@ export class UsersRepository {
 
   async updatePassword(id: string, password: string) {
     await this.database.execute(
-      'UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?',
+      "UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",
       [password, id],
     );
   }
 
   async delete(id: string) {
     await this.database.execute(
-      'UPDATE `user` SET isActive = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?',
+      "UPDATE `user` SET isActive = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",
       [false, id],
     );
   }
@@ -177,21 +191,22 @@ export class UsersRepository {
   ): Promise<void> {
     const updateColumns = {
       name: data.name,
-      email: 'email' in data ? data.email : undefined,
+      email: "email" in data ? data.email : undefined,
       phone: data.phone,
-      avatar: 'avatar' in data ? data.avatar : undefined,
-      roleId: 'roleId' in data ? data.roleId : undefined,
-      isActive: 'isActive' in data ? data.isActive : undefined,
+      avatar: "avatar" in data ? data.avatar : undefined,
+      roleId: "roleId" in data ? data.roleId : undefined,
+      isActive: "isActive" in data ? data.isActive : undefined,
     };
 
-    const entries = (Object.entries(updateColumns) as [string, QueryParam | undefined][])
-      .filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
+    const entries = (
+      Object.entries(updateColumns) as [string, QueryParam | undefined][]
+    ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
 
     if (entries.length === 0) return;
 
     await this.database.execute(
       `UPDATE \`user\`
-      SET ${entries.map(([column]) => `\`${column}\` = ?`).join(', ')},
+      SET ${entries.map(([column]) => `\`${column}\` = ?`).join(", ")},
         updatedAt = CURRENT_TIMESTAMP(3)
       WHERE id = ?`,
       [...entries.map(([, value]) => value), id],

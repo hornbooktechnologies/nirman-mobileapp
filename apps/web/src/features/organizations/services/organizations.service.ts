@@ -1,7 +1,10 @@
 import { api } from "@/lib/api/api-client";
 import type {
   CreateOrganizationInput,
+  InviteOrganizationMemberInput,
   Organization,
+  OrganizationMemberInvitationResponse,
+  OrganizationMemberRole,
   OrganizationOnboardingResponse,
   OrganizationMember,
   SwitchOrganizationResponse,
@@ -23,13 +26,29 @@ export const organizationsService = {
     );
   },
   updateOrganization(id: string, input: UpdateOrganizationInput) {
-    return api.patch<Organization, UpdateOrganizationInput>(`/organizations/${id}`, input);
+    return api.patch<Organization, UpdateOrganizationInput>(
+      `/organizations/${id}`,
+      input,
+    );
   },
   switchOrganization(id: string) {
     return api.post<SwitchOrganizationResponse>(`/organizations/${id}/switch`);
   },
   members(organizationId: string) {
-    return api.get<OrganizationMember[]>(`/organizations/${organizationId}/members`);
+    return api.get<OrganizationMember[]>(
+      `/organizations/${organizationId}/members`,
+    );
+  },
+  memberRoles(organizationId: string) {
+    return api.get<OrganizationMemberRole[]>(
+      `/organizations/${organizationId}/member-roles`,
+    );
+  },
+  inviteMember(organizationId: string, input: InviteOrganizationMemberInput) {
+    return api.post<
+      OrganizationMemberInvitationResponse,
+      InviteOrganizationMemberInput
+    >(`/organizations/${organizationId}/invitations`, input);
   },
   updateMember(
     organizationId: string,

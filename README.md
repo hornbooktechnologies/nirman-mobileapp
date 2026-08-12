@@ -8,12 +8,14 @@ NirmanSite uses MySQL/MariaDB through `mysql2` inside the NestJS API. Prisma rem
 
 ## What Is Included
 
-- `apps/web`: Next.js App Router admin and back-office portal foundation with protected layout, login, dashboard, users, roles, settings, and profile screens.
-- `apps/api`: NestJS API with authentication, RBAC, users, roles, settings, upload storage utilities, health checks, and API-local mysql2 database access.
+- `apps/web`: Next.js App Router administration and back-office portal with protected organization/project flows and Workers management.
+- `apps/api`: NestJS API with authentication, RBAC, organizations, projects, Workers, platform administration, health checks, and API-local mysql2 database access.
 - `packages/database`: archived inherited Prisma database history; not active runtime/tooling.
 - `packages/shared`: Shared constants, permission definitions, schemas, and types.
-- `apps/mobile`: Expo / React Native mobile foundation with placeholder auth routing and protected dashboard shell.
+- `apps/mobile`: Expo / React Native field app with session and active-project context plus an online-write Workers roster/quick-create flow.
 - `docs`: NirmanSite AI context, architecture notes, decisions, task tracking, and module templates.
+
+Workers currently has a reconciled vertical slice and passing automated static/API checks, but remains pending an owner decision for active assignments during worker deactivation. Persisted offline cache/sync is not implemented.
 
 ## Product Direction
 

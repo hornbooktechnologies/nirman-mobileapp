@@ -6,7 +6,10 @@ import type {
   OrganizationType,
 } from "@nirman-app/shared";
 import type { DbRow } from "../../../database/database.types";
-import type { OrganizationEntity } from "./organizations.types";
+import type {
+  OrganizationEntity,
+  OrganizationMemberEntity,
+} from "./organizations.types";
 
 export interface OnboardingUserRow extends DbRow {
   id: string;
@@ -17,6 +20,7 @@ export interface OnboardingUserRow extends DbRow {
   isActive: number | boolean;
   roleId: string;
   role_name: string;
+  role_is_system: number | boolean;
 }
 
 export interface OnboardingRoleRow extends DbRow {
@@ -59,6 +63,18 @@ export interface OrganizationOnboardingResult {
     roleId: string;
     status: "INVITED";
   };
+  invitation: {
+    id: string;
+    status: "PENDING";
+    expiresAt: string;
+    activationUrl: string;
+    mobileActivationUrl: string;
+    deliveryStatus: InvitationDeliveryStatus;
+  };
+}
+
+export interface OrganizationMemberInvitationResult {
+  membership: OrganizationMemberEntity;
   invitation: {
     id: string;
     status: "PENDING";

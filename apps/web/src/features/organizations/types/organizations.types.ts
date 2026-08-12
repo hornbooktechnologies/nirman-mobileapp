@@ -43,6 +43,34 @@ export interface OrganizationMember {
   };
 }
 
+export interface OrganizationMemberRole {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+}
+
+export interface InviteOrganizationMemberInput {
+  name: string;
+  email: string;
+  phone?: string;
+  roleId: string;
+  designation?: string;
+  organizationWideProjectAccess?: boolean;
+}
+
+export interface OrganizationMemberInvitationResponse {
+  membership: OrganizationMember;
+  invitation: {
+    id: string;
+    status: "PENDING";
+    expiresAt: string;
+    activationUrl: string;
+    mobileActivationUrl: string;
+    deliveryStatus: InvitationDeliveryStatus;
+  };
+}
+
 export interface CreateOrganizationInput {
   name: string;
   type: OrganizationType;

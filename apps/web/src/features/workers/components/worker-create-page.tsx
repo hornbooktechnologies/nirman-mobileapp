@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Card, PageHeader } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
@@ -12,16 +11,9 @@ export function WorkerCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const organizations = useOrganizations();
-  const [organizationId, setOrganizationId] = useState(
-    searchParams.get("organizationId") ?? "",
-  );
+  const organizationId =
+    searchParams.get("organizationId") ?? organizations.data?.[0]?.id ?? "";
   const createWorker = useCreateWorker(organizationId);
-
-  useEffect(() => {
-    if (!organizationId && organizations.data?.[0]) {
-      setOrganizationId(organizations.data[0].id);
-    }
-  }, [organizationId, organizations.data]);
 
   async function submit(input: WorkerFormState) {
     const worker = await createWorker.mutateAsync(input);

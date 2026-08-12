@@ -106,7 +106,7 @@ function ActivateInvitationContent() {
           <CardTitle>
             {invitation && !invitation.requiresPasswordSetup
               ? "Adding organization"
-              : "Activate Owner account"}
+              : "Activate account"}
           </CardTitle>
           {invitation ? (
             <p className="text-[13px] leading-5 text-sub">

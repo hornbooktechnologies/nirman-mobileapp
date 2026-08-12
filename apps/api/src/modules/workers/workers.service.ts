@@ -4,19 +4,19 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import type { PermissionKey } from '@nirman-app/shared';
-import type { AuthenticatedUser } from '../auth/types/auth.types';
-import { ProjectAccessService } from '../project-access/project-access.service';
-import { AssignWorkerDto } from './dto/assign-worker.dto';
-import { CreateWorkerDto } from './dto/create-worker.dto';
-import { DeactivateWorkerDto } from './dto/deactivate-worker.dto';
-import { EndWorkerAssignmentDto } from './dto/end-worker-assignment.dto';
-import { QueryWorkerDto } from './dto/query-worker.dto';
-import { UpdateWorkerAssignmentDto } from './dto/update-worker-assignment.dto';
-import { UpdateWorkerRateDto } from './dto/update-worker-rate.dto';
-import { UpdateWorkerDto } from './dto/update-worker.dto';
-import { WorkersRepository } from './workers.repository';
+} from "@nestjs/common";
+import type { ErrorCode, PermissionKey } from "@nirman-app/shared";
+import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { ProjectAccessService } from "../project-access/project-access.service";
+import { AssignWorkerDto } from "./dto/assign-worker.dto";
+import { CreateWorkerDto } from "./dto/create-worker.dto";
+import { DeactivateWorkerDto } from "./dto/deactivate-worker.dto";
+import { EndWorkerAssignmentDto } from "./dto/end-worker-assignment.dto";
+import { QueryWorkerDto } from "./dto/query-worker.dto";
+import { UpdateWorkerAssignmentDto } from "./dto/update-worker-assignment.dto";
+import { UpdateWorkerRateDto } from "./dto/update-worker-rate.dto";
+import { UpdateWorkerDto } from "./dto/update-worker.dto";
+import { WorkersRepository } from "./workers.repository";
 
 @Injectable()
 export class WorkersService {
@@ -35,12 +35,12 @@ export class WorkersService {
           actor,
           organizationId,
           query.projectId,
-          'workers:read',
+          "workers:read",
         )
       : await this.projectAccess.resolveOrganizationAccess(
           actor,
           organizationId,
-          'workers:read',
+          "workers:read",
         );
     return this.workersRepo.findAll(
       organizationId,
@@ -60,59 +60,102 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      'workers:read',
+      "workers:read",
     );
     return this.workersRepo.findProjectRoster(organizationId, projectId, query);
   }
 
-  async create(organizationId: string, dto: CreateWorkerDto, actor: AuthenticatedUser) {
-    this.assertRequiredText(dto.name, 'Worker name is required');
-    this.assertRequiredText(dto.trade, 'Worker trade is required');
+  async create(
+    organizationId: string,
+    dto: CreateWorkerDto,
+    actor: AuthenticatedUser,
+  ) {
+    this.assertRequiredText(dto.name, "Worker name is required");
+    this.assertRequiredText(dto.trade, "Worker trade is required");
     const projectId = dto.projectId?.trim();
     if (projectId) {
       const access = await this.projectAccess.resolveProjectAccess(
         actor,
         organizationId,
         projectId,
-        'workers:create',
+        "workers:create",
       );
-      if (!access.permissions.includes('workers:assign-project')) {
-        throw new ForbiddenException('Worker project assignment permission is required');
+      if (!access.permissions.includes("workers:assign-project")) {
+        throw new ForbiddenException(
+          this.error(
+            "WORKER_PROJECT_ACCESS_REQUIRED",
+            "Worker project assignment permission is required",
+          ),
+        );
       }
       this.validateAssignmentDates(dto.startsOn, undefined);
     } else {
       const access = await this.projectAccess.resolveOrganizationAccess(
         actor,
         organizationId,
-        'workers:create',
+        "workers:create",
       );
       if (!access.organizationWideProjectAccess) {
         throw new ForbiddenException(
-          'An accessible project is required to create a worker',
+          this.error(
+            "WORKER_PROJECT_ACCESS_REQUIRED",
+            "An accessible project is required to create a worker",
+          ),
         );
       }
     }
     this.validateDailyRate(dto.dailyRate);
-    const worker = await this.workersRepo.create(
-      organizationId,
-      { ...dto, projectId },
-      actor.id,
-    );
-    if (!worker) throw new BadRequestException('Worker could not be created');
+    let worker;
+    try {
+      worker = await this.workersRepo.create(
+        organizationId,
+        { ...dto, projectId },
+        actor.id,
+      );
+    } catch (error) {
+      if (!this.isWorkerCodeAllocationError(error)) throw error;
+      throw new ConflictException(
+        this.error(
+          "WORKER_CODE_GENERATION_FAILED",
+          "A worker code could not be allocated safely. Please retry.",
+        ),
+      );
+    }
+    if (!worker) {
+      throw new BadRequestException(
+        this.error(
+          "WORKER_CODE_GENERATION_FAILED",
+          "Worker could not be created",
+        ),
+      );
+    }
     const duplicateWarnings = await this.workersRepo.duplicateCandidates(
       organizationId,
       dto.name,
       dto.mobileNumber,
       worker.id,
     );
-    this.recordAudit('workers.created', actor.id, organizationId, worker.id);
+    this.recordAudit("workers.created", actor.id, organizationId, worker.id);
     return { ...worker, duplicateWarnings };
   }
 
-  async findById(organizationId: string, workerId: string, actor: AuthenticatedUser) {
-    await this.assertWorkerAccess(actor, organizationId, workerId, 'workers:read');
+  async findById(
+    organizationId: string,
+    workerId: string,
+    actor: AuthenticatedUser,
+  ) {
+    await this.assertWorkerAccess(
+      actor,
+      organizationId,
+      workerId,
+      "workers:read",
+    );
     const worker = await this.workersRepo.findById(organizationId, workerId);
-    if (!worker) throw new NotFoundException('Worker not found');
+    if (!worker) {
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
+    }
     return worker;
   }
 
@@ -122,18 +165,34 @@ export class WorkersService {
     dto: UpdateWorkerDto,
     actor: AuthenticatedUser,
   ) {
-    await this.assertWorkerAccess(actor, organizationId, workerId, 'workers:update');
-    if (dto.name !== undefined) this.assertRequiredText(dto.name, 'Worker name is required');
-    if (dto.trade !== undefined) this.assertRequiredText(dto.trade, 'Worker trade is required');
-    const worker = await this.workersRepo.update(organizationId, workerId, dto, actor.id);
-    if (!worker) throw new NotFoundException('Worker not found');
+    await this.assertWorkerAccess(
+      actor,
+      organizationId,
+      workerId,
+      "workers:update",
+    );
+    if (dto.name !== undefined)
+      this.assertRequiredText(dto.name, "Worker name is required");
+    if (dto.trade !== undefined)
+      this.assertRequiredText(dto.trade, "Worker trade is required");
+    const worker = await this.workersRepo.update(
+      organizationId,
+      workerId,
+      dto,
+      actor.id,
+    );
+    if (!worker) {
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
+    }
     const duplicateWarnings = await this.workersRepo.duplicateCandidates(
       organizationId,
       dto.name ?? worker.name,
       dto.mobileNumber ?? worker.mobileNumber,
       worker.id,
     );
-    this.recordAudit('workers.updated', actor.id, organizationId, workerId);
+    this.recordAudit("workers.updated", actor.id, organizationId, workerId);
     return { ...worker, duplicateWarnings };
   }
 
@@ -143,10 +202,23 @@ export class WorkersService {
     _dto: DeactivateWorkerDto,
     actor: AuthenticatedUser,
   ) {
-    await this.assertWorkerAccess(actor, organizationId, workerId, 'workers:deactivate');
-    const worker = await this.workersRepo.deactivate(organizationId, workerId, actor.id);
-    if (!worker) throw new NotFoundException('Worker not found');
-    this.recordAudit('workers.deactivated', actor.id, organizationId, workerId);
+    await this.assertWorkerAccess(
+      actor,
+      organizationId,
+      workerId,
+      "workers:deactivate",
+    );
+    const worker = await this.workersRepo.deactivate(
+      organizationId,
+      workerId,
+      actor.id,
+    );
+    if (!worker) {
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
+    }
+    this.recordAudit("workers.deactivated", actor.id, organizationId, workerId);
     return worker;
   }
 
@@ -161,15 +233,34 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      'workers:assign-project',
+      "workers:assign-project",
     );
     const worker = await this.workersRepo.findById(organizationId, workerId);
-    if (!worker) throw new NotFoundException('Worker not found');
-    if (worker.status !== 'ACTIVE') throw new BadRequestException('Inactive worker cannot be assigned');
+    if (!worker) {
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
+    }
+    if (worker.status !== "ACTIVE") {
+      throw new BadRequestException(
+        this.error("WORKER_INACTIVE", "Inactive worker cannot be assigned"),
+      );
+    }
     this.validateAssignmentDates(dto.startsOn, dto.endsOn);
     this.validateDailyRate(dto.dailyRate);
-    if (await this.workersRepo.hasActiveAssignment(organizationId, projectId, workerId)) {
-      throw new ConflictException('Worker already has an active assignment for this project');
+    if (
+      await this.workersRepo.hasActiveAssignment(
+        organizationId,
+        projectId,
+        workerId,
+      )
+    ) {
+      throw new ConflictException(
+        this.error(
+          "WORKER_ASSIGNMENT_DUPLICATE",
+          "Worker already has an active assignment for this project",
+        ),
+      );
     }
     const assignment = await this.workersRepo.assignWorker(
       organizationId,
@@ -178,9 +269,16 @@ export class WorkersService {
       dto,
       actor.id,
     );
-    if (!assignment) throw new NotFoundException('Worker assignment not found');
+    if (!assignment) {
+      throw new ConflictException(
+        this.error(
+          "WORKER_ASSIGNMENT_DUPLICATE",
+          "Worker already has an active assignment for this project",
+        ),
+      );
+    }
     this.recordAudit(
-      'worker-project-assignments.created',
+      "worker-project-assignments.created",
       actor.id,
       organizationId,
       workerId,
@@ -200,9 +298,25 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      'workers:assign-project',
+      "workers:assign-project",
     );
-    this.validateAssignmentDates(dto.startsOn, dto.endsOn);
+    const current = await this.workersRepo.findActiveAssignment(
+      organizationId,
+      projectId,
+      workerId,
+    );
+    if (!current) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    }
+    this.validateAssignmentDates(
+      dto.startsOn ?? current.startsOn,
+      dto.endsOn === undefined ? current.endsOn : dto.endsOn,
+    );
     const assignment = await this.workersRepo.updateAssignment(
       organizationId,
       projectId,
@@ -210,9 +324,16 @@ export class WorkersService {
       dto,
       actor.id,
     );
-    if (!assignment) throw new NotFoundException('Worker assignment not found');
+    if (!assignment) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    }
     this.recordAudit(
-      'worker-project-assignments.updated',
+      "worker-project-assignments.updated",
       actor.id,
       organizationId,
       workerId,
@@ -232,16 +353,43 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      'workers:assign-project',
+      "workers:assign-project",
     );
     this.validateDailyRate(dto.dailyRate);
     if (!dto.effectiveDate) {
-      throw new BadRequestException('Rate change effective date is required');
+      throw new BadRequestException(
+        this.error(
+          "WORKER_RATE_CHANGE_EFFECTIVE_DATE_REQUIRED",
+          "Rate change effective date is required",
+        ),
+      );
     }
-    const hasAttendance = await this.workersRepo.hasAttendanceForAssignment();
-    if (hasAttendance && !access.permissions.includes('workers:update-rate')) {
-      throw new ForbiddenException('Rate changes after attendance require elevated permission');
+    const current = await this.workersRepo.findActiveAssignment(
+      organizationId,
+      projectId,
+      workerId,
+    );
+    if (!current) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
     }
+    if (this.dateOnly(dto.effectiveDate) < this.dateOnly(current.startsOn)) {
+      throw new BadRequestException(
+        this.error(
+          "WORKER_ASSIGNMENT_INVALID_DATES",
+          "Rate effective date cannot be before assignment start date",
+        ),
+      );
+    }
+    void access;
+    // Attendance is not implemented. The approved pre-Attendance Workers rule
+    // therefore uses workers:assign-project. Attendance must replace this
+    // boundary with a real history check before elevated update-rate behavior
+    // can be claimed.
     const assignment = await this.workersRepo.updateAssignmentRate(
       organizationId,
       projectId,
@@ -249,9 +397,16 @@ export class WorkersService {
       dto.dailyRate,
       actor.id,
     );
-    if (!assignment) throw new NotFoundException('Worker assignment not found');
+    if (!assignment) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    }
     this.recordAudit(
-      'worker-project-assignments.rate-updated',
+      "worker-project-assignments.rate-updated",
       actor.id,
       organizationId,
       workerId,
@@ -272,14 +427,21 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      'workers:assign-project',
+      "workers:assign-project",
     );
-    const current = await this.workersRepo.findAssignment(
+    const current = await this.workersRepo.findActiveAssignment(
       organizationId,
       projectId,
       workerId,
     );
-    if (!current) throw new NotFoundException('Worker assignment not found');
+    if (!current) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    }
     this.validateAssignmentDates(current.startsOn, dto.endsOn);
     const assignment = await this.workersRepo.endAssignment(
       organizationId,
@@ -288,9 +450,16 @@ export class WorkersService {
       dto.endsOn,
       actor.id,
     );
-    if (!assignment) throw new NotFoundException('Worker assignment not found');
+    if (!assignment) {
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    }
     this.recordAudit(
-      'worker-project-assignments.ended',
+      "worker-project-assignments.ended",
       actor.id,
       organizationId,
       workerId,
@@ -308,9 +477,13 @@ export class WorkersService {
     await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      'workers:create',
+      "workers:create",
     );
-    return this.workersRepo.duplicateCandidates(organizationId, name, mobileNumber);
+    return this.workersRepo.duplicateCandidates(
+      organizationId,
+      name,
+      mobileNumber,
+    );
   }
 
   private async assertWorkerAccess(
@@ -330,24 +503,73 @@ export class WorkersService {
       workerId,
       access.membership.id,
     );
-    if (!visible) throw new ForbiddenException('Worker project access is required');
+    if (!visible) {
+      throw new ForbiddenException(
+        this.error(
+          "WORKER_PROJECT_ACCESS_REQUIRED",
+          "Worker project access is required",
+        ),
+      );
+    }
     return access;
   }
 
-  private assertRequiredText(value: string | undefined | null, message: string) {
-    if (!value?.trim()) throw new BadRequestException(message);
+  private assertRequiredText(
+    value: string | undefined | null,
+    message: string,
+  ) {
+    if (!value?.trim()) {
+      throw new BadRequestException(this.error("VALIDATION_FAILED", message));
+    }
   }
 
   private validateAssignmentDates(start?: string | null, end?: string | null) {
     if (start && end && new Date(end) < new Date(start)) {
-      throw new BadRequestException('Assignment end date cannot be before start date');
+      throw new BadRequestException(
+        this.error(
+          "WORKER_ASSIGNMENT_INVALID_DATES",
+          "Assignment end date cannot be before start date",
+        ),
+      );
     }
   }
 
   private validateDailyRate(rate?: number | null) {
     if (rate !== undefined && rate !== null && Number(rate) < 0) {
-      throw new BadRequestException('Daily rate cannot be negative');
+      throw new BadRequestException(
+        this.error(
+          "WORKER_DAILY_RATE_INVALID",
+          "Daily rate cannot be negative",
+        ),
+      );
     }
+  }
+
+  private dateOnly(value: string) {
+    return value.slice(0, 10);
+  }
+
+  private error(
+    code: ErrorCode,
+    message: string,
+    details: Record<string, unknown> = {},
+  ) {
+    return { code, message, details };
+  }
+
+  private isWorkerCodeAllocationError(error: unknown) {
+    if (typeof error !== "object" || error === null) return false;
+    const mysqlError = error as {
+      code?: string;
+      message?: string;
+      sqlMessage?: string;
+    };
+    return (
+      mysqlError.code === "ER_DUP_ENTRY" &&
+      `${mysqlError.message ?? ""} ${mysqlError.sqlMessage ?? ""}`.includes(
+        "uq_workers_organization_worker_code",
+      )
+    );
   }
 
   private recordAudit(

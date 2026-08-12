@@ -111,6 +111,8 @@ The API, web, and mobile do not need identical operations. For example, web may 
 
 ## Current Planned Phase
 
+> Historical bootstrap note: this section describes the repository's initial documentation-first phase. Current work must instead follow `docs/modules/MODULE_INDEX.md`, `docs/tasks/current-task.md`, `docs/tasks/PROGRESS_LEDGER.md`, and the selected module's status/review documents. As of 2026-08-11, Workers is `PARTIAL — REQUIRES OWNER DECISION` on active-assignment handling during deactivation.
+
 The next phase is requirements and UI/contract foundation, not business-module implementation.
 
 Start by proposing:

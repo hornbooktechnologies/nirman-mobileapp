@@ -1,24 +1,32 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { DatabaseService } from "./database/database.service";
 
-describe('AppController', () => {
+describe("AppController", () => {
   let controller: AppController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          provide: DatabaseService,
+          useValue: { ping: jest.fn().mockResolvedValue(undefined) },
+        },
+      ],
     }).compile();
 
     controller = module.get<AppController>(AppController);
   });
 
-  it('returns API health information', () => {
-    expect(controller.health()).toMatchObject({
+  it("returns API health information", async () => {
+    await expect(controller.health()).resolves.toMatchObject({
       success: true,
       data: {
-        status: 'ok',
+        status: "ok",
+        database: "ok",
       },
     });
   });

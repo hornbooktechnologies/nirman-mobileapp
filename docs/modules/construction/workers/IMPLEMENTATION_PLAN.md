@@ -1,8 +1,23 @@
 # Workers Implementation Plan
 
-> Status: approved plan for implementation sequencing. Do not execute until implementation is explicitly requested.
+> Status: execution completed for independent Workers MVP slices on 2026-08-11; final acceptance is blocked on the deactivation lifecycle owner decision.
 >
 > Scope: Workers / Labour Management only.
+
+## Execution Summary
+
+| Slice | Result |
+| --- | --- |
+| 1. Shared contracts and permissions | Implemented; shared type-check/build passed |
+| 2. Database migration | Existing migration reconciled; not executed or mutated in this task |
+| 3. Permission seed | Existing approved source/runtime state reconciled; seed not run in this task |
+| 4-5. API repository, service, endpoints | Implemented and corrected; service/repository/filter tests pass |
+| 6-7. Web data layer and screens | Implemented; focused lint, type-check, and production build pass |
+| 8-9. Mobile data layer and screen | Approved current-project roster/quick-create flow implemented; type-check passes |
+| 10. Offline boundary | Online-only writes and truthful stale/unavailable states implemented; persisted offline capability deferred to the generic foundation |
+| 11. Audit integration | Explicit no-op boundary retained; persistence deferred to Audit Foundation |
+| 12. Reports and summaries | Deferred optional scope; no new dashboard/report foundation invented |
+| 13. Verification and handoff | Automated gates pass as recorded in `STATUS.md` and `REVIEW.md`; owner decision remains |
 
 ## Slice 1: Shared Contracts And Permissions
 
@@ -554,10 +569,12 @@ Completion condition:
 
 - Workers module is verified, documented, and ready for Attendance contract/implementation.
 
-## Known Verification Gate Issues Before Execution
+## Verification Gate Results
 
-- `pnpm --filter @nirman-app/api lint` currently fails on Prettier formatting across existing files.
-- `pnpm --filter @nirman-app/web lint` currently fails on React hook lint rules in existing components.
-- `pnpm --filter @nirman-app/api test` and `test:e2e` currently fail with Jest runtime error before tests execute.
+- The API Jest major was aligned with `ts-jest`; unit and E2E suites now execute and pass.
+- Focused lint for changed API files passes with one pre-existing E2E warning; focused changed-file web lint passes.
+- Shared/API/web/mobile static gates and the isolated web production build pass.
+- No database mutation or live authenticated role/scope smoke was authorized or run.
+- Workers remains `PARTIAL — REQUIRES OWNER DECISION` until deactivation behavior with active assignments is approved.
 
 These should be fixed before claiming release-ready quality, but they do not prevent drafting or reviewing the Workers contract.

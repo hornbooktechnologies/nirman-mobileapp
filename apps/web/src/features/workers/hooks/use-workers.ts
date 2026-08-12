@@ -97,6 +97,58 @@ export function useAssignWorker(organizationId: string | null, projectId: string
   });
 }
 
+export function useUpdateWorkerAssignment(
+  organizationId: string | null,
+  projectId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      workerId,
+      input,
+    }: {
+      workerId: string;
+      input: Parameters<typeof workersService.updateAssignment>[3];
+    }) =>
+      workersService.updateAssignment(
+        organizationId!,
+        projectId,
+        workerId,
+        input,
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: workerKeys.all(organizationId ?? "none"),
+      }),
+  });
+}
+
+export function useEndWorkerAssignment(
+  organizationId: string | null,
+  projectId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      workerId,
+      input,
+    }: {
+      workerId: string;
+      input: Parameters<typeof workersService.endAssignment>[3];
+    }) =>
+      workersService.endAssignment(
+        organizationId!,
+        projectId,
+        workerId,
+        input,
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: workerKeys.all(organizationId ?? "none"),
+      }),
+  });
+}
+
 export function useUpdateWorkerRate(
   organizationId: string | null,
   projectId: string,

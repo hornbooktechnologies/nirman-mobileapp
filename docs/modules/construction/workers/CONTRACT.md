@@ -1,10 +1,10 @@
 # Workers Module Contract
 
-> Status: approved for implementation planning.
+> Status: approved.
 >
 > Module path: `docs/modules/construction/workers`
 >
-> Implementation status: not started.
+> Implementation status: partial; independent MVP source is implemented and automated static/API checks pass, but active-assignment handling during worker deactivation requires an owner decision.
 >
 > Contract standard: `docs/modules/MODULE_CONTRACT_STANDARD.md`
 
@@ -383,6 +383,12 @@ Validation:
 - Historical records must not be deleted.
 - Open active assignments should be ended or blocked by explicit confirmation.
 - Downstream financial modules may later add restrictions for unsettled balances.
+
+Owner decision gate:
+
+- The approved contract does not yet select whether deactivation blocks, atomically ends active assignments after confirmation, or leaves them active while the inactive worker is excluded from active rosters.
+- Current source preserves active assignment rows and filters inactive workers from the default active roster. This is documented behavior, not an approved lifecycle decision.
+- Do not mark Workers verified until one rule is approved and implemented consistently in API and web.
 
 Result:
 

@@ -12,6 +12,17 @@ type ApiErrorEnvelope = {
   message?: string;
 };
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
 export async function apiRequest<TResponse>(path: string, init: RequestInit = {}, options: ApiClientOptions = {}) {
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
@@ -40,7 +51,14 @@ export async function apiRequest<TResponse>(path: string, init: RequestInit = {}
             ? payload.message
             : `API request failed with ${response.status}`
         : `API request failed with ${response.status}`;
-    throw new Error(message);
+    const code =
+      payload &&
+      typeof payload === 'object' &&
+      'error' in payload &&
+      payload.error?.code
+        ? payload.error.code
+        : undefined;
+    throw new ApiRequestError(message, response.status, code);
   }
 
   return payload as TResponse;

@@ -11,13 +11,13 @@ AI agents must update this file after every approved contract, implementation sl
 Current gate:
 
 ```text
-Primary Owner activation now distinguishes new identities from existing active identities, redirects both successful paths to Login with email pre-filled, and preserves the existing invitation/email fallback behavior. Live acceptance and the independent RBAC runtime matrix remain approval-gated.
+Workers independent MVP source and automated gates are complete. Final module verification is blocked on the owner decision for active assignments during worker deactivation; live role/scope smoke remains approval-gated.
 ```
 
 Next recommended task:
 
 ```text
-Approve disposable onboarding writes and verify one new-email plus one same-email second-organization activation end to end on web and Expo Go; then complete the independent RBAC runtime role matrix.
+Choose the Workers deactivation lifecycle rule, implement it, rerun Workers gates, and approve disposable-data role/scope smoke before marking the module verified.
 ```
 
 ## 3. Completed Path
@@ -57,6 +57,7 @@ Approve disposable onboarding writes and verify one new-email plus one same-emai
 | 31 | Gmail SMTP delivery diagnosis | code_hardened_external_credential_pending | confirmed Gmail `535 5.7.8`, normalized App Password display spaces, improved configuration/failure guidance | SMTP endpoint was reachable but rejected both raw and normalized saved credentials; static checks and API health passed; no email or DB write |
 | 32 | Expo Go invitation email button | implementation_complete_device_confirmation_pending | HTML `Open Mobile App` button plus optional local `EXPO_GO_PROJECT_URL` and installed-app scheme fallback | API/mobile checks, generated HTML/link probes, diff check, and API/web/Metro HTTP 200 passed; no invitation or email was created during verification |
 | 33 | Owner activation login prefill and identity reuse | implementation_complete_runtime_pending | optional existing-account acceptance password, automatic second-membership activation, web/mobile Login redirect with invited email | Static and pure service checks passed; no invitation, membership, organization, user, seed, migration, or other DB write during verification |
+| 34 | Workers vertical-slice reconciliation and completion | partial_owner_decision | shared/API/web/mobile corrections, API tests, `docs/modules/construction/workers/STATUS.md`, `REVIEW.md` | Shared/API/web/mobile gates and API unit/E2E pass; no DB mutation; deactivation lifecycle decision remains |
 
 ## 4. Verification Commands Recorded
 
@@ -142,10 +143,7 @@ Custom-role lifecycle management now includes editing role details and deleting 
 - Outbound SMTP provider credentials and delivery monitoring remain environment/operations configuration; secure manual activation-link handoff remains the fallback.
 - Target MySQL/MariaDB version and whether DB-level `CHECK` constraints should be reintroduced.
 - Whether `fileasset` or a future `file_assets` table is active before adding logo/cover image foreign keys.
-- Workers: whether worker mobile number is unique per organization or warning-only.
-- Workers: whether trade is free text for MVP or a controlled organization list.
-- Workers: whether worker import is included in the first Workers module.
-- Workers: whether Contractor-created workers ever require Builder approval under configured operating profiles.
+- Workers: when deactivating a worker with active assignments, choose block, atomic end-after-confirmation, or preserve active assignments while roster filtering follows worker status.
 - Workers: which Expo-compatible offline database/sync library should be used.
 - RBAC: decide whether support impersonation/access is included in MVP or deferred.
 - RBAC: decide whether mobile blocks platform-only users after login or shows a no-field-workspace state.
@@ -156,11 +154,11 @@ Custom-role lifecycle management now includes editing role details and deleting 
 For the next AI chat:
 
 ```text
-Read docs/ai-development/AI_DEVELOPMENT_PIPELINE.md, docs/modules/MODULE_INDEX.md, docs/tasks/PROGRESS_LEDGER.md, and docs/tasks/current-task.md.
+Read docs/modules/construction/workers/STATUS.md, REVIEW.md, CONTRACT.md, DECISIONS.md, docs/modules/MODULE_INDEX.md, docs/tasks/PROGRESS_LEDGER.md, and docs/tasks/current-task.md.
 
-Review Slice D/E/F in docs/modules/foundation/role-permission-model/PLAN.md and the source split documented in docs/architecture/auth-rbac.md.
+Obtain the owner decision for active assignments during worker deactivation. Implement only that lifecycle rule, rerun the recorded Workers gates, and request explicit approval before using disposable database records for the live role/scope matrix.
 
-Do not start another operational module. Obtain explicit approval for disposable onboarding writes, then verify both a new-email Owner activation and a same-email second-organization activation on web and Expo Go. Afterward verify the complete platform/customer role matrix before planning general member invitations and organization-scoped custom roles.
+Do not begin Attendance, Wages, Kharchi, Audit, Offline Sync, or another operational module until Workers is verified or explicitly accepted with the dependency boundary.
 ```
 
 On 2026-08-10, primary Owner onboarding gained additive post-commit SMTP delivery. The email contains the organization and Owner access context, login email, expiry, and both existing activation links, but no password. Missing SMTP configuration returns `MANUAL`; SMTP failure returns `EMAIL_FAILED`; neither condition rolls back organization creation or removes the manual links. Shared/API/web static checks and pure runtime fallback/template probes passed. No migration, seed, organization creation, database write, or real outbound email was run.

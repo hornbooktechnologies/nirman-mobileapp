@@ -144,7 +144,7 @@ export default function ActivateInvitationRoute() {
         <Text style={styles.title}>
           {invitation && !invitation.requiresPasswordSetup
             ? 'Adding Organization'
-            : 'Activate Owner Account'}
+            : 'Activate Account'}
         </Text>
       </View>
 

@@ -1,5 +1,7 @@
 # Current Repository State
 
+> Historical snapshot warning: this document records the 2026-08-05 pre-Workers baseline and is no longer a current implementation inventory. Use `docs/tasks/current-task.md`, `docs/tasks/PROGRESS_LEDGER.md`, and module `STATUS.md`/`REVIEW.md` files for current state.
+
 > Date: 2026-08-05
 >
 > Purpose: establish the current technical baseline before starting the first mature MVP business module.

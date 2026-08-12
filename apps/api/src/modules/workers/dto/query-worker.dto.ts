@@ -1,6 +1,19 @@
-import { WORKER_SORT_KEYS, WORKER_STATUSES } from '@nirman-app/shared';
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  WORKER_SORT_KEYS,
+  WORKER_STATUSES,
+  type WorkerSortKey,
+  type WorkerStatus,
+} from "@nirman-app/shared";
+import { Type } from "class-transformer";
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from "class-validator";
 
 export class QueryWorkerDto {
   @IsOptional()
@@ -9,23 +22,23 @@ export class QueryWorkerDto {
 
   @IsOptional()
   @IsIn(WORKER_STATUSES)
-  status?: string;
+  status?: WorkerStatus;
 
   @IsOptional()
   @IsString()
   trade?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   projectId?: string;
 
   @IsOptional()
   @IsIn(WORKER_SORT_KEYS)
-  sortBy?: string = 'created_at';
+  sortBy?: WorkerSortKey = "created_at";
 
   @IsOptional()
-  @IsIn(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  @IsIn(["asc", "desc"])
+  sortOrder?: "asc" | "desc" = "desc";
 
   @IsOptional()
   @Type(() => Number)

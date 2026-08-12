@@ -14,6 +14,7 @@ import type { InvitationRow } from "./types/organization-onboarding.types";
 describe("OrganizationOnboardingService", () => {
   const onboardingRepo = {
     createOrganizationWithOwner: jest.fn(),
+    createOrganizationMemberInvitation: jest.fn(),
     findInvitationByTokenHash: jest.fn(),
     acceptInvitation: jest.fn(),
   } as unknown as jest.Mocked<OrganizationOnboardingRepository>;
@@ -129,6 +130,63 @@ describe("OrganizationOnboardingService", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(onboardingRepo.createOrganizationWithOwner.mock.calls).toHaveLength(
       0,
+    );
+  });
+
+  it("creates a reusable organization member invitation", async () => {
+    onboardingRepo.createOrganizationMemberInvitation.mockResolvedValue({
+      membership: {
+        id: "member-id",
+        organizationId: "organization-id",
+        userId: "member-user-id",
+        roleId: "supervisor-role-id",
+        status: "INVITED",
+        designation: "Site Lead",
+        organizationWideProjectAccess: false,
+        joinedAt: null,
+        invitedBy: platformActor.id,
+        createdBy: platformActor.id,
+        updatedBy: platformActor.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      invitationId: "00000000-0000-4000-8000-000000000099",
+      requiresPasswordSetup: true,
+    });
+
+    const result = await service.createOrganizationMemberInvitation(
+      {
+        id: "organization-id",
+        name: "ABC Builders",
+        type: "BUILDER",
+        status: "ACTIVE",
+        operatingProfile: "SELF_MANAGED_BUILDER",
+        timezone: "Asia/Kolkata",
+        currency: "INR",
+        logoFileId: null,
+        createdBy: platformActor.id,
+        updatedBy: platformActor.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Sahil Supervisor",
+        email: "sahil@example.test",
+        roleId: "supervisor-role-id",
+        designation: "Site Lead",
+      },
+      platformActor,
+      "Site Supervisor",
+    );
+
+    expect(result.membership.status).toBe("INVITED");
+    expect(result.invitation.activationUrl).toContain("/activate?token=");
+    expect(emailService.sendOrganizationOwnerInvitation).toHaveBeenCalledWith(
+      "00000000-0000-4000-8000-000000000099",
+      expect.objectContaining({
+        recipientEmail: "sahil@example.test",
+        roleName: "Site Supervisor",
+      }),
     );
   });
 

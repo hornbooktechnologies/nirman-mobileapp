@@ -5,8 +5,18 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
+} from "@nestjs/common";
+import { Request, Response } from "express";
+import type { ErrorCode } from "@nirman-app/shared";
+
+type ErrorDetails =
+  Record<string, unknown> | { field?: string; message: string }[];
+
+type StructuredHttpError = {
+  code?: ErrorCode;
+  message?: string | string[];
+  details?: ErrorDetails;
+};
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -18,25 +28,34 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
+    let message = "Internal server error";
     let errors: { field?: string; message: string }[] = [];
+    let code: ErrorCode = "SERVER_ERROR";
+    let details: ErrorDetails = {};
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const body = exception.getResponse();
 
-      if (typeof body === 'string') {
+      if (typeof body === "string") {
         message = body;
-      } else if (typeof body === 'object' && body !== null) {
-        const bodyObj = body as Record<string, unknown>;
-        message = (bodyObj['message'] as string) ?? exception.message;
+      } else if (typeof body === "object" && body !== null) {
+        const bodyObj = body as StructuredHttpError;
+        message =
+          typeof bodyObj.message === "string"
+            ? bodyObj.message
+            : exception.message;
+        code = bodyObj.code ?? this.defaultCodeForStatus(status);
+        details = bodyObj.details ?? {};
 
         // class-validator pipes return message as array
-        if (Array.isArray(bodyObj['message'])) {
-          errors = (bodyObj['message'] as string[]).map((msg) => ({
+        if (Array.isArray(bodyObj.message)) {
+          errors = bodyObj.message.map((msg) => ({
             message: msg,
           }));
-          message = 'Validation failed';
+          message = "Validation failed";
+          code = "VALIDATION_FAILED";
+          details = errors;
         }
       }
     } else {
@@ -50,6 +69,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       success: false,
       message,
       errors,
+      error: {
+        code,
+        message,
+        details,
+      },
     });
+  }
+
+  private defaultCodeForStatus(status: number): ErrorCode {
+    if (status === 400) return "VALIDATION_FAILED";
+    if (status === 403) return "PERMISSION_DENIED";
+    if (status === 409) return "CONFLICT";
+    return "SERVER_ERROR";
   }
 }

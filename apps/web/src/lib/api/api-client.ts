@@ -25,19 +25,31 @@ export interface ApiErrorDetails {
 
 export class ApiError extends Error {
   statusCode?: number;
-  details?: ApiErrorDetails[];
+  code?: string;
+  details?: ApiErrorDetails[] | Record<string, unknown>;
 
-  constructor(message: string, statusCode?: number, details?: ApiErrorDetails[]) {
+  constructor(
+    message: string,
+    statusCode?: number,
+    details?: ApiErrorDetails[] | Record<string, unknown>,
+    code?: string,
+  ) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
     this.details = details;
+    this.code = code;
   }
 }
 
 interface ErrorResponseBody {
   message?: string;
   errors?: ApiErrorDetails[];
+  error?: {
+    code?: string;
+    message?: string;
+    details?: ApiErrorDetails[] | Record<string, unknown>;
+  };
 }
 
 interface ApiEnvelope<TData> {
@@ -106,9 +118,20 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const message = error.response?.data?.message ?? error.message ?? "Request failed";
+    const message =
+      error.response?.data?.error?.message ??
+      error.response?.data?.message ??
+      error.message ??
+      "Request failed";
+    const details =
+      error.response?.data?.error?.details ?? error.response?.data?.errors;
     return Promise.reject(
-      new ApiError(message, error.response?.status, error.response?.data?.errors),
+      new ApiError(
+        message,
+        error.response?.status,
+        details,
+        error.response?.data?.error?.code,
+      ),
     );
   },
 );

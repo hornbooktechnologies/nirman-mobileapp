@@ -13,11 +13,14 @@ import { assertPlatformPermission } from "../auth/platform-access";
 import { EmailService } from "../email/email.service";
 import type { AcceptOrganizationInvitationDto } from "./dto/accept-organization-invitation.dto";
 import type { CreateOrganizationDto } from "./dto/create-organization.dto";
+import type { InviteOrganizationMemberDto } from "./dto/invite-organization-member.dto";
 import { OrganizationOnboardingRepository } from "./organization-onboarding.repository";
 import type {
+  OrganizationMemberInvitationResult,
   OrganizationOnboardingResult,
   OrganizationOwnerInvitationPreview,
 } from "./types/organization-onboarding.types";
+import type { OrganizationEntity } from "./types/organizations.types";
 
 const INVITATION_TTL_HOURS = 48;
 @Injectable()
@@ -95,6 +98,72 @@ export class OrganizationOnboardingService {
       if (this.isDuplicateEntryError(error)) {
         throw new ConflictException(
           "An organization onboarding record already uses these owner details",
+        );
+      }
+      throw error;
+    }
+  }
+
+  async createOrganizationMemberInvitation(
+    organization: OrganizationEntity,
+    dto: InviteOrganizationMemberDto,
+    actor: AuthenticatedUser,
+    roleName: string,
+  ): Promise<OrganizationMemberInvitationResult> {
+    const rawToken = randomBytes(32).toString("base64url");
+    const tokenHash = this.hashToken(rawToken);
+    const expiresAt = new Date(
+      Date.now() + INVITATION_TTL_HOURS * 60 * 60 * 1000,
+    );
+    const placeholderPassword = await bcrypt.hash(
+      randomBytes(48).toString("base64url"),
+      12,
+    );
+
+    try {
+      const result =
+        await this.onboardingRepo.createOrganizationMemberInvitation(
+          organization.id,
+          dto,
+          actor.id,
+          tokenHash,
+          expiresAt,
+          placeholderPassword,
+        );
+      const activationUrl = this.webActivationUrl(rawToken);
+      const mobileActivationUrl = this.mobileActivationUrl(rawToken);
+      const deliveryStatus =
+        await this.emailService.sendOrganizationOwnerInvitation(
+          result.invitationId,
+          {
+            recipientName: dto.name.trim(),
+            recipientEmail: dto.email.trim().toLowerCase(),
+            organizationName: organization.name,
+            organizationType: organization.type,
+            roleName,
+            invitedByName: actor.name,
+            expiresAt: expiresAt.toISOString(),
+            activationUrl,
+            mobileActivationUrl,
+            requiresPasswordSetup: result.requiresPasswordSetup,
+          },
+        );
+
+      return {
+        membership: result.membership,
+        invitation: {
+          id: result.invitationId,
+          status: "PENDING",
+          expiresAt: expiresAt.toISOString(),
+          activationUrl,
+          mobileActivationUrl,
+          deliveryStatus,
+        },
+      };
+    } catch (error) {
+      if (this.isDuplicateEntryError(error)) {
+        throw new ConflictException(
+          "This user already has a membership or pending invitation in the organization",
         );
       }
       throw error;

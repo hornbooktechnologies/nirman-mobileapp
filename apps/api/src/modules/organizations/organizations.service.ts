@@ -4,22 +4,24 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
+  isOrganizationRoleCompatible,
   isOperatingProfileCompatible,
   type PlatformAdminPermissionKey,
-} from '@nirman-app/shared';
+} from "@nirman-app/shared";
 import {
   assertPlatformPermission,
   isPlatformUser,
-} from '../auth/platform-access';
-import type { AuthenticatedUser } from '../auth/types/auth.types';
-import { ProjectAccessService } from '../project-access/project-access.service';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
-import { UpdateMemberDto } from './dto/update-member.dto';
-import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { OrganizationOnboardingService } from './organization-onboarding.service';
-import { OrganizationsRepository } from './organizations.repository';
+} from "../auth/platform-access";
+import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { ProjectAccessService } from "../project-access/project-access.service";
+import { CreateOrganizationDto } from "./dto/create-organization.dto";
+import { InviteOrganizationMemberDto } from "./dto/invite-organization-member.dto";
+import { UpdateMemberDto } from "./dto/update-member.dto";
+import { UpdateOrganizationDto } from "./dto/update-organization.dto";
+import { OrganizationOnboardingService } from "./organization-onboarding.service";
+import { OrganizationsRepository } from "./organizations.repository";
 
 @Injectable()
 export class OrganizationsService {
@@ -31,7 +33,7 @@ export class OrganizationsService {
 
   findAll(user: AuthenticatedUser) {
     if (isPlatformUser(user)) {
-      assertPlatformPermission(user, 'platform-organizations:read');
+      assertPlatformPermission(user, "platform-organizations:read");
       return this.organizationsRepo.findAll();
     }
     return this.organizationsRepo.findAllForUser(user.id);
@@ -43,16 +45,16 @@ export class OrganizationsService {
 
   async findById(organizationId: string, actor: AuthenticatedUser) {
     if (isPlatformUser(actor)) {
-      assertPlatformPermission(actor, 'platform-organizations:read');
+      assertPlatformPermission(actor, "platform-organizations:read");
       const organization =
         await this.organizationsRepo.findById(organizationId);
-      if (!organization) throw new NotFoundException('Organization not found');
+      if (!organization) throw new NotFoundException("Organization not found");
       return organization;
     }
     const access = await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      'organizations:read',
+      "organizations:read",
     );
     return access.organization;
   }
@@ -64,7 +66,7 @@ export class OrganizationsService {
   ) {
     if (isPlatformUser(actor)) {
       const existing = await this.organizationsRepo.findById(organizationId);
-      if (!existing) throw new NotFoundException('Organization not found');
+      if (!existing) throw new NotFoundException("Organization not found");
       assertPlatformPermission(
         actor,
         this.platformPermissionForOrganizationUpdate(existing.status, dto),
@@ -73,12 +75,12 @@ export class OrganizationsService {
         existing.type,
         dto.operatingProfile,
       );
-      if (dto.status === 'ACTIVE' && existing.status !== 'ACTIVE') {
+      if (dto.status === "ACTIVE" && existing.status !== "ACTIVE") {
         const ownerCount =
           await this.organizationsRepo.countActiveOwners(organizationId);
         if (ownerCount === 0) {
           throw new ConflictException(
-            'An organization cannot be activated before an Owner accepts the invitation',
+            "An organization cannot be activated before an Owner accepts the invitation",
           );
         }
       }
@@ -87,13 +89,13 @@ export class OrganizationsService {
         dto,
         actor.id,
       );
-      if (!organization) throw new NotFoundException('Organization not found');
+      if (!organization) throw new NotFoundException("Organization not found");
       return organization;
     }
     const access = await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      'organizations:update',
+      "organizations:update",
     );
     this.assertCompatibleOperatingProfile(
       access.organization.type,
@@ -101,12 +103,12 @@ export class OrganizationsService {
     );
     if (dto.status && dto.status !== access.organization.status) {
       const requiredPermission =
-        dto.status === 'ACTIVE'
-          ? 'organizations:activate'
-          : 'organizations:deactivate';
+        dto.status === "ACTIVE"
+          ? "organizations:activate"
+          : "organizations:deactivate";
       if (!access.permissions.includes(requiredPermission)) {
         throw new ForbiddenException(
-          'You do not have permission to change organization status',
+          "You do not have permission to change organization status",
         );
       }
     }
@@ -115,7 +117,7 @@ export class OrganizationsService {
       dto,
       actor.id,
     );
-    if (!organization) throw new NotFoundException('Organization not found');
+    if (!organization) throw new NotFoundException("Organization not found");
     return organization;
   }
 
@@ -132,18 +134,67 @@ export class OrganizationsService {
 
   async findMembers(organizationId: string, actor: AuthenticatedUser) {
     if (isPlatformUser(actor)) {
-      assertPlatformPermission(actor, 'platform-organizations:read');
+      assertPlatformPermission(actor, "platform-organizations:read");
       const organization =
         await this.organizationsRepo.findById(organizationId);
-      if (!organization) throw new NotFoundException('Organization not found');
+      if (!organization) throw new NotFoundException("Organization not found");
       return this.organizationsRepo.findMembers(organizationId);
     }
     await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      'members:read',
+      "members:read",
     );
     return this.organizationsRepo.findMembers(organizationId);
+  }
+
+  async findMemberRoles(organizationId: string, actor: AuthenticatedUser) {
+    const access = await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "members:invite",
+    );
+    const roles = await this.organizationsRepo.findOrganizationRoleTemplates(
+      access.organization.type,
+    );
+    if (this.isProtectedOwner(access.membership)) return roles;
+    return roles.filter((role) => !this.isProtectedOwner({ role }));
+  }
+
+  async inviteMember(
+    organizationId: string,
+    dto: InviteOrganizationMemberDto,
+    actor: AuthenticatedUser,
+  ) {
+    const access = await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "members:invite",
+    );
+    const role = await this.organizationsRepo.findRoleById(dto.roleId);
+    if (!role) throw new NotFoundException("Organization role not found");
+    if (
+      !role.isSystem ||
+      !isOrganizationRoleCompatible(access.organization.type, role.name)
+    ) {
+      throw new ForbiddenException(
+        "This role cannot be assigned in the selected organization",
+      );
+    }
+    if (
+      this.isProtectedOwner({ role }) &&
+      !this.isProtectedOwner(access.membership)
+    ) {
+      throw new ForbiddenException(
+        "Only an organization Owner can invite another Owner",
+      );
+    }
+    return this.onboarding.createOrganizationMemberInvitation(
+      access.organization,
+      dto,
+      actor,
+      role.name,
+    );
   }
 
   async updateMember(
@@ -152,23 +203,23 @@ export class OrganizationsService {
     dto: UpdateMemberDto,
     actor: AuthenticatedUser,
   ) {
-    await this.projectAccess.resolveOrganizationAccess(
+    const access = await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      'members:update',
+      "members:update",
     );
     const member = await this.organizationsRepo.findMemberById(
       organizationId,
       memberId,
     );
-    if (!member) throw new NotFoundException('Organization member not found');
+    if (!member) throw new NotFoundException("Organization member not found");
 
     if (
       member.userId === actor.id &&
       (dto.roleId || dto.status !== undefined)
     ) {
       throw new ForbiddenException(
-        'You cannot change your own membership role or status',
+        "You cannot change your own membership role or status",
       );
     }
 
@@ -176,33 +227,50 @@ export class OrganizationsService {
       ? await this.organizationsRepo.findRoleById(dto.roleId)
       : null;
     if (dto.roleId && !targetRole) {
-      throw new NotFoundException('Organization role not found');
+      throw new NotFoundException("Organization role not found");
     }
     if (
       targetRole &&
-      ['Platform Super Admin', 'Super Admin', 'User Manager'].includes(
+      ["Platform Super Admin", "Super Admin", "User Manager"].includes(
         targetRole.name,
       )
     ) {
       throw new ForbiddenException(
-        'Platform roles cannot be assigned to organization members',
+        "Platform roles cannot be assigned to organization members",
       );
     }
     if (targetRole && !targetRole.isSystem) {
       throw new ConflictException(
-        'Organization-scoped custom roles are not available yet',
+        "Organization-scoped custom roles are not available yet",
+      );
+    }
+    if (
+      targetRole &&
+      !isOrganizationRoleCompatible(access.organization.type, targetRole.name)
+    ) {
+      throw new ForbiddenException(
+        "This role cannot be assigned in the selected organization",
+      );
+    }
+    if (
+      targetRole &&
+      this.isProtectedOwner({ role: targetRole }) &&
+      !this.isProtectedOwner(access.membership)
+    ) {
+      throw new ForbiddenException(
+        "Only an organization Owner can assign another Owner",
       );
     }
 
     const removesProtectedOwner =
       this.isProtectedOwner(member) &&
-      ((dto.status !== undefined && dto.status !== 'ACTIVE') ||
+      ((dto.status !== undefined && dto.status !== "ACTIVE") ||
         (targetRole !== null && !this.isProtectedOwner({ role: targetRole })));
     if (removesProtectedOwner) {
       const ownerCount =
         await this.organizationsRepo.countActiveOwners(organizationId);
       if (ownerCount <= 1) {
-        throw new ConflictException('At least one active owner must remain');
+        throw new ConflictException("At least one active owner must remain");
       }
     }
 
@@ -222,7 +290,7 @@ export class OrganizationsService {
     return this.updateMember(
       organizationId,
       memberId,
-      { status: 'INACTIVE' },
+      { status: "INACTIVE" },
       actor,
     );
   }
@@ -232,16 +300,16 @@ export class OrganizationsService {
     dto: UpdateOrganizationDto,
   ): PlatformAdminPermissionKey {
     if (!dto.status || dto.status === currentStatus) {
-      return 'platform-organizations:update';
+      return "platform-organizations:update";
     }
-    if (dto.status === 'ACTIVE') return 'platform-organizations:activate';
-    if (dto.status === 'SUSPENDED') return 'platform-organizations:suspend';
-    return 'platform-organizations:update';
+    if (dto.status === "ACTIVE") return "platform-organizations:activate";
+    if (dto.status === "SUSPENDED") return "platform-organizations:suspend";
+    return "platform-organizations:update";
   }
 
   private assertCompatibleOperatingProfile(
-    organizationType: 'BUILDER' | 'CONTRACTOR',
-    operatingProfile: UpdateOrganizationDto['operatingProfile'],
+    organizationType: "BUILDER" | "CONTRACTOR",
+    operatingProfile: UpdateOrganizationDto["operatingProfile"],
   ) {
     if (
       operatingProfile &&
@@ -257,10 +325,10 @@ export class OrganizationsService {
     role?: { name: string; isSystem: boolean };
   }) {
     return (
-      member.role?.name === 'Organization Owner' ||
-      member.role?.name === 'Independent Contractor Owner' ||
-      member.role?.name === 'Owner' ||
-      member.role?.name === 'Admin'
+      member.role?.name === "Organization Owner" ||
+      member.role?.name === "Independent Contractor Owner" ||
+      member.role?.name === "Owner" ||
+      member.role?.name === "Admin"
     );
   }
 }

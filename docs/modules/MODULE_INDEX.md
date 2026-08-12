@@ -33,7 +33,7 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | API/web/mobile Workers source exists with organization/project authorization | Runtime role/scope matrix after RBAC seed |
+| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | blocked | Independent shared/API/web/mobile MVP source and automated gates complete | Owner decides active-assignment behavior on worker deactivation; then rerun and smoke |
 | 9 | Attendance | `docs/modules/construction/attendance/CONTRACTS.md` | candidate | Workers + Project Access | Contract |
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md` | candidate | Workers + Attendance + Audit | Contract |
 | 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | candidate | Workers + Attendance + Kharchi | Contract |
@@ -63,12 +63,14 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Explicitly approve disposable onboarding writes and verify both a new-email Owner activation and a same-email second-organization activation on web and Expo Go. Then complete the RBAC runtime role matrix before starting another operational module.
+Resolve the Workers deactivation lifecycle decision recorded in `docs/modules/construction/workers/STATUS.md`. Implement that one rule, rerun Workers verification, and complete an approved disposable-data role/scope smoke before starting Attendance or another operational module.
 
 Next document:
 
 ```text
-docs/modules/foundation/role-permission-model/PLAN.md
+docs/modules/construction/workers/STATUS.md
 ```
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.
+
+Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Audit, Attendance/Wages rate history, and persisted offline behavior remain explicit downstream foundation dependencies.

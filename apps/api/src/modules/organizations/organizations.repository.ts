@@ -1,14 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import type { DbRow, QueryParam } from '../../database/database.types';
-import { UpdateMemberDto } from './dto/update-member.dto';
-import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { Injectable } from "@nestjs/common";
+import {
+  ORGANIZATION_ROLE_NAMES_BY_TYPE,
+  type OrganizationType,
+} from "@nirman-app/shared";
+import { DatabaseService } from "../../database/database.service";
+import type { DbRow, QueryParam } from "../../database/database.types";
+import { UpdateMemberDto } from "./dto/update-member.dto";
+import { UpdateOrganizationDto } from "./dto/update-organization.dto";
 import {
   OrganizationEntity,
   OrganizationMemberEntity,
   OrganizationMemberRow,
   OrganizationRow,
-} from './types/organizations.types';
+} from "./types/organizations.types";
 
 export function mapOrganizationRow(row: OrganizationRow): OrganizationEntity {
   return {
@@ -72,7 +76,7 @@ export class OrganizationsRepository {
 
   async findAll() {
     const rows = await this.database.query<OrganizationRow>(
-      'SELECT * FROM organizations ORDER BY name ASC',
+      "SELECT * FROM organizations ORDER BY name ASC",
     );
     return rows.map(mapOrganizationRow);
   }
@@ -91,7 +95,7 @@ export class OrganizationsRepository {
 
   async findById(id: string) {
     const rows = await this.database.query<OrganizationRow>(
-      'SELECT * FROM organizations WHERE id = ? LIMIT 1',
+      "SELECT * FROM organizations WHERE id = ? LIMIT 1",
       [id],
     );
     return rows[0] ? mapOrganizationRow(rows[0]) : null;
@@ -100,18 +104,18 @@ export class OrganizationsRepository {
   async update(id: string, dto: UpdateOrganizationDto, actorId: string) {
     const entries = (
       [
-        ['name', dto.name?.trim()],
-        ['status', dto.status],
-        ['operating_profile', dto.operatingProfile],
-        ['timezone', dto.timezone],
-        ['currency', dto.currency],
+        ["name", dto.name?.trim()],
+        ["status", dto.status],
+        ["operating_profile", dto.operatingProfile],
+        ["timezone", dto.timezone],
+        ["currency", dto.currency],
       ] as [string, QueryParam | undefined][]
     ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
 
     if (entries.length > 0) {
       await this.database.execute(
         `UPDATE organizations
-        SET ${entries.map(([column]) => `${column} = ?`).join(', ')},
+        SET ${entries.map(([column]) => `${column} = ?`).join(", ")},
           updated_by = ?,
           updated_at = CURRENT_TIMESTAMP(3)
         WHERE id = ?`,
@@ -155,9 +159,9 @@ export class OrganizationsRepository {
     const rows = await this.database.query<
       OrganizationMemberRow & {
         organization_name: string;
-        organization_type: OrganizationRow['type'];
-        organization_status: OrganizationRow['status'];
-        organization_operating_profile: OrganizationRow['operating_profile'];
+        organization_type: OrganizationRow["type"];
+        organization_status: OrganizationRow["status"];
+        organization_operating_profile: OrganizationRow["operating_profile"];
         organization_timezone: string;
         organization_currency: string;
         organization_logo_file_id: string | null;
@@ -238,10 +242,7 @@ export class OrganizationsRepository {
         name: string;
         isSystem: number | boolean;
       }
-    >(
-      'SELECT id, name, isSystem FROM `role` WHERE id = ? LIMIT 1',
-      [roleId],
-    );
+    >("SELECT id, name, isSystem FROM `role` WHERE id = ? LIMIT 1", [roleId]);
     return rows[0]
       ? {
           id: rows[0].id,
@@ -249,6 +250,31 @@ export class OrganizationsRepository {
           isSystem: Boolean(rows[0].isSystem),
         }
       : null;
+  }
+
+  async findOrganizationRoleTemplates(organizationType: OrganizationType) {
+    const roleNames = ORGANIZATION_ROLE_NAMES_BY_TYPE[organizationType];
+    const rows = await this.database.query<
+      DbRow & {
+        id: string;
+        name: string;
+        description: string | null;
+        isSystem: number | boolean;
+      }
+    >(
+      `SELECT id, name, description, isSystem
+      FROM \`role\`
+      WHERE isSystem = 1
+        AND name IN (${roleNames.map(() => "?").join(", ")})
+      ORDER BY name ASC`,
+      [...roleNames],
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      isSystem: Boolean(row.isSystem),
+    }));
   }
 
   async updateMember(
@@ -259,17 +285,17 @@ export class OrganizationsRepository {
   ) {
     const entries = (
       [
-        ['role_id', dto.roleId],
-        ['status', dto.status],
-        ['designation', dto.designation],
-        ['organization_wide_project_access', dto.organizationWideProjectAccess],
+        ["role_id", dto.roleId],
+        ["status", dto.status],
+        ["designation", dto.designation],
+        ["organization_wide_project_access", dto.organizationWideProjectAccess],
       ] as [string, QueryParam | undefined][]
     ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
 
     if (entries.length > 0) {
       await this.database.execute(
         `UPDATE organization_members
-        SET ${entries.map(([column]) => `${column} = ?`).join(', ')},
+        SET ${entries.map(([column]) => `${column} = ?`).join(", ")},
           updated_by = ?,
           updated_at = CURRENT_TIMESTAMP(3)
         WHERE organization_id = ? AND id = ?`,

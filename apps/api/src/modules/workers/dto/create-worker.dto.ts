@@ -1,13 +1,14 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsDateString,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateWorkerDto {
   @IsString()
@@ -29,7 +30,7 @@ export class CreateWorkerDto {
   notes?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   projectId?: string | null;
 
   @IsOptional()

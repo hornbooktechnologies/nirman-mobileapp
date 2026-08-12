@@ -8,6 +8,7 @@ export const organizationKeys = {
   all: ["organizations"] as const,
   detail: (id: string) => ["organizations", id] as const,
   members: (id: string) => ["organizations", id, "members"] as const,
+  memberRoles: (id: string) => ["organizations", id, "member-roles"] as const,
 };
 
 export function useOrganizations() {
@@ -31,22 +32,47 @@ export function useOrganizationMembers(id: string) {
   });
 }
 
+export function useOrganizationMemberRoles(id: string, enabled = true) {
+  return useQuery({
+    queryKey: organizationKeys.memberRoles(id),
+    queryFn: () => organizationsService.memberRoles(id),
+    enabled,
+  });
+}
+
+export function useInviteOrganizationMember(organizationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      input: Parameters<typeof organizationsService.inviteMember>[1],
+    ) => organizationsService.inviteMember(organizationId, input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.members(organizationId),
+      }),
+  });
+}
+
 export function useCreateOrganization() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: organizationsService.createOrganization,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: organizationKeys.all }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: organizationKeys.all }),
   });
 }
 
 export function useUpdateOrganization(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: Parameters<typeof organizationsService.updateOrganization>[1]) =>
-      organizationsService.updateOrganization(id, input),
+    mutationFn: (
+      input: Parameters<typeof organizationsService.updateOrganization>[1],
+    ) => organizationsService.updateOrganization(id, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: organizationKeys.all });
-      void queryClient.invalidateQueries({ queryKey: organizationKeys.detail(id) });
+      void queryClient.invalidateQueries({
+        queryKey: organizationKeys.detail(id),
+      });
     },
   });
 }
@@ -74,7 +100,9 @@ export function useUpdateOrganizationMember(organizationId: string) {
       input: Parameters<typeof organizationsService.updateMember>[2];
     }) => organizationsService.updateMember(organizationId, memberId, input),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: organizationKeys.members(organizationId) }),
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.members(organizationId),
+      }),
   });
 }
 
@@ -84,6 +112,8 @@ export function useDeactivateOrganizationMember(organizationId: string) {
     mutationFn: (memberId: string) =>
       organizationsService.deactivateMember(organizationId, memberId),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: organizationKeys.members(organizationId) }),
+      queryClient.invalidateQueries({
+        queryKey: organizationKeys.members(organizationId),
+      }),
   });
 }

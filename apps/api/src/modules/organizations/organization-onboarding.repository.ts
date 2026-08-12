@@ -3,14 +3,21 @@ import { randomUUID } from "node:crypto";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseTransaction } from "../../database/database.types";
 import type { CreateOrganizationDto } from "./dto/create-organization.dto";
+import type { InviteOrganizationMemberDto } from "./dto/invite-organization-member.dto";
 import {
   InvitationRow,
   OnboardingRoleRow,
   OnboardingUserRow,
   OrganizationOnboardingResult,
 } from "./types/organization-onboarding.types";
-import { mapOrganizationRow } from "./organizations.repository";
-import type { OrganizationRow } from "./types/organizations.types";
+import {
+  mapOrganizationMemberRow,
+  mapOrganizationRow,
+} from "./organizations.repository";
+import type {
+  OrganizationMemberRow,
+  OrganizationRow,
+} from "./types/organizations.types";
 
 const PLATFORM_ROLE_NAMES = new Set(["Platform Super Admin", "Super Admin"]);
 
@@ -47,7 +54,7 @@ export class OrganizationOnboardingRepository {
       let requiresPasswordSetup = false;
 
       if (user) {
-        if (PLATFORM_ROLE_NAMES.has(user.role_name)) {
+        if (this.isPlatformOnlyUser(user)) {
           throw new ConflictException(
             "A platform-only user cannot be assigned as a customer organization Owner",
           );
@@ -173,6 +180,137 @@ export class OrganizationOnboardingRepository {
     });
   }
 
+  async createOrganizationMemberInvitation(
+    organizationId: string,
+    dto: InviteOrganizationMemberDto,
+    actorId: string,
+    tokenHash: string,
+    expiresAt: Date,
+    placeholderPassword: string,
+  ) {
+    return this.database.transaction(async (connection) => {
+      const email = dto.email.trim().toLowerCase();
+      let user = await this.findUserByEmail(email, connection);
+      let requiresPasswordSetup = false;
+
+      if (user) {
+        if (this.isPlatformOnlyUser(user)) {
+          throw new ConflictException(
+            "A platform-only user cannot be invited as an organization member",
+          );
+        }
+        const existingMemberships =
+          await this.database.query<OrganizationMemberRow>(
+            `SELECT * FROM organization_members
+          WHERE organization_id = ? AND user_id = ?
+          LIMIT 1`,
+            [organizationId, user.id],
+            connection,
+          );
+        if (existingMemberships[0]) {
+          throw new ConflictException(
+            "This user already has a membership in the organization",
+          );
+        }
+        if (!isDatabaseFlagEnabled(user.isActive)) {
+          const hasPendingSetup = await this.hasPendingPasswordSetupInvitation(
+            user.id,
+            connection,
+          );
+          if (!hasPendingSetup) {
+            throw new ConflictException(
+              "An inactive account already uses this email. Reactivate it before inviting the member.",
+            );
+          }
+          requiresPasswordSetup = true;
+        }
+      } else {
+        const userId = randomUUID();
+        await this.database.execute(
+          `INSERT INTO \`user\`
+            (id, name, email, password, phone, isActive, roleId, createdBy, updatedBy, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))`,
+          [
+            userId,
+            dto.name.trim(),
+            email,
+            placeholderPassword,
+            dto.phone?.trim() || null,
+            dto.roleId,
+            actorId,
+            actorId,
+          ],
+          connection,
+        );
+        user = await this.findUserByEmail(email, connection);
+        requiresPasswordSetup = true;
+      }
+
+      if (!user) {
+        throw new ConflictException("Member account could not be prepared");
+      }
+
+      const membershipId = randomUUID();
+      await this.database.execute(
+        `INSERT INTO organization_members
+          (id, organization_id, user_id, role_id, status, designation,
+            organization_wide_project_access, invited_by, created_by, updated_by)
+        VALUES (?, ?, ?, ?, 'INVITED', ?, ?, ?, ?, ?)`,
+        [
+          membershipId,
+          organizationId,
+          user.id,
+          dto.roleId,
+          dto.designation?.trim() || null,
+          dto.organizationWideProjectAccess ?? false,
+          actorId,
+          actorId,
+          actorId,
+        ],
+        connection,
+      );
+
+      const invitationId = randomUUID();
+      await this.database.execute(
+        `INSERT INTO invitations
+          (id, organization_id, user_id, membership_id, invited_email, token_hash,
+            status, requires_password_setup, expires_at, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)`,
+        [
+          invitationId,
+          organizationId,
+          user.id,
+          membershipId,
+          email,
+          tokenHash,
+          requiresPasswordSetup,
+          expiresAt,
+          actorId,
+        ],
+        connection,
+      );
+
+      const membershipRows = await this.database.query<OrganizationMemberRow>(
+        `${this.memberSelectSql()}
+        WHERE om.organization_id = ? AND om.id = ?
+        LIMIT 1`,
+        [organizationId, membershipId],
+        connection,
+      );
+      if (!membershipRows[0]) {
+        throw new ConflictException(
+          "Organization membership could not be created",
+        );
+      }
+
+      return {
+        membership: mapOrganizationMemberRow(membershipRows[0]),
+        invitationId,
+        requiresPasswordSetup,
+      };
+    });
+  }
+
   async findInvitationByTokenHash(tokenHash: string) {
     const rows = await this.database.query<InvitationRow>(
       `${this.invitationSelectSql()}
@@ -268,7 +406,7 @@ export class OrganizationOnboardingRepository {
   ) {
     const rows = await this.database.query<OnboardingUserRow>(
       `SELECT u.id, u.name, u.email, u.password, u.phone, u.isActive, u.roleId,
-        r.name AS role_name
+        r.name AS role_name, r.isSystem AS role_is_system
       FROM \`user\` u
       INNER JOIN \`role\` r ON r.id = u.roleId
       WHERE u.email = ?
@@ -299,6 +437,13 @@ export class OrganizationOnboardingRepository {
     return rows.length > 0;
   }
 
+  private isPlatformOnlyUser(user: OnboardingUserRow) {
+    return (
+      PLATFORM_ROLE_NAMES.has(user.role_name) ||
+      !isDatabaseFlagEnabled(user.role_is_system)
+    );
+  }
+
   private invitationSelectSql() {
     return `SELECT
       i.*,
@@ -314,6 +459,21 @@ export class OrganizationOnboardingRepository {
     INNER JOIN organizations o ON o.id = i.organization_id
     INNER JOIN \`user\` u ON u.id = i.user_id
     INNER JOIN organization_members om ON om.id = i.membership_id
+    INNER JOIN \`role\` r ON r.id = om.role_id`;
+  }
+
+  private memberSelectSql() {
+    return `SELECT
+      om.*,
+      u.name AS user_name,
+      u.email AS user_email,
+      u.phone AS user_phone,
+      u.avatar AS user_avatar,
+      r.name AS role_name,
+      r.description AS role_description,
+      r.isSystem AS role_isSystem
+    FROM organization_members om
+    INNER JOIN \`user\` u ON u.id = om.user_id
     INNER JOIN \`role\` r ON r.id = om.role_id`;
   }
 }

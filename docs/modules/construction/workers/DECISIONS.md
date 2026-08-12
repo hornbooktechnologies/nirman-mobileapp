@@ -82,7 +82,8 @@ Permission keys:
 
 ## Remaining Product Questions
 
-- No genuine owner decision remains that blocks Workers implementation.
+- Owner decision required: when a worker with active project assignments is deactivated, choose whether to (a) block until assignments are ended, (b) atomically end them after explicit confirmation and an end date, or (c) allow them to remain active while worker status excludes the worker from active rosters.
+- Current source follows option (c) as unapproved existing behavior; it must not be treated as final product policy.
 - Future Wages implementation must approve the final effective-dated rate-history entity and rate-calculation rules.
 - Future Attendance/offline-sync implementation must approve the mobile offline write strategy.
 
