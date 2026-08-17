@@ -164,7 +164,30 @@ export class ProjectAccessService {
       access.membership.id,
       access.organizationWideProjectAccess,
     );
-    const activeProjects = projects.filter(
+    const projectsWithPermissions = await Promise.all(
+      projects.map(async (project) => {
+        const permissionMode = project.permission_mode ?? 'ROLE_DEFAULT';
+        const grantedPermissions =
+          permissionMode === 'CUSTOM'
+            ? await this.accessRepo.findProjectMemberPermissionGrants(
+                organizationId,
+                project.id,
+                access.membership.id,
+              )
+            : [];
+        return {
+          ...project,
+          permissionMode,
+          permissions:
+            permissionMode === 'CUSTOM'
+              ? access.permissions.filter((permission) =>
+                  grantedPermissions.includes(permission),
+                )
+              : access.permissions,
+        };
+      }),
+    );
+    const activeProjects = projectsWithPermissions.filter(
       (project) => project.status === 'ACTIVE',
     );
     const activeProjectId =
@@ -174,16 +197,18 @@ export class ProjectAccessService {
       organizationId,
       projectScope: access.organizationWideProjectAccess
         ? 'ALL'
-        : projects.length > 0
+        : projectsWithPermissions.length > 0
           ? 'ASSIGNED'
           : 'NONE',
       activeProjectId,
-      projects: projects.map((project) => ({
+      projects: projectsWithPermissions.map((project) => ({
         id: project.id,
         name: project.name,
         projectCode: project.project_code,
         status: project.status,
         roleLabel: project.role_label,
+        permissionMode: project.permissionMode,
+        permissions: project.permissions,
         isDefault: project.id === activeProjectId,
       })),
     };
@@ -198,8 +223,15 @@ export class ProjectAccessService {
     const organizationAccess = await this.resolveOrganizationAccess(
       user,
       organizationId,
-      requiredPermission,
     );
+    if (!organizationAccess.permissions.includes(requiredPermission)) {
+      throw new ForbiddenException(
+        {
+          code: 'PROJECT_PERMISSION_DENIED',
+          message: 'Your Organization Role does not allow this action',
+        },
+      );
+    }
     const project = await this.accessRepo.findProjectById(
       organizationId,
       projectId,
@@ -215,8 +247,33 @@ export class ProjectAccessService {
       throw new ForbiddenException('You do not have access to this project');
     }
 
+    const grantedPermissions =
+      projectMember?.permission_mode === 'CUSTOM'
+        ? ((await this.accessRepo.findProjectMemberPermissionGrants(
+            organizationId,
+            projectId,
+            organizationAccess.membership.id,
+          )) as PermissionKey[])
+        : [];
+    const effectivePermissions =
+      projectMember?.permission_mode === 'CUSTOM'
+        ? organizationAccess.permissions.filter((permission) =>
+            grantedPermissions.includes(permission),
+          )
+        : organizationAccess.permissions;
+    if (!effectivePermissions.includes(requiredPermission)) {
+      throw new ForbiddenException(
+        {
+          code: 'MEMBER_MODULE_ACCESS_DENIED',
+          message: 'This action is not granted for your Project assignment',
+        },
+      );
+    }
+
     return {
       ...organizationAccess,
+      rolePermissions: organizationAccess.permissions,
+      permissions: effectivePermissions,
       project: {
         id: project.id,
         organizationId: project.organization_id,
@@ -229,9 +286,18 @@ export class ProjectAccessService {
         ? 'ALL'
         : 'ASSIGNED',
       projectMember: projectMember
-        ? { id: projectMember.id, roleLabel: projectMember.role_label }
+        ? {
+            id: projectMember.id,
+            roleLabel: projectMember.role_label,
+            permissionMode: projectMember.permission_mode,
+            grantedPermissions,
+          }
         : null,
     };
+  }
+
+  async getRolePermissionKeys(roleId: string): Promise<PermissionKey[]> {
+    return this.getPermissionKeys(roleId);
   }
 
   private async getPermissionKeys(roleId: string): Promise<PermissionKey[]> {

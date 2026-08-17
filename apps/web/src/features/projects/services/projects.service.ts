@@ -7,6 +7,9 @@ import type {
   ProjectMember,
   ProjectMemberInput,
   ProjectQuery,
+  OrganizationProjectAssignment,
+  OrganizationProjectAssignmentsOverview,
+  SaveMemberProjectAssignmentsInput,
 } from "@/features/projects/types/projects.types";
 
 function queryString(query?: ProjectQuery) {
@@ -87,6 +90,24 @@ export const projectsService = {
   members(organizationId: string, projectId: string) {
     return api.get<ProjectMember[]>(
       `/organizations/${organizationId}/projects/${projectId}/members`,
+    );
+  },
+  organizationProjectAssignments(organizationId: string) {
+    return api.get<OrganizationProjectAssignmentsOverview>(
+      `/organizations/${organizationId}/project-member-assignments`,
+    );
+  },
+  saveMemberProjectAssignments(
+    organizationId: string,
+    memberId: string,
+    input: SaveMemberProjectAssignmentsInput,
+  ) {
+    return api.put<
+      OrganizationProjectAssignment[],
+      SaveMemberProjectAssignmentsInput
+    >(
+      `/organizations/${organizationId}/project-members/${memberId}/assignments`,
+      input,
     );
   },
   assignMember(

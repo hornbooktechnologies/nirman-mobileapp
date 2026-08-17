@@ -19,8 +19,8 @@ export default function ProtectedLayout() {
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="project-detail" />
       <Stack.Screen name="workers" />
-      <Stack.Screen name="workflows" />
-      <Stack.Screen name="design-system" />
+      <Stack.Screen name="team" />
+      <Stack.Screen name="members" />
       <Stack.Screen name="menu" />
     </Stack>
   );

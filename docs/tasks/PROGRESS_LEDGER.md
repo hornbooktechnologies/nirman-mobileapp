@@ -11,13 +11,13 @@ AI agents must update this file after every approved contract, implementation sl
 Current gate:
 
 ```text
-Workers independent MVP source and automated gates are complete. Final module verification is blocked on the owner decision for active assignments during worker deactivation; live role/scope smoke remains approval-gated.
+Mobile customer foundation implementation now covers Organization Members, projects, Project Team permissions, and Worker assignment parity. Authenticated physical-device role verification remains the gate; Workers retains its independent deactivation decision.
 ```
 
 Next recommended task:
 
 ```text
-Choose the Workers deactivation lifecycle rule, implement it, rerun Workers gates, and approve disposable-data role/scope smoke before marking the module verified.
+Run the authenticated Expo physical-device matrix for Builder Owner, Contractor Member, Site Supervisor, and restricted roles before approving another operational module.
 ```
 
 ## 3. Completed Path
@@ -58,6 +58,8 @@ Choose the Workers deactivation lifecycle rule, implement it, rerun Workers gate
 | 32 | Expo Go invitation email button | implementation_complete_device_confirmation_pending | HTML `Open Mobile App` button plus optional local `EXPO_GO_PROJECT_URL` and installed-app scheme fallback | API/mobile checks, generated HTML/link probes, diff check, and API/web/Metro HTTP 200 passed; no invitation or email was created during verification |
 | 33 | Owner activation login prefill and identity reuse | implementation_complete_runtime_pending | optional existing-account acceptance password, automatic second-membership activation, web/mobile Login redirect with invited email | Static and pure service checks passed; no invitation, membership, organization, user, seed, migration, or other DB write during verification |
 | 34 | Workers vertical-slice reconciliation and completion | partial_owner_decision | shared/API/web/mobile corrections, API tests, `docs/modules/construction/workers/STATUS.md`, `REVIEW.md` | Shared/API/web/mobile gates and API unit/E2E pass; no DB mutation; deactivation lifecycle decision remains |
+| 35 | Mobile customer-product refocus and implementation plan | implementation_complete_plan_review | approved internal Contractor membership decision, real-data permission-aware Expo shell, `mobile-customer-experience-implementation-plan.md` | Mobile type-check and non-mutating source checks passed; no DB operation; device/role matrix pending |
+| 36 | Mobile customer foundation parity | implementation_complete_device_verification_pending | mobile Organization Members, subscriptions capacity, project create/edit, Draft Team access, member permissions, and Worker assignment lifecycle | Shared/API/mobile static checks and 57 API tests passed; Expo web export timed out without output; no database write; authenticated physical-device matrix pending |
 
 ## 4. Verification Commands Recorded
 
@@ -134,7 +136,7 @@ Custom-role lifecycle management now includes editing role details and deleting 
 
 - Authentication beyond the approved email/password-first Owner activation: whether and when to add OTP.
 - Mobile refresh strategy.
-- External Contractor collaboration model.
+- Cross-organization Contractor project sharing remains deferred; the MVP internal `Contractor Member` model is resolved.
 - Organization-scoped custom-role persistence and migration design.
 - Permission override scope for member/project grants and denials.
 - Active organisation/project persistence strategy.
@@ -154,11 +156,11 @@ Custom-role lifecycle management now includes editing role details and deleting 
 For the next AI chat:
 
 ```text
-Read docs/modules/construction/workers/STATUS.md, REVIEW.md, CONTRACT.md, DECISIONS.md, docs/modules/MODULE_INDEX.md, docs/tasks/PROGRESS_LEDGER.md, and docs/tasks/current-task.md.
+Read MVP_REQUIREMENTS.md, docs/decisions/005-internal-contractor-membership.md, docs/tasks/mobile-customer-experience-implementation-plan.md, docs/modules/MODULE_INDEX.md, docs/tasks/PROGRESS_LEDGER.md, and docs/tasks/current-task.md.
 
-Obtain the owner decision for active assignments during worker deactivation. Implement only that lifecycle rule, rerun the recorded Workers gates, and request explicit approval before using disposable database records for the live role/scope matrix.
+Review and approve Mobile Slice 1: multi-organization switching. Implement it without starting later operational modules, then update the plan evidence and request approval for Slice 2 Members/Invitations.
 
-Do not begin Attendance, Wages, Kharchi, Audit, Offline Sync, or another operational module until Workers is verified or explicitly accepted with the dependency boundary.
+Do not begin Attendance, Wages, Kharchi, Materials, Expenses, Progress, Gallery, Sales, Audit, Offline Sync, or another operational module during these foundation slices.
 ```
 
 On 2026-08-10, primary Owner onboarding gained additive post-commit SMTP delivery. The email contains the organization and Owner access context, login email, expiry, and both existing activation links, but no password. Missing SMTP configuration returns `MANUAL`; SMTP failure returns `EMAIL_FAILED`; neither condition rolls back organization creation or removes the manual links. Shared/API/web static checks and pure runtime fallback/template probes passed. No migration, seed, organization creation, database write, or real outbound email was run.
@@ -172,3 +174,61 @@ Live email delivery was subsequently diagnosed against the configured Gmail SMTP
 The onboarding email's mobile target is now rendered as an `Open Mobile App` button. In the current local environment it uses Expo Go's `exp://192.168.1.33:8081/--/activate?token=...` route; without `EXPO_GO_PROJECT_URL`, the existing `nirmansite://` installed-app scheme remains active. Metro, API, and web were all reachable after the API restart, while a physical-device button tap remains the final confirmation.
 
 Primary Owner activation now sends both successful client paths directly to Login with the invited email pre-filled. New or inactive identities must create a password; an existing active identity accepts the linked additional organization membership using the invitation token without re-entering or changing its password, then signs in with that existing password. Acceptance remains token-bound, expiring, single-use, and non-authenticating. No database write was performed while implementing or statically verifying this behavior.
+
+On 2026-08-12, the product owner resolved the Contractor model: Builders invite hired individuals as internal `Contractor Member` memberships, while independently subscribed Contractors own isolated `CONTRACTOR` organizations. The Expo customer shell was then cleaned of demo routes, fake data, and dead navigation. Home and Project now use only live session/project data and permission-backed routes. The mobile implementation plan sequences organization switching, member invitations, project assignments, Workers completion, role-aware Home, and device/authorization verification. No database operation was performed.
+
+The supporting web workspace now treats INR as fixed MVP configuration instead of an arbitrary onboarding input. Project list/create/detail use the authenticated active organization: single-active-membership users see organization context without a page filter, while users with multiple ACTIVE memberships in ACTIVE organizations switch once in the shared header. Organization create/update DTOs reject non-INR currency values. Web/API type-checks, the web production build, 11 focused organization tests, DTO validation probes, and `git diff --check` passed. No database, seed, or migration command was run.
+
+## 2026-08-14: Project Team, Project Grants, And Subscription Capacity
+
+The Project Team and subscription contracts were approved and implemented. Project assignments now support `ROLE_DEFAULT` compatibility or `CUSTOM` permission grants intersected with the Organization Role ceiling. Web has a dedicated Project Team route with Members/Workers tabs, Project-specific permission editors, responsibility/date/status editing, and shared ellipsis row actions. Member-to-many-Projects and Project-to-many-Members transaction boundaries both exist.
+
+Builder Supervisor is now a distinct Builder-side oversight role. Contractor Member is an operational assigned-Project ceiling and can be narrowed by the Project permission matrix. Broad Organization invitation authority was not added to Contractor Member.
+
+Subscription persistence and Platform administration now support configurable active-Project, active-Member, and storage capacity without hard-coded commercial plan values. Active Project and invitation-activation capacity checks lock the Organization subscription row transactionally. Workers remain unlimited, and storage enforcement remains deferred to Files And Media accounting.
+
+Migration `004_project_permissions_subscriptions.sql` was applied to `vishwlt9_nirmansite`; read-only status reported 5 local, 5 applied, 0 pending, 0 draft, and current. The guarded mysql2 seed completed. Live verification confirmed the new tables, nine existing Project assignments preserved as `ROLE_DEFAULT`, the Builder Supervisor permission foundation, the operational Contractor Member ceiling, and zero seeded commercial plans.
+
+Static/runtime verification: shared build, API/web/mobile type-checks, 50 API tests, web production build, `git diff --check`, live API/database health, and route registration passed. The in-app browser had no available backend, so authenticated visual verification did not run. Physical-device verification and disposable-data authorization matrices remain outstanding.
+
+## 2026-08-17: Project Team Assignment UX And Date Enforcement
+
+The Project Team Members flow now distinguishes searching the assigned roster from finding
+an Organization Member to assign. The assignment modal has a searchable member picker,
+available/already-assigned context, visible Start/End Date labels, clearer access-mode and
+preset wording, human-readable permission actions, a selected-access summary, and a Draft
+Project warning. Assignment configuration is progressively disclosed after selecting a
+member.
+
+Optional assignment start/end dates now participate in Project discovery and authorization;
+an `ACTIVE` assignment outside its date window no longer grants access. Site Supervisor was
+narrowed from the Contractor Member ceiling to Project/Team read plus Worker
+read/create/update/Project-allocation. The guarded seed synchronized this role on the
+configured remote development database, and a read-only query confirmed the intended nine
+permissions.
+
+Verification passed: API/web type-checks, 12 API suites with 54 tests, API and web production
+builds, migration status current, `git diff --check`, and restarted API health with database
+status `ok`. The in-app browser again reported no available browser backend, so an authenticated
+visual click-through remains outstanding.
+
+## 2026-08-17: Worker Row Assignment And Base Daily Rate
+
+The Project Team Workers tab now lists active Organization workers rather than only the
+current Project roster. Assigned rows show assignment state and retain edit/end operations
+in the ellipsis menu; unassigned rows expose a visible `Assign` CTA. The Assign dialog asks
+only for the start date. Assignment editing asks only for start/end dates. Search covers the
+Organization worker list, and scheduled future assignments remain classified as Assigned in
+this management view.
+
+Migration `005_worker_base_daily_rate.sql` added the optional Worker-master
+`base_daily_rate` and backfilled it from each Worker's latest available assignment rate.
+Worker create/edit owns trade and base daily rate. New Project assignments copy that rate into
+the existing assignment snapshot while storing no duplicate role label. Historical assignment
+role/rate values remain intact for future Attendance/Wages compatibility.
+
+Verification passed: shared build; API/web/mobile type-checks; 12 API suites with 57 tests;
+API and web production builds; migration status current with 6 local and 6 applied migrations;
+live read-only rate-backfill verification; restarted API/database health; and `git diff --check`.
+The in-app browser reported no available backend, so authenticated visual verification did not
+run.

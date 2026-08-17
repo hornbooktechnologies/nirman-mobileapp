@@ -1,18 +1,16 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Archive, RotateCcw, UsersRound } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Card, PageHeader, StatusBadge } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
-import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ProjectFormFields,
   emptyProjectForm,
   normalizeProjectInput,
 } from "@/features/projects/components/project-form-fields";
-import { ProjectMembersPanel } from "@/features/projects/components/project-members-panel";
-import { ProjectWorkersPanel } from "@/features/workers/components/project-workers-panel";
 import {
   useArchiveProject,
   useProject,
@@ -31,22 +29,13 @@ const statusTone = {
 
 export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const organizations = useOrganizations();
-  const [organizationId, setOrganizationId] = useState(
-    searchParams.get("organizationId") ?? "",
-  );
+  const { activeOrganizationId } = useAuth();
+  const organizationId = activeOrganizationId ?? "";
   const project = useProject(organizationId, projectId);
   const updateProject = useUpdateProject(organizationId, projectId);
   const archiveProject = useArchiveProject(organizationId, projectId);
   const restoreProject = useRestoreProject(organizationId, projectId);
   const [form, setForm] = useState<ProjectInput>(emptyProjectForm);
-
-  useEffect(() => {
-    if (!organizationId && organizations.data?.[0]) {
-      setOrganizationId(organizations.data[0].id);
-    }
-  }, [organizationId, organizations.data]);
 
   useEffect(() => {
     if (!project.data) return;
@@ -78,7 +67,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
       <div className="space-y-4">
         <PageHeader
           title={project.data?.name ?? "Project"}
-          description="Review project setup, lifecycle status, and member assignment."
+          description="Review project setup and lifecycle status."
           onBack={() => router.push("/projects")}
           actions={
             <div className="flex flex-wrap gap-2">
@@ -87,6 +76,14 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
                   {project.data.status}
                 </StatusBadge>
               ) : null}
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/projects/${projectId}/team`)}
+                disabled={!organizationId}
+              >
+                <UsersRound size={16} />
+                Team
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => archiveProject.mutate()}
@@ -108,7 +105,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         />
 
         {!organizationId ? (
-          <Card className="text-[13px] text-body">Select an organization from Projects first.</Card>
+          <Card className="text-[13px] text-body">No active organization is available.</Card>
         ) : project.isLoading ? (
           <Card className="text-[13px] text-body">Loading project</Card>
         ) : project.isError ? (
@@ -129,14 +126,6 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
                 </form>
               </PermissionGuard>
             </Card>
-
-            <PermissionGuard permission="project-members:read">
-              <ProjectMembersPanel organizationId={organizationId} projectId={projectId} />
-            </PermissionGuard>
-
-            <PermissionGuard permission="workers:read">
-              <ProjectWorkersPanel organizationId={organizationId} projectId={projectId} />
-            </PermissionGuard>
           </>
         )}
       </div>

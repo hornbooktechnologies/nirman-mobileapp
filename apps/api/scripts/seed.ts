@@ -100,15 +100,36 @@ const PROJECT_MANAGER_PERMISSIONS = [
 
 const CONTRACTOR_MEMBER_PERMISSIONS = [
   'organizations:read',
+  'members:read',
+  'projects:read',
+  'projects:assign',
+  'projects:switch',
+  'project-members:read',
+  'project-members:assign',
+  'project-members:update',
+  'project-members:unassign',
+  ...WORKER_PERMISSIONS,
+] as const satisfies readonly PermissionKey[];
+
+const BUILDER_SUPERVISOR_PERMISSIONS = [
+  'organizations:read',
+  'members:read',
   'projects:read',
   'projects:switch',
+  'project-members:read',
   'workers:read',
 ] as const satisfies readonly PermissionKey[];
 
 const SITE_SUPERVISOR_PERMISSIONS = [
-  ...CONTRACTOR_MEMBER_PERMISSIONS,
+  'organizations:read',
+  'members:read',
+  'projects:read',
+  'projects:switch',
+  'project-members:read',
+  'workers:read',
   'workers:create',
   'workers:update',
+  'workers:assign-project',
 ] as const satisfies readonly PermissionKey[];
 
 const SALES_USER_PERMISSIONS = [
@@ -435,10 +456,16 @@ const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     permissions: PROJECT_MANAGER_PERMISSIONS,
   },
   {
+    name: 'Builder Supervisor',
+    description:
+      'Builder-side assigned-project oversight and verification foundation',
+    permissions: BUILDER_SUPERVISOR_PERMISSIONS,
+  },
+  {
     name: 'Contractor Member',
     legacyNames: ['Contractor'],
     description:
-      'Assigned-project Contractor template with read-only Workers access by default',
+      'Assigned-project operational Contractor ceiling, narrowed by Project grants',
     permissions: CONTRACTOR_MEMBER_PERMISSIONS,
   },
   {

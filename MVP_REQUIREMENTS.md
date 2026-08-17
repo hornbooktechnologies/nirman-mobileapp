@@ -12,7 +12,7 @@
 >
 > **Status:** Requirements baseline for phase planning
 >
-> **Last updated:** 2026-08-10
+> **Last updated:** 2026-08-13
 
 ---
 
@@ -83,6 +83,23 @@ The following decisions are approved for NirmanSite MVP planning and contracts:
 7. Customer organisation types are `BUILDER` and `CONTRACTOR`.
 8. Platform Super Admin is the NirmanSite product/platform owner role, not a customer construction operations actor.
 9. Platform Super Admin receives platform permissions, not normal module permissions such as `workers:*`, `attendance:*`, `kharchi:*`, `wages:*`, or `leads:*`, by default. Any support access to customer data must be separately approved, scoped, and audited.
+
+### 1.5 Approved subscription and commercial-launch alignment
+
+`docs/decisions/006-subscription-capacity-supervisor-commercial-provisioning.md` is the approved product decision for initial subscription packaging, Supervisor availability, Builder Supervisor responsibility, and commercial provisioning.
+
+For MVP planning:
+
+- a Subscription belongs to a `BUILDER` or `CONTRACTOR` Organization; customers purchase Organization capacity, not roles;
+- Operating Profiles are working/responsibility presets, not pricing plans;
+- Builder Supervisor is a distinct Builder-side supervision/verification responsibility and is not equivalent to a Contractor-side Site Supervisor;
+- every paid Organization may use an appropriate Supervisor responsibility without buying it as a premium role;
+- every initial paid plan includes all core MVP modules as those modules are implemented and released;
+- initial plan differences are primarily active-Project capacity, active login-Member capacity, storage, and Subscription validity/status;
+- Workers are unlimited for the initial plan model, are not login Members, and do not consume Member seats;
+- launch pricing is not raw usage-based billing, although NirmanSite may observe usage internally for future evidence-based packaging;
+- initial sales and provisioning are manually assisted through a public enquiry, NirmanSite team review, Platform Super Admin plan/Organization setup, and the approved Owner invitation flow;
+- future capacity enforcement must preserve existing operational, financial, Worker, and historical data.
 
 ---
 
@@ -260,7 +277,7 @@ A Builder organisation may:
 
 - own multiple projects;
 - manage projects directly;
-- invite Contractors, Supervisors, Sales Users, and Admin users;
+- invite individual Contractors as internal `Contractor Member` memberships, plus Supervisors, Sales Users, and Admin users;
 - configure approval responsibilities;
 - view all project and sales activity within the organisation.
 
@@ -272,7 +289,9 @@ An independent Contractor organisation may:
 - manage workers, attendance, wages, Kharchi, materials, expenses, and progress;
 - operate without external approval;
 - invite Supervisors or other staff;
-- later collaborate with Builder organisations through project relationships.
+- also hold a separate `Contractor Member` membership when the same person is hired by a Builder organization.
+
+For MVP, Builder/Contractor collaboration uses internal membership: the Builder invites the hired person into the Builder organization as a `Contractor Member` and assigns that membership to Builder-owned projects. A separately subscribed Contractor keeps an independent `CONTRACTOR` organization. Cross-organization project linking and automatic staff sharing are deferred.
 
 ## 5.2 Organisation owner
 
@@ -289,36 +308,21 @@ The Owner:
 
 ## 5.3 Operating profiles
 
-The system should offer predefined profiles to simplify setup.
+The system should offer predefined working/responsibility configurations to simplify setup. These configurations are not Subscription Plans and do not determine price.
 
-### Profile A — Independent Contractor
+Approved business/workflow combinations:
 
-- Contractor owns workspace.
-- Contractor has direct access to operational modules.
-- No Builder approval is required.
-- Expenses and materials are recorded directly.
+- Self-Managed Builder.
+- Builder + Builder Supervisor.
+- Builder + Contractor.
+- Builder + Builder Supervisor + Contractor.
+- Builder + Builder Supervisor + Contractor + Site Supervisor.
+- Independent Contractor.
+- Independent Contractor + Site Supervisor.
 
-### Profile B — Self-managed Builder
+Builder Supervisor represents the Builder for supervision, verification, and delegated decisions. Site Supervisor normally performs daily field/site execution. Verification and final commercial approval are separate responsibilities.
 
-- Builder manages workers and site work personally.
-- Builder has access to all required operational modules.
-- Approval flows are simplified where no separate approver exists.
-
-### Profile C — Builder + Contractor
-
-- Contractor manages site operations.
-- Builder has oversight and final approval where configured.
-- Contractor may manage workers, attendance, Kharchi, materials, expenses, and progress.
-
-### Profile D — Builder + Contractor + Supervisor
-
-- Supervisor performs daily entries.
-- Contractor performs first-level review or approval where configured.
-- Builder performs final approval where configured.
-
-### Profile E — Custom
-
-- Organisation Owner configures roles, permissions, project assignments, and approval responsibilities.
+The current implemented Operating Profile enum contains fewer compatibility values. Exact mapping of these approved combinations to profile metadata, responsibilities, role templates, permissions, and project-level configuration requires a later approved contract; this requirements update does not change the enum or implementation.
 
 ## 5.4 Responsibility configuration
 
@@ -587,6 +591,8 @@ The final authentication mechanism must be decided before contract implementatio
 
 ## 8.3 Owner onboarding flow
 
+For the initial commercial release, the approved launch path is the manually assisted Platform-provisioned flow in section 8.3.1. The direct self-service registration journey below is retained only as a future concept and is deferred until a later approved commercial-onboarding decision.
+
 ```text
 Register
 → Verify identity
@@ -638,6 +644,8 @@ Rules:
 - default currency = INR;
 - timezone = Asia/Kolkata;
 - status.
+
+For MVP, `INR` is fixed organization configuration rather than a free-text onboarding choice. Customer workspace pages use the authenticated active organization. A single-active-membership user sees that organization as context without a selector; an identity with multiple ACTIVE memberships in ACTIVE organizations switches organization once at workspace level rather than filtering each project page independently.
 
 ## 8.5 Minimum project setup
 
@@ -2319,10 +2327,13 @@ These decisions must be resolved during phase planning or module specification:
 11. Whether worker import is included.
 12. Object storage provider.
 13. Offline database/sync library for Expo compatibility.
-14. Whether Builder organisation can invite an external Contractor organisation in MVP or only create Contractor members internally.
-15. Exact subscription billing behavior for MVP.
+14. Exact Subscription plan names, prices, capacity values, renewal/expiry behavior, storage overage behavior, and future premium packaging within the model approved by Decision 006.
 
 Until resolved, AI agents must not hard-code irreversible assumptions.
+
+Resolved operating-model decision: Builder organizations invite hired Contractors as internal `Contractor Member` memberships for MVP. Separately subscribed Contractors own independent `CONTRACTOR` organizations, and one identity may hold different memberships in both. Cross-organization project linking is deferred.
+
+Resolved commercial-model decision: initial paid plans include all core MVP modules and differ primarily by Organization capacity; Workers are unlimited and excluded from login-Member capacity; roles and Operating Profiles are not premium products; initial provisioning is manually assisted. Exact commercial values and lifecycle behavior remain open under `docs/decisions/006-subscription-capacity-supervisor-commercial-provisioning.md`.
 
 ---
 

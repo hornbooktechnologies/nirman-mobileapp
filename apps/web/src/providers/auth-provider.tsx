@@ -50,6 +50,7 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
+  activeOrganizationId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   setSession: (session: {
@@ -67,6 +68,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const accessTokenRef = useRef<string | null>(null);
 
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const storeActiveOrganization = useCallback((organizationId: string | null) => {
+    setActiveOrganizationId(organizationId);
     if (typeof window === "undefined") return;
     if (organizationId) {
       window.localStorage.setItem(ACTIVE_ORGANIZATION_STORAGE_KEY, organizationId);
@@ -203,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       accessToken,
+      activeOrganizationId,
       isAuthenticated: Boolean(user && accessToken),
       isLoading,
       setSession,
@@ -212,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [
       accessToken,
+      activeOrganizationId,
       clearSession,
       hasPermission,
       isLoading,

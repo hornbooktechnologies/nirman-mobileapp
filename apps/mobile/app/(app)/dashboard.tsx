@@ -1,4 +1,4 @@
-import { DashboardScreen } from '../../src/features/design-system/mobile-screens';
+import { DashboardScreen } from '../../src/features/home/customer-screens';
 
 export default function DashboardRoute() {
   return <DashboardScreen />;

@@ -39,6 +39,12 @@ type RosterRow = WorkerRow & {
   assignment_ended_at: Date | string | null;
 };
 
+type AssignmentInsertInput = {
+  dailyRate?: number | string | null;
+  startsOn?: string | null;
+  endsOn?: string | null;
+};
+
 function normalizeMobile(mobile?: string | null) {
   const digits = mobile?.replace(/\D/g, "") ?? "";
   if (!digits) return null;
@@ -82,6 +88,8 @@ function mapWorkerRow(
     workerCode: row.worker_code,
     name: row.name,
     trade: row.trade,
+    baseDailyRate:
+      row.base_daily_rate === null ? null : String(row.base_daily_rate),
     mobileNumber: row.mobile_number,
     notes: row.notes,
     status: row.status,
@@ -209,9 +217,13 @@ export class WorkersRepository {
       "wpa.project_id = ?",
       "w.status = 'ACTIVE'",
       "wpa.status = 'ACTIVE'",
-      "wpa.starts_on <= CURRENT_DATE()",
-      "(wpa.ends_on IS NULL OR wpa.ends_on >= CURRENT_DATE())",
     ];
+    if (query.assignmentScope !== "ALL_ACTIVE") {
+      where.push(
+        "wpa.starts_on <= CURRENT_DATE()",
+        "(wpa.ends_on IS NULL OR wpa.ends_on >= CURRENT_DATE())",
+      );
+    }
     if (query.status) {
       where.push("w.status = ?");
       params.push(query.status);
@@ -394,14 +406,15 @@ export class WorkersRepository {
           );
           await this.database.execute(
             `INSERT INTO workers
-              (id, organization_id, worker_code, name, trade, mobile_number, notes, created_by, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              (id, organization_id, worker_code, name, trade, base_daily_rate, mobile_number, notes, created_by, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               workerId,
               organizationId,
               workerCode,
               dto.name.trim(),
               dto.trade.trim(),
+              dto.dailyRate ?? null,
               normalizeMobile(dto.mobileNumber),
               dto.notes?.trim() || null,
               actorId,
@@ -416,7 +429,6 @@ export class WorkersRepository {
               dto.projectId,
               workerId,
               {
-                roleLabel: dto.roleLabel,
                 dailyRate: dto.dailyRate,
                 startsOn: dto.startsOn,
               },
@@ -448,6 +460,10 @@ export class WorkersRepository {
       [
         ["name", dto.name?.trim()],
         ["trade", dto.trade?.trim()],
+        [
+          "base_daily_rate",
+          dto.dailyRate === undefined ? undefined : (dto.dailyRate ?? null),
+        ],
         [
           "mobile_number",
           dto.mobileNumber === undefined
@@ -501,13 +517,16 @@ export class WorkersRepository {
     actorId: string,
   ) {
     const inserted = await this.database.transaction(async (connection) => {
-      await this.database.query<{ id: string } & WorkerRow>(
-        `SELECT id FROM workers
+      const lockedWorkers = await this.database.query<
+        { id: string; base_daily_rate: string | null } & WorkerRow
+      >(
+        `SELECT id, base_daily_rate FROM workers
         WHERE organization_id = ? AND id = ?
         FOR UPDATE`,
         [organizationId, workerId],
         connection,
       );
+      if (!lockedWorkers[0]) return false;
       const existing = await this.database.query<
         { id: string } & WorkerAssignmentRow
       >(
@@ -522,7 +541,11 @@ export class WorkersRepository {
         organizationId,
         projectId,
         workerId,
-        dto,
+        {
+          startsOn: dto.startsOn,
+          endsOn: dto.endsOn,
+          dailyRate: lockedWorkers[0].base_daily_rate,
+        },
         actorId,
         connection,
       );
@@ -541,10 +564,6 @@ export class WorkersRepository {
   ) {
     const entries = (
       [
-        [
-          "role_label",
-          dto.roleLabel === undefined ? undefined : (dto.roleLabel ?? null),
-        ],
         ["starts_on", dto.startsOn],
         [
           "ends_on",
@@ -665,7 +684,7 @@ export class WorkersRepository {
     organizationId: string,
     projectId: string,
     workerId: string,
-    dto: AssignWorkerDto,
+    dto: AssignmentInsertInput,
     actorId: string,
     connection?: DatabaseConnection,
   ) {
@@ -678,7 +697,7 @@ export class WorkersRepository {
         organizationId,
         projectId,
         workerId,
-        dto.roleLabel?.trim() || null,
+        null,
         dto.dailyRate ?? null,
         dto.startsOn ?? new Date().toISOString().slice(0, 10),
         dto.endsOn ?? null,
@@ -768,6 +787,7 @@ export class WorkersRepository {
       ${alias}.worker_code,
       ${alias}.name,
       ${alias}.trade,
+      ${alias}.base_daily_rate,
       ${alias}.mobile_number,
       ${alias}.notes,
       ${alias}.status,

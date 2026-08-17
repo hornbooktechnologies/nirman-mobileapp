@@ -10,6 +10,7 @@ import type { CreateOrganizationDto } from "./dto/create-organization.dto";
 import { OrganizationOnboardingRepository } from "./organization-onboarding.repository";
 import { OrganizationOnboardingService } from "./organization-onboarding.service";
 import type { InvitationRow } from "./types/organization-onboarding.types";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 
 describe("OrganizationOnboardingService", () => {
   const onboardingRepo = {
@@ -21,9 +22,16 @@ describe("OrganizationOnboardingService", () => {
   const emailService = {
     sendOrganizationOwnerInvitation: jest.fn(),
   } as unknown as jest.Mocked<EmailService>;
+  const subscriptions = {
+    withinMemberCapacity: jest.fn(
+      async (_organizationId: string, operation: (connection: never) => Promise<unknown>) =>
+        operation(undefined as never),
+    ),
+  } as unknown as jest.Mocked<SubscriptionsService>;
   const service = new OrganizationOnboardingService(
     onboardingRepo,
     emailService,
+    subscriptions,
   );
   const platformActor: AuthenticatedUser = {
     id: "platform-user-id",

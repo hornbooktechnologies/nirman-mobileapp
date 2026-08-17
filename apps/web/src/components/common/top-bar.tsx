@@ -1,11 +1,15 @@
 "use client";
 
-import { LogOut, UserCircle } from "lucide-react";
+import { Building2, LogOut, UserCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { IconButton } from "@/components/ui";
+import { IconButton, Select } from "@/components/ui";
 import { getRouteTitle } from "@/config/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { authService } from "@/features/auth/services/auth.service";
+import {
+  useOrganizations,
+  useSwitchOrganization,
+} from "@/features/organizations/hooks/use-organizations";
 
 export interface TopBarProps {
   isMenuOpen?: boolean;
@@ -16,7 +20,23 @@ export interface TopBarProps {
 export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, clearSession } = useAuth();
+  const { user, activeOrganizationId, clearSession } = useAuth();
+  const organizations = useOrganizations(Boolean(activeOrganizationId));
+  const switchOrganization = useSwitchOrganization();
+  const activeOrganization = organizations.data?.find(
+    (organization) => organization.id === activeOrganizationId,
+  );
+
+  function handleOrganizationChange(organizationId: string) {
+    if (!organizationId || organizationId === activeOrganizationId) return;
+    switchOrganization.mutate(organizationId, {
+      onSuccess: () => {
+        if (pathname.startsWith("/projects/")) {
+          router.replace("/projects");
+        }
+      },
+    });
+  }
 
   async function handleLogout() {
     await authService.logout().catch(() => undefined);
@@ -51,6 +71,27 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
 
       {/* Right: user identity + logout */}
       <div className="flex items-center gap-2">
+        {organizations.data?.length === 1 && activeOrganization ? (
+          <div className="hidden max-w-52 items-center gap-2 rounded-sub border border-hairline bg-sunken/60 px-2.5 py-1.5 text-[11px] font-medium text-body md:flex">
+            <Building2 size={14} className="shrink-0 text-muted" aria-hidden="true" />
+            <span className="truncate">{activeOrganization.name}</span>
+          </div>
+        ) : organizations.data && organizations.data.length > 1 ? (
+          <Select
+            value={activeOrganizationId ?? ""}
+            onChange={(event) => handleOrganizationChange(event.target.value)}
+            disabled={switchOrganization.isPending}
+            aria-label="Active organization"
+            className="hidden w-52 md:block"
+          >
+            {organizations.data.map((organization) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
         {/* User meta — hidden on mobile */}
         <div className="hidden min-w-0 text-right sm:block">
           <p className="truncate text-[12.5px] font-semibold text-body">{user?.name}</p>

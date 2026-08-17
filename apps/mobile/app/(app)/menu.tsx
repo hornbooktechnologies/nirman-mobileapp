@@ -1,4 +1,4 @@
-import { MenuScreen } from '../../src/features/design-system/mobile-screens';
+import { MenuScreen } from '../../src/features/home/customer-screens';
 
 export default function MenuRoute() {
   return <MenuScreen />;

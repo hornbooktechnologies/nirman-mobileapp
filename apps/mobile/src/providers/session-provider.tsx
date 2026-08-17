@@ -40,6 +40,7 @@ type SessionContextValue = {
   signIn: (credentials: SignInCredentials) => Promise<void>;
   refreshSession: () => Promise<void>;
   switchActiveProject: (projectId: string) => Promise<void>;
+  switchActiveOrganization: (organizationId: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -170,11 +171,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
       if (!session) return;
       const project = session.projectAccess.projects.find(
         (candidate) =>
-          candidate.id === projectId && candidate.status === 'ACTIVE',
+          candidate.id === projectId &&
+          (candidate.status === 'ACTIVE' ||
+            candidate.status === 'DRAFT' ||
+            candidate.status === 'ON_HOLD'),
       );
 
       if (!project) {
-        throw new Error('Project is not available for field operations');
+        throw new Error('Project is not available as a working context');
       }
 
       const nextSession: MobileSession = {
@@ -193,6 +197,35 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [session],
   );
 
+  const switchActiveOrganization = useCallback(
+    async (organizationId: string) => {
+      if (!session) return;
+      const membership = session.memberships.find(
+        (candidate) =>
+          candidate.organizationId === organizationId &&
+          candidate.memberStatus === 'ACTIVE',
+      );
+      if (!membership) {
+        throw new Error('Organization membership is not active');
+      }
+      await apiRequest<ApiEnvelope<{ activeOrganizationId: string }>>(
+        `/organizations/${organizationId}/switch`,
+        { method: 'POST' },
+        { accessToken: session.accessToken },
+      );
+      const response = await apiRequest<ApiEnvelope<SessionResponseData>>(
+        `/auth/session?organizationId=${encodeURIComponent(organizationId)}`,
+        {},
+        { accessToken: session.accessToken },
+      );
+      const nextSession = mergeSessionPayload(session, response.data, null);
+      await saveStoredSession(nextSession);
+      await saveStoredActiveProjectId(nextSession.activeProjectId);
+      setSession(nextSession);
+    },
+    [session],
+  );
+
   const signOut = useCallback(async () => {
     await clearStoredSession();
     setSession(null);
@@ -206,6 +239,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signIn,
       refreshSession,
       switchActiveProject,
+      switchActiveOrganization,
       signOut,
     }),
     [
@@ -215,6 +249,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signIn,
       refreshSession,
       switchActiveProject,
+      switchActiveOrganization,
       signOut,
     ],
   );

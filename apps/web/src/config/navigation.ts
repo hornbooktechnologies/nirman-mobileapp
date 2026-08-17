@@ -6,7 +6,9 @@ import {
   Settings,
   ShieldCheck,
   UserCircle,
+  UsersRound,
   Users,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +40,18 @@ export const navGroups: NavGroup[] = [
         href: "/organizations",
         icon: Building2,
         permissionAnyOf: ["platform-organizations:read", "organizations:read"],
+      },
+      {
+        label: "Subscriptions",
+        href: "/subscriptions",
+        icon: CreditCard,
+        permission: "platform-subscriptions:read",
+      },
+      {
+        label: "Members",
+        href: "/members",
+        icon: UsersRound,
+        permission: "members:read",
       },
       { label: "Projects", href: "/projects", icon: HardHat, permission: "projects:read" },
       { label: "Workers", href: "/workers", icon: IdCard, permission: "workers:read" },

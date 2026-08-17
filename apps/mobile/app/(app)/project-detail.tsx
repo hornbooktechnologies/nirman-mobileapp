@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-import { ProjectDetailScreen } from '../../src/features/design-system/mobile-screens';
+import { ProjectDetailScreen } from '../../src/features/home/customer-screens';
 import { useSession } from '../../src/providers';
 
 export default function ProjectDetailRoute() {

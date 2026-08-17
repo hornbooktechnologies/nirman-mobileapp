@@ -6,6 +6,7 @@ import type {
   PermissionKey,
   ProjectAccessScope,
   ProjectStatus,
+  ProjectPermissionMode,
   UserStatus,
 } from '@nirman-app/shared';
 
@@ -55,6 +56,8 @@ export type MobileProjectSummary = {
   projectCode: string | null;
   status: ProjectStatus;
   roleLabel: string | null;
+  permissionMode: ProjectPermissionMode;
+  permissions: PermissionKey[];
   isDefault: boolean;
 };
 
@@ -165,28 +168,48 @@ export function resolveActiveProjectId(
   preferredProjectId?: string | null,
 ) {
   const normalizedProjectAccess = normalizeProjectAccess(projectAccess);
-  const activeProjects = normalizedProjectAccess.projects.filter((project) => project.status === 'ACTIVE');
+  const selectableProjects = normalizedProjectAccess.projects.filter(
+    (project) =>
+      project.status === 'ACTIVE' ||
+      project.status === 'DRAFT' ||
+      project.status === 'ON_HOLD',
+  );
 
-  if (preferredProjectId && activeProjects.some((project) => project.id === preferredProjectId)) {
+  if (
+    preferredProjectId &&
+    selectableProjects.some((project) => project.id === preferredProjectId)
+  ) {
     return preferredProjectId;
   }
 
   if (
     normalizedProjectAccess.activeProjectId &&
-    activeProjects.some((project) => project.id === normalizedProjectAccess.activeProjectId)
+    selectableProjects.some(
+      (project) => project.id === normalizedProjectAccess.activeProjectId,
+    )
   ) {
     return normalizedProjectAccess.activeProjectId;
   }
 
-  const defaultProject = activeProjects.find((project) => project.isDefault);
+  const defaultProject = selectableProjects.find((project) => project.isDefault);
   if (defaultProject) return defaultProject.id;
 
-  return activeProjects.length === 1 ? activeProjects[0].id : null;
+  const activeProject = selectableProjects.find(
+    (project) => project.status === 'ACTIVE',
+  );
+  if (activeProject) return activeProject.id;
+
+  return selectableProjects.length === 1 ? selectableProjects[0].id : null;
 }
 
 export function getActiveProject(session: MobileSession | null) {
   if (!session?.activeProjectId) return null;
   return normalizeProjectAccess(session.projectAccess).projects.find((project) => project.id === session.activeProjectId) ?? null;
+}
+
+export function getActiveProjectPermissions(session: MobileSession | null) {
+  const project = getActiveProject(session);
+  return project?.permissions ?? session?.permissions ?? [];
 }
 
 export function normalizeStoredSession(session: MobileSession): MobileSession {

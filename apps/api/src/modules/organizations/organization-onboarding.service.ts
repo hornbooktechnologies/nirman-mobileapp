@@ -21,6 +21,7 @@ import type {
   OrganizationOwnerInvitationPreview,
 } from "./types/organization-onboarding.types";
 import type { OrganizationEntity } from "./types/organizations.types";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 
 const INVITATION_TTL_HOURS = 48;
 @Injectable()
@@ -28,6 +29,7 @@ export class OrganizationOnboardingService {
   constructor(
     private readonly onboardingRepo: OrganizationOnboardingRepository,
     private readonly emailService: EmailService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async createOrganizationWithOwner(
@@ -240,9 +242,14 @@ export class OrganizationOnboardingService {
       passwordHash = await bcrypt.hash(dto.password, 12);
     }
 
-    const accepted = await this.onboardingRepo.acceptInvitation(
-      invitation.id,
-      passwordHash,
+    const accepted = await this.subscriptions.withinMemberCapacity(
+      invitation.organization_id,
+      (connection) =>
+        this.onboardingRepo.acceptInvitation(
+          invitation.id,
+          passwordHash,
+          connection,
+        ),
     );
     if (!accepted) {
       throw new ConflictException(

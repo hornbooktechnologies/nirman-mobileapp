@@ -2,7 +2,7 @@ import type {
   WorkerAssignmentStatus,
   WorkerSortKey,
   WorkerStatus,
-} from '../constants';
+} from "../constants";
 
 export type WorkerDuplicateCandidate = {
   id: string;
@@ -11,7 +11,7 @@ export type WorkerDuplicateCandidate = {
   trade: string;
   mobileNumber: string | null;
   status: WorkerStatus;
-  reason: 'MOBILE' | 'NAME';
+  reason: "MOBILE" | "NAME";
 };
 
 export type WorkerProjectAssignmentSummary = {
@@ -36,6 +36,7 @@ export type WorkerSummary = {
   workerCode: string;
   name: string;
   trade: string;
+  baseDailyRate: string | null;
   mobileNumber: string | null;
   notes: string | null;
   status: WorkerStatus;
@@ -77,13 +78,14 @@ export type ProjectWorkerRosterResponse = {
 
 export type WorkerListFilter = {
   search?: string;
-  status?: WorkerStatus | '';
+  status?: WorkerStatus | "";
   trade?: string;
   projectId?: string;
+  assignmentScope?: "CURRENT" | "ALL_ACTIVE";
   page?: number;
   pageSize?: number;
   sortBy?: WorkerSortKey;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 };
 
 export type CreateWorkerInput = {
@@ -92,7 +94,6 @@ export type CreateWorkerInput = {
   mobileNumber?: string | null;
   notes?: string | null;
   projectId?: string | null;
-  roleLabel?: string | null;
   dailyRate?: string | number | null;
   startsOn?: string | null;
   acknowledgeDuplicateWarning?: boolean;
@@ -101,20 +102,18 @@ export type CreateWorkerInput = {
 export type UpdateWorkerInput = {
   name?: string;
   trade?: string;
+  dailyRate?: string | number | null;
   mobileNumber?: string | null;
   notes?: string | null;
   acknowledgeDuplicateWarning?: boolean;
 };
 
 export type AssignWorkerToProjectInput = {
-  roleLabel?: string | null;
-  dailyRate?: string | number | null;
   startsOn?: string | null;
   endsOn?: string | null;
 };
 
 export type UpdateWorkerProjectAssignmentInput = {
-  roleLabel?: string | null;
   startsOn?: string | null;
   endsOn?: string | null;
 };

@@ -34,7 +34,7 @@ Included MVP scope:
 - Organization-level worker master.
 - Project-level worker assignment.
 - System-generated organization-scoped worker code.
-- Daily-rate capture per assignment as an interim Workers MVP field.
+- Daily-rate capture on the Worker master, copied automatically into each new assignment as an interim Workers MVP snapshot.
 - Worker activation/deactivation.
 - Assignment start/end dates.
 - Duplicate warning by similar name/mobile.
@@ -91,7 +91,7 @@ Worker master: the organization-level record for a real worker.
 
 Worker code: a system-generated, organization-scoped, immutable code used for search, reports, and future Attendance, Wages, and Kharchi references. It is not supplied by the client.
 
-Worker project assignment: the project-level link that says a worker is active on a specific project during a date range, with project-specific rate and role/trade details.
+Worker project assignment: the project-level link that says a worker is active on a specific project during a date range. The standard assignment flow inherits the Worker trade and base daily rate instead of asking for duplicate values.
 
 Employment status: worker master lifecycle status, currently `ACTIVE` or `INACTIVE`.
 
@@ -160,13 +160,13 @@ Platform Support:
 
 Default role grants:
 
-| Role/profile | Default permissions | Scope |
-| --- | --- | --- |
-| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization, subject to project-access rules where project-specific data is requested |
-| Supervisor | `workers:read`, `workers:create`, `workers:update` | Assigned projects only; no default export, deactivation, or elevated rate changes |
-| Contractor | `workers:read` | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role grants |
-| Sales User | none | No Workers access by default |
-| Platform Super Admin / Platform Support | none as normal operational access | Support access must be separately approved, scoped, and audited |
+| Role/profile                                                      | Default permissions                                                                                                                                                                     | Scope                                                                                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization, subject to project-access rules where project-specific data is requested                       |
+| Supervisor                                                        | `workers:read`, `workers:create`, `workers:update`                                                                                                                                      | Assigned projects only; no default export, deactivation, or elevated rate changes                                |
+| Contractor                                                        | `workers:read`                                                                                                                                                                          | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role grants |
+| Sales User                                                        | none                                                                                                                                                                                    | No Workers access by default                                                                                     |
+| Platform Super Admin / Platform Support                           | none as normal operational access                                                                                                                                                       | Support access must be separately approved, scoped, and audited                                                  |
 
 ## D. Business Workflows
 
@@ -182,7 +182,7 @@ Starting condition:
 Action:
 
 - User opens current project worker list.
-- User enters name, trade/type, optional mobile number, optional notes, optional daily rate, and assignment start date.
+- User enters name, trade/type, optional mobile number, optional notes, optional base daily rate, and assignment start date.
 - System checks for similar existing workers in the organization.
 - If no confirmed existing worker is selected, system creates a worker master.
 - System generates a unique immutable `worker_code` inside the organization.
@@ -247,7 +247,9 @@ Starting condition:
 
 Action:
 
-- Actor selects an existing worker and creates an assignment with daily rate/start date.
+- Actor selects an existing worker from the Project Team table and creates an assignment with a start date.
+- The assignment automatically snapshots the Worker's base daily rate; the Worker trade remains the displayed work type.
+- The standard assignment flow does not ask for a separate Project role or daily rate.
 
 Validation:
 
@@ -272,7 +274,7 @@ Starting condition:
 
 Action:
 
-- Actor edits name, trade/type, mobile number, or notes.
+- Actor edits name, trade/type, base daily rate, mobile number, or notes.
 
 Validation:
 
@@ -297,7 +299,7 @@ Starting condition:
 
 Action:
 
-- Actor edits role label, start date, or end date.
+- Actor edits the assignment start date or end date. Legacy role labels remain readable for historical rows but are not collected by the standard UI.
 
 Validation:
 
@@ -410,23 +412,24 @@ Proposed SQL table: `workers`.
 
 Fields:
 
-| Field | Type | Required | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | varchar(36) | yes | generated UUID | Primary key |
-| `organization_id` | varchar(36) | yes | none | Tenant key, FK to `organizations.id` |
-| `worker_code` | varchar(40) | yes | generated | Organization-scoped immutable worker code; not client supplied |
-| `name` | varchar(160) | yes | none | Display name |
-| `trade` | varchar(80) | yes | none | Mason, helper, electrician, plumber, etc. |
-| `mobile_number` | varchar(20) | no | null | Normalized Indian mobile where possible |
-| `notes` | text | no | null | Internal note |
-| `status` | varchar(32) | yes | `ACTIVE` | `ACTIVE`, `INACTIVE` |
-| `created_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `updated_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `created_at` | datetime(3) | yes | current timestamp | |
-| `updated_at` | datetime(3) | yes | current timestamp | on update |
-| `deactivated_at` | datetime(3) | no | null | Set on deactivation |
-| `deactivated_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `client_created_id` | varchar(80) | no | null | Reserved for future offline write architecture; not used for Workers MVP offline writes |
+| Field               | Type          | Required | Default           | Notes                                                                                   |
+| ------------------- | ------------- | -------- | ----------------- | --------------------------------------------------------------------------------------- |
+| `id`                | varchar(36)   | yes      | generated UUID    | Primary key                                                                             |
+| `organization_id`   | varchar(36)   | yes      | none              | Tenant key, FK to `organizations.id`                                                    |
+| `worker_code`       | varchar(40)   | yes      | generated         | Organization-scoped immutable worker code; not client supplied                          |
+| `name`              | varchar(160)  | yes      | none              | Display name                                                                            |
+| `trade`             | varchar(80)   | yes      | none              | Mason, helper, electrician, plumber, etc.                                               |
+| `base_daily_rate`   | decimal(12,2) | no       | null              | Worker-level default copied into new Project assignments                                |
+| `mobile_number`     | varchar(20)   | no       | null              | Normalized Indian mobile where possible                                                 |
+| `notes`             | text          | no       | null              | Internal note                                                                           |
+| `status`            | varchar(32)   | yes      | `ACTIVE`          | `ACTIVE`, `INACTIVE`                                                                    |
+| `created_by`        | varchar(36)   | no       | null              | FK to inherited `user.id`                                                               |
+| `updated_by`        | varchar(36)   | no       | null              | FK to inherited `user.id`                                                               |
+| `created_at`        | datetime(3)   | yes      | current timestamp |                                                                                         |
+| `updated_at`        | datetime(3)   | yes      | current timestamp | on update                                                                               |
+| `deactivated_at`    | datetime(3)   | no       | null              | Set on deactivation                                                                     |
+| `deactivated_by`    | varchar(36)   | no       | null              | FK to inherited `user.id`                                                               |
+| `client_created_id` | varchar(80)   | no       | null              | Reserved for future offline write architecture; not used for Workers MVP offline writes |
 
 Uniqueness:
 
@@ -448,24 +451,24 @@ Proposed SQL table: `worker_project_assignments`.
 
 Fields:
 
-| Field | Type | Required | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | varchar(36) | yes | generated UUID | Primary key |
-| `organization_id` | varchar(36) | yes | none | Tenant key |
-| `project_id` | varchar(36) | yes | none | FK to `projects.id` with organization pairing |
-| `worker_id` | varchar(36) | yes | none | FK to `workers.id` |
-| `role_label` | varchar(120) | no | null | Site-specific label, if different from trade |
-| `daily_rate` | decimal(12,2) | no | null | Interim current assignment rate; required before wage generation |
-| `status` | varchar(32) | yes | `ACTIVE` | `ACTIVE`, `ENDED` |
-| `starts_on` | date | yes | current date | Assignment start |
-| `ends_on` | date | no | null | Assignment end |
-| `created_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `updated_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `created_at` | datetime(3) | yes | current timestamp | |
-| `updated_at` | datetime(3) | yes | current timestamp | on update |
-| `ended_at` | datetime(3) | no | null | Set when ended |
-| `ended_by` | varchar(36) | no | null | FK to inherited `user.id` |
-| `client_created_id` | varchar(80) | no | null | Reserved for future offline write architecture; not used for Workers MVP offline writes |
+| Field               | Type          | Required | Default           | Notes                                                                                              |
+| ------------------- | ------------- | -------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `id`                | varchar(36)   | yes      | generated UUID    | Primary key                                                                                        |
+| `organization_id`   | varchar(36)   | yes      | none              | Tenant key                                                                                         |
+| `project_id`        | varchar(36)   | yes      | none              | FK to `projects.id` with organization pairing                                                      |
+| `worker_id`         | varchar(36)   | yes      | none              | FK to `workers.id`                                                                                 |
+| `role_label`        | varchar(120)  | no       | null              | Legacy site-specific label; not collected by the standard assignment UI                            |
+| `daily_rate`        | decimal(12,2) | no       | null              | Snapshot of Worker base daily rate when assigned; retained for assignment history and future Wages |
+| `status`            | varchar(32)   | yes      | `ACTIVE`          | `ACTIVE`, `ENDED`                                                                                  |
+| `starts_on`         | date          | yes      | current date      | Assignment start                                                                                   |
+| `ends_on`           | date          | no       | null              | Assignment end                                                                                     |
+| `created_by`        | varchar(36)   | no       | null              | FK to inherited `user.id`                                                                          |
+| `updated_by`        | varchar(36)   | no       | null              | FK to inherited `user.id`                                                                          |
+| `created_at`        | datetime(3)   | yes      | current timestamp |                                                                                                    |
+| `updated_at`        | datetime(3)   | yes      | current timestamp | on update                                                                                          |
+| `ended_at`          | datetime(3)   | no       | null              | Set when ended                                                                                     |
+| `ended_by`          | varchar(36)   | no       | null              | FK to inherited `user.id`                                                                          |
+| `client_created_id` | varchar(80)   | no       | null              | Reserved for future offline write architecture; not used for Workers MVP offline writes            |
 
 Uniqueness:
 

@@ -34,11 +34,6 @@ export class CreateWorkerDto {
   projectId?: string | null;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  roleLabel?: string | null;
-
-  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)

@@ -13,6 +13,8 @@ export const projectKeys = {
   members: (organizationId: string, projectId: string) =>
     ["projects", organizationId, projectId, "members"] as const,
   access: (organizationId: string) => ["projects", organizationId, "access"] as const,
+  organizationAssignments: (organizationId: string) =>
+    ["projects", organizationId, "member-assignments"] as const,
 };
 
 export function useProjects(organizationId: string | null, query?: ProjectQuery) {
@@ -44,6 +46,18 @@ export function useProjectAccess(organizationId: string | null) {
     queryKey: projectKeys.access(organizationId ?? "none"),
     queryFn: () => projectsService.projectAccess(organizationId!),
     enabled: Boolean(organizationId),
+  });
+}
+
+export function useOrganizationProjectAssignments(
+  organizationId: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: projectKeys.organizationAssignments(organizationId ?? "none"),
+    queryFn: () =>
+      projectsService.organizationProjectAssignments(organizationId!),
+    enabled: Boolean(organizationId) && enabled,
   });
 }
 
@@ -140,5 +154,32 @@ export function useUnassignProjectMember(organizationId: string | null, projectI
       queryClient.invalidateQueries({
         queryKey: projectKeys.members(organizationId ?? "none", projectId),
       }),
+  });
+}
+
+export function useSaveMemberProjectAssignments(
+  organizationId: string | null,
+  memberId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      input: Parameters<typeof projectsService.saveMemberProjectAssignments>[2],
+    ) =>
+      projectsService.saveMemberProjectAssignments(
+        organizationId!,
+        memberId,
+        input,
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.organizationAssignments(
+          organizationId ?? "none",
+        ),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.all(organizationId ?? "none"),
+      });
+    },
   });
 }

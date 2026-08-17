@@ -21,16 +21,22 @@ export function ProjectContextCard({ compact = false }: ProjectContextCardProps)
   const { session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const activeProject = getActiveProject(session);
-  const activeProjects = useMemo(
-    () => session?.projectAccess?.projects?.filter((project) => project.status === 'ACTIVE') ?? [],
+  const selectableProjects = useMemo(
+    () =>
+      session?.projectAccess?.projects?.filter(
+        (project) =>
+          project.status === 'ACTIVE' ||
+          project.status === 'DRAFT' ||
+          project.status === 'ON_HOLD',
+      ) ?? [],
     [session?.projectAccess?.projects],
   );
-  const canSwitch = activeProjects.length > 1;
+  const canSwitch = selectableProjects.length > 1;
 
   if (!session) return null;
 
   const organizationName = session.activeOrganization?.name ?? 'No active organization';
-  const projectName = activeProject?.name ?? (activeProjects.length ? 'Select project' : 'No active project');
+  const projectName = activeProject?.name ?? (selectableProjects.length ? 'Select project' : 'No project available');
 
   return (
     <>
@@ -58,8 +64,8 @@ export function ProjectContextCard({ compact = false }: ProjectContextCardProps)
             <View style={styles.metaRow}>
               <Badge label={session.projectAccess?.projectScope ?? 'NONE'} tone={session.projectAccess?.projectScope === 'NONE' ? 'warning' : 'active'} />
               <Text style={styles.caption}>
-                {activeProjects.length
-                  ? `${activeProjects.length} active project${activeProjects.length === 1 ? '' : 's'} available`
+                {selectableProjects.length
+                  ? `${selectableProjects.length} working project${selectableProjects.length === 1 ? '' : 's'} available`
                   : 'Ask an admin for project access'}
               </Text>
             </View>
@@ -69,7 +75,7 @@ export function ProjectContextCard({ compact = false }: ProjectContextCardProps)
 
       <ProjectSwitcherSheet
         activeProjectId={session.activeProjectId}
-        projects={activeProjects}
+        projects={selectableProjects}
         visible={isOpen}
         onClose={() => setIsOpen(false)}
       />
@@ -101,7 +107,7 @@ function ProjectSwitcherSheet({
     <BottomSheet
       visible={visible}
       title="Switch Project"
-      description="Choose the project context for field work."
+      description="Choose a Project for management or field work. Draft Projects remain management-only until activated."
       onClose={onClose}
     >
       {projects.map((project) => (
@@ -109,8 +115,8 @@ function ProjectSwitcherSheet({
           key={project.id}
           leading={<IconContainer icon="office-building-marker-outline" size="sm" />}
           title={project.name}
-          subtitle={project.roleLabel ?? project.projectCode ?? 'Field access'}
-          meta={project.id === activeProjectId ? 'Active' : undefined}
+          subtitle={`${project.roleLabel ?? project.projectCode ?? 'Project access'} · ${project.status}`}
+          meta={project.id === activeProjectId ? 'Selected' : undefined}
           trailing={
             project.id === activeProjectId ? (
               <AppIcon color={mobileTheme.color.action.primary} name="check" size={mobileTheme.icon.sm} />

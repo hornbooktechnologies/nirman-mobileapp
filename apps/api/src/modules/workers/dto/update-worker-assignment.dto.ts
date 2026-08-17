@@ -1,11 +1,6 @@
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsOptional } from "class-validator";
 
 export class UpdateWorkerAssignmentDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  roleLabel?: string | null;
-
   @IsOptional()
   @IsDateString()
   startsOn?: string | null;

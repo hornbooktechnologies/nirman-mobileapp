@@ -7,9 +7,10 @@ import { OrganizationOnboardingService } from './organization-onboarding.service
 import { OrganizationsController } from './organizations.controller';
 import { OrganizationsRepository } from './organizations.repository';
 import { OrganizationsService } from './organizations.service';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [ProjectAccessModule, EmailModule],
+  imports: [ProjectAccessModule, EmailModule, SubscriptionsModule],
   controllers: [OrganizationsController, OrganizationOnboardingController],
   providers: [
     OrganizationsService,

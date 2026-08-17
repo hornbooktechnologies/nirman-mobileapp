@@ -1,8 +1,5 @@
-import type {
-  WorkerAssignmentStatus,
-  WorkerStatus,
-} from '@nirman-app/shared';
-import type { DbRow } from '../../../database/database.types';
+import type { WorkerAssignmentStatus, WorkerStatus } from "@nirman-app/shared";
+import type { DbRow } from "../../../database/database.types";
 
 export interface WorkerRow extends DbRow {
   id: string;
@@ -10,6 +7,7 @@ export interface WorkerRow extends DbRow {
   worker_code: string;
   name: string;
   trade: string;
+  base_daily_rate: string | null;
   mobile_number: string | null;
   notes: string | null;
   status: WorkerStatus;

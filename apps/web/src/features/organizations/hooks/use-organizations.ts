@@ -11,10 +11,11 @@ export const organizationKeys = {
   memberRoles: (id: string) => ["organizations", id, "member-roles"] as const,
 };
 
-export function useOrganizations() {
+export function useOrganizations(enabled = true) {
   return useQuery({
     queryKey: organizationKeys.all,
     queryFn: organizationsService.organizations,
+    enabled,
   });
 }
 
@@ -25,10 +26,11 @@ export function useOrganization(id: string) {
   });
 }
 
-export function useOrganizationMembers(id: string) {
+export function useOrganizationMembers(id: string, enabled = true) {
   return useQuery({
     queryKey: organizationKeys.members(id),
     queryFn: () => organizationsService.members(id),
+    enabled: Boolean(id) && enabled,
   });
 }
 

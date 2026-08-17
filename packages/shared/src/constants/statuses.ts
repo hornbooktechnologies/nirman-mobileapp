@@ -22,8 +22,12 @@ export type OrganizationStatus = (typeof ORGANIZATION_STATUSES)[number];
 
 export const OPERATING_PROFILES = [
   'INDEPENDENT_CONTRACTOR',
+  'INDEPENDENT_CONTRACTOR_SITE_SUPERVISOR',
   'SELF_MANAGED_BUILDER',
+  'BUILDER_SUPERVISOR',
   'BUILDER_CONTRACTOR',
+  'BUILDER_SUPERVISOR_CONTRACTOR',
+  'BUILDER_SUPERVISOR_CONTRACTOR_SITE_SUPERVISOR',
   'BUILDER_CONTRACTOR_SUPERVISOR',
   'CUSTOM',
 ] as const;
@@ -33,11 +37,18 @@ export type OperatingProfile = (typeof OPERATING_PROFILES)[number];
 export const OPERATING_PROFILES_BY_ORGANIZATION_TYPE = {
   BUILDER: [
     'SELF_MANAGED_BUILDER',
+    'BUILDER_SUPERVISOR',
     'BUILDER_CONTRACTOR',
+    'BUILDER_SUPERVISOR_CONTRACTOR',
+    'BUILDER_SUPERVISOR_CONTRACTOR_SITE_SUPERVISOR',
     'BUILDER_CONTRACTOR_SUPERVISOR',
     'CUSTOM',
   ],
-  CONTRACTOR: ['INDEPENDENT_CONTRACTOR', 'CUSTOM'],
+  CONTRACTOR: [
+    'INDEPENDENT_CONTRACTOR',
+    'INDEPENDENT_CONTRACTOR_SITE_SUPERVISOR',
+    'CUSTOM',
+  ],
 } as const satisfies Record<OrganizationType, readonly OperatingProfile[]>;
 
 export function isOperatingProfileCompatible(
@@ -86,6 +97,20 @@ export const PROJECT_MEMBER_STATUSES = [
 ] as const;
 
 export type ProjectMemberStatus = (typeof PROJECT_MEMBER_STATUSES)[number];
+
+export const PROJECT_PERMISSION_MODES = ['ROLE_DEFAULT', 'CUSTOM'] as const;
+
+export type ProjectPermissionMode = (typeof PROJECT_PERMISSION_MODES)[number];
+
+export const SUBSCRIPTION_STATUSES = [
+  'PENDING',
+  'ACTIVE',
+  'SUSPENDED',
+  'EXPIRED',
+  'CANCELLED',
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 export const WORKER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
 

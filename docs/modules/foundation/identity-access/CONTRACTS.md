@@ -93,7 +93,7 @@ Not included in this contract:
 - Final OTP provider selection.
 - Push notification provider selection.
 - Subscription billing rules.
-- External Contractor organisation collaboration beyond future-compatible identity modelling.
+- Cross-organization project sharing or automatic Contractor staff propagation.
 
 ## 7. Web Responsibilities
 
@@ -1065,14 +1065,15 @@ Tenant Isolation:
 
 1. Authentication method: email/password-first, OTP-first, or both.
 2. Mobile refresh strategy: cookie-compatible flow or body token stored in secure storage.
-3. External Contractor model: invited Contractor members inside Builder organisation, or external Contractor organisations collaborating with Builder projects.
-4. Role model implementation detail: organisation-scoped roles from the start, or a compatibility bridge from inherited global roles.
-5. Permission overrides: member/project-specific grants and denials in MVP or defer.
-6. Active organisation/project persistence: server-side session preference, client-side preference, or both.
-7. Whether support/admin impersonation is included in MVP.
-8. Exact session expiry and permission refresh interval.
-9. Whether invitation delivery is email, SMS/OTP, manual link, or later.
-10. SQL compatibility migration path from inherited physical tables to approved plural `snake_case` names, if renaming existing tables is ever required.
+3. Role model implementation detail: organisation-scoped roles from the start, or a compatibility bridge from inherited global roles.
+4. Permission overrides: member/project-specific grants and denials in MVP or defer.
+5. Active organisation/project persistence: server-side session preference, client-side preference, or both.
+6. Whether support/admin impersonation is included in MVP.
+7. Exact session expiry and permission refresh interval.
+8. Whether invitation delivery is email, SMS/OTP, manual link, or later.
+9. SQL compatibility migration path from inherited physical tables to approved plural `snake_case` names, if renaming existing tables is ever required.
+
+Resolved: Builder organizations invite hired Contractors as internal `Contractor Member` memberships. Separately subscribed Contractors own independent `CONTRACTOR` organizations, and cross-organization project sharing is deferred.
 
 ## 28. Implementation Notes For Later
 

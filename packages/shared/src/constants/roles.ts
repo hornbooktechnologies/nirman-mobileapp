@@ -9,6 +9,7 @@ export const PLATFORM_SYSTEM_ROLE_NAMES = [
 export const CUSTOMER_SYSTEM_ROLE_NAMES = [
   "Organization Owner",
   "Builder Admin",
+  "Builder Supervisor",
   "Independent Contractor Owner",
   "Project Manager",
   "Contractor Member",
@@ -24,6 +25,7 @@ export const ORGANIZATION_ROLE_NAMES_BY_TYPE = {
   BUILDER: [
     "Organization Owner",
     "Builder Admin",
+    "Builder Supervisor",
     "Project Manager",
     "Contractor Member",
     "Site Supervisor",

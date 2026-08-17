@@ -1,5 +1,13 @@
 # Workers Decisions
 
+## 2026-08-17: Row Assignment And Worker-Level Rate
+
+- The Project Team Workers tab lists active Organization workers, including assigned and unassigned workers.
+- An unassigned row exposes a visible `Assign` CTA; assigned rows keep their assignment actions in the ellipsis menu.
+- Trade is owned by the Worker master and replaces duplicate assignment-role entry in the standard flow.
+- Base daily rate is owned by the Worker master. A new Project assignment copies it into the assignment rate snapshot automatically.
+- Assignment creation/editing collects dates only. Existing role/rate history remains readable and is not deleted.
+
 > Status: approved owner decisions.
 
 ## Decisions Confirmed By Requirements
@@ -62,13 +70,13 @@
 
 ## Approved Permission Matrix
 
-| Role/profile | Default access | Restrictions |
-| --- | --- | --- |
-| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization; project-specific operations still enforce project access |
-| Supervisor | `workers:read`, `workers:create`, `workers:update` | Assigned projects only; no default deactivation, export, organization-wide access, or elevated rate changes |
-| Contractor | `workers:read` | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role permissions |
-| Sales User | none | No Workers access by default |
-| Platform Super Admin / Platform Support | none as normal operational access | Support access must be separately approved, scoped, and audited |
+| Role/profile                                                      | Default access                                                                                                                                                                          | Restrictions                                                                                                          |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization; project-specific operations still enforce project access                                            |
+| Supervisor                                                        | `workers:read`, `workers:create`, `workers:update`                                                                                                                                      | Assigned projects only; no default deactivation, export, organization-wide access, or elevated rate changes           |
+| Contractor                                                        | `workers:read`                                                                                                                                                                          | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role permissions |
+| Sales User                                                        | none                                                                                                                                                                                    | No Workers access by default                                                                                          |
+| Platform Super Admin / Platform Support                           | none as normal operational access                                                                                                                                                       | Support access must be separately approved, scoped, and audited                                                       |
 
 Permission keys:
 

@@ -26,7 +26,6 @@ export class UpdateOrganizationDto {
   timezone?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(3)
+  @IsIn(['INR'])
   currency?: string;
 }

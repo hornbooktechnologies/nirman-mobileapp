@@ -9,6 +9,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { WorkersModule } from './modules/workers/workers.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
     OrganizationsModule,
     ProjectsModule,
     WorkersModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

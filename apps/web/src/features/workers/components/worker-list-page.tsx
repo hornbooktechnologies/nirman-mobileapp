@@ -51,14 +51,18 @@ export function WorkerListPage() {
         <PageHeader
           title="Workers"
           description="Manage labour records, project rosters, and wage-readiness details."
-          actions={hasPermission("workers:create") ? (
-            <Link href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}>
-              <Button>
-                <Plus size={16} />
-                New Worker
-              </Button>
-            </Link>
-          ) : undefined}
+          actions={
+            hasPermission("workers:create") ? (
+              <Link
+                href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
+              >
+                <Button>
+                  <Plus size={16} />
+                  New Worker
+                </Button>
+              </Link>
+            ) : undefined
+          }
         />
 
         <Card>
@@ -103,7 +107,9 @@ export function WorkerListPage() {
 
         <Card>
           {!organizationId ? (
-            <p className="text-[13px] text-body">Select an organization to view workers.</p>
+            <p className="text-[13px] text-body">
+              Select an organization to view workers.
+            </p>
           ) : workers.isLoading ? (
             <p className="text-[13px] text-body">Loading workers</p>
           ) : workers.isError ? (
@@ -121,6 +127,7 @@ export function WorkerListPage() {
                     <TableHead>Code</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Trade</TableHead>
+                    <TableHead>Daily Rate</TableHead>
                     <TableHead>Mobile</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Active Projects</TableHead>
@@ -130,12 +137,15 @@ export function WorkerListPage() {
                   {workerRows.map((worker) => (
                     <TableRow key={worker.id}>
                       <TableCell>
-                        <Link href={`/workers/${worker.id}?organizationId=${organizationId}`}>
+                        <Link
+                          href={`/workers/${worker.id}?organizationId=${organizationId}`}
+                        >
                           {worker.workerCode}
                         </Link>
                       </TableCell>
                       <TableCell>{worker.name}</TableCell>
                       <TableCell>{worker.trade}</TableCell>
+                      <TableCell>{worker.baseDailyRate ?? "-"}</TableCell>
                       <TableCell>{worker.mobileNumber ?? "-"}</TableCell>
                       <TableCell>
                         <StatusBadge tone={statusTone[worker.status]}>
@@ -149,7 +159,9 @@ export function WorkerListPage() {
               </Table>
               <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-sub">
                 <span>
-                  Page {workers.data?.meta.page ?? query.page} of {Math.max(1, workers.data?.meta.pageCount ?? 1)} · {workers.data?.meta.total ?? 0} workers
+                  Page {workers.data?.meta.page ?? query.page} of{" "}
+                  {Math.max(1, workers.data?.meta.pageCount ?? 1)} ·{" "}
+                  {workers.data?.meta.total ?? 0} workers
                 </span>
                 <div className="flex gap-2">
                   <Button

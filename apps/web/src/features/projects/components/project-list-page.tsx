@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PROJECT_STATUSES, PROJECT_TYPES, type ProjectStatus, type ProjectType } from "@nirman-app/shared";
 import { Button, Card, Input, PageHeader, Select, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
-import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
 import { useProjects } from "@/features/projects/hooks/use-projects";
-import { OrganizationContextSelect } from "@/features/projects/components/organization-context-select";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 const statusTone = {
   ACTIVE: "active",
@@ -19,8 +18,8 @@ const statusTone = {
 } as const;
 
 export function ProjectListPage() {
-  const organizations = useOrganizations();
-  const [organizationId, setOrganizationId] = useState("");
+  const { activeOrganizationId } = useAuth();
+  const organizationId = activeOrganizationId ?? "";
   const [query, setQuery] = useState<{
     search: string;
     status: ProjectStatus | "";
@@ -29,12 +28,6 @@ export function ProjectListPage() {
   const projects = useProjects(organizationId, query);
   const projectRows = projects.data?.data ?? [];
 
-  useEffect(() => {
-    if (!organizationId && organizations.data?.[0]) {
-      setOrganizationId(organizations.data[0].id);
-    }
-  }, [organizationId, organizations.data]);
-
   return (
     <PermissionGuard permission="projects:read">
       <div className="space-y-4">
@@ -42,7 +35,7 @@ export function ProjectListPage() {
           title="Projects"
           description="Create projects, review setup status, and manage assignment."
           actions={
-            <Link href={`/projects/new${organizationId ? `?organizationId=${organizationId}` : ""}`}>
+            <Link href="/projects/new">
               <Button>
                 <Plus size={16} />
                 New Project
@@ -52,11 +45,7 @@ export function ProjectListPage() {
         />
 
         <Card>
-          <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_180px_180px]">
-            <OrganizationContextSelect
-              organizationId={organizationId}
-              onChange={setOrganizationId}
-            />
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
             <Input
               placeholder="Search projects"
               value={query.search}
@@ -89,7 +78,7 @@ export function ProjectListPage() {
 
         <Card>
           {!organizationId ? (
-            <p className="text-[13px] text-body">Select an organization to view projects.</p>
+            <p className="text-[13px] text-body">No active organization is available.</p>
           ) : projects.isLoading ? (
             <p className="text-[13px] text-body">Loading projects</p>
           ) : projects.isError ? (
@@ -112,7 +101,7 @@ export function ProjectListPage() {
                 {projectRows.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell>
-                      <Link href={`/projects/${project.id}?organizationId=${organizationId}`}>
+                      <Link href={`/projects/${project.id}`}>
                         {project.name}
                       </Link>
                     </TableCell>

@@ -1,9 +1,11 @@
 import type {
+  PermissionKey,
   ProjectMemberStatus,
+  ProjectPermissionMode,
   ProjectStatus,
   ProjectType,
-} from '@nirman-app/shared';
-import type { DbRow } from '../../../database/database.types';
+} from "@nirman-app/shared";
+import type { DbRow } from "../../../database/database.types";
 
 export interface ProjectEntity {
   id: string;
@@ -78,6 +80,8 @@ export interface ProjectMemberEntity {
     name: string;
   };
   roleLabel: string | null;
+  permissionMode: ProjectPermissionMode;
+  grantedPermissions: PermissionKey[];
   status: ProjectMemberStatus;
   startsOn: Date | null;
   endsOn: Date | null;
@@ -91,6 +95,7 @@ export interface ProjectMemberRow extends DbRow {
   project_id: string;
   member_id: string;
   role_label: string | null;
+  permission_mode: ProjectPermissionMode;
   status: ProjectMemberStatus;
   starts_on: Date | null;
   ends_on: Date | null;
@@ -102,4 +107,49 @@ export interface ProjectMemberRow extends DbRow {
   user_phone: string | null;
   role_id: string;
   role_name: string;
+}
+
+export interface OrganizationProjectAssignmentEntity {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  memberId: string;
+  project: {
+    id: string;
+    name: string;
+    projectCode: string | null;
+    status: ProjectStatus;
+  };
+  roleLabel: string | null;
+  permissionMode: ProjectPermissionMode;
+  grantedPermissions: PermissionKey[];
+  status: ProjectMemberStatus;
+  startsOn: Date | null;
+  endsOn: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrganizationProjectAssignmentRow extends DbRow {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  member_id: string;
+  role_label: string | null;
+  permission_mode: ProjectPermissionMode;
+  status: ProjectMemberStatus;
+  starts_on: Date | null;
+  ends_on: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  project_name: string;
+  project_code: string | null;
+  project_status: ProjectStatus;
+}
+
+export interface AssignmentProjectSummary {
+  id: string;
+  name: string;
+  projectCode: string | null;
+  status: ProjectStatus;
 }

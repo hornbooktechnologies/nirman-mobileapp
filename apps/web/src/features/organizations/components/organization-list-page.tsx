@@ -36,7 +36,6 @@ export function OrganizationListPage() {
     type: "BUILDER" as OrganizationType,
     operatingProfile: "SELF_MANAGED_BUILDER" as OperatingProfile,
     timezone: "Asia/Kolkata",
-    currency: "INR",
     owner: {
       name: "",
       email: "",
@@ -66,7 +65,6 @@ export function OrganizationListPage() {
         type: "BUILDER",
         operatingProfile: "SELF_MANAGED_BUILDER",
         timezone: "Asia/Kolkata",
-        currency: "INR",
         owner: {
           name: "",
           email: "",
@@ -204,12 +202,10 @@ export function OrganizationListPage() {
                   value={form.timezone}
                   onChange={(event) => setForm({ ...form, timezone: event.target.value })}
                 />
-                <Input
-                  placeholder="Currency"
-                  value={form.currency}
-                  onChange={(event) => setForm({ ...form, currency: event.target.value })}
-                  maxLength={3}
-                />
+                <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
+                  <span className="text-sub">Default currency:</span>
+                  <strong className="ml-1.5 font-semibold">INR</strong>
+                </div>
                 <div className="md:col-span-2 mt-2 border-t border-hairline pt-3">
                   <h2 className="text-[15px] font-semibold text-body">
                     Primary Owner

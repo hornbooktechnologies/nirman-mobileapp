@@ -19,6 +19,8 @@ export interface AccessibleProjectSummary {
   projectCode: string | null;
   status: ProjectStatus;
   roleLabel: string | null;
+  permissionMode: 'ROLE_DEFAULT' | 'CUSTOM';
+  permissions: PermissionKey[];
   isDefault: boolean;
 }
 
@@ -42,5 +44,8 @@ export interface ResolvedProjectAccess extends ResolvedOrganizationAccess {
   projectMember: {
     id: string;
     roleLabel: string | null;
+    permissionMode: 'ROLE_DEFAULT' | 'CUSTOM';
+    grantedPermissions: PermissionKey[];
   } | null;
+  rolePermissions: PermissionKey[];
 }

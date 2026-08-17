@@ -1,8 +1,10 @@
 import type {
+  PermissionKey,
   ProjectAccessScope,
   ProjectMemberStatus,
   ProjectStatus,
   ProjectType,
+  ProjectPermissionMode,
 } from "@nirman-app/shared";
 
 export interface ProjectAddress {
@@ -83,6 +85,8 @@ export interface ProjectMember {
     name: string;
   };
   roleLabel: string | null;
+  permissionMode: ProjectPermissionMode;
+  grantedPermissions: PermissionKey[];
   status: ProjectMemberStatus;
   startsOn: string | null;
   endsOn: string | null;
@@ -92,9 +96,55 @@ export interface ProjectMember {
 
 export interface ProjectMemberInput {
   roleLabel?: string | null;
+  permissionMode?: ProjectPermissionMode;
+  permissions?: PermissionKey[];
   status?: ProjectMemberStatus;
   startsOn?: string | null;
   endsOn?: string | null;
+}
+
+export interface OrganizationProjectAssignment {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  memberId: string;
+  project: {
+    id: string;
+    name: string;
+    projectCode: string | null;
+    status: ProjectStatus;
+  };
+  roleLabel: string | null;
+  permissionMode: ProjectPermissionMode;
+  grantedPermissions: PermissionKey[];
+  status: ProjectMemberStatus;
+  startsOn: string | null;
+  endsOn: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveMemberProjectAssignmentsInput {
+  assignments: Array<{
+    projectId: string;
+    roleLabel?: string | null;
+    permissionMode?: ProjectPermissionMode;
+    permissions?: PermissionKey[];
+    status?: ProjectMemberStatus;
+    startsOn?: string | null;
+    endsOn?: string | null;
+  }>;
+  unassignProjectIds: string[];
+}
+
+export interface OrganizationProjectAssignmentsOverview {
+  projects: Array<{
+    id: string;
+    name: string;
+    projectCode: string | null;
+    status: ProjectStatus;
+  }>;
+  assignments: OrganizationProjectAssignment[];
 }
 
 export interface ProjectAccess {
@@ -107,6 +157,8 @@ export interface ProjectAccess {
     projectCode: string | null;
     status: ProjectStatus;
     roleLabel: string | null;
+    permissionMode: ProjectPermissionMode;
+    permissions: PermissionKey[];
     isDefault: boolean;
   }[];
 }

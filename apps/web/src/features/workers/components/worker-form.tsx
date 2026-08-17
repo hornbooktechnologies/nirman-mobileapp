@@ -27,7 +27,6 @@ export const emptyWorkerForm: WorkerFormState = {
   mobileNumber: "",
   notes: "",
   projectId: "",
-  roleLabel: "",
   dailyRate: "",
   startsOn: new Date().toISOString().slice(0, 10),
   acknowledgeDuplicateWarning: false,
@@ -53,6 +52,7 @@ export function WorkerForm({
     projectId: initialProjectId ?? "",
     name: initialWorker?.name ?? "",
     trade: initialWorker?.trade ?? "",
+    dailyRate: initialWorker?.baseDailyRate ?? "",
     mobileNumber: initialWorker?.mobileNumber ?? "",
     notes: initialWorker?.notes ?? "",
   });
@@ -62,11 +62,16 @@ export function WorkerForm({
 
   async function checkDuplicates() {
     if (!organizationId || (!form.name.trim() && !form.mobileNumber)) return [];
-    const candidates = await workersService.duplicateCandidates(organizationId, {
-      name: form.name,
-      mobileNumber: form.mobileNumber ?? undefined,
-    });
-    const filtered = candidates.filter((candidate) => candidate.id !== initialWorker?.id);
+    const candidates = await workersService.duplicateCandidates(
+      organizationId,
+      {
+        name: form.name,
+        mobileNumber: form.mobileNumber ?? undefined,
+      },
+    );
+    const filtered = candidates.filter(
+      (candidate) => candidate.id !== initialWorker?.id,
+    );
     setDuplicates(filtered);
     return filtered;
   }
@@ -76,7 +81,9 @@ export function WorkerForm({
     setError("");
     const candidates = await checkDuplicates();
     if (candidates.length > 0 && !form.acknowledgeDuplicateWarning) {
-      setError("Review and acknowledge possible duplicate workers before saving.");
+      setError(
+        "Review and acknowledge possible duplicate workers before saving.",
+      );
       return;
     }
     try {
@@ -85,8 +92,7 @@ export function WorkerForm({
         mobileNumber: form.mobileNumber || null,
         notes: form.notes || null,
         projectId: hasInitialProject ? form.projectId || null : null,
-        roleLabel: hasInitialProject ? form.roleLabel || null : null,
-        dailyRate: hasInitialProject ? form.dailyRate || null : null,
+        dailyRate: form.dailyRate || null,
         startsOn: hasInitialProject ? form.startsOn || null : null,
       });
     } catch (submitError) {
@@ -103,7 +109,9 @@ export function WorkerForm({
       {initialWorker ? (
         <div className="grid gap-1 text-[13px]">
           <span className="text-sub">Worker code</span>
-          <span className="font-semibold text-body">{initialWorker.workerCode}</span>
+          <span className="font-semibold text-body">
+            {initialWorker.workerCode}
+          </span>
         </div>
       ) : null}
       {!initialWorker && hasInitialProject ? (
@@ -117,7 +125,11 @@ export function WorkerForm({
           placeholder="Worker name"
           value={form.name}
           onChange={(event) =>
-            setForm({ ...form, name: event.target.value, acknowledgeDuplicateWarning: false })
+            setForm({
+              ...form,
+              name: event.target.value,
+              acknowledgeDuplicateWarning: false,
+            })
           }
           required
         />
@@ -144,25 +156,38 @@ export function WorkerForm({
             })
           }
         />
+        <label className="space-y-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+            Daily rate
+          </span>
+          <Input
+            placeholder="Enter daily rate"
+            type="number"
+            min="0"
+            value={form.dailyRate ?? ""}
+            onChange={(event) =>
+              setForm({ ...form, dailyRate: event.target.value })
+            }
+          />
+          <span className="block text-[11px] leading-4 text-sub">
+            Used automatically as the default when assigning this worker to a
+            Project.
+          </span>
+        </label>
         {!initialWorker && hasInitialProject ? (
           <>
-            <Input
-              placeholder="Daily rate"
-              type="number"
-              min="0"
-              value={form.dailyRate ?? ""}
-              onChange={(event) => setForm({ ...form, dailyRate: event.target.value })}
-            />
-            <Input
-              placeholder="Assignment role label"
-              value={form.roleLabel ?? ""}
-              onChange={(event) => setForm({ ...form, roleLabel: event.target.value })}
-            />
-            <Input
-              type="date"
-              value={form.startsOn ?? ""}
-              onChange={(event) => setForm({ ...form, startsOn: event.target.value })}
-            />
+            <label className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+                Assignment start date
+              </span>
+              <Input
+                type="date"
+                value={form.startsOn ?? ""}
+                onChange={(event) =>
+                  setForm({ ...form, startsOn: event.target.value })
+                }
+              />
+            </label>
           </>
         ) : null}
       </div>
@@ -174,7 +199,10 @@ export function WorkerForm({
       />
 
       {duplicates.length > 0 ? (
-        <Card variant="surface" className="space-y-3 border-amber-300 bg-amber-50/70">
+        <Card
+          variant="surface"
+          className="space-y-3 border-amber-300 bg-amber-50/70"
+        >
           <div className="flex items-start gap-2 text-[13px] font-semibold text-amber-900">
             <AlertTriangle size={16} />
             Possible duplicate workers
@@ -191,7 +219,10 @@ export function WorkerForm({
             checked={Boolean(form.acknowledgeDuplicateWarning)}
             className="text-amber-950"
             onChange={(event) =>
-              setForm({ ...form, acknowledgeDuplicateWarning: event.currentTarget.checked })
+              setForm({
+                ...form,
+                acknowledgeDuplicateWarning: event.currentTarget.checked,
+              })
             }
           />
         </Card>
@@ -200,7 +231,11 @@ export function WorkerForm({
       {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => void checkDuplicates()}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void checkDuplicates()}
+        >
           Check duplicates
         </Button>
         <Button type="submit" disabled={isSaving}>

@@ -35,8 +35,7 @@ export class CreateOrganizationDto {
   timezone?: string = 'Asia/Kolkata';
 
   @IsOptional()
-  @IsString()
-  @MaxLength(3)
+  @IsIn(['INR'])
   currency?: string = 'INR';
 
   @IsDefined()

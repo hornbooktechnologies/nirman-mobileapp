@@ -152,8 +152,17 @@ export class OrganizationsService {
     const access = await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      "members:invite",
     );
+    if (
+      !access.permissions.includes("members:invite") &&
+      !access.permissions.includes("members:update") &&
+      !access.permissions.includes("project-members:assign") &&
+      !access.permissions.includes("project-members:update")
+    ) {
+      throw new ForbiddenException(
+        "Member or Project Team management permission is required",
+      );
+    }
     const roles = await this.organizationsRepo.findOrganizationRoleTemplates(
       access.organization.type,
     );

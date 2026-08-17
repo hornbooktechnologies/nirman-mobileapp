@@ -394,7 +394,8 @@ Builder vs Contractor ownership:
 - A Builder organisation may create and own projects.
 - A Contractor organisation may independently create and own projects.
 - Builder organisations may assign Contractor members, Supervisors, Sales Users, Admins, and Viewers to Builder-owned projects.
-- External Contractor organisation collaboration is deferred unless a later contract approves cross-organisation project relationships.
+- For MVP, a hired Contractor is an internal `Contractor Member` of the Builder organization and may be assigned to Builder-owned projects.
+- A separately subscribed Contractor organization remains isolated; cross-organization project relationships and automatic staff sharing are deferred.
 
 ## 15. Active Project Context
 
@@ -444,6 +445,8 @@ GET    /organizations/:organizationId/projects/:projectId/members
 PUT    /organizations/:organizationId/projects/:projectId/members/:memberId
 PATCH  /organizations/:organizationId/projects/:projectId/members/:memberId
 DELETE /organizations/:organizationId/projects/:projectId/members/:memberId
+GET    /organizations/:organizationId/project-member-assignments
+PUT    /organizations/:organizationId/project-members/:memberId/assignments
 
 GET    /organizations/:organizationId/project-access/me
 POST   /organizations/:organizationId/projects/:projectId/switch
@@ -476,6 +479,12 @@ project-members:read, plus project access or project-members:view-all
 
 PUT/PATCH/DELETE /projects/:projectId/members/:memberId:
 project-members:assign/update/unassign, plus projects:assign
+
+GET /project-member-assignments:
+project-members:read, plus organisation-wide access or project-members:view-all
+
+PUT /project-members/:memberId/assignments:
+projects:assign, project-members:view-all, and the applicable project-members:assign/update/unassign permissions; all additions, edits, and removals commit atomically
 
 GET /project-access/me:
 authenticated active organisation membership
@@ -625,6 +634,26 @@ Assign project member request:
   "endsOn": "YYYY-MM-DD|null"
 }
 ```
+
+Batch-save member project assignments request:
+
+```json
+{
+  "assignments": [
+    {
+      "projectId": "uuid",
+      "roleLabel": "Site Supervisor",
+      "status": "ACTIVE",
+      "startsOn": "YYYY-MM-DD|null",
+      "endsOn": "YYYY-MM-DD|null"
+    }
+  ],
+  "unassignProjectIds": ["uuid"]
+}
+```
+
+The web UI labels `roleLabel` as **Role on this project**. It is descriptive
+assignment context only; organisation role permissions remain authoritative.
 
 Project member response:
 
@@ -1037,16 +1066,17 @@ Tenant And Project Isolation:
 
 ## 28. Open Decisions
 
-1. External Contractor collaboration: defer cross-organisation collaboration or include it in MVP.
-2. Completed project reopening: allow normal `COMPLETED -> ACTIVE`, require admin/support action, or disallow.
-3. Project code format: free text, generated, or organisation-configurable.
-4. Project address minimum: project name only, city/state required, or full address required.
-5. Organisation-wide project access source: role-derived only, explicit member flag, or both.
-6. Active project persistence: client-only, server-side preference, or both.
-7. Archive effects: which future modules remain editable for corrections in archived projects.
-8. Security response posture: return forbidden or not-found for cross-tenant IDs.
-9. Initial project creation during onboarding: required during owner onboarding or separate after login.
-10. Whether project cover image is included in first Project Setup implementation.
+1. Completed project reopening: allow normal `COMPLETED -> ACTIVE`, require admin/support action, or disallow.
+2. Project code format: free text, generated, or organisation-configurable.
+3. Project address minimum: project name only, city/state required, or full address required.
+4. Organisation-wide project access source: role-derived only, explicit member flag, or both.
+5. Active project persistence: client-only, server-side preference, or both.
+6. Archive effects: which future modules remain editable for corrections in archived projects.
+7. Security response posture: return forbidden or not-found for cross-tenant IDs.
+8. Initial project creation during onboarding: required during owner onboarding or separate after login.
+9. Whether project cover image is included in first Project Setup implementation.
+
+Resolved: Builder/Contractor collaboration uses an internal Builder-organization `Contractor Member` for MVP; external Contractor-organization project linking is deferred.
 
 ## 29. Implementation Notes For Later
 

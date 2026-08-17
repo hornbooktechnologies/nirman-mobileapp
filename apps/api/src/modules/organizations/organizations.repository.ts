@@ -87,6 +87,8 @@ export class OrganizationsRepository {
       FROM organizations o
       INNER JOIN organization_members om ON om.organization_id = o.id
       WHERE om.user_id = ?
+        AND om.status = 'ACTIVE'
+        AND o.status = 'ACTIVE'
       ORDER BY o.name ASC`,
       [userId],
     );
@@ -260,13 +262,17 @@ export class OrganizationsRepository {
         name: string;
         description: string | null;
         isSystem: number | boolean;
+        permissions: string | null;
       }
     >(
-      `SELECT id, name, description, isSystem
-      FROM \`role\`
-      WHERE isSystem = 1
-        AND name IN (${roleNames.map(() => "?").join(", ")})
-      ORDER BY name ASC`,
+      `SELECT r.id, r.name, r.description, r.isSystem,
+        GROUP_CONCAT(CONCAT(p.resource, ':', p.action) ORDER BY p.resource, p.action) AS permissions
+      FROM \`role\` r
+      LEFT JOIN permission p ON p.roleId = r.id
+      WHERE r.isSystem = 1
+        AND r.name IN (${roleNames.map(() => "?").join(", ")})
+      GROUP BY r.id, r.name, r.description, r.isSystem
+      ORDER BY r.name ASC`,
       [...roleNames],
     );
     return rows.map((row) => ({
@@ -274,6 +280,7 @@ export class OrganizationsRepository {
       name: row.name,
       description: row.description,
       isSystem: Boolean(row.isSystem),
+      permissions: row.permissions ? row.permissions.split(",") : [],
     }));
   }
 

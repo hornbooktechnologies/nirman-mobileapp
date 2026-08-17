@@ -1,5 +1,7 @@
 # Product Vision
 
+> Historical scope note: this early Builder-focused vision is superseded where it conflicts with `MVP_REQUIREMENTS.md` and `docs/decisions/006-subscription-capacity-supervisor-commercial-provisioning.md`. Current product planning treats Builder and Independent Contractor Organizations as primary customers and does not price roles or core MVP modules separately at launch.
+
 NirmanSite is a Builder SaaS platform for real estate developers, construction companies, and their back-office teams.
 
 The long-term product should help builders manage the full operational journey from project setup to customer booking, document tracking, site progress, payment follow-up, and internal approvals.
@@ -52,3 +54,12 @@ Initial roles should be defined in shared permission planning before implementat
 - Field teams can submit structured mobile updates with evidence and status tracking.
 - Permissions prevent accidental cross-role access while keeping day-to-day workflows fast.
 - Shared contracts keep API, web, and future mobile behavior aligned.
+
+## Implemented Access And Commercial Foundation
+
+- Subscription belongs to the customer Organization and controls configurable capacity, not employee authority.
+- Organization Role is the permission ceiling.
+- Project assignment controls where a Member works.
+- Project permission grants control what a `CUSTOM` assignment can do within that Project.
+- Builder Supervisor represents Builder-side oversight; Site Supervisor represents field execution.
+- Operating profiles are workflow presets, not commercial plans or authorization shortcuts.

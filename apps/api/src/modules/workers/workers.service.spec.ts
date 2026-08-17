@@ -214,6 +214,30 @@ describe("WorkersService", () => {
     ).resolves.toEqual(expect.objectContaining({ status: "INACTIVE" }));
   });
 
+  it("validates and updates the Worker-level daily rate", async () => {
+    workersRepo.update.mockResolvedValue(
+      worker({ baseDailyRate: "825.00" }),
+    );
+
+    await expect(
+      service.update(
+        organizationId,
+        workerId,
+        { dailyRate: 825 },
+        actor,
+      ),
+    ).resolves.toEqual(expect.objectContaining({ baseDailyRate: "825.00" }));
+
+    await expect(
+      service.update(
+        organizationId,
+        workerId,
+        { dailyRate: -1 },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it("blocks assigning an inactive worker", async () => {
     workersRepo.findById.mockResolvedValueOnce(worker({ status: "INACTIVE" }));
 
@@ -244,7 +268,7 @@ describe("WorkersService", () => {
         organizationId,
         projectId,
         workerId,
-        { dailyRate: 750, startsOn: "2026-08-01" },
+        { startsOn: "2026-08-01" },
         actor,
       ),
     ).resolves.toEqual(assignment());
@@ -350,6 +374,7 @@ function worker(overrides: Partial<WorkerDetail> = {}): WorkerDetail {
     workerCode: "WRK-00002",
     name: "Ravi Worker",
     trade: "Mason",
+    baseDailyRate: "750.00",
     mobileNumber: "9999999999",
     notes: null,
     status: "ACTIVE",

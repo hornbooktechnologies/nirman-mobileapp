@@ -33,6 +33,10 @@ export class QueryWorkerDto {
   projectId?: string;
 
   @IsOptional()
+  @IsIn(["CURRENT", "ALL_ACTIVE"])
+  assignmentScope?: "CURRENT" | "ALL_ACTIVE" = "CURRENT";
+
+  @IsOptional()
   @IsIn(WORKER_SORT_KEYS)
   sortBy?: WorkerSortKey = "created_at";
 

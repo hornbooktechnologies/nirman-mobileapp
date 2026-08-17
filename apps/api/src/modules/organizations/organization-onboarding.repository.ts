@@ -324,8 +324,9 @@ export class OrganizationOnboardingRepository {
   async acceptInvitation(
     invitationId: string,
     passwordHash: string | null,
+    existingConnection?: DatabaseTransaction,
   ): Promise<boolean> {
-    return this.database.transaction(async (connection) => {
+    const operation = async (connection: DatabaseTransaction) => {
       const invitations = await this.database.query<InvitationRow>(
         `${this.invitationSelectSql()}
         WHERE i.id = ?
@@ -388,7 +389,10 @@ export class OrganizationOnboardingRepository {
         );
       }
       return true;
-    });
+    };
+    return existingConnection
+      ? operation(existingConnection)
+      : this.database.transaction(operation);
   }
 
   private async findRoleByName(name: string, connection: DatabaseTransaction) {

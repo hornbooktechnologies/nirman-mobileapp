@@ -197,6 +197,62 @@ export const WORKER_PERMISSIONS = [
 
 export type WorkerPermissionKey = (typeof WORKER_PERMISSIONS)[number];
 
+/**
+ * Permission keys an Organization Owner may narrow for one Project assignment.
+ * The member's Organization Role remains the ceiling; storing a key here never
+ * creates authority absent from that role.
+ */
+export const PROJECT_DELEGATABLE_PERMISSIONS = [
+  'projects:read',
+  'projects:update',
+  'projects:assign',
+  'projects:switch',
+  'project-members:read',
+  'project-members:assign',
+  'project-members:update',
+  'project-members:unassign',
+  ...WORKER_PERMISSIONS,
+] as const satisfies readonly PermissionKey[];
+
+export type ProjectDelegatablePermissionKey =
+  (typeof PROJECT_DELEGATABLE_PERMISSIONS)[number];
+
+export const PROJECT_PERMISSION_GROUPS = [
+  {
+    key: 'PROJECT',
+    label: 'Project',
+    permissions: [
+      'projects:read',
+      'projects:update',
+      'projects:assign',
+      'projects:switch',
+    ],
+  },
+  {
+    key: 'TEAM',
+    label: 'Team',
+    permissions: [
+      'project-members:read',
+      'project-members:assign',
+      'project-members:update',
+      'project-members:unassign',
+    ],
+  },
+  {
+    key: 'WORKERS',
+    label: 'Workers',
+    permissions: WORKER_PERMISSIONS,
+  },
+] as const;
+
+export function isProjectDelegatablePermission(
+  permission: string,
+): permission is ProjectDelegatablePermissionKey {
+  return (PROJECT_DELEGATABLE_PERMISSIONS as readonly string[]).includes(
+    permission,
+  );
+}
+
 export const ALL_PERMISSIONS = [
   ...PLATFORM_PERMISSIONS,
   ...FOUNDATION_PERMISSIONS,

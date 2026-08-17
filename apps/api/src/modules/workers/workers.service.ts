@@ -175,6 +175,7 @@ export class WorkersService {
       this.assertRequiredText(dto.name, "Worker name is required");
     if (dto.trade !== undefined)
       this.assertRequiredText(dto.trade, "Worker trade is required");
+    this.validateDailyRate(dto.dailyRate);
     const worker = await this.workersRepo.update(
       organizationId,
       workerId,
@@ -247,7 +248,6 @@ export class WorkersService {
       );
     }
     this.validateAssignmentDates(dto.startsOn, dto.endsOn);
-    this.validateDailyRate(dto.dailyRate);
     if (
       await this.workersRepo.hasActiveAssignment(
         organizationId,

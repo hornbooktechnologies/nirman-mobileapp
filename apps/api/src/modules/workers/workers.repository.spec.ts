@@ -36,6 +36,19 @@ describe("WorkersRepository", () => {
     }
   });
 
+  it("includes scheduled active assignments for the management roster", async () => {
+    database.query.mockResolvedValue([]);
+
+    await repository.findProjectRoster("organization-id", "project-id", {
+      assignmentScope: "ALL_ACTIVE",
+    });
+
+    const rosterSql = database.query.mock.calls[0]?.[0];
+    expect(rosterSql).toContain("wpa.status = 'ACTIVE'");
+    expect(rosterSql).not.toContain("wpa.starts_on <= CURRENT_DATE()");
+    expect(rosterSql).not.toContain("wpa.ends_on >= CURRENT_DATE()");
+  });
+
   it("retries a worker-code collision and returns the created worker", async () => {
     let allocation = 0;
     database.query.mockImplementation((sql: string) => {
@@ -104,6 +117,29 @@ describe("WorkersRepository", () => {
     expect(database.execute).not.toHaveBeenCalled();
   });
 
+  it("copies the Worker base daily rate into a new Project assignment", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        { id: "worker-id", base_daily_rate: "750.00" },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([] as never);
+    database.execute.mockResolvedValue(result(1));
+
+    await repository.assignWorker(
+      "organization-id",
+      "project-id",
+      "worker-id",
+      { startsOn: "2026-08-17" },
+      "actor-id",
+    );
+
+    const assignmentParams = database.execute.mock.calls[0]?.[1];
+    expect(assignmentParams?.[4]).toBeNull();
+    expect(assignmentParams?.[5]).toBe("750.00");
+    expect(assignmentParams?.[6]).toBe("2026-08-17");
+  });
+
   it("normalizes mobile digits before duplicate comparison", async () => {
     database.query.mockResolvedValue([]);
 
@@ -128,6 +164,7 @@ function workerRow(workerCode: string) {
     worker_code: workerCode,
     name: "Ravi",
     trade: "Mason",
+    base_daily_rate: "750.00",
     mobile_number: null,
     notes: null,
     status: "ACTIVE",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { PermissionKey } from "@nirman-app/shared";
 import { Pencil, Plus, UserMinus } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import {
@@ -9,7 +10,6 @@ import {
   ConfirmDialogActions,
   Dialog,
   Input,
-  Select,
   StatusBadge,
   Table,
   TableBody,
@@ -18,37 +18,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui";
+import { RowActionMenu } from "@/components/common/row-action-menu";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useAssignWorker,
   useEndWorkerAssignment,
   useProjectWorkers,
   useUpdateWorkerAssignment,
-  useUpdateWorkerRate,
   useWorkers,
 } from "@/features/workers/hooks/use-workers";
-import type { ProjectWorkerRosterItem } from "@/features/workers/types/workers.types";
-
-const statusTone = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  ENDED: "inactive",
-} as const;
+import type {
+  ProjectWorkerRosterItem,
+  WorkerSummary,
+} from "@/features/workers/types/workers.types";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function ProjectWorkersPanel({
   organizationId,
   projectId,
+  effectivePermissions,
 }: {
   organizationId: string;
   projectId: string;
+  effectivePermissions?: PermissionKey[];
 }) {
   const { hasPermission } = useAuth();
-  const canCreate = hasPermission("workers:create");
-  const canAssign = hasPermission("workers:assign-project");
-  const roster = useProjectWorkers(organizationId, projectId, { pageSize: 100 });
+  const hasAccess = (permission: PermissionKey) =>
+    effectivePermissions
+      ? effectivePermissions.includes(permission)
+      : hasPermission(permission);
+  const canCreate = hasAccess("workers:create");
+  const canAssign = hasAccess("workers:assign-project");
+  const [workerSearch, setWorkerSearch] = useState("");
+  const roster = useProjectWorkers(organizationId, projectId, {
+    pageSize: 100,
+    assignmentScope: "ALL_ACTIVE",
+  });
   const workers = useWorkers(organizationId, {
+    search: workerSearch,
     status: "ACTIVE",
     pageSize: 100,
     sortBy: "name",
@@ -57,53 +65,47 @@ export function ProjectWorkersPanel({
   const assignWorker = useAssignWorker(organizationId, projectId);
   const updateAssignment = useUpdateWorkerAssignment(organizationId, projectId);
   const endAssignment = useEndWorkerAssignment(organizationId, projectId);
-  const rosterRows = useMemo(() => roster.data?.data ?? [], [roster.data?.data]);
-  const assignedWorkerIds = useMemo(
-    () => new Set(rosterRows.map((worker) => worker.id)),
+  const rosterRows = useMemo(
+    () => roster.data?.data ?? [],
+    [roster.data?.data],
+  );
+  const rosterByWorkerId = useMemo(
+    () => new Map(rosterRows.map((worker) => [worker.id, worker])),
     [rosterRows],
   );
-  const availableWorkers = (workers.data?.data ?? []).filter(
-    (worker) => !assignedWorkerIds.has(worker.id),
+  const workerRows = workers.data?.data ?? [];
+  const [assigningWorker, setAssigningWorker] = useState<WorkerSummary | null>(
+    null,
   );
-  const [assignForm, setAssignForm] = useState({
-    workerId: "",
-    roleLabel: "",
-    dailyRate: "",
-    startsOn: today(),
-  });
-  const [editingWorker, setEditingWorker] = useState<ProjectWorkerRosterItem | null>(null);
+  const [assignStartsOn, setAssignStartsOn] = useState(today());
+  const [editingWorker, setEditingWorker] =
+    useState<ProjectWorkerRosterItem | null>(null);
   const [editForm, setEditForm] = useState({
-    roleLabel: "",
     startsOn: today(),
     endsOn: "",
-    dailyRate: "",
-    effectiveDate: today(),
   });
-  const updateRate = useUpdateWorkerRate(
-    organizationId,
-    projectId,
-    editingWorker?.id ?? "",
-  );
-  const [endingWorker, setEndingWorker] = useState<ProjectWorkerRosterItem | null>(null);
+  const [endingWorker, setEndingWorker] =
+    useState<ProjectWorkerRosterItem | null>(null);
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: "" });
   const [actionError, setActionError] = useState("");
 
   async function submitAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!assignForm.workerId) return;
+    if (!assigningWorker) return;
     setActionError("");
     try {
       await assignWorker.mutateAsync({
-        workerId: assignForm.workerId,
+        workerId: assigningWorker.id,
         input: {
-          roleLabel: assignForm.roleLabel || null,
-          dailyRate: assignForm.dailyRate || null,
-          startsOn: assignForm.startsOn,
+          startsOn: assignStartsOn,
         },
       });
-      setAssignForm({ workerId: "", roleLabel: "", dailyRate: "", startsOn: today() });
+      setAssigningWorker(null);
+      setAssignStartsOn(today());
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to assign worker");
+      setActionError(
+        error instanceof Error ? error.message : "Unable to assign worker",
+      );
     }
   }
 
@@ -111,11 +113,8 @@ export function ProjectWorkersPanel({
     setActionError("");
     setEditingWorker(worker);
     setEditForm({
-      roleLabel: worker.currentAssignment.roleLabel ?? "",
       startsOn: worker.currentAssignment.startsOn.slice(0, 10),
       endsOn: worker.currentAssignment.endsOn?.slice(0, 10) ?? "",
-      dailyRate: worker.currentAssignment.dailyRate ?? "",
-      effectiveDate: today(),
     });
   }
 
@@ -127,24 +126,15 @@ export function ProjectWorkersPanel({
       await updateAssignment.mutateAsync({
         workerId: editingWorker.id,
         input: {
-          roleLabel: editForm.roleLabel || null,
           startsOn: editForm.startsOn,
           endsOn: editForm.endsOn || null,
         },
       });
-      if (
-        editForm.dailyRate !== "" &&
-        editForm.dailyRate !== (editingWorker.currentAssignment.dailyRate ?? "")
-      ) {
-        await updateRate.mutateAsync({
-          dailyRate: editForm.dailyRate,
-          effectiveDate: editForm.effectiveDate,
-          reason: "Project roster update",
-        });
-      }
       setEditingWorker(null);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to update assignment");
+      setActionError(
+        error instanceof Error ? error.message : "Unable to update assignment",
+      );
     }
   }
 
@@ -162,7 +152,9 @@ export function ProjectWorkersPanel({
       setEndingWorker(null);
       setEndForm({ endsOn: today(), reason: "" });
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to end assignment");
+      setActionError(
+        error instanceof Error ? error.message : "Unable to end assignment",
+      );
     }
   }
 
@@ -176,7 +168,9 @@ export function ProjectWorkersPanel({
           </p>
         </div>
         {canCreate && canAssign ? (
-          <Link href={`/workers/new?organizationId=${organizationId}&projectId=${projectId}`}>
+          <Link
+            href={`/workers/new?organizationId=${organizationId}&projectId=${projectId}`}
+          >
             <Button size="sm">
               <Plus size={16} />
               Add New Worker
@@ -185,64 +179,34 @@ export function ProjectWorkersPanel({
         ) : null}
       </div>
 
-      {canAssign ? (
-        <form
-          className="grid gap-3 rounded-inner border border-hairline bg-sunken/40 p-4 lg:grid-cols-[minmax(220px,1fr)_180px_150px_160px_auto]"
-          onSubmit={submitAssignment}
-        >
-          <Select
-            aria-label="Existing worker"
-            value={assignForm.workerId}
-            onChange={(event) =>
-              setAssignForm({ ...assignForm, workerId: event.target.value })
-            }
-            required
-          >
-            <option value="">Assign an existing worker</option>
-            {availableWorkers.map((worker) => (
-              <option key={worker.id} value={worker.id}>
-                {worker.workerCode} · {worker.name} · {worker.trade}
-              </option>
-            ))}
-          </Select>
-          <Input
-            placeholder="Project role"
-            value={assignForm.roleLabel}
-            onChange={(event) =>
-              setAssignForm({ ...assignForm, roleLabel: event.target.value })
-            }
-          />
-          <Input
-            type="number"
-            min="0"
-            placeholder="Daily rate"
-            value={assignForm.dailyRate}
-            onChange={(event) =>
-              setAssignForm({ ...assignForm, dailyRate: event.target.value })
-            }
-          />
-          <Input
-            type="date"
-            value={assignForm.startsOn}
-            onChange={(event) =>
-              setAssignForm({ ...assignForm, startsOn: event.target.value })
-            }
-            required
-          />
-          <Button type="submit" size="sm" disabled={assignWorker.isPending}>
-            {assignWorker.isPending ? "Assigning" : "Assign"}
-          </Button>
-        </form>
+      {actionError ? (
+        <p className="text-[13px] text-red-600">{actionError}</p>
       ) : null}
 
-      {actionError ? <p className="text-[13px] text-red-600">{actionError}</p> : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Input
+          className="w-full sm:w-72"
+          type="search"
+          placeholder="Search organization workers"
+          aria-label="Search organization workers"
+          value={workerSearch}
+          onChange={(event) => setWorkerSearch(event.target.value)}
+        />
+        <p className="text-[12px] text-sub">
+          {rosterByWorkerId.size} assigned to this Project
+        </p>
+      </div>
 
-      {roster.isLoading ? (
-        <p className="text-[13px] text-body">Loading project workers</p>
-      ) : roster.isError ? (
-        <p className="text-[13px] text-red-600">Unable to load project workers</p>
-      ) : rosterRows.length === 0 ? (
-        <p className="text-[13px] text-body">No active workers assigned to this project.</p>
+      {roster.isLoading || workers.isLoading ? (
+        <p className="text-[13px] text-body">Loading organization workers</p>
+      ) : roster.isError || workers.isError ? (
+        <p className="text-[13px] text-red-600">
+          Unable to load organization workers
+        </p>
+      ) : workerRows.length === 0 ? (
+        <p className="text-[13px] text-body">
+          No active workers are available in this organization.
+        </p>
       ) : (
         <Table>
           <TableHeader>
@@ -250,93 +214,155 @@ export function ProjectWorkersPanel({
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Trade</TableHead>
-              <TableHead>Rate</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Daily Rate</TableHead>
+              <TableHead>Project Status</TableHead>
               {canAssign ? <TableHead>Actions</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rosterRows.map((worker) => (
-              <TableRow key={worker.currentAssignment.id}>
-                <TableCell>
-                  <Link href={`/workers/${worker.id}?organizationId=${organizationId}`}>
-                    {worker.workerCode}
-                  </Link>
-                </TableCell>
-                <TableCell>{worker.name}</TableCell>
-                <TableCell>{worker.trade}</TableCell>
-                <TableCell>{worker.currentAssignment.dailyRate ?? "-"}</TableCell>
-                <TableCell>
-                  <StatusBadge tone={statusTone[worker.currentAssignment.status]}>
-                    {worker.currentAssignment.status}
-                  </StatusBadge>
-                </TableCell>
-                {canAssign ? (
+            {workerRows.map((worker) => {
+              const assignedWorker = rosterByWorkerId.get(worker.id);
+              return (
+                <TableRow key={worker.id}>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(worker)}>
-                        <Pencil size={14} /> Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEndingWorker(worker)}
-                      >
-                        <UserMinus size={14} /> End
-                      </Button>
-                    </div>
+                    <Link
+                      href={`/workers/${worker.id}?organizationId=${organizationId}`}
+                    >
+                      {worker.workerCode}
+                    </Link>
                   </TableCell>
-                ) : null}
-              </TableRow>
-            ))}
+                  <TableCell>{worker.name}</TableCell>
+                  <TableCell>{worker.trade}</TableCell>
+                  <TableCell>{worker.baseDailyRate ?? "-"}</TableCell>
+                  <TableCell>
+                    <StatusBadge tone={assignedWorker ? "active" : "inactive"}>
+                      {assignedWorker ? "ASSIGNED" : "UNASSIGNED"}
+                    </StatusBadge>
+                  </TableCell>
+                  {canAssign ? (
+                    <TableCell>
+                      {assignedWorker ? (
+                        <RowActionMenu
+                          actions={[
+                            {
+                              label: "Edit assignment dates",
+                              icon: <Pencil size={15} />,
+                              onSelect: () => openEdit(assignedWorker),
+                            },
+                            {
+                              label: "End assignment",
+                              icon: <UserMinus size={15} />,
+                              destructive: true,
+                              onSelect: () => setEndingWorker(assignedWorker),
+                            },
+                          ]}
+                        />
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setActionError("");
+                            setAssigningWorker(worker);
+                            setAssignStartsOn(today());
+                          }}
+                        >
+                          Assign
+                        </Button>
+                      )}
+                    </TableCell>
+                  ) : null}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
 
       <Dialog
+        open={Boolean(assigningWorker)}
+        title={`Assign ${assigningWorker?.name ?? "worker"}?`}
+        description="Trade and daily rate come from the Worker record. Choose only when this Project assignment starts."
+        onOpenChange={(open) => !open && setAssigningWorker(null)}
+      >
+        <form className="space-y-4" onSubmit={submitAssignment}>
+          <div className="grid gap-2 rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-body sm:grid-cols-2">
+            <span>Trade: {assigningWorker?.trade ?? "-"}</span>
+            <span>
+              Daily rate: {assigningWorker?.baseDailyRate ?? "Not set"}
+            </span>
+          </div>
+          <label className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+              Assignment start date
+            </span>
+            <Input
+              type="date"
+              value={assignStartsOn}
+              onChange={(event) => setAssignStartsOn(event.target.value)}
+              required
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAssigningWorker(null)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={assignWorker.isPending}>
+              {assignWorker.isPending ? "Assigning" : "Assign Worker"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
         open={Boolean(editingWorker)}
         title={`Update ${editingWorker?.name ?? "worker"} assignment`}
-        description="Change project role, dates, or the current pre-Attendance rate."
+        description="Update only the Project assignment dates. Trade and daily rate come from the Worker record."
         onOpenChange={(open) => !open && setEditingWorker(null)}
       >
         <form className="space-y-3" onSubmit={submitEdit}>
-          <Input
-            placeholder="Project role"
-            value={editForm.roleLabel}
-            onChange={(event) => setEditForm({ ...editForm, roleLabel: event.target.value })}
-          />
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              type="date"
-              value={editForm.startsOn}
-              onChange={(event) => setEditForm({ ...editForm, startsOn: event.target.value })}
-              required
-            />
-            <Input
-              type="date"
-              value={editForm.endsOn}
-              onChange={(event) => setEditForm({ ...editForm, endsOn: event.target.value })}
-            />
-            <Input
-              type="number"
-              min="0"
-              placeholder="Daily rate"
-              value={editForm.dailyRate}
-              onChange={(event) => setEditForm({ ...editForm, dailyRate: event.target.value })}
-            />
-            <Input
-              type="date"
-              value={editForm.effectiveDate}
-              onChange={(event) => setEditForm({ ...editForm, effectiveDate: event.target.value })}
-              required
-            />
+            <label className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+                Start date
+              </span>
+              <Input
+                type="date"
+                value={editForm.startsOn}
+                onChange={(event) =>
+                  setEditForm({ ...editForm, startsOn: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+                End date
+              </span>
+              <Input
+                type="date"
+                min={editForm.startsOn}
+                value={editForm.endsOn}
+                onChange={(event) =>
+                  setEditForm({ ...editForm, endsOn: event.target.value })
+                }
+              />
+            </label>
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setEditingWorker(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingWorker(null)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={updateAssignment.isPending || updateRate.isPending}>
-              {updateAssignment.isPending || updateRate.isPending ? "Saving" : "Save Assignment"}
+            <Button type="submit" disabled={updateAssignment.isPending}>
+              {updateAssignment.isPending ? "Saving" : "Save Assignment"}
             </Button>
           </div>
         </form>
@@ -362,13 +388,17 @@ export function ProjectWorkersPanel({
           <Input
             type="date"
             value={endForm.endsOn}
-            onChange={(event) => setEndForm({ ...endForm, endsOn: event.target.value })}
+            onChange={(event) =>
+              setEndForm({ ...endForm, endsOn: event.target.value })
+            }
             required
           />
           <Input
             placeholder="Reason (optional)"
             value={endForm.reason}
-            onChange={(event) => setEndForm({ ...endForm, reason: event.target.value })}
+            onChange={(event) =>
+              setEndForm({ ...endForm, reason: event.target.value })
+            }
           />
         </div>
       </Dialog>

@@ -1,9 +1,14 @@
 import { apiRequest } from '../../lib/api';
 import type {
+  AssignWorkerToProjectInput,
   CreateWorkerInput,
+  EndWorkerProjectAssignmentInput,
   ProjectWorkerRosterResponse,
+  UpdateWorkerProjectAssignmentInput,
   WorkerDetail,
   WorkerDuplicateCandidate,
+  WorkerListResponse,
+  WorkerProjectAssignmentSummary,
 } from './types';
 
 type ApiEnvelope<TData> = {
@@ -17,7 +22,19 @@ export async function fetchProjectWorkers(
   accessToken: string,
 ) {
   const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
-    `/organizations/${organizationId}/projects/${projectId}/workers?pageSize=100`,
+    `/organizations/${organizationId}/projects/${projectId}/workers?pageSize=100&assignmentScope=ALL_ACTIVE`,
+    {},
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function fetchOrganizationWorkers(
+  organizationId: string,
+  accessToken: string,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerListResponse>>(
+    `/organizations/${organizationId}/workers?status=ACTIVE&pageSize=100&sortBy=name&sortOrder=asc`,
     {},
     { accessToken },
   );
@@ -51,6 +68,51 @@ export async function createWorker(
       method: 'POST',
       body: JSON.stringify(input),
     },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function assignWorkerToProject(
+  organizationId: string,
+  projectId: string,
+  workerId: string,
+  accessToken: string,
+  input: AssignWorkerToProjectInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerProjectAssignmentSummary>>(
+    `/organizations/${organizationId}/projects/${projectId}/workers/${workerId}`,
+    { method: 'PUT', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function updateWorkerProjectAssignment(
+  organizationId: string,
+  projectId: string,
+  workerId: string,
+  accessToken: string,
+  input: UpdateWorkerProjectAssignmentInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerProjectAssignmentSummary>>(
+    `/organizations/${organizationId}/projects/${projectId}/workers/${workerId}/assignment`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function endWorkerProjectAssignment(
+  organizationId: string,
+  projectId: string,
+  workerId: string,
+  accessToken: string,
+  input: EndWorkerProjectAssignmentInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerProjectAssignmentSummary>>(
+    `/organizations/${organizationId}/projects/${projectId}/workers/${workerId}/end-assignment`,
+    { method: 'POST', body: JSON.stringify(input) },
     { accessToken },
   );
   return response.data;

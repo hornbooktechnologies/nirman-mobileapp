@@ -53,7 +53,6 @@ describe("OrganizationsService member invitations", () => {
     expect(projectAccess.resolveOrganizationAccess).toHaveBeenCalledWith(
       actor,
       organizationId,
-      "members:invite",
     );
     expect(result.map((item) => item.name)).toEqual([
       "Organization Owner",
@@ -117,6 +116,7 @@ function role(name: string) {
     name,
     description: null,
     isSystem: true,
+    permissions: [],
   };
 }
 

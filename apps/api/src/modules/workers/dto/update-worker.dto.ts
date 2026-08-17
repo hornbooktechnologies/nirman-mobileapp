@@ -1,4 +1,12 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from "class-transformer";
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from "class-validator";
 
 export class UpdateWorkerDto {
   @IsOptional()
@@ -10,6 +18,12 @@ export class UpdateWorkerDto {
   @IsString()
   @MaxLength(80)
   trade?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  dailyRate?: number | null;
 
   @IsOptional()
   @IsString()

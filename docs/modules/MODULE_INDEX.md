@@ -21,8 +21,9 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Last Slice | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Identity Access | `docs/modules/foundation/identity-access/CONTRACTS.md` | in_progress | New and existing Owner activation paths now redirect to Login with email pre-filled; existing identities reuse their password | Verify both paths with disposable invitations on web and Expo Go, then implement general member invitations |
-| 2 | Project Setup And Assignment | `docs/modules/foundation/project-access/CONTRACTS.md` | in_progress | Slice 6 mobile session/project switcher | Phase 1 foundation review |
+| 1 | Identity Access | `docs/modules/foundation/identity-access/CONTRACTS.md` | in_progress | Internal Contractor membership approved; mobile customer shell cleaned and mobile member plan prepared | Implement multi-organization switching, then mobile member invitations |
+| 2 | Project Setup And Assignment | `docs/modules/foundation/project-access/CONTRACTS.md` | in_progress | Mobile now exposes only real authorized project context; assignment APIs already exist | Implement mobile project creation and member assignment after invitation UI |
+| 2A | Project Team And Permission Grants | `docs/modules/foundation/project-team-access/CONTRACTS.md` | in_progress | Contract approved with ROLE_DEFAULT compatibility and CUSTOM Project grants | Implement persistence, authorization, Team APIs, and web/mobile Team flows |
 | 3 | Role And Permission Model | `docs/modules/foundation/role-permission-model/PLAN.md` | in_progress | Platform Settings access/save restored; Gmail delivery reaches SMTP but awaits a valid same-account App Password | Replace/test SMTP credential, then run the remaining full platform/customer role matrix |
 | 4 | Audit Foundation | `docs/modules/foundation/audit/CONTRACTS.md` | candidate | none | Contract after Phase 1 review |
 | 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | candidate | none | Contract before gallery/evidence |
@@ -33,7 +34,7 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | blocked | Independent shared/API/web/mobile MVP source and automated gates complete | Owner decides active-assignment behavior on worker deactivation; then rerun and smoke |
+| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | blocked | Existing permission-aware mobile roster/create retained in cleaned customer shell | Complete mobile assignment lifecycle after owner decides active-assignment behavior on deactivation |
 | 9 | Attendance | `docs/modules/construction/attendance/CONTRACTS.md` | candidate | Workers + Project Access | Contract |
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md` | candidate | Workers + Attendance + Audit | Contract |
 | 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | candidate | Workers + Attendance + Kharchi | Contract |
@@ -59,18 +60,20 @@ AI agents must read this file before starting new module work.
 | --- | --- | --- | --- | --- | --- |
 | 22 | Dashboards | `docs/modules/oversight/dashboards/CONTRACTS.md` | candidate | Core operations and sales data | Contract later |
 | 23 | Reports And Exports | `docs/modules/oversight/reports/CONTRACTS.md` | candidate | Core operations and sales data | Contract later |
-| 24 | Super Admin And Subscriptions | `docs/modules/platform/subscriptions/CONTRACTS.md` | candidate | Identity Access + Role And Permission Model | Contract later |
+| 24 | Super Admin And Subscriptions | `docs/modules/platform/subscriptions/CONTRACTS.md` | in_progress | Configurable capacity contract approved; no hard-coded commercial values | Implement persistence, APIs, and manual Platform administration |
 
 ## 7. Current Recommendation
 
-Resolve the Workers deactivation lifecycle decision recorded in `docs/modules/construction/workers/STATUS.md`. Implement that one rule, rerun Workers verification, and complete an approved disposable-data role/scope smoke before starting Attendance or another operational module.
+Review `docs/tasks/mobile-customer-experience-implementation-plan.md` and approve Slice 1 multi-organization switching. Then implement mobile Members/Invitations and Project Member Assignment before starting Attendance or another operational module.
 
 Next document:
 
 ```text
-docs/modules/construction/workers/STATUS.md
+docs/tasks/mobile-customer-experience-implementation-plan.md
 ```
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.
 
 Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Audit, Attendance/Wages rate history, and persisted offline behavior remain explicit downstream foundation dependencies.
+
+The mobile customer shell no longer exposes mock workflows, design-system screens, fake project/team data, or dead tabs. The approved mobile plan now makes organization switching, member invitations, project assignment, and Workers completion the next foundation sequence for Builder, Contractor, Supervisor, Project Manager, and Sales identities.
