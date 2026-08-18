@@ -17,7 +17,7 @@ type FloatingTabBarProps = ViewProps & {
 
 export function FloatingTabBar({ tabs, activeKey, onChange, style, ...props }: FloatingTabBarProps) {
   return (
-    <View style={[styles.bar, style]} {...props}>
+    <View accessibilityLabel="Main navigation" style={[styles.bar, style]} {...props}>
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
         const Icon = tab.icon;
@@ -27,15 +27,18 @@ export function FloatingTabBar({ tabs, activeKey, onChange, style, ...props }: F
             accessibilityLabel={tab.label}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
+            accessibilityHint={`Open ${tab.label}`}
             key={tab.key}
             onPress={() => onChange?.(tab.key)}
-            style={[styles.item, active && styles.activeItem]}
+            style={({ pressed }) => [styles.item, active && styles.activeItem, pressed && styles.pressedItem]}
           >
-            <AppIcon
-              color={active ? mobileTheme.color.navigation.iconActive : mobileTheme.color.navigation.icon}
-              name={Icon}
-              size={active ? mobileTheme.icon.lg : mobileTheme.icon.md}
-            />
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.iconShell, active && styles.activeIconShell]}>
+              <AppIcon
+                color={active ? mobileTheme.color.action.primary : mobileTheme.color.navigation.icon}
+                name={Icon}
+                size={mobileTheme.icon.md}
+              />
+            </View>
             {tab.key !== 'create' ? (
               <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
             ) : null}
@@ -51,10 +54,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     backgroundColor: mobileTheme.color.navigation.floating,
-    borderRadius: mobileTheme.radius.full,
+    borderColor: mobileTheme.color.border.inverse,
+    borderRadius: mobileTheme.radius.xxl,
+    borderWidth: 1,
     flexDirection: 'row',
     gap: mobileTheme.spacing[1],
-    height: 74,
+    minHeight: 76,
     justifyContent: 'space-between',
     padding: mobileTheme.spacing[2],
     width: '100%',
@@ -62,22 +67,37 @@ const styles = StyleSheet.create({
   },
   item: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.radius.xl,
     flex: 1,
     gap: mobileTheme.spacing[1],
-    height: 58,
+    minHeight: 58,
     justifyContent: 'center',
   },
   activeItem: {
-    backgroundColor: mobileTheme.color.action.primary,
+    backgroundColor: mobileTheme.color.background.elevated,
+    ...mobileShadows.soft,
+  },
+  pressedItem: {
+    opacity: 0.72,
+  },
+  iconShell: {
+    alignItems: 'center',
+    borderRadius: mobileTheme.radius.full,
+    height: 28,
+    justifyContent: 'center',
+    width: 34,
+  },
+  activeIconShell: {
+    backgroundColor: mobileTheme.color.brand.secondarySoft,
   },
   label: {
-    color: mobileTheme.color.navigation.iconActive,
+    color: mobileTheme.color.navigation.icon,
     fontFamily: 'Manrope_600SemiBold',
     fontSize: 11,
-    lineHeight: 13,
+    lineHeight: 14,
   },
   activeLabel: {
-    color: mobileTheme.color.navigation.iconActive,
+    color: mobileTheme.color.text.primary,
+    fontFamily: 'Manrope_700Bold',
   },
 });

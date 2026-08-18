@@ -1,19 +1,24 @@
 import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
+import { AppIcon, type AppIconName } from './app-icon';
 
 type ButtonProps = PressableProps & {
   label: string;
   size?: 'sm' | 'md' | 'lg';
-  variant?: 'primary' | 'secondary' | 'glass' | 'outline' | 'dark' | 'success' | 'danger' | 'ghost';
+  variant?: 'primary' | 'brand' | 'info' | 'secondary' | 'glass' | 'outline' | 'dark' | 'success' | 'danger' | 'ghost';
   fullWidth?: boolean;
+  leadingIcon?: AppIconName;
   contentStyle?: StyleProp<ViewStyle>;
 };
 
-export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, style, contentStyle, ...props }: ButtonProps) {
+export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, leadingIcon, hitSlop, style, contentStyle, ...props }: ButtonProps) {
+  const usesInverseContent = variant === 'primary' || variant === 'brand' || variant === 'info' || variant === 'success' || variant === 'danger' || variant === 'dark';
+
   return (
     <Pressable
       accessibilityRole="button"
+      hitSlop={hitSlop ?? (size === 'sm' ? 4 : undefined)}
       style={(state) => [
         styles.base,
         styles[size],
@@ -25,7 +30,14 @@ export function Button({ label, size = 'md', variant = 'primary', fullWidth = tr
       ]}
       {...props}
     >
-      <Text style={[styles.label, variant === 'primary' || variant === 'success' || variant === 'danger' || variant === 'dark' ? styles.inverseLabel : styles.secondaryLabel]}>{label}</Text>
+      {leadingIcon ? (
+        <AppIcon
+          color={usesInverseContent ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary}
+          name={leadingIcon}
+          size={mobileTheme.icon.sm}
+        />
+      ) : null}
+      <Text style={[styles.label, usesInverseContent ? styles.inverseLabel : styles.secondaryLabel]}>{label}</Text>
     </Pressable>
   );
 }
@@ -34,6 +46,8 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     borderRadius: mobileTheme.radius.full,
+    flexDirection: 'row',
+    gap: mobileTheme.spacing[2],
     justifyContent: 'center',
   },
   sm: {
@@ -57,6 +71,12 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: mobileTheme.color.action.primary,
     ...mobileShadows.copperGlow,
+  },
+  brand: {
+    backgroundColor: mobileTheme.color.brand.primary,
+  },
+  info: {
+    backgroundColor: mobileTheme.color.brand.blueprint,
   },
   secondary: {
     backgroundColor: mobileTheme.color.action.secondary,

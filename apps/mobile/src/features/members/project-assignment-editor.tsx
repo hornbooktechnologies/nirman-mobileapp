@@ -6,7 +6,7 @@ import {
 } from '@nirman-app/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, Card, FormField, Input } from '../../components/ui';
+import { Badge, Button, Card, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
 import { mobileText, mobileTheme } from '../../theme';
 
 export type ProjectAssignmentDraft = {
@@ -96,6 +96,7 @@ export function ProjectAssignmentEditor({
             <ChoiceChip
               key={status}
               label={status === 'ACTIVE' ? 'Active' : 'Inactive'}
+              tone={getStatusTone(status)}
               selected={value.status === status}
               onPress={() => update({ status })}
             />
@@ -167,8 +168,8 @@ export function ProjectAssignmentEditor({
         {value.permissionMode === 'CUSTOM' ? (
           <View style={styles.matrix}>
             <View style={styles.presetRow}>
-              <Button label="View preset" size="sm" variant="outline" fullWidth={false} onPress={() => applyPreset('VIEW')} />
-              <Button label="Manage preset" size="sm" variant="outline" fullWidth={false} onPress={() => applyPreset('MANAGE')} />
+              <Button label="View preset" size="sm" variant="info" fullWidth={false} onPress={() => applyPreset('VIEW')} />
+              <Button label="Manage preset" size="sm" variant="brand" fullWidth={false} onPress={() => applyPreset('MANAGE')} />
             </View>
             {PROJECT_PERMISSION_GROUPS.map((group) => {
               const permissions = group.permissions.filter((permission) =>
@@ -206,20 +207,23 @@ export function ProjectAssignmentEditor({
 function ChoiceChip({
   label,
   selected,
+  tone,
   onPress,
 }: {
   label: string;
   selected: boolean;
+  tone?: BadgeTone;
   onPress: () => void;
 }) {
+  const toneTokens = tone ? badgeToneTokens[tone] : null;
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
-      style={[styles.chip, selected && styles.chipSelected]}
+      style={[styles.chip, selected && (toneTokens ? { backgroundColor: toneTokens.background, borderColor: toneTokens.foreground } : styles.chipSelected)]}
       onPress={onPress}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      <Text style={[styles.chipText, selected && (toneTokens ? { color: toneTokens.foreground } : styles.chipTextSelected)]}>{label}</Text>
     </Pressable>
   );
 }

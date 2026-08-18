@@ -7,11 +7,12 @@ type ChipProps = PressableProps & {
   selected?: boolean;
 };
 
-export function Chip({ label, selected = false, style, ...props }: ChipProps) {
+export function Chip({ label, selected = false, hitSlop = 4, style, ...props }: ChipProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      hitSlop={hitSlop}
       style={(state) => [
         styles.base,
         selected ? styles.selected : styles.default,

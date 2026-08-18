@@ -1,23 +1,29 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppIcon,
+  ActionListItem,
   Badge,
   BottomSheet,
   Button,
-  Card,
+  CollectionPickerModal,
+  CompactScreenHeader,
   EmptyState,
   GradientScreen,
   IconButton,
-  Input,
   LoadingState,
+  OperationalEntityCard,
+  SearchField,
+  StatusBadge,
+  getStatusTone,
 } from '../../components/ui';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
+import { CustomerTabBar } from '../home/components';
 import {
   createAssignmentDraft,
   ProjectAssignmentEditor,
@@ -185,17 +191,13 @@ export function ProjectTeamScreen() {
   }
 
   return (
-    <GradientScreen>
-      <View style={styles.header}>
-        <IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />
-        <View style={styles.titleCopy}>
-          <Text style={styles.title}>Project Team</Text>
-          <Text style={styles.caption}>{project?.name ?? 'Select a project'}</Text>
-        </View>
-        {tab === 'members' && canAssignMembers ? (
-          <IconButton icon="account-plus-outline" accessibilityLabel="Assign project member" variant="primary" onPress={() => setShowAssign(true)} />
-        ) : <View style={styles.spacer} />}
-      </View>
+    <GradientScreen footer={<CustomerTabBar activeKey="team" />}>
+      <CompactScreenHeader
+        action={tab === 'members' && canAssignMembers ? <IconButton icon="account-plus-outline" accessibilityLabel="Assign project member" variant="primary" onPress={() => setShowAssign(true)} /> : undefined}
+        leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
+        subtitle={project?.name ?? 'Choose a project'}
+        title="Team"
+      />
 
       <View style={styles.tabs}>
         {canReadMembers ? <Button label={`Members ${members.length}`} size="sm" variant={tab === 'members' ? 'dark' : 'outline'} fullWidth={false} onPress={() => setTab('members')} /> : null}
@@ -204,29 +206,25 @@ export function ProjectTeamScreen() {
 
       {tab === 'members' ? (
         <>
-          <Input accessibilityLabel="Search assigned members" placeholder="Search assigned members" value={search} onChangeText={setSearch} />
+          <SearchField accessibilityLabel="Search assigned members" placeholder="Search name, role or responsibility" value={search} onChangeText={setSearch} />
           {loading ? <LoadingState label="Loading Project Team" /> : null}
           {error ? <EmptyState title="Team unavailable" description={error} actionLabel="Retry" onAction={() => void load()} /> : null}
           {!loading && !error ? (
             visibleMembers.length ? (
               <View style={styles.list}>
                 {visibleMembers.map((member) => (
-                  <Card key={member.id} style={styles.memberCard}>
-                    <View style={styles.memberHeader}>
-                      <View style={styles.memberCopy}>
-                        <Text style={styles.memberName}>{member.user.name}</Text>
-                        <Text style={styles.caption}>{member.role.name}{member.roleLabel ? ` · ${member.roleLabel}` : ''}</Text>
-                      </View>
-                      {(canUpdateMembers || canUnassignMembers) ? (
-                        <IconButton icon="dots-horizontal" accessibilityLabel={`Actions for ${member.user.name}`} variant="ghost" onPress={() => setActionMember(member)} />
-                      ) : null}
-                    </View>
-                    <View style={styles.badges}>
-                      <Badge label={member.status} tone={member.status === 'ACTIVE' ? 'active' : 'warning'} />
-                      <Badge label={member.permissionMode === 'CUSTOM' ? `${member.grantedPermissions.length} custom actions` : 'Role defaults'} tone={member.permissionMode === 'CUSTOM' ? 'warning' : 'neutral'} />
-                    </View>
-                    <Text style={styles.caption}>Access {formatDateRange(member.startsOn, member.endsOn)}</Text>
-                  </Card>
+                  <OperationalEntityCard
+                    accessibilityLabel={`${member.user.name}, ${member.role.name}, ${member.roleLabel ?? 'project member'}, ${member.status}, ${member.permissionMode === 'CUSTOM' ? `${member.grantedPermissions.length} custom actions` : 'role defaults'}`}
+                    contextLeading={member.role.name}
+                    contextTrailing={member.roleLabel ?? 'Project member'}
+                    footerLeading={formatDateRange(member.startsOn, member.endsOn)}
+                    footerTrailing={<StatusBadge label={member.status} />}
+                    key={member.id}
+                    onPress={(canUpdateMembers || canUnassignMembers) ? () => setActionMember(member) : undefined}
+                    supporting={member.user.email ?? 'No email'}
+                    title={member.user.name}
+                    tone={getStatusTone(member.status)}
+                  />
                 ))}
               </View>
             ) : (
@@ -248,8 +246,8 @@ export function ProjectTeamScreen() {
 
       {actionMember ? (
         <BottomSheet visible title={actionMember.user.name} description={`${actionMember.role.name} · ${actionMember.status}`} onClose={() => setActionMember(null)}>
-          {canUpdateMembers ? <ActionRow icon="account-edit-outline" label="Edit assignment and permissions" onPress={() => { setActionMember(null); setEditingMember(actionMember); }} /> : null}
-          {canUnassignMembers ? <ActionRow icon="account-minus-outline" label="End project assignment" destructive disabled={saving} onPress={() => confirmUnassign(actionMember)} /> : null}
+          {canUpdateMembers ? <ActionListItem icon="account-edit-outline" label="Edit assignment and permissions" tone="brand" onPress={() => { setActionMember(null); setEditingMember(actionMember); }} /> : null}
+          {canUnassignMembers ? <ActionListItem icon="account-minus-outline" label="End project assignment" tone="danger" disabled={saving} onPress={() => confirmUnassign(actionMember)} /> : null}
         </BottomSheet>
       ) : null}
     </GradientScreen>
@@ -267,6 +265,7 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
 }) {
   const [selectedMemberId, setSelectedMemberId] = useState(member?.memberId ?? '');
   const [memberSearch, setMemberSearch] = useState('');
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [draft, setDraft] = useState<ProjectAssignmentDraft>(() => createAssignmentDraft(member));
   const [error, setError] = useState('');
   const selectedOrganizationMember = availableMembers.find((candidate) => candidate.id === selectedMemberId);
@@ -302,38 +301,67 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title={mode === 'assign' ? 'Assign project member' : `Edit ${member?.user.name ?? 'member'}`} description="Responsibility is a readable label. Permissions control what the member can actually do." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving' : mode === 'assign' ? 'Assign member' : 'Save assignment'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+    <>
+    <BottomSheet visible={!pickerVisible} scroll showCloseButton={false} title={mode === 'assign' ? 'Set project access' : member?.user.name ?? 'Edit access'} description={mode === 'assign' ? 'Choose a member, then confirm responsibility, dates and permissions.' : 'Edit responsibility, dates and permissions for this project.'} onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving…' : mode === 'assign' ? 'Assign' : 'Save changes'} variant={mode === 'assign' ? 'primary' : 'brand'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
       {mode === 'assign' ? (
         <View style={styles.memberPicker}>
-          <Text style={styles.fieldLabel}>Select organization member</Text>
-          <Input accessibilityLabel="Search organization members" placeholder="Search active members" value={memberSearch} onChangeText={setMemberSearch} />
-          <View style={styles.pickerList}>
-            {filteredMembers.map((candidate) => {
-              const selected = candidate.id === selectedMemberId;
-              return (
-                <Pressable key={candidate.id} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={[styles.pickerRow, selected && styles.pickerRowSelected]} onPress={() => setSelectedMemberId(candidate.id)}>
-                  <View style={styles.memberCopy}><Text style={styles.memberName}>{candidate.user?.name ?? 'Member'}</Text><Text style={styles.caption}>{candidate.role?.name ?? 'Organization role'}</Text></View>
-                  {selected ? <AppIcon name="check-circle" size={22} color={mobileTheme.color.action.primary} /> : null}
-                </Pressable>
-              );
-            })}
-            {!filteredMembers.length ? <Text style={styles.caption}>No unassigned active members match.</Text> : null}
-          </View>
+          <Text style={styles.fieldLabel}>Member</Text>
+          {selectedOrganizationMember ? (
+            <OperationalEntityCard
+              accessibilityLabel={`${selectedOrganizationMember.user?.name ?? 'Member'}, selected. Change member`}
+              contextLeading={selectedOrganizationMember.role?.name ?? 'Organization member'}
+              contextTrailing="Selected"
+              footerLeading={selectedOrganizationMember.user?.email ?? 'Active organization member'}
+              footerTrailing={<Badge label="CHANGE" tone="info" />}
+              onPress={() => setPickerVisible(true)}
+              supporting={selectedOrganizationMember.designation ?? 'Project assignment candidate'}
+              title={selectedOrganizationMember.user?.name ?? 'Member'}
+            />
+          ) : (
+            <Button label="Choose member" leadingIcon="account-search-outline" variant="info" onPress={() => setPickerVisible(true)} />
+          )}
         </View>
       ) : null}
       {(mode === 'edit' || selectedMemberId) ? <ProjectAssignmentEditor value={draft} rolePermissions={rolePermissions} onChange={setDraft} /> : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </BottomSheet>
+    <CollectionPickerModal
+      accessibilityLabel="Search organization members"
+      data={filteredMembers}
+      emptyDescription={memberSearch ? 'Try another name or role.' : 'Every active member is already assigned to this project.'}
+      emptyTitle={memberSearch ? 'No matching members' : 'No members available'}
+      keyExtractor={(candidate) => candidate.id}
+      renderItem={({ item: candidate }) => (
+        <OperationalEntityCard
+          accessibilityLabel={`Select ${candidate.user?.name ?? 'member'}, ${candidate.role?.name ?? 'organization member'}`}
+          contextLeading={candidate.role?.name ?? 'Organization member'}
+          contextTrailing={candidate.status}
+          footerLeading={candidate.user?.email ?? 'No email'}
+          footerTrailing={candidate.id === selectedMemberId ? <StatusBadge label="SELECTED" /> : <AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} />}
+          onPress={() => {
+            setSelectedMemberId(candidate.id);
+            setPickerVisible(false);
+          }}
+          supporting={candidate.designation ?? 'Available for project assignment'}
+          title={candidate.user?.name ?? 'Member'}
+          tone={getStatusTone(candidate.status)}
+        />
+      )}
+      searchPlaceholder="Search name or role"
+      searchValue={memberSearch}
+      subtitle="Active members not yet assigned"
+      title="Choose member"
+      visible={pickerVisible}
+      onClose={() => setPickerVisible(false)}
+      onSearchChange={setMemberSearch}
+    />
+    </>
   );
-}
-
-function ActionRow({ icon, label, destructive = false, disabled = false, onPress }: { icon: Parameters<typeof AppIcon>[0]['name']; label: string; destructive?: boolean; disabled?: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" disabled={disabled} style={[styles.actionRow, disabled && styles.disabled]} onPress={onPress}><AppIcon name={icon} size={24} color={destructive ? mobileTheme.color.status.danger.foreground : mobileTheme.color.text.primary} /><Text style={[styles.actionLabel, destructive && styles.destructive]}>{label}</Text><AppIcon name="chevron-right" size={22} color={mobileTheme.color.text.muted} /></Pressable>;
 }
 
 function formatDateRange(startsOn: string | null, endsOn: string | null) {
   if (!startsOn && !endsOn) return 'without a date limit';
-  return `${startsOn?.slice(0, 10) ?? 'now'} to ${endsOn?.slice(0, 10) ?? 'ongoing'}`;
+  return `${startsOn?.slice(0, 10) ?? 'now'} → ${endsOn?.slice(0, 10) ?? 'ongoing'}`;
 }
 
 function errorMessage(error: unknown) {
@@ -360,8 +388,5 @@ const styles = StyleSheet.create({
   pickerRowSelected: { backgroundColor: mobileTheme.color.surface.mist, borderColor: mobileTheme.color.border.selected },
   footerButton: { flex: 1 },
   errorText: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
-  actionRow: { alignItems: 'center', borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 60, paddingVertical: mobileTheme.spacing[2] },
-  actionLabel: { ...mobileText.label, color: mobileTheme.color.text.primary, flex: 1, fontSize: 16 },
-  destructive: { color: mobileTheme.color.status.danger.foreground },
   disabled: { opacity: 0.5 },
 });

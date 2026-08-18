@@ -4,17 +4,23 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppIcon,
+  ActionListItem,
   Badge,
   BottomSheet,
   Button,
   Card,
+  CompactScreenHeader,
   EmptyState,
   FormField,
   GradientScreen,
   IconButton,
   Input,
   LoadingState,
+  OperationalEntityCard,
+  SearchField,
+  StatusBadge,
   Toggle,
+  getStatusTone,
 } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
 import { useSession } from '../../providers';
@@ -192,16 +198,12 @@ export function MembersScreen() {
 
   return (
     <GradientScreen>
-      <View style={styles.header}>
-        <IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>Members</Text>
-          <Text style={styles.caption}>{session?.activeOrganization?.name ?? 'Organization team'}</Text>
-        </View>
-        {canInvite ? (
-          <IconButton icon="account-plus-outline" accessibilityLabel="Invite member" variant="primary" onPress={() => setShowInvite(true)} />
-        ) : <View style={styles.headerSpacer} />}
-      </View>
+      <CompactScreenHeader
+        action={canInvite ? <IconButton icon="account-plus-outline" accessibilityLabel="Invite member" variant="primary" onPress={() => setShowInvite(true)} /> : undefined}
+        leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
+        subtitle={session?.activeOrganization?.name ?? 'Organization team'}
+        title="Members"
+      />
 
       <View style={styles.introRow}>
         <View style={styles.introCopy}>
@@ -220,12 +222,12 @@ export function MembersScreen() {
           <View style={styles.badges}>
             <Badge label={`Members ${subscriptionSummary.usage.activeMembers}/${subscriptionSummary.subscription?.plan.maxActiveMembers ?? 'Unlimited'}`} tone="info" />
             <Badge label={`Projects ${subscriptionSummary.usage.activeProjects}/${subscriptionSummary.subscription?.plan.maxActiveProjects ?? 'Unlimited'}`} tone="info" />
-            {subscriptionSummary.subscription ? <Badge label={subscriptionSummary.subscription.status} tone={subscriptionSummary.subscription.status === 'ACTIVE' ? 'success' : 'warning'} /> : null}
+            {subscriptionSummary.subscription ? <StatusBadge label={subscriptionSummary.subscription.status} /> : null}
           </View>
         </Card>
       ) : null}
 
-      <Input
+      <SearchField
         accessibilityLabel="Search members"
         placeholder="Search name, email, role or designation"
         value={search}
@@ -240,36 +242,20 @@ export function MembersScreen() {
           <View style={styles.list}>
             {visibleMembers.map((member) => {
               const scope = projectScopeLabel(member);
-              const unassigned = scope === 'Unassigned';
+              const hasActions = canUpdate || canDeactivate || (canAssignProjects && member.status === 'ACTIVE');
               return (
-                <Card key={member.id} style={styles.memberCard}>
-                  <View style={styles.memberHeader}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{initials(member.user?.name)}</Text>
-                    </View>
-                    <View style={styles.memberCopy}>
-                      <Text style={styles.memberName}>{member.user?.name ?? 'Invited member'}</Text>
-                      <Text style={styles.caption}>{member.user?.email ?? 'Email pending'}</Text>
-                    </View>
-                    {(canUpdate || canDeactivate || canAssignProjects) ? (
-                      <IconButton
-                        icon="dots-horizontal"
-                        accessibilityLabel={`Actions for ${member.user?.name ?? 'member'}`}
-                        variant="ghost"
-                        onPress={() => setActionMember(member)}
-                      />
-                    ) : null}
-                  </View>
-                  <View style={styles.badges}>
-                    <Badge label={member.role?.name ?? 'No role'} tone="neutral" />
-                    <Badge label={member.status} tone={member.status === 'ACTIVE' ? 'active' : member.status === 'INVITED' ? 'warning' : 'danger'} />
-                    <Badge label={scope} tone={unassigned ? 'warning' : 'info'} />
-                  </View>
-                  {member.designation ? <Text style={styles.body}>{member.designation}</Text> : null}
-                  {unassigned && canAssignProjects && member.status === 'ACTIVE' ? (
-                    <Button label="Assign to projects" variant="outline" onPress={() => setAssigningMember(member)} />
-                  ) : null}
-                </Card>
+                <OperationalEntityCard
+                  accessibilityLabel={`${member.user?.name ?? 'Invited member'}, ${member.role?.name ?? 'No role'}, ${member.status}, ${scope}${hasActions ? ', open actions' : ''}`}
+                  contextLeading={member.role?.name ?? 'No role'}
+                  contextTrailing={scope}
+                  footerLeading={member.designation ?? (member.status === 'INVITED' ? 'Activation pending' : 'Organization access')}
+                  footerTrailing={<StatusBadge label={member.status} />}
+                  key={member.id}
+                  onPress={hasActions ? () => setActionMember(member) : undefined}
+                  supporting={member.user?.email ?? 'Email pending'}
+                  title={member.user?.name ?? 'Invited member'}
+                  tone={getStatusTone(member.status)}
+                />
               );
             })}
           </View>
@@ -352,9 +338,10 @@ export function MembersScreen() {
           onClose={() => setActionMember(null)}
         >
           {canAssignProjects && actionMember.status === 'ACTIVE' ? (
-            <ActionRow
+            <ActionListItem
               icon="folder-account-outline"
               label={(assignmentCounts.get(actionMember.id) ?? 0) > 0 ? 'Manage projects' : 'Assign to projects'}
+              tone="info"
               onPress={() => {
                 setActionMember(null);
                 setAssigningMember(actionMember);
@@ -362,9 +349,10 @@ export function MembersScreen() {
             />
           ) : null}
           {canUpdate ? (
-            <ActionRow
+            <ActionListItem
               icon="account-edit-outline"
               label="Edit role and access"
+              tone="brand"
               onPress={() => {
                 setActionMember(null);
                 setEditingMember(actionMember);
@@ -372,10 +360,10 @@ export function MembersScreen() {
             />
           ) : null}
           {canUpdate && ['INACTIVE', 'SUSPENDED'].includes(actionMember.status) ? (
-            <ActionRow icon="account-check-outline" label="Activate member" disabled={saving} onPress={() => void activate(actionMember)} />
+            <ActionListItem icon="account-check-outline" label="Activate member" tone="brand" disabled={saving} onPress={() => void activate(actionMember)} />
           ) : null}
           {canDeactivate && actionMember.status === 'ACTIVE' && actionMember.userId !== session?.user.id ? (
-            <ActionRow icon="account-cancel-outline" label="Deactivate member" destructive disabled={saving} onPress={() => confirmDeactivate(actionMember)} />
+            <ActionListItem icon="account-cancel-outline" label="Deactivate member" tone="danger" disabled={saving} onPress={() => confirmDeactivate(actionMember)} />
           ) : null}
         </BottomSheet>
       ) : null}
@@ -388,12 +376,12 @@ export function MembersScreen() {
           onClose={() => setInvitationResult(null)}
         >
           <Card variant="blueprint" style={styles.resultCard}>
-            <Badge label={invitationResult.invitation.deliveryStatus.replaceAll('_', ' ')} tone={invitationResult.invitation.deliveryStatus === 'EMAIL_SENT' ? 'success' : 'warning'} />
+            <StatusBadge label={invitationResult.invitation.deliveryStatus.replaceAll('_', ' ')} />
             <Text style={styles.body}>Expires {invitationResult.invitation.expiresAt.slice(0, 10)}</Text>
           </Card>
           <Button
             label="Share activation link"
-            variant="outline"
+            variant="info"
             onPress={() => void Share.share({ message: invitationResult.invitation.mobileActivationUrl || invitationResult.invitation.activationUrl })}
           />
         </BottomSheet>
@@ -432,11 +420,11 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title="Invite member" description="Invite a login user to this organization. Project assignments can be added after activation." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Inviting' : 'Send invitation'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <FormField label="Full name"><Input accessibilityLabel="Full name" value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
-      <FormField label="Email address"><Input accessibilityLabel="Email address" keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(email) => setForm({ ...form, email })} /></FormField>
-      <FormField label="Mobile number" helperText="Optional"><Input accessibilityLabel="Mobile number" keyboardType="phone-pad" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} /></FormField>
-      <FormField label="Organization role" helperText="The role controls the maximum permissions available to this member."><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => setForm({ ...form, roleId })} /></FormField>
+    <BottomSheet visible scroll showCloseButton={false} title="Invite member" description="Send account activation for this organization." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Sending…' : 'Send invite'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormField label="Name"><Input accessibilityLabel="Member full name" value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
+      <FormField label="Email"><Input accessibilityLabel="Member email address" keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(email) => setForm({ ...form, email })} /></FormField>
+      <FormField label="Mobile" helperText="Optional"><Input accessibilityLabel="Member mobile number" keyboardType="phone-pad" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} /></FormField>
+      <FormField label="Role" helperText="Sets the maximum permissions available to this member."><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => setForm({ ...form, roleId })} /></FormField>
       <FormField label="Designation" helperText="Optional job title; this does not grant permissions."><Input accessibilityLabel="Designation" value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
       <Toggle label="Access all organization projects" value={form.organizationWideProjectAccess} onValueChange={(organizationWideProjectAccess) => setForm({ ...form, organizationWideProjectAccess })} />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -471,8 +459,8 @@ function EditMemberSheet({ member, roles, saving, isCurrentUser, onClose, onSave
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title={`Edit ${member.user?.name ?? 'member'}`} description="Update organization role, designation and default project scope." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving' : 'Save member'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <FormField label="Organization role" helperText={isCurrentUser ? 'You cannot change your own organization role.' : 'This role remains the ceiling for every project permission.'}>
+    <BottomSheet visible scroll showCloseButton={false} title="Edit access" description={member.user?.name ?? 'Organization member'} onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving…' : 'Save changes'} variant="brand" disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormField label="Role" helperText={isCurrentUser ? 'You cannot change your own organization role.' : 'This role remains the ceiling for every project permission.'}>
         <RolePicker roles={roles} selectedRoleId={roleId} disabled={isCurrentUser} onSelect={setRoleId} />
       </FormField>
       <FormField label="Designation" helperText="A job title only; it does not control permissions."><Input accessibilityLabel="Designation" value={designation} onChangeText={setDesignation} /></FormField>
@@ -496,16 +484,6 @@ function RolePicker({ roles, selectedRoleId, disabled = false, onSelect }: { rol
         );
       })}
     </View>
-  );
-}
-
-function ActionRow({ icon, label, destructive = false, disabled = false, onPress }: { icon: Parameters<typeof AppIcon>[0]['name']; label: string; destructive?: boolean; disabled?: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" disabled={disabled} style={[styles.actionRow, disabled && styles.disabled]} onPress={onPress}>
-      <AppIcon name={icon} size={24} color={destructive ? mobileTheme.color.status.danger.foreground : mobileTheme.color.text.primary} />
-      <Text style={[styles.actionLabel, destructive && styles.destructive]}>{label}</Text>
-      <AppIcon name="chevron-right" size={22} color={mobileTheme.color.text.muted} />
-    </Pressable>
   );
 }
 
@@ -548,8 +526,5 @@ const styles = StyleSheet.create({
   roleCardSelected: { backgroundColor: mobileTheme.color.surface.mist, borderColor: mobileTheme.color.border.selected },
   roleCopy: { flex: 1, gap: mobileTheme.spacing[1] },
   roleName: { ...mobileText.label, color: mobileTheme.color.text.primary },
-  actionRow: { alignItems: 'center', borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 60, paddingVertical: mobileTheme.spacing[2] },
-  actionLabel: { ...mobileText.label, color: mobileTheme.color.text.primary, flex: 1, fontSize: 16 },
-  destructive: { color: mobileTheme.color.status.danger.foreground },
   disabled: { opacity: 0.5 },
 });

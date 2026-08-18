@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   Input,
+  StatusBadge,
 } from '../../components/ui';
 import { mobileText, mobileTheme } from '../../theme';
 import {
@@ -145,6 +146,7 @@ export function MemberProjectAssignmentsSheet({
             <Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} />
             <Button
               label={saving ? 'Saving' : 'Save assignments'}
+              variant="brand"
               disabled={saving}
               style={styles.footerButton}
               onPress={() => void save()}
@@ -164,7 +166,7 @@ export function MemberProjectAssignmentsSheet({
       ) : (
         <View style={styles.content}>
           <View style={styles.summaryRow}>
-            <Badge label={`${selectedIds.length} selected`} tone={selectedIds.length ? 'active' : 'neutral'} />
+            <Badge label={`${selectedIds.length} selected`} tone={selectedIds.length ? 'info' : 'neutral'} />
             <Text style={styles.caption}>Changes save together</Text>
           </View>
           <Input
@@ -197,8 +199,8 @@ export function MemberProjectAssignmentsSheet({
                       <Text style={styles.projectName}>{project.name}</Text>
                       <Text style={styles.caption}>{project.projectCode ?? 'No project code'}</Text>
                       <View style={styles.badges}>
-                        <Badge label={project.status} tone={writable ? 'neutral' : 'warning'} />
-                        {assigned ? <Badge label="Assigned" tone="info" /> : null}
+                        <StatusBadge label={project.status} />
+                        {assigned ? <StatusBadge label="Assigned" /> : null}
                       </View>
                     </View>
                   </Pressable>
@@ -206,7 +208,7 @@ export function MemberProjectAssignmentsSheet({
                     <Button
                       label="Configure access"
                       size="sm"
-                      variant="outline"
+                      variant="info"
                       onPress={() => setConfiguringProjectId(project.id)}
                     />
                   ) : null}

@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { mobileTheme } from '../../theme';
 
@@ -11,6 +11,11 @@ type GradientScreenProps = ViewProps & {
 };
 
 export function GradientScreen({ footer, scroll = true, children, style, ...props }: GradientScreenProps) {
+  const insets = useSafeAreaInsets();
+  const contentInset = {
+    paddingBottom: footer ? mobileTheme.layout.bottomNavHeight + insets.bottom + mobileTheme.spacing[10] : mobileTheme.spacing[8],
+  };
+
   return (
     <View style={styles.root} {...props}>
       <LinearGradient
@@ -26,14 +31,14 @@ export function GradientScreen({ footer, scroll = true, children, style, ...prop
       />
       <SafeAreaView style={styles.safeArea}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.content, style]} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={[styles.content, contentInset, style]} showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.content, styles.flexContent, style]}>{children}</View>
+          <View style={[styles.content, styles.flexContent, contentInset, style]}>{children}</View>
         )}
       </SafeAreaView>
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {footer ? <View style={[styles.footer, { bottom: Math.max(insets.bottom, mobileTheme.spacing[3]) }]}>{footer}</View> : null}
     </View>
   );
 }
@@ -51,7 +56,6 @@ const styles = StyleSheet.create({
   content: {
     gap: mobileTheme.spacing[5],
     paddingHorizontal: mobileTheme.spacing[5],
-    paddingBottom: 118,
     paddingTop: mobileTheme.spacing[5],
   },
   flexContent: {

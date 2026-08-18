@@ -2,14 +2,14 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
 
-export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'active';
+export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'active' | 'current';
 
 type BadgeProps = TextProps & {
   label: string;
   tone?: BadgeTone;
 };
 
-const toneStyle = {
+export const badgeToneTokens = {
   neutral: mobileTheme.color.status.neutral,
   success: mobileTheme.color.status.success,
   warning: mobileTheme.color.status.warning,
@@ -18,13 +18,40 @@ const toneStyle = {
   purple: mobileTheme.color.status.purple,
   active: {
     foreground: mobileTheme.color.text.inverse,
-    background: mobileTheme.color.action.active,
-    border: mobileTheme.color.border.selected,
+    background: mobileTheme.color.status.success.foreground,
+    border: mobileTheme.color.status.success.foreground,
+  },
+  current: {
+    foreground: mobileTheme.color.text.inverse,
+    background: mobileTheme.color.brand.blueprint,
+    border: mobileTheme.color.brand.blueprint,
   },
 } as const;
 
+const SUCCESS_STATUSES = new Set([
+  'ASSIGNED', 'APPROVED', 'COMPLETED', 'EMAIL_SENT', 'PAID', 'SUCCESS',
+]);
+const WARNING_STATUSES = new Set([
+  'DRAFT', 'INVITED', 'ON_HOLD', 'PARTIAL', 'PENDING', 'UNASSIGNED', 'UNPAID',
+]);
+const DANGER_STATUSES = new Set([
+  'ARCHIVED', 'CANCELLED', 'DEACTIVATED', 'EXPIRED', 'FAILED', 'INACTIVE', 'REJECTED', 'REVOKED', 'SUSPENDED',
+]);
+const INFO_STATUSES = new Set(['CUSTOM', 'IN_PROGRESS', 'SELECTED']);
+
+export function getStatusTone(status: string | null | undefined): BadgeTone {
+  const normalized = status?.trim().replaceAll('-', '_').replaceAll(' ', '_').toUpperCase() ?? '';
+  if (normalized === 'CURRENT') return 'current';
+  if (normalized === 'ACTIVE') return 'active';
+  if (SUCCESS_STATUSES.has(normalized)) return 'success';
+  if (WARNING_STATUSES.has(normalized)) return 'warning';
+  if (DANGER_STATUSES.has(normalized)) return 'danger';
+  if (INFO_STATUSES.has(normalized)) return 'info';
+  return 'neutral';
+}
+
 export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) {
-  const toneTokens = toneStyle[tone];
+  const toneTokens = badgeToneTokens[tone];
 
   return (
     <Text
@@ -44,8 +71,8 @@ export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) 
   );
 }
 
-export function StatusBadge(props: BadgeProps) {
-  return <Badge {...props} />;
+export function StatusBadge({ label, tone, ...props }: BadgeProps) {
+  return <Badge label={label} tone={tone ?? getStatusTone(label)} {...props} />;
 }
 
 const styles = StyleSheet.create({

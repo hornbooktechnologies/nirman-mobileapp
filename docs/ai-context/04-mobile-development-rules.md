@@ -27,6 +27,15 @@ The mobile app lives in `apps/mobile` and should remain focused on mobile workfl
 - Keep session helpers in `src/lib/auth`.
 - Keep secure persistence helpers in `src/lib/storage`.
 - Keep feature code under `src/features`.
+- Keep feature-specific reusable composites in `src/features/<feature>/components`; screen files should compose components and own workflow/orchestration logic, not duplicate visual controls.
+
+## UI and theming
+
+- Use semantic values from the shared mobile theme for color, typography, spacing, radius, elevation, and component states.
+- Do not add raw colors or isolated one-off visual tokens inside screens or components.
+- Build generic controls such as buttons, inputs, cards, badges, and list items once in `src/components/ui`, then reuse them across screens.
+- Extend a shared component through typed props and variants when a reusable visual behavior is needed; do not copy its styles into a screen.
+- Keep domain-specific composites close to their feature and build them from the shared UI primitives.
 
 ## Verification
 
