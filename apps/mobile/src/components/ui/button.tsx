@@ -45,7 +45,7 @@ export function Button({ label, size = 'md', variant = 'primary', fullWidth = tr
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
     justifyContent: 'center',

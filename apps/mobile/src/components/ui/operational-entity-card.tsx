@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: mobileTheme.color.surface.raised,
     borderColor: mobileTheme.color.border.subtle,
-    borderRadius: mobileTheme.radius.xl,
+    borderRadius: mobileTheme.component.card.radius,
     borderWidth: 1,
     overflow: 'hidden',
     ...mobileShadows.soft,

@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: mobileTheme.color.surface.raised,
     borderColor: mobileTheme.color.border.subtle,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.badge.radius,
     borderWidth: 1,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],

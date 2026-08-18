@@ -4,7 +4,6 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppIcon,
-  Badge,
   Button,
   EmptyState,
   GlassCard,
@@ -23,7 +22,6 @@ import {
   CustomerTabBar,
   HomeMetricCard,
   HomeSectionHeader,
-  ProjectPortfolioItem,
   WorkspaceTile,
   visibleNavigation,
   visibleOrganizationNavigation,
@@ -49,7 +47,7 @@ function activeRoleName(session: MobileSession | null) {
 }
 
 export function DashboardScreen() {
-  const { refreshSession, session, switchActiveProject } = useSession();
+  const { refreshSession, session } = useSession();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
   const activeProject = getActiveProject(session);
@@ -60,13 +58,6 @@ export function DashboardScreen() {
     ...visibleOrganizationNavigation(session),
   ];
   const firstName = session?.user.name.trim().split(/\s+/)[0] || 'there';
-
-  async function openProject(projectId: string, status: string) {
-    if (status === 'ACTIVE' || status === 'DRAFT' || status === 'ON_HOLD') {
-      await switchActiveProject(projectId);
-    }
-    router.push({ pathname: '/(app)/project-detail', params: { projectId } });
-  }
 
   return (
     <GradientScreen footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
@@ -102,7 +93,14 @@ export function DashboardScreen() {
       <HomeSectionHeader
         eyebrow="Main navigation"
         title="Your workspace"
-        trailing={<Badge label={`${workspaceNavigation.length} tools`} tone="info" />}
+        trailing={session?.permissions.includes('projects:create') ? (
+          <IconButton
+            accessibilityLabel="Create project"
+            icon="plus"
+            variant="primary"
+            onPress={() => setShowCreateProject(true)}
+          />
+        ) : null}
       />
 
       {workspaceNavigation.length ? (
@@ -123,41 +121,6 @@ export function DashboardScreen() {
         <EmptyState
           title="Workspace access pending"
           description="Your available tools will appear here when an administrator assigns project access."
-        />
-      )}
-
-      <HomeSectionHeader
-        eyebrow="Project portfolio"
-        title="Your sites"
-        trailing={session?.permissions.includes('projects:create') ? (
-          <Button
-            accessibilityLabel="Create project"
-            fullWidth={false}
-            label="New"
-            leadingIcon="plus"
-            size="sm"
-            onPress={() => setShowCreateProject(true)}
-          />
-        ) : null}
-      />
-
-      {availableProjects.length ? (
-        <View style={styles.projectList}>
-          {availableProjects.map((project) => (
-            <ProjectPortfolioItem
-              key={project.id}
-              meta={project.projectCode ?? project.roleLabel ?? 'Project access'}
-              name={project.name}
-              onPress={() => void openProject(project.id, project.status)}
-              selected={project.id === session?.activeProjectId}
-              status={project.status}
-            />
-          ))}
-        </View>
-      ) : (
-        <EmptyState
-          title="No project access"
-          description="Ask your Organization Owner or Admin to assign an active project."
         />
       )}
 
@@ -245,23 +208,19 @@ export function ProjectDetailScreen() {
 
           <QuickActionGrid
             items={[
-              ...(selectedProject.permissions.includes('project-members:read') ? [{
+              ...(selectedProject.permissions.includes('project-members:read') || selectedProject.permissions.includes('workers:read') ? [{
                 key: 'team',
                 label: 'Team',
-                accessibilityLabel: 'Open project team',
+                accessibilityLabel: 'Open project team members and workers',
                 icon: 'account-group-outline' as const,
                 tone: 'info' as const,
-                onPress: () => router.push({ pathname: '/(app)/team', params: { projectId: selectedProject.id } }),
-              }] : []),
-              ...(selectedProject.permissions.includes('workers:read') ? [{
-                key: 'workers',
-                label: 'Workers',
-                accessibilityLabel: 'Open project workers',
-                icon: 'account-hard-hat-outline' as const,
-                tone: 'primary' as const,
-                onPress: () => selectedProject.status === 'ACTIVE'
-                  ? router.push('/(app)/workers')
-                  : router.push({ pathname: '/(app)/team', params: { projectId: selectedProject.id, tab: 'workers' } }),
+                onPress: () => router.push({
+                  pathname: '/(app)/team',
+                  params: {
+                    projectId: selectedProject.id,
+                    ...(!selectedProject.permissions.includes('project-members:read') ? { tab: 'workers' } : {}),
+                  },
+                }),
               }] : []),
             ]}
           />
@@ -492,9 +451,6 @@ const styles = StyleSheet.create({
   workspaceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: mobileTheme.spacing[3],
-  },
-  projectList: {
     gap: mobileTheme.spacing[3],
   },
   projectIdentity: {

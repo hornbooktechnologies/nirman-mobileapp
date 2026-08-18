@@ -29,7 +29,7 @@ export function Chip({ label, selected = false, hitSlop = 4, style, ...props }: 
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.chip.radius,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 40,

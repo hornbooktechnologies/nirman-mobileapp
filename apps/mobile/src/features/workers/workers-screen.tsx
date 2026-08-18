@@ -47,7 +47,7 @@ export function WorkersScreen() {
   const activeProject = getActiveProject(session);
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="workers" />} scroll={false}>
+    <GradientScreen footer={<CustomerTabBar activeKey="team" />} scroll={false}>
       <CompactScreenHeader title="Workers" subtitle={activeProject?.name ?? 'Choose a project to manage its crew'} />
       <WorkersPanel />
     </GradientScreen>
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
   dateField: { flex: 1 },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  suggestion: { backgroundColor: mobileTheme.color.surface.raised, borderRadius: mobileTheme.radius.full, minHeight: 44, justifyContent: 'center', paddingHorizontal: mobileTheme.spacing[3] },
+  suggestion: { backgroundColor: mobileTheme.color.surface.raised, borderRadius: mobileTheme.component.chip.radius, minHeight: 44, justifyContent: 'center', paddingHorizontal: mobileTheme.spacing[3] },
   suggestionSelected: { backgroundColor: mobileTheme.color.navigation.floating },
   suggestionText: { ...mobileText.caption, color: mobileTheme.color.text.primary },
   suggestionTextSelected: { color: mobileTheme.color.text.inverse },

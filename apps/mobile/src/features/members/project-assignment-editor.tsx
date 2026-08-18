@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   chip: {
     alignItems: 'center',
     borderColor: mobileTheme.color.border.default,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.chip.radius,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 44,

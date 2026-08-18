@@ -16,11 +16,7 @@ export const badgeToneTokens = {
   danger: mobileTheme.color.status.danger,
   info: mobileTheme.color.status.info,
   purple: mobileTheme.color.status.purple,
-  active: {
-    foreground: mobileTheme.color.text.inverse,
-    background: mobileTheme.color.status.success.foreground,
-    border: mobileTheme.color.status.success.foreground,
-  },
+  active: mobileTheme.color.status.success,
   current: {
     foreground: mobileTheme.color.text.inverse,
     background: mobileTheme.color.brand.blueprint,
@@ -78,7 +74,7 @@ export function StatusBadge({ label, tone, ...props }: BadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.badge.radius,
     borderWidth: 1,
     fontSize: mobileTheme.typography.size.xs,
     fontWeight: '700',

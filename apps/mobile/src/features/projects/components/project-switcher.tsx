@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: mobileTheme.color.border.inverse,
     borderColor: mobileTheme.color.border.inverse,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     borderWidth: 1,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   openButton: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.background.elevated,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
     minHeight: 48,

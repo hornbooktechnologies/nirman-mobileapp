@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppIcon, IconContainer, StatusBadge, type AppIconName } from '../../../components/ui';
+import { AppIcon, IconContainer, type AppIconName } from '../../../components/ui';
 import { mobileShadows, mobileText, mobileTheme } from '../../../theme';
 
 type HomeSectionHeaderProps = {
@@ -92,50 +92,6 @@ export function WorkspaceTile({ description, emphasis = false, icon, onPress, ti
   );
 }
 
-type ProjectPortfolioItemProps = {
-  meta: string;
-  name: string;
-  onPress: () => void;
-  selected?: boolean;
-  status: string;
-};
-
-export function ProjectPortfolioItem({ meta, name, onPress, selected = false, status }: ProjectPortfolioItemProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${name}, ${status.replaceAll('_', ' ')}${selected ? ', current project' : ''}`}
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.portfolioCard,
-        selected && styles.portfolioCardSelected,
-        pressed && styles.surfacePressed,
-      ]}
-    >
-      <View style={[styles.projectMarker, selected && styles.projectMarkerSelected]}>
-        <AppIcon
-          color={selected ? mobileTheme.color.text.inverse : mobileTheme.color.brand.primary}
-          name="office-building-marker-outline"
-          size={mobileTheme.icon.lg}
-        />
-      </View>
-      <View style={styles.projectCopy}>
-        <Text style={styles.portfolioTitle} numberOfLines={1}>{name}</Text>
-        <Text style={styles.portfolioCaption} numberOfLines={1}>{meta}</Text>
-      </View>
-      <View style={styles.portfolioMeta}>
-        <StatusBadge label={status} />
-        {selected ? (
-          <StatusBadge label="CURRENT" />
-        ) : (
-          <AppIcon color={mobileTheme.color.text.muted} name="arrow-top-right" size={mobileTheme.icon.md} />
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   sectionHeader: {
     alignItems: 'flex-end',
@@ -159,7 +115,7 @@ const styles = StyleSheet.create({
     lineHeight: 27,
   },
   metricCard: {
-    borderRadius: mobileTheme.radius.xl,
+    borderRadius: mobileTheme.component.card.radius,
     flex: 1,
     minHeight: 138,
     padding: mobileTheme.spacing[4],
@@ -177,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: mobileTheme.color.border.inverse,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     height: 42,
     justifyContent: 'center',
     width: 42,
@@ -186,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: mobileTheme.color.glass.strong,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     height: 42,
     justifyContent: 'center',
     width: 42,
@@ -213,7 +169,7 @@ const styles = StyleSheet.create({
   workspaceTile: {
     backgroundColor: mobileTheme.color.surface.raised,
     borderColor: mobileTheme.color.border.subtle,
-    borderRadius: mobileTheme.radius.xl,
+    borderRadius: mobileTheme.component.card.radius,
     borderWidth: 1,
     flexBasis: '47%',
     flexGrow: 1,
@@ -238,7 +194,7 @@ const styles = StyleSheet.create({
   workspaceArrow: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.background.mist,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconButton.radius,
     height: 36,
     justifyContent: 'center',
     width: 36,
@@ -264,53 +220,6 @@ const styles = StyleSheet.create({
   workspaceTileDescriptionInverse: {
     color: mobileTheme.color.text.inverse,
     opacity: 0.68,
-  },
-  portfolioCard: {
-    alignItems: 'center',
-    backgroundColor: mobileTheme.color.surface.raised,
-    borderColor: mobileTheme.color.border.subtle,
-    borderRadius: mobileTheme.radius.xl,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: mobileTheme.spacing[3],
-    minHeight: 86,
-    padding: mobileTheme.spacing[3],
-    ...mobileShadows.soft,
-  },
-  portfolioCardSelected: {
-    backgroundColor: mobileTheme.color.surface.blueprint,
-    borderColor: mobileTheme.color.brand.blueprint,
-  },
-  projectMarker: {
-    alignItems: 'center',
-    backgroundColor: mobileTheme.color.brand.primarySoft,
-    borderRadius: mobileTheme.radius.lg,
-    height: 58,
-    justifyContent: 'center',
-    width: 58,
-  },
-  projectMarkerSelected: {
-    backgroundColor: mobileTheme.color.brand.blueprint,
-  },
-  projectCopy: {
-    flex: 1,
-    gap: mobileTheme.spacing[1],
-  },
-  portfolioTitle: {
-    ...mobileText.label,
-    color: mobileTheme.color.text.primary,
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  portfolioCaption: {
-    ...mobileText.caption,
-    color: mobileTheme.color.text.secondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  portfolioMeta: {
-    alignItems: 'flex-end',
-    gap: mobileTheme.spacing[2],
   },
   surfacePressed: {
     opacity: 0.78,

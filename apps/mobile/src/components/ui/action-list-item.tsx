@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   iconShell: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.glass.strong,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     borderWidth: 1,
     height: 40,
     justifyContent: 'center',

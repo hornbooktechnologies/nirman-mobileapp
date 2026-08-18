@@ -34,7 +34,7 @@ export function IconButton({ label, icon: Icon, showDot = false, variant = 'defa
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconButton.radius,
     height: 50,
     justifyContent: 'center',
     width: 50,

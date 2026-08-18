@@ -47,11 +47,11 @@ const styles = StyleSheet.create({
     gap: mobileTheme.spacing[1],
     minHeight: mobileTheme.layout.bottomNavHeight,
     padding: mobileTheme.spacing[2],
-    ...mobileShadows.floating,
+    ...mobileShadows.navigation,
   },
   item: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.nav.itemRadius,
     flex: 1,
     gap: mobileTheme.spacing[1],
     justifyContent: 'center',
@@ -71,6 +71,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   activeText: {
-    color: mobileTheme.color.action.active,
+    color: mobileTheme.component.nav.activeForeground,
   },
 });

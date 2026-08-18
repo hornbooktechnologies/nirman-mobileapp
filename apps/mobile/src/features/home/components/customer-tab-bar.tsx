@@ -21,13 +21,13 @@ export type CustomerNavigationItem = {
   icon: AppIconName;
   href: CustomerRoute;
   permission?: PermissionKey;
+  permissionsAny?: readonly PermissionKey[];
 };
 
 const customerNavigation: readonly CustomerNavigationItem[] = [
   { key: 'home', label: 'Home', title: 'Home', description: 'Your field command center', icon: 'home-outline', href: '/(app)/dashboard' },
-  { key: 'team', label: 'Team', title: 'Project Team', description: 'Roles and site assignments', icon: 'account-group-outline', href: '/(app)/team', permission: 'project-members:read' },
+  { key: 'team', label: 'Team', title: 'Project Team', description: 'Members and workers', icon: 'account-group-outline', href: '/(app)/team', permissionsAny: ['project-members:read', 'workers:read'] },
   { key: 'project', label: 'Project', title: 'Selected Project', description: 'Site details and controls', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
-  { key: 'workers', label: 'Workers', title: 'Workers', description: 'Crew and allocations', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
   { key: 'menu', label: 'Menu', title: 'Menu', description: 'Account and organization', icon: 'menu', href: '/(app)/menu' },
 ];
 
@@ -37,7 +37,10 @@ const organizationNavigation: readonly CustomerNavigationItem[] = [
 
 export function visibleNavigation(session: MobileSession | null) {
   const projectPermissions = getActiveProjectPermissions(session);
-  return customerNavigation.filter((item) => !item.permission || projectPermissions.includes(item.permission));
+  return customerNavigation.filter((item) =>
+    (!item.permission || projectPermissions.includes(item.permission)) &&
+    (!item.permissionsAny || item.permissionsAny.some((permission) => projectPermissions.includes(permission)))
+  );
 }
 
 export function visibleOrganizationNavigation(session: MobileSession | null) {

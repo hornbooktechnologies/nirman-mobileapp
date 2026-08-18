@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
   flex: { flex: 1 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  choice: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.full, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: mobileTheme.spacing[3] },
+  choice: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.component.chip.radius, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: mobileTheme.spacing[3] },
   choiceSelected: { backgroundColor: mobileTheme.color.navigation.floating, borderColor: mobileTheme.color.navigation.floating },
   choiceText: { ...mobileText.label, color: mobileTheme.color.text.primary, textTransform: 'capitalize' },
   choiceTextSelected: { color: mobileTheme.color.text.inverse },
