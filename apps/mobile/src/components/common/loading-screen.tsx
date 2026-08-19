@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { mobileTheme } from '../../theme';
-import { Screen } from '../ui';
+import { NirmanScreenBackground } from '../ui';
 
 type LoadingScreenProps = {
   message?: string;
@@ -9,12 +9,12 @@ type LoadingScreenProps = {
 
 export function LoadingScreen({ message = 'Loading' }: LoadingScreenProps) {
   return (
-    <Screen style={styles.screen}>
+    <NirmanScreenBackground scroll={false} style={styles.screen}>
       <View style={styles.content}>
         <ActivityIndicator color={mobileTheme.color.brand.primary} size="large" />
         <Text style={styles.message}>{message}</Text>
       </View>
-    </Screen>
+    </NirmanScreenBackground>
   );
 }
 

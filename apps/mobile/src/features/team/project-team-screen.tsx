@@ -11,7 +11,7 @@ import {
   CollectionPickerModal,
   CompactScreenHeader,
   EmptyState,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   LoadingState,
   OperationalEntityCard,
@@ -191,7 +191,7 @@ export function ProjectTeamScreen() {
   }
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="team" />}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="team" />}>
       <CompactScreenHeader
         action={tab === 'members' && canAssignMembers ? <IconButton icon="account-plus-outline" accessibilityLabel="Assign project member" variant="primary" onPress={() => setShowAssign(true)} /> : undefined}
         leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
@@ -250,7 +250,7 @@ export function ProjectTeamScreen() {
           {canUnassignMembers ? <ActionListItem icon="account-minus-outline" label="End project assignment" tone="danger" disabled={saving} onPress={() => confirmUnassign(actionMember)} /> : null}
         </BottomSheet>
       ) : null}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 

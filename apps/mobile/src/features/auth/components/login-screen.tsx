@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { Button, GlassCard, GradientScreen, Input } from '../../../components/ui';
+import { Button, GlassCard, Input, NirmanScreenBackground } from '../../../components/ui';
 import { useSession } from '../../../providers';
 import { mobileText, mobileTheme } from '../../../theme';
 
@@ -30,7 +30,7 @@ export function LoginScreen() {
   }
 
   return (
-    <GradientScreen scroll={false} style={styles.screen}>
+    <NirmanScreenBackground scroll={false} style={styles.screen}>
       <View style={styles.brandBlock}>
         <Image source={require('../../../../assets/brand/logo-full.png')} resizeMode="contain" style={styles.logo} />
         <Text style={styles.title}>Field Login</Text>
@@ -65,7 +65,7 @@ export function LoginScreen() {
           onPress={() => router.push('/(auth)/activate')}
         />
       </GlassCard>
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 

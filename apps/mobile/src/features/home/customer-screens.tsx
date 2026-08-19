@@ -5,9 +5,10 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import {
   AppIcon,
   Button,
+  CompactScreenHeader,
   EmptyState,
   GlassCard,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   IconContainer,
   ListItem,
@@ -60,7 +61,7 @@ export function DashboardScreen() {
   const firstName = session?.user.name.trim().split(/\s+/)[0] || 'there';
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
       <View style={styles.homeHeader}>
         <View style={styles.headerCopy}>
           <View style={styles.eyebrowRow}>
@@ -140,7 +141,7 @@ export function DashboardScreen() {
           }}
         />
       ) : null}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
@@ -169,17 +170,12 @@ export function ProjectDetailScreen() {
   }
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="project" />}>
-      <View style={styles.headerRow}>
-        <IconButton
-          icon="arrow-left"
-          accessibilityLabel="Back"
-          variant="glass"
-          onPress={() => router.back()}
-        />
-        <Text style={styles.compactTitle}>Project</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="project" />}>
+      <CompactScreenHeader
+        leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
+        subtitle={selectedProject?.name ?? 'Choose a project'}
+        title="Project"
+      />
 
       {selectedProject ? (
         <>
@@ -266,7 +262,7 @@ export function ProjectDetailScreen() {
           onAction={() => router.replace('/(app)/dashboard')}
         />
       )}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
@@ -275,7 +271,7 @@ export function MenuScreen() {
   const activeProject = getActiveProject(session);
 
   return (
-    <GradientScreen>
+    <NirmanScreenBackground>
       <View style={styles.headerRow}>
         <Text style={styles.screenTitle}>Menu</Text>
         <IconButton
@@ -371,7 +367,7 @@ export function MenuScreen() {
         onPress={() => void refreshSession()}
       />
       <Button label="Sign Out" variant="danger" onPress={signOut} />
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
@@ -391,9 +387,6 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-  },
-  headerSpacer: {
-    width: 48,
   },
   eyebrowRow: {
     alignItems: 'center',
@@ -428,11 +421,6 @@ const styles = StyleSheet.create({
     ...mobileText.title,
     fontSize: 28,
     lineHeight: 34,
-  },
-  compactTitle: {
-    ...mobileText.sectionTitle,
-    flex: 1,
-    textAlign: 'center',
   },
   sectionRow: {
     alignItems: 'center',

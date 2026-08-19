@@ -12,7 +12,7 @@ import {
   CompactScreenHeader,
   EmptyState,
   FormField,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   Input,
   LoadingState,
@@ -197,7 +197,7 @@ export function MembersScreen() {
   }
 
   return (
-    <GradientScreen>
+    <NirmanScreenBackground>
       <CompactScreenHeader
         action={canInvite ? <IconButton icon="account-plus-outline" accessibilityLabel="Invite member" variant="primary" onPress={() => setShowInvite(true)} /> : undefined}
         leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
@@ -386,7 +386,7 @@ export function MembersScreen() {
           />
         </BottomSheet>
       ) : null}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 

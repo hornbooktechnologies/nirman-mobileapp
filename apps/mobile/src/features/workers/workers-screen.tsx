@@ -11,7 +11,7 @@ import {
   CompactScreenHeader,
   EmptyState,
   FormField,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   Input,
   LoadingState,
@@ -47,10 +47,10 @@ export function WorkersScreen() {
   const activeProject = getActiveProject(session);
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="team" />} scroll={false}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="team" />} scroll={false}>
       <CompactScreenHeader title="Workers" subtitle={activeProject?.name ?? 'Choose a project to manage its crew'} />
       <WorkersPanel />
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 

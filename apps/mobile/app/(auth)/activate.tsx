@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { OrganizationOwnerInvitationPreview } from '@nirman-app/shared';
 
-import { Button, GlassCard, GradientScreen, Input } from '../../src/components/ui';
+import { Button, GlassCard, Input, NirmanScreenBackground } from '../../src/components/ui';
 import { apiRequest } from '../../src/lib/api';
 import { mobileText, mobileTheme } from '../../src/theme';
 
@@ -134,7 +134,7 @@ export default function ActivateInvitationRoute() {
   }
 
   return (
-    <GradientScreen scroll>
+    <NirmanScreenBackground scroll>
       <View style={styles.brandBlock}>
         <Image
           source={require('../../assets/brand/logo-full.png')}
@@ -230,7 +230,7 @@ export default function ActivateInvitationRoute() {
           </>
         )}
       </GlassCard>
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 

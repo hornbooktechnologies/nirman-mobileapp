@@ -20,6 +20,7 @@ export * from './icon-button';
 export * from './input';
 export * from './list-item';
 export * from './modal';
+export * from './nirman-screen-background';
 export * from './operational-entity-card';
 export * from './progress-ring';
 export * from './quick-action-grid';
