@@ -1,0 +1,17 @@
+{
+  "generic": "Something went wrong. Try again.",
+  "network": "Cannot connect to NirmanSite. Check your connection and try again.",
+  "sessionExpired": "Your session has expired. Sign in again.",
+  "permissionDenied": "You do not have permission to do this.",
+  "validation": "Check the entered information and try again.",
+  "server": "NirmanSite is temporarily unavailable. Try again shortly.",
+  "api": {
+    "AUTH_INVALID_CREDENTIALS": "The email or password is incorrect.",
+    "AUTH_PASSWORD_WEAK": "Use a stronger password with at least 8 characters.",
+    "AUTH_RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+    "AUTH_SESSION_REQUIRED": "Your session has expired. Sign in again.",
+    "PERMISSION_DENIED": "You do not have permission to do this.",
+    "VALIDATION_FAILED": "Check the entered information and try again.",
+    "SERVER_ERROR": "NirmanSite is temporarily unavailable. Try again shortly."
+  }
+}

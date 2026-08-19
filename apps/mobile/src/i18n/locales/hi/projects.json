@@ -1,0 +1,86 @@
+{
+  "detail": {
+    "title": "प्रोजेक्ट",
+    "chooseProject": "प्रोजेक्ट चुनें",
+    "unavailableTitle": "प्रोजेक्ट उपलब्ध नहीं है",
+    "loadFailure": "प्रोजेक्ट लोड नहीं हो सका",
+    "defaultCode": "प्रोजेक्ट",
+    "workspace": "प्रोजेक्ट कार्यक्षेत्र",
+    "editProject": "प्रोजेक्ट संपादित करें",
+    "loading": "लोड हो रहा है…",
+    "edit": "संपादित करें",
+    "team": "टीम",
+    "teamA11y": "प्रोजेक्ट टीम के सदस्य और श्रमिक खोलें",
+    "organization": "संगठन",
+    "customerOrganization": "ग्राहक संगठन",
+    "notAvailable": "उपलब्ध नहीं",
+    "yourAccess": "आपकी पहुँच",
+    "projectAccess": "प्रोजेक्ट पहुँच",
+    "selectTitle": "प्रोजेक्ट चुनें",
+    "selectDescription": "प्रोजेक्ट का काम खोलने से पहले होम से कोई प्रोजेक्ट चुनें।",
+    "goHome": "होम पर जाएँ",
+    "summaryA11y": "{{name}}, {{status}}"
+  },
+  "form": {
+    "newTitle": "नया प्रोजेक्ट",
+    "editTitle": "प्रोजेक्ट संपादित करें",
+    "newDescription": "कार्यक्षेत्र बनाएँ, फिर उसकी टीम और श्रमिक जोड़ें।",
+    "groups": {
+      "basics": "मूल जानकारी",
+      "location": "स्थान",
+      "timeline": "समय-सीमा",
+      "details": "विवरण"
+    },
+    "fields": {
+      "name": "नाम",
+      "projectName": "प्रोजेक्ट का नाम",
+      "code": "कोड",
+      "projectCode": "प्रोजेक्ट कोड",
+      "type": "प्रकार",
+      "status": "स्थिति",
+      "addressLine": "पता",
+      "city": "शहर",
+      "state": "राज्य",
+      "postalCode": "पिन कोड",
+      "startDate": "आरंभ तिथि",
+      "expectedCompletion": "अपेक्षित पूर्णता",
+      "description": "विवरण",
+      "optional": "वैकल्पिक",
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "actions": {
+      "cancel": "रद्द करें",
+      "saving": "सहेजा जा रहा है…",
+      "saveChanges": "बदलाव सहेजें",
+      "create": "बनाएँ"
+    },
+    "errors": {
+      "nameRequired": "प्रोजेक्ट का नाम आवश्यक है।",
+      "completionBeforeStart": "अपेक्षित पूर्णता तिथि आरंभ तिथि से पहले नहीं हो सकती।",
+      "saveFailed": "प्रोजेक्ट सहेजा नहीं जा सका"
+    }
+  },
+  "type": {
+    "RESIDENTIAL": "आवासीय",
+    "COMMERCIAL": "व्यावसायिक",
+    "MIXED": "मिश्रित उपयोग",
+    "SHED": "शेड",
+    "OTHER": "अन्य"
+  },
+  "status": {
+    "DRAFT": "ड्राफ्ट",
+    "ACTIVE": "सक्रिय",
+    "ON_HOLD": "होल्ड पर",
+    "COMPLETED": "पूर्ण",
+    "ARCHIVED": "आर्काइव किया गया"
+  },
+  "scope": {
+    "ALL": "सभी प्रोजेक्ट",
+    "ASSIGNED": "सौंपे गए प्रोजेक्ट",
+    "NONE": "प्रोजेक्ट पहुँच नहीं"
+  },
+  "organizationType": {
+    "BUILDER": "बिल्डर",
+    "CONTRACTOR": "कॉन्ट्रैक्टर"
+  }
+}

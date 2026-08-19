@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type ChipProps = PressableProps & {
   label: string;
@@ -21,7 +22,7 @@ export function Chip({ label, selected = false, hitSlop = 4, style, ...props }: 
       ]}
       {...props}
     >
-      <Text style={[styles.label, selected ? styles.selectedLabel : styles.defaultLabel]}>{label}</Text>
+      <AppText style={[styles.label, selected ? styles.selectedLabel : styles.defaultLabel]} weight={700}>{label}</AppText>
     </Pressable>
   );
 }
@@ -48,7 +49,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: mobileTheme.typography.size.sm,
-    fontWeight: '700',
   },
   defaultLabel: {
     color: mobileTheme.color.text.secondary,

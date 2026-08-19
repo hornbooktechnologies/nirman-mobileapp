@@ -1,0 +1,117 @@
+{
+  "screen": {
+    "title": "Workers",
+    "chooseProject": "Choose a project to manage its crew",
+    "noProjectTitle": "No selected project",
+    "noProjectDescription": "Choose a Project from Home before opening Workers."
+  },
+  "panel": {
+    "projectWorkers": "Project workers",
+    "organizationWorkers": "Organization workers",
+    "assignedCount_one": "{{count}} assigned to this project",
+    "assignedCount_other": "{{count}} assigned to this project",
+    "addA11y": "Add new worker",
+    "searchA11y": "Search organization workers",
+    "searchPlaceholder": "Search code, name or trade",
+    "allCount": "All {{count}}",
+    "assignedFilter": "Assigned {{count}}",
+    "unassignedFilter": "Unassigned {{count}}",
+    "loading": "Loading organization workers",
+    "loadFailed": "Unable to load workers",
+    "retry": "Retry",
+    "noMatchTitle": "No matching workers",
+    "noWorkersTitle": "No active workers",
+    "tryAnother": "Try another search or filter.",
+    "addOnline": "Add a worker when you are online."
+  },
+  "network": {
+    "accessChanged": "Project or Workers access is no longer available. Refreshing access.",
+    "refreshFailed": "Unable to refresh. Showing the roster already loaded on this screen; changes still require a connection.",
+    "offlineUnavailable": "Workers are unavailable without a connection. A persisted offline roster cache is not available yet.",
+    "onlineOnly": "Worker changes are online-only. Reconnect and try again."
+  },
+  "card": {
+    "assigned": "Assigned",
+    "unassigned": "Unassigned",
+    "noCurrentProject": "No current project",
+    "projectAllocation": "Project allocation",
+    "available": "Available for assignment",
+    "rate": "Rate",
+    "notSet": "Not set",
+    "perDay": "{{amount}}/day",
+    "ongoing": "ongoing",
+    "dateRange": "{{start}} → {{end}}",
+    "summaryA11y": "{{code}}, {{name}}, {{trade}}, {{rate}}, {{assignment}}"
+  },
+  "assign": {
+    "title": "Assign {{name}}",
+    "description": "Confirm the project allocation start date.",
+    "cancel": "Cancel",
+    "assigning": "Assigning…",
+    "action": "Assign",
+    "startsOn": "Starts on",
+    "startDateA11y": "Assignment start date",
+    "dateFormat": "YYYY-MM-DD"
+  },
+  "actions": {
+    "description": "{{trade}} · Assigned",
+    "edit": "Edit assignment dates",
+    "end": "End project assignment"
+  },
+  "edit": {
+    "description": "Edit project allocation. Trade and base rate stay unchanged.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save changes",
+    "startsOn": "Starts on",
+    "endsOn": "Ends on",
+    "startDateA11y": "Assignment start date",
+    "endDateA11y": "Assignment end date",
+    "dateFormat": "YYYY-MM-DD"
+  },
+  "end": {
+    "title": "End assignment?",
+    "description": "{{name}} remains an active Worker and the allocation history is preserved.",
+    "cancel": "Cancel",
+    "ending": "Ending…",
+    "action": "End assignment",
+    "endsOn": "Ends on",
+    "endDateA11y": "Assignment end date",
+    "reason": "Reason",
+    "dateFormat": "YYYY-MM-DD"
+  },
+  "create": {
+    "title": "New worker",
+    "description": "Create the record and add it to this project.",
+    "cancel": "Cancel",
+    "creating": "Creating…",
+    "action": "Create & assign",
+    "name": "Name",
+    "nameA11y": "Worker name",
+    "trade": "Trade",
+    "tradeA11y": "Worker trade",
+    "mobile": "Mobile",
+    "mobileA11y": "Worker mobile number",
+    "rate": "Rate",
+    "rateHelp": "Base daily rate used for new allocations.",
+    "rateA11y": "Base daily rate",
+    "nameRequired": "Enter the worker name.",
+    "tradeRequired": "Enter or select the worker trade.",
+    "duplicatesTitle": "Possible duplicates",
+    "duplicatesError": "Possible duplicates found. Review and confirm before saving.",
+    "continue": "Continue with this Worker record"
+  },
+  "trade": {
+    "mason": "Mason",
+    "helper": "Helper",
+    "carpenter": "Carpenter",
+    "plumber": "Plumber",
+    "electrician": "Electrician",
+    "painter": "Painter"
+  },
+  "errors": {
+    "dateFormat": "Use the date format YYYY-MM-DD.",
+    "dateOrder": "End date cannot be before start date.",
+    "generic": "Something went wrong. Please try again."
+  }
+}

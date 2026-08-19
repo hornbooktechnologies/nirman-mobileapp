@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppIcon,
+  AppText,
   ActionListItem,
   Badge,
   BottomSheet,
@@ -11,6 +13,8 @@ import {
   CollectionPickerModal,
   CompactScreenHeader,
   EmptyState,
+  FormError,
+  FormField,
   NirmanScreenBackground,
   IconButton,
   LoadingState,
@@ -21,6 +25,7 @@ import {
 } from '../../components/ui';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
+import { getLocalizedErrorMessage } from '../../i18n';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
@@ -28,6 +33,7 @@ import {
   createAssignmentDraft,
   ProjectAssignmentEditor,
   type ProjectAssignmentDraft,
+  type ProjectAssignmentFieldErrors,
 } from '../members/project-assignment-editor';
 import {
   assignProjectMember,
@@ -45,7 +51,15 @@ import type {
 } from '../members/types';
 import { WorkersPanel } from '../workers/workers-screen';
 
+const projectMemberStatusTranslationKeys = {
+  ACTIVE: 'status.ACTIVE',
+  INACTIVE: 'status.INACTIVE',
+  ENDED: 'status.ENDED',
+} as const;
+
 export function ProjectTeamScreen() {
+  const { t } = useTranslation('team');
+  const { t: tCommon } = useTranslation('common');
   const { refreshSession, session, signOut } = useSession();
   const params = useLocalSearchParams<{ projectId?: string; tab?: string }>();
   const project =
@@ -96,11 +110,11 @@ export function ProjectTeamScreen() {
       if (loadError instanceof ApiRequestError && loadError.status === 403) {
         await refreshSession().catch(() => undefined);
       }
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load Project Team');
+      setError(getLocalizedErrorMessage(loadError, t('errors.load')));
     } finally {
       setLoading(false);
     }
-  }, [canAssignMembers, canReadMembers, canUpdateMembers, project, refreshSession, session?.accessToken, session?.activeOrganization, signOut]);
+  }, [canAssignMembers, canReadMembers, canUpdateMembers, project, refreshSession, session?.accessToken, session?.activeOrganization, signOut, t]);
 
   useEffect(() => {
     void load();
@@ -162,11 +176,11 @@ export function ProjectTeamScreen() {
 
   function confirmUnassign(member: ProjectMember) {
     Alert.alert(
-      'End project assignment?',
-      `${member.user.name} will lose this project’s access. Their organization membership remains active.`,
+      t('confirm.endTitle'),
+      t('confirm.endDescription', { name: member.user.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'End assignment', style: 'destructive', onPress: () => void unassign(member) },
+        { text: t('confirm.cancel'), style: 'cancel' },
+        { text: t('confirm.endAction'), style: 'destructive', onPress: () => void unassign(member) },
       ],
     );
   }
@@ -184,7 +198,7 @@ export function ProjectTeamScreen() {
       setActionMember(null);
       await load();
     } catch (unassignError) {
-      Alert.alert('Assignment not ended', errorMessage(unassignError));
+      Alert.alert(t('confirm.notEnded'), getLocalizedErrorMessage(unassignError, t('errors.generic')));
     } finally {
       setSaving(false);
     }
@@ -193,42 +207,42 @@ export function ProjectTeamScreen() {
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="team" />}>
       <CompactScreenHeader
-        action={tab === 'members' && canAssignMembers ? <IconButton icon="account-plus-outline" accessibilityLabel="Assign project member" variant="primary" onPress={() => setShowAssign(true)} /> : undefined}
-        leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
-        subtitle={project?.name ?? 'Choose a project'}
-        title="Team"
+        action={tab === 'members' && canAssignMembers ? <IconButton icon="account-plus-outline" accessibilityLabel={t('screen.assignMemberA11y')} variant="primary" onPress={() => setShowAssign(true)} /> : undefined}
+        leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />}
+        subtitle={project?.name ?? t('screen.chooseProject')}
+        title={t('screen.title')}
       />
 
       <View style={styles.tabs}>
-        {canReadMembers ? <Button label={`Members ${members.length}`} size="sm" variant={tab === 'members' ? 'dark' : 'outline'} fullWidth={false} onPress={() => setTab('members')} /> : null}
-        {canReadWorkers ? <Button label="Workers" size="sm" variant={tab === 'workers' ? 'dark' : 'outline'} fullWidth={false} onPress={() => setTab('workers')} /> : null}
+        {canReadMembers ? <Button label={t('screen.membersCount', { count: members.length })} size="sm" variant={tab === 'members' ? 'dark' : 'outline'} fullWidth={false} onPress={() => setTab('members')} /> : null}
+        {canReadWorkers ? <Button label={t('screen.workers')} size="sm" variant={tab === 'workers' ? 'dark' : 'outline'} fullWidth={false} onPress={() => setTab('workers')} /> : null}
       </View>
 
       {tab === 'members' ? (
         <>
-          <SearchField accessibilityLabel="Search assigned members" placeholder="Search name, role or responsibility" value={search} onChangeText={setSearch} />
-          {loading ? <LoadingState label="Loading Project Team" /> : null}
-          {error ? <EmptyState title="Team unavailable" description={error} actionLabel="Retry" onAction={() => void load()} /> : null}
+          <SearchField accessibilityLabel={t('screen.searchA11y')} placeholder={t('screen.searchPlaceholder')} value={search} onChangeText={setSearch} />
+          {loading ? <LoadingState label={t('screen.loading')} /> : null}
+          {error ? <EmptyState title={t('screen.unavailable')} description={error} actionLabel={t('screen.retry')} onAction={() => void load()} /> : null}
           {!loading && !error ? (
             visibleMembers.length ? (
               <View style={styles.list}>
                 {visibleMembers.map((member) => (
                   <OperationalEntityCard
-                    accessibilityLabel={`${member.user.name}, ${member.role.name}, ${member.roleLabel ?? 'project member'}, ${member.status}, ${member.permissionMode === 'CUSTOM' ? `${member.grantedPermissions.length} custom actions` : 'role defaults'}`}
+                    accessibilityLabel={`${member.user.name}, ${member.role.name}, ${member.roleLabel ?? t('screen.projectMember')}, ${t(projectMemberStatusTranslationKeys[member.status])}, ${member.permissionMode === 'CUSTOM' ? t('screen.customActions', { count: member.grantedPermissions.length }) : t('screen.roleDefaults')}`}
                     contextLeading={member.role.name}
-                    contextTrailing={member.roleLabel ?? 'Project member'}
-                    footerLeading={formatDateRange(member.startsOn, member.endsOn)}
-                    footerTrailing={<StatusBadge label={member.status} />}
+                    contextTrailing={member.roleLabel ?? t('screen.projectMember')}
+                    footerLeading={!member.startsOn && !member.endsOn ? t('assignment.withoutDateLimit') : t('assignment.dateRange', { start: member.startsOn?.slice(0, 10) ?? t('assignment.now'), end: member.endsOn?.slice(0, 10) ?? t('assignment.ongoing') })}
+                    footerTrailing={<StatusBadge label={t(projectMemberStatusTranslationKeys[member.status])} />}
                     key={member.id}
                     onPress={(canUpdateMembers || canUnassignMembers) ? () => setActionMember(member) : undefined}
-                    supporting={member.user.email ?? 'No email'}
+                    supporting={member.user.email ?? t('screen.noEmail')}
                     title={member.user.name}
                     tone={getStatusTone(member.status)}
                   />
                 ))}
               </View>
             ) : (
-              <EmptyState title={search ? 'No matching members' : 'No Project Members'} description={search ? 'Try another search.' : 'Assign an active organization member to this project.'} actionLabel={!search && canAssignMembers ? 'Assign Member' : undefined} onAction={!search && canAssignMembers ? () => setShowAssign(true) : undefined} />
+              <EmptyState title={search ? t('screen.noMatchingTitle') : t('screen.noMembersTitle')} description={search ? t('screen.tryAnotherSearch') : t('screen.noMembersDescription')} actionLabel={!search && canAssignMembers ? t('screen.assignMember') : undefined} onAction={!search && canAssignMembers ? () => setShowAssign(true) : undefined} />
             )
           ) : null}
         </>
@@ -245,9 +259,9 @@ export function ProjectTeamScreen() {
       ) : null}
 
       {actionMember ? (
-        <BottomSheet visible title={actionMember.user.name} description={`${actionMember.role.name} · ${actionMember.status}`} onClose={() => setActionMember(null)}>
-          {canUpdateMembers ? <ActionListItem icon="account-edit-outline" label="Edit assignment and permissions" tone="brand" onPress={() => { setActionMember(null); setEditingMember(actionMember); }} /> : null}
-          {canUnassignMembers ? <ActionListItem icon="account-minus-outline" label="End project assignment" tone="danger" disabled={saving} onPress={() => confirmUnassign(actionMember)} /> : null}
+        <BottomSheet visible title={actionMember.user.name} description={`${actionMember.role.name} · ${t(projectMemberStatusTranslationKeys[actionMember.status])}`} onClose={() => setActionMember(null)}>
+          {canUpdateMembers ? <ActionListItem icon="account-edit-outline" label={t('actions.edit')} tone="brand" onPress={() => { setActionMember(null); setEditingMember(actionMember); }} /> : null}
+          {canUnassignMembers ? <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" disabled={saving} onPress={() => confirmUnassign(actionMember)} /> : null}
         </BottomSheet>
       ) : null}
     </NirmanScreenBackground>
@@ -263,11 +277,13 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
   onClose: () => void;
   onSave: (memberId: string, input: ProjectMemberInput) => Promise<void>;
 }) {
+  const { t } = useTranslation('team');
   const [selectedMemberId, setSelectedMemberId] = useState(member?.memberId ?? '');
   const [memberSearch, setMemberSearch] = useState('');
   const [pickerVisible, setPickerVisible] = useState(false);
   const [draft, setDraft] = useState<ProjectAssignmentDraft>(() => createAssignmentDraft(member));
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ProjectAssignmentFieldErrors & { memberId?: string }>({});
   const selectedOrganizationMember = availableMembers.find((candidate) => candidate.id === selectedMemberId);
   const roleId = member?.role.id ?? selectedOrganizationMember?.roleId;
   const rolePermissions = roles.find((role) => role.id === roleId)?.permissions ?? [];
@@ -278,12 +294,15 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
 
   async function submit() {
     setError('');
+    const nextFieldErrors: ProjectAssignmentFieldErrors & { memberId?: string } = {};
     if (!selectedMemberId) {
-      setError('Select an active organization member.');
-      return;
+      nextFieldErrors.memberId = t('editor.errors.selectMember');
     }
     if (draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn) {
-      setError('End date cannot be before start date.');
+      nextFieldErrors.endsOn = t('editor.errors.dateOrder');
+    }
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) {
       return;
     }
     try {
@@ -296,76 +315,66 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
         endsOn: draft.endsOn || null,
       });
     } catch (saveError) {
-      setError(errorMessage(saveError));
+      setError(getLocalizedErrorMessage(saveError, t('errors.generic')));
     }
   }
 
   return (
     <>
-    <BottomSheet visible={!pickerVisible} scroll showCloseButton={false} title={mode === 'assign' ? 'Set project access' : member?.user.name ?? 'Edit access'} description={mode === 'assign' ? 'Choose a member, then confirm responsibility, dates and permissions.' : 'Edit responsibility, dates and permissions for this project.'} onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving…' : mode === 'assign' ? 'Assign' : 'Save changes'} variant={mode === 'assign' ? 'primary' : 'brand'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+    <BottomSheet visible={!pickerVisible} scroll showCloseButton={false} title={mode === 'assign' ? t('editor.assignTitle') : member?.user.name ?? t('editor.editFallbackTitle')} description={mode === 'assign' ? t('editor.assignDescription') : t('editor.editDescription')} onClose={onClose} footer={<><Button label={t('editor.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('editor.saving') : mode === 'assign' ? t('editor.assign') : t('editor.saveChanges')} variant={mode === 'assign' ? 'primary' : 'brand'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormError message={error} />
       {mode === 'assign' ? (
-        <View style={styles.memberPicker}>
-          <Text style={styles.fieldLabel}>Member</Text>
+        <FormField label={t('editor.member')} required error={fieldErrors.memberId} style={styles.memberPicker}>
           {selectedOrganizationMember ? (
             <OperationalEntityCard
-              accessibilityLabel={`${selectedOrganizationMember.user?.name ?? 'Member'}, selected. Change member`}
-              contextLeading={selectedOrganizationMember.role?.name ?? 'Organization member'}
-              contextTrailing="Selected"
-              footerLeading={selectedOrganizationMember.user?.email ?? 'Active organization member'}
-              footerTrailing={<Badge label="CHANGE" tone="info" />}
+              accessibilityLabel={t('editor.selectA11y', { name: selectedOrganizationMember.user?.name ?? t('editor.fallbackMember') })}
+              contextLeading={selectedOrganizationMember.role?.name ?? t('editor.organizationMember')}
+              contextTrailing={t('editor.selected')}
+              footerLeading={selectedOrganizationMember.user?.email ?? t('editor.activeOrganizationMember')}
+              footerTrailing={<Badge label={t('editor.change')} tone="info" />}
               onPress={() => setPickerVisible(true)}
-              supporting={selectedOrganizationMember.designation ?? 'Project assignment candidate'}
-              title={selectedOrganizationMember.user?.name ?? 'Member'}
+              supporting={selectedOrganizationMember.designation ?? t('editor.candidate')}
+              title={selectedOrganizationMember.user?.name ?? t('editor.fallbackMember')}
             />
           ) : (
-            <Button label="Choose member" leadingIcon="account-search-outline" variant="info" onPress={() => setPickerVisible(true)} />
+            <Button label={t('editor.chooseMember')} leadingIcon="account-search-outline" variant="info" onPress={() => setPickerVisible(true)} />
           )}
-        </View>
+        </FormField>
       ) : null}
-      {(mode === 'edit' || selectedMemberId) ? <ProjectAssignmentEditor value={draft} rolePermissions={rolePermissions} onChange={setDraft} /> : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {(mode === 'edit' || selectedMemberId) ? <ProjectAssignmentEditor value={draft} rolePermissions={rolePermissions} errors={fieldErrors} onChange={setDraft} /> : null}
     </BottomSheet>
     <CollectionPickerModal
-      accessibilityLabel="Search organization members"
+      accessibilityLabel={t('picker.searchA11y')}
       data={filteredMembers}
-      emptyDescription={memberSearch ? 'Try another name or role.' : 'Every active member is already assigned to this project.'}
-      emptyTitle={memberSearch ? 'No matching members' : 'No members available'}
+      emptyDescription={memberSearch ? t('picker.tryAnother') : t('picker.allAssigned')}
+      emptyTitle={memberSearch ? t('picker.noMatchTitle') : t('picker.noneAvailableTitle')}
       keyExtractor={(candidate) => candidate.id}
       renderItem={({ item: candidate }) => (
         <OperationalEntityCard
-          accessibilityLabel={`Select ${candidate.user?.name ?? 'member'}, ${candidate.role?.name ?? 'organization member'}`}
-          contextLeading={candidate.role?.name ?? 'Organization member'}
-          contextTrailing={candidate.status}
-          footerLeading={candidate.user?.email ?? 'No email'}
-          footerTrailing={candidate.id === selectedMemberId ? <StatusBadge label="SELECTED" /> : <AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} />}
+          accessibilityLabel={t('editor.chooseA11y', { name: candidate.user?.name ?? t('editor.fallbackMember'), role: candidate.role?.name ?? t('editor.organizationMember') })}
+          contextLeading={candidate.role?.name ?? t('editor.organizationMember')}
+          contextTrailing={candidate.status === 'ACTIVE' ? t('status.ACTIVE') : candidate.status}
+          footerLeading={candidate.user?.email ?? t('screen.noEmail')}
+          footerTrailing={candidate.id === selectedMemberId ? <StatusBadge label={t('editor.selected')} /> : <AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} />}
           onPress={() => {
             setSelectedMemberId(candidate.id);
             setPickerVisible(false);
           }}
-          supporting={candidate.designation ?? 'Available for project assignment'}
-          title={candidate.user?.name ?? 'Member'}
+          supporting={candidate.designation ?? t('editor.available')}
+          title={candidate.user?.name ?? t('editor.fallbackMember')}
           tone={getStatusTone(candidate.status)}
         />
       )}
-      searchPlaceholder="Search name or role"
+      searchPlaceholder={t('picker.searchPlaceholder')}
       searchValue={memberSearch}
-      subtitle="Active members not yet assigned"
-      title="Choose member"
+      subtitle={t('picker.subtitle')}
+      title={t('picker.title')}
       visible={pickerVisible}
       onClose={() => setPickerVisible(false)}
       onSearchChange={setMemberSearch}
     />
     </>
   );
-}
-
-function formatDateRange(startsOn: string | null, endsOn: string | null) {
-  if (!startsOn && !endsOn) return 'without a date limit';
-  return `${startsOn?.slice(0, 10) ?? 'now'} → ${endsOn?.slice(0, 10) ?? 'ongoing'}`;
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
 const styles = StyleSheet.create({
@@ -382,11 +391,9 @@ const styles = StyleSheet.create({
   memberName: { ...mobileText.sectionTitle, fontSize: 18 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
   memberPicker: { gap: mobileTheme.spacing[2] },
-  fieldLabel: { ...mobileText.label, color: mobileTheme.color.text.primary },
   pickerList: { gap: mobileTheme.spacing[2] },
   pickerRow: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 64, padding: mobileTheme.spacing[3] },
   pickerRowSelected: { backgroundColor: mobileTheme.color.surface.mist, borderColor: mobileTheme.color.border.selected },
   footerButton: { flex: 1 },
-  errorText: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
   disabled: { opacity: 0.5 },
 });

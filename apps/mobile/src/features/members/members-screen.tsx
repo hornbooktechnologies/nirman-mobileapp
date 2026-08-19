@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppIcon,
+  AppText,
   ActionListItem,
   Badge,
   BottomSheet,
@@ -11,6 +13,7 @@ import {
   Card,
   CompactScreenHeader,
   EmptyState,
+  FormError,
   FormField,
   NirmanScreenBackground,
   IconButton,
@@ -23,6 +26,7 @@ import {
   getStatusTone,
 } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
+import { getLocalizedErrorMessage } from '../../i18n';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { MemberProjectAssignmentsSheet } from './member-project-assignments-sheet';
@@ -47,7 +51,31 @@ import type {
 
 const emptyOverview: OrganizationProjectAssignmentsOverview = { projects: [], assignments: [] };
 
+const memberStatusTranslationKeys = {
+  INVITED: 'memberStatus.INVITED',
+  ACTIVE: 'memberStatus.ACTIVE',
+  INACTIVE: 'memberStatus.INACTIVE',
+  SUSPENDED: 'memberStatus.SUSPENDED',
+  LEFT: 'memberStatus.LEFT',
+} as const;
+
+const subscriptionStatusTranslationKeys = {
+  PENDING: 'subscriptionStatus.PENDING',
+  ACTIVE: 'subscriptionStatus.ACTIVE',
+  SUSPENDED: 'subscriptionStatus.SUSPENDED',
+  EXPIRED: 'subscriptionStatus.EXPIRED',
+  CANCELLED: 'subscriptionStatus.CANCELLED',
+} as const;
+
+const deliveryStatusTranslationKeys = {
+  EMAIL_SENT: 'deliveryStatus.EMAIL_SENT',
+  EMAIL_FAILED: 'deliveryStatus.EMAIL_FAILED',
+  MANUAL: 'deliveryStatus.MANUAL',
+} as const;
+
 export function MembersScreen() {
+  const { t } = useTranslation('members');
+  const { t: tCommon } = useTranslation('common');
   const { refreshSession, session, signOut } = useSession();
   const organizationId = session?.activeOrganization?.id ?? null;
   const canInvite = session?.permissions.includes('members:invite') ?? false;
@@ -97,11 +125,11 @@ export function MembersScreen() {
       if (loadError instanceof ApiRequestError && loadError.status === 403) {
         await refreshSession().catch(() => undefined);
       }
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load members');
+      setError(getLocalizedErrorMessage(loadError, t('errors.load')));
     } finally {
       setLoading(false);
     }
-  }, [canAssignProjects, canInvite, canReadAssignments, canUpdate, organizationId, refreshSession, session?.accessToken, signOut]);
+  }, [canAssignProjects, canInvite, canReadAssignments, canUpdate, organizationId, refreshSession, session?.accessToken, signOut, t]);
 
   useEffect(() => {
     void load();
@@ -138,7 +166,7 @@ export function MembersScreen() {
       setActionMember(null);
       await load();
     } catch (actionError) {
-      Alert.alert('Member not activated', errorMessage(actionError));
+      Alert.alert(t('confirm.activateFailed'), getLocalizedErrorMessage(actionError, t('errors.generic')));
     } finally {
       setSaving(false);
     }
@@ -146,12 +174,12 @@ export function MembersScreen() {
 
   function confirmDeactivate(member: OrganizationMember) {
     Alert.alert(
-      'Deactivate member?',
-      `${member.user?.name ?? 'This member'} will lose organization and project access. Historical assignments remain available.`,
+      t('confirm.deactivateTitle'),
+      t('confirm.deactivateDescription', { name: member.user?.name ?? t('confirm.thisMember') }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('confirm.cancel'), style: 'cancel' },
         {
-          text: 'Deactivate',
+          text: t('confirm.deactivate'),
           style: 'destructive',
           onPress: () => void deactivate(member),
         },
@@ -167,7 +195,7 @@ export function MembersScreen() {
       setActionMember(null);
       await load();
     } catch (actionError) {
-      Alert.alert('Member not deactivated', errorMessage(actionError));
+      Alert.alert(t('confirm.deactivateFailed'), getLocalizedErrorMessage(actionError, t('errors.generic')));
     } finally {
       setSaving(false);
     }
@@ -191,51 +219,51 @@ export function MembersScreen() {
   }
 
   function projectScopeLabel(member: OrganizationMember) {
-    if (member.organizationWideProjectAccess) return 'All projects';
+    if (member.organizationWideProjectAccess) return t('screen.allProjects');
     const count = assignmentCounts.get(member.id) ?? 0;
-    return count ? `${count} project${count === 1 ? '' : 's'}` : 'Unassigned';
+    return count ? t('screen.projectCount', { count }) : t('screen.unassigned');
   }
 
   return (
     <NirmanScreenBackground>
       <CompactScreenHeader
-        action={canInvite ? <IconButton icon="account-plus-outline" accessibilityLabel="Invite member" variant="primary" onPress={() => setShowInvite(true)} /> : undefined}
-        leading={<IconButton icon="arrow-left" accessibilityLabel="Back" variant="glass" onPress={() => router.back()} />}
-        subtitle={session?.activeOrganization?.name ?? 'Organization team'}
-        title="Members"
+        action={canInvite ? <IconButton icon="account-plus-outline" accessibilityLabel={t('screen.inviteA11y')} variant="primary" onPress={() => setShowInvite(true)} /> : undefined}
+        leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />}
+        subtitle={session?.activeOrganization?.name ?? t('screen.organizationTeam')}
+        title={t('screen.title')}
       />
 
       <View style={styles.introRow}>
         <View style={styles.introCopy}>
-          <Text style={styles.sectionTitle}>Organization members</Text>
-          <Text style={styles.body}>Login users who can be assigned to one or more projects.</Text>
+          <AppText style={styles.sectionTitle} weight={700}>{t('screen.introTitle')}</AppText>
+          <AppText style={styles.body}>{t('screen.introDescription')}</AppText>
         </View>
-        <Badge label={`${members.length} total`} tone="info" />
+        <Badge label={t('screen.total', { count: members.length })} tone="info" />
       </View>
 
       {subscriptionSummary ? (
         <Card variant="blueprint" style={styles.capacityCard}>
           <View style={styles.capacityCopy}>
-            <Text style={styles.capacityLabel}>Subscription capacity</Text>
-            <Text style={styles.memberName}>{subscriptionSummary.subscription?.plan.name ?? 'Legacy compatible access'}</Text>
+            <AppText style={styles.capacityLabel} weight={600}>{t('screen.subscriptionCapacity')}</AppText>
+            <AppText style={styles.memberName} weight={700}>{subscriptionSummary.subscription?.plan.name ?? t('screen.legacyAccess')}</AppText>
           </View>
           <View style={styles.badges}>
-            <Badge label={`Members ${subscriptionSummary.usage.activeMembers}/${subscriptionSummary.subscription?.plan.maxActiveMembers ?? 'Unlimited'}`} tone="info" />
-            <Badge label={`Projects ${subscriptionSummary.usage.activeProjects}/${subscriptionSummary.subscription?.plan.maxActiveProjects ?? 'Unlimited'}`} tone="info" />
-            {subscriptionSummary.subscription ? <StatusBadge label={subscriptionSummary.subscription.status} /> : null}
+            <Badge label={t('screen.membersCapacity', { used: subscriptionSummary.usage.activeMembers, limit: subscriptionSummary.subscription?.plan.maxActiveMembers ?? t('screen.unlimited') })} tone="info" />
+            <Badge label={t('screen.projectsCapacity', { used: subscriptionSummary.usage.activeProjects, limit: subscriptionSummary.subscription?.plan.maxActiveProjects ?? t('screen.unlimited') })} tone="info" />
+            {subscriptionSummary.subscription ? <StatusBadge label={t(subscriptionStatusTranslationKeys[subscriptionSummary.subscription.status])} /> : null}
           </View>
         </Card>
       ) : null}
 
       <SearchField
-        accessibilityLabel="Search members"
-        placeholder="Search name, email, role or designation"
+        accessibilityLabel={t('screen.searchA11y')}
+        placeholder={t('screen.searchPlaceholder')}
         value={search}
         onChangeText={setSearch}
       />
 
-      {loading ? <LoadingState label="Loading organization members" /> : null}
-      {error ? <EmptyState title="Members unavailable" description={error} actionLabel="Retry" onAction={() => void load()} /> : null}
+      {loading ? <LoadingState label={t('screen.loading')} /> : null}
+      {error ? <EmptyState title={t('screen.unavailable')} description={error} actionLabel={t('screen.retry')} onAction={() => void load()} /> : null}
 
       {!loading && !error ? (
         visibleMembers.length ? (
@@ -243,17 +271,20 @@ export function MembersScreen() {
             {visibleMembers.map((member) => {
               const scope = projectScopeLabel(member);
               const hasActions = canUpdate || canDeactivate || (canAssignProjects && member.status === 'ACTIVE');
+              const memberName = member.user?.name ?? t('screen.invitedMember');
+              const roleName = member.role?.name ?? t('screen.noRole');
+              const statusLabel = t(memberStatusTranslationKeys[member.status]);
               return (
                 <OperationalEntityCard
-                  accessibilityLabel={`${member.user?.name ?? 'Invited member'}, ${member.role?.name ?? 'No role'}, ${member.status}, ${scope}${hasActions ? ', open actions' : ''}`}
-                  contextLeading={member.role?.name ?? 'No role'}
+                  accessibilityLabel={t('screen.summaryA11y', { name: memberName, role: roleName, status: statusLabel, scope, actions: hasActions ? `, ${t('screen.openActions')}` : '' })}
+                  contextLeading={roleName}
                   contextTrailing={scope}
-                  footerLeading={member.designation ?? (member.status === 'INVITED' ? 'Activation pending' : 'Organization access')}
-                  footerTrailing={<StatusBadge label={member.status} />}
+                  footerLeading={member.designation ?? (member.status === 'INVITED' ? t('screen.activationPending') : t('screen.organizationAccess'))}
+                  footerTrailing={<StatusBadge label={statusLabel} />}
                   key={member.id}
                   onPress={hasActions ? () => setActionMember(member) : undefined}
-                  supporting={member.user?.email ?? 'Email pending'}
-                  title={member.user?.name ?? 'Invited member'}
+                  supporting={member.user?.email ?? t('screen.emailPending')}
+                  title={memberName}
                   tone={getStatusTone(member.status)}
                 />
               );
@@ -261,9 +292,9 @@ export function MembersScreen() {
           </View>
         ) : (
           <EmptyState
-            title={search ? 'No matching members' : 'No organization members'}
-            description={search ? 'Try another search.' : 'Invite a member to build your organization team.'}
-            actionLabel={!search && canInvite ? 'Invite Member' : undefined}
+            title={search ? t('screen.noMatchTitle') : t('screen.noneTitle')}
+            description={search ? t('screen.tryAnother') : t('screen.noneDescription')}
+            actionLabel={!search && canInvite ? t('screen.inviteMember') : undefined}
             onAction={!search && canInvite ? () => setShowInvite(true) : undefined}
           />
         )
@@ -333,14 +364,14 @@ export function MembersScreen() {
       {actionMember ? (
         <BottomSheet
           visible
-          title={actionMember.user?.name ?? 'Member actions'}
-          description={`${actionMember.role?.name ?? 'Organization member'} · ${projectScopeLabel(actionMember)}`}
+          title={actionMember.user?.name ?? t('actions.memberActions')}
+          description={`${actionMember.role?.name ?? t('actions.organizationMember')} · ${projectScopeLabel(actionMember)}`}
           onClose={() => setActionMember(null)}
         >
           {canAssignProjects && actionMember.status === 'ACTIVE' ? (
             <ActionListItem
               icon="folder-account-outline"
-              label={(assignmentCounts.get(actionMember.id) ?? 0) > 0 ? 'Manage projects' : 'Assign to projects'}
+              label={(assignmentCounts.get(actionMember.id) ?? 0) > 0 ? t('actions.manageProjects') : t('actions.assignProjects')}
               tone="info"
               onPress={() => {
                 setActionMember(null);
@@ -351,7 +382,7 @@ export function MembersScreen() {
           {canUpdate ? (
             <ActionListItem
               icon="account-edit-outline"
-              label="Edit role and access"
+              label={t('actions.editAccess')}
               tone="brand"
               onPress={() => {
                 setActionMember(null);
@@ -360,10 +391,10 @@ export function MembersScreen() {
             />
           ) : null}
           {canUpdate && ['INACTIVE', 'SUSPENDED'].includes(actionMember.status) ? (
-            <ActionListItem icon="account-check-outline" label="Activate member" tone="brand" disabled={saving} onPress={() => void activate(actionMember)} />
+            <ActionListItem icon="account-check-outline" label={t('actions.activate')} tone="brand" disabled={saving} onPress={() => void activate(actionMember)} />
           ) : null}
           {canDeactivate && actionMember.status === 'ACTIVE' && actionMember.userId !== session?.user.id ? (
-            <ActionListItem icon="account-cancel-outline" label="Deactivate member" tone="danger" disabled={saving} onPress={() => confirmDeactivate(actionMember)} />
+            <ActionListItem icon="account-cancel-outline" label={t('actions.deactivate')} tone="danger" disabled={saving} onPress={() => confirmDeactivate(actionMember)} />
           ) : null}
         </BottomSheet>
       ) : null}
@@ -371,16 +402,16 @@ export function MembersScreen() {
       {invitationResult ? (
         <BottomSheet
           visible
-          title="Invitation created"
-          description="The member appears as Invited until activation is completed."
+          title={t('invitation.createdTitle')}
+          description={t('invitation.createdDescription')}
           onClose={() => setInvitationResult(null)}
         >
           <Card variant="blueprint" style={styles.resultCard}>
-            <StatusBadge label={invitationResult.invitation.deliveryStatus.replaceAll('_', ' ')} />
-            <Text style={styles.body}>Expires {invitationResult.invitation.expiresAt.slice(0, 10)}</Text>
+            <StatusBadge label={t(deliveryStatusTranslationKeys[invitationResult.invitation.deliveryStatus])} />
+            <AppText style={styles.body}>{t('invitation.expires', { date: invitationResult.invitation.expiresAt.slice(0, 10) })}</AppText>
           </Card>
           <Button
-            label="Share activation link"
+            label={t('invitation.share')}
             variant="info"
             onPress={() => void Share.share({ message: invitationResult.invitation.mobileActivationUrl || invitationResult.invitation.activationUrl })}
           />
@@ -396,13 +427,19 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
   onClose: () => void;
   onInvite: (input: { name: string; email: string; phone?: string; roleId: string; designation?: string; organizationWideProjectAccess?: boolean }) => Promise<void>;
 }) {
+  const { t } = useTranslation('members');
   const [form, setForm] = useState({ name: '', email: '', phone: '', roleId: '', designation: '', organizationWideProjectAccess: false });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'roleId', string>>>({});
 
   async function submit() {
     setError('');
-    if (!form.name.trim() || !form.email.trim() || !form.roleId) {
-      setError('Name, email and organization role are required.');
+    const nextFieldErrors: Partial<Record<'name' | 'email' | 'roleId', string>> = {};
+    if (!form.name.trim()) nextFieldErrors.name = t('invite.nameRequired');
+    if (!form.email.trim()) nextFieldErrors.email = t('invite.emailRequired');
+    if (!form.roleId) nextFieldErrors.roleId = t('invite.roleRequired');
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) {
       return;
     }
     try {
@@ -415,19 +452,19 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
         organizationWideProjectAccess: form.organizationWideProjectAccess,
       });
     } catch (inviteError) {
-      setError(errorMessage(inviteError));
+      setError(getLocalizedErrorMessage(inviteError, t('errors.generic')));
     }
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title="Invite member" description="Send account activation for this organization." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Sending…' : 'Send invite'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <FormField label="Name"><Input accessibilityLabel="Member full name" value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
-      <FormField label="Email"><Input accessibilityLabel="Member email address" keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(email) => setForm({ ...form, email })} /></FormField>
-      <FormField label="Mobile" helperText="Optional"><Input accessibilityLabel="Member mobile number" keyboardType="phone-pad" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} /></FormField>
-      <FormField label="Role" helperText="Sets the maximum permissions available to this member."><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => setForm({ ...form, roleId })} /></FormField>
-      <FormField label="Designation" helperText="Optional job title; this does not grant permissions."><Input accessibilityLabel="Designation" value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
-      <Toggle label="Access all organization projects" value={form.organizationWideProjectAccess} onValueChange={(organizationWideProjectAccess) => setForm({ ...form, organizationWideProjectAccess })} />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    <BottomSheet visible scroll showCloseButton={false} title={t('invite.title')} description={t('invite.description')} onClose={onClose} footer={<><Button label={t('invite.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('invite.sending') : t('invite.send')} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormError message={error} />
+      <FormField label={t('invite.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('invite.nameA11y')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
+      <FormField label={t('invite.email')} required error={fieldErrors.email}><Input accessibilityLabel={t('invite.emailA11y')} invalid={Boolean(fieldErrors.email)} keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(email) => setForm({ ...form, email })} /></FormField>
+      <FormField label={t('invite.mobile')} optional><Input accessibilityLabel={t('invite.mobileA11y')} keyboardType="phone-pad" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} /></FormField>
+      <FormField label={t('invite.role')} required error={fieldErrors.roleId} helperText={t('invite.roleHelp')}><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => setForm({ ...form, roleId })} /></FormField>
+      <FormField label={t('invite.designation')} optional helperText={t('invite.designationHelp')}><Input accessibilityLabel={t('invite.designation')} value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
+      <Toggle label={t('invite.allProjects')} value={form.organizationWideProjectAccess} onValueChange={(organizationWideProjectAccess) => setForm({ ...form, organizationWideProjectAccess })} />
     </BottomSheet>
   );
 }
@@ -440,6 +477,7 @@ function EditMemberSheet({ member, roles, saving, isCurrentUser, onClose, onSave
   onClose: () => void;
   onSave: (input: { roleId?: string; designation?: string | null; organizationWideProjectAccess?: boolean }) => Promise<void>;
 }) {
+  const { t } = useTranslation('members');
   const [roleId, setRoleId] = useState(member.roleId);
   const [designation, setDesignation] = useState(member.designation ?? '');
   const [organizationWideProjectAccess, setOrganizationWideProjectAccess] = useState(member.organizationWideProjectAccess);
@@ -454,19 +492,19 @@ function EditMemberSheet({ member, roles, saving, isCurrentUser, onClose, onSave
         organizationWideProjectAccess,
       });
     } catch (saveError) {
-      setError(errorMessage(saveError));
+      setError(getLocalizedErrorMessage(saveError, t('errors.generic')));
     }
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title="Edit access" description={member.user?.name ?? 'Organization member'} onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving…' : 'Save changes'} variant="brand" disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <FormField label="Role" helperText={isCurrentUser ? 'You cannot change your own organization role.' : 'This role remains the ceiling for every project permission.'}>
+    <BottomSheet visible scroll showCloseButton={false} title={t('edit.title')} description={member.user?.name ?? t('edit.organizationMember')} onClose={onClose} footer={<><Button label={t('edit.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('edit.saving') : t('edit.save')} variant="brand" disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormError message={error} />
+      <FormField label={t('edit.role')} required helperText={isCurrentUser ? t('edit.ownRoleHelp') : t('edit.roleHelp')}>
         <RolePicker roles={roles} selectedRoleId={roleId} disabled={isCurrentUser} onSelect={setRoleId} />
       </FormField>
-      <FormField label="Designation" helperText="A job title only; it does not control permissions."><Input accessibilityLabel="Designation" value={designation} onChangeText={setDesignation} /></FormField>
-      <Toggle label="Access all organization projects" value={organizationWideProjectAccess} onValueChange={setOrganizationWideProjectAccess} />
-      {!organizationWideProjectAccess ? <Text style={styles.helpText}>Selected project access is managed from Assign or Manage Projects.</Text> : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      <FormField label={t('edit.designation')} optional helperText={t('edit.designationHelp')}><Input accessibilityLabel={t('edit.designation')} value={designation} onChangeText={setDesignation} /></FormField>
+      <Toggle label={t('edit.allProjects')} value={organizationWideProjectAccess} onValueChange={setOrganizationWideProjectAccess} />
+      {!organizationWideProjectAccess ? <AppText style={styles.helpText} weight={500}>{t('edit.selectedHelp')}</AppText> : null}
     </BottomSheet>
   );
 }
@@ -478,7 +516,7 @@ function RolePicker({ roles, selectedRoleId, disabled = false, onSelect }: { rol
         const selected = role.id === selectedRoleId;
         return (
           <Pressable key={role.id} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled }} disabled={disabled} style={[styles.roleCard, selected && styles.roleCardSelected, disabled && styles.disabled]} onPress={() => onSelect(role.id)}>
-            <View style={styles.roleCopy}><Text style={styles.roleName}>{role.name}</Text>{role.description ? <Text style={styles.caption}>{role.description}</Text> : null}</View>
+            <View style={styles.roleCopy}><AppText style={styles.roleName} weight={600}>{role.name}</AppText>{role.description ? <AppText style={styles.caption} weight={500}>{role.description}</AppText> : null}</View>
             {selected ? <AppIcon name="check-circle" size={22} color={mobileTheme.color.action.primary} /> : null}
           </Pressable>
         );
@@ -490,10 +528,6 @@ function RolePicker({ roles, selectedRoleId, disabled = false, onSelect }: { rol
 function initials(name?: string) {
   if (!name) return '?';
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
 const styles = StyleSheet.create({
@@ -510,7 +544,7 @@ const styles = StyleSheet.create({
   memberCard: { gap: mobileTheme.spacing[3] },
   capacityCard: { gap: mobileTheme.spacing[3] },
   capacityCopy: { gap: mobileTheme.spacing[1] },
-  capacityLabel: { ...mobileText.label, color: mobileTheme.color.text.secondary, textTransform: 'uppercase' },
+  capacityLabel: { ...mobileText.label, color: mobileTheme.color.text.secondary },
   memberHeader: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3] },
   avatar: { alignItems: 'center', backgroundColor: mobileTheme.color.surface.mist, borderRadius: mobileTheme.radius.full, height: 48, justifyContent: 'center', width: 48 },
   avatarText: { ...mobileText.label, color: mobileTheme.color.text.primary },
@@ -519,7 +553,6 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
   resultCard: { gap: mobileTheme.spacing[2] },
   footerButton: { flex: 1 },
-  errorText: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
   helpText: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
   roleList: { gap: mobileTheme.spacing[2] },
   roleCard: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 68, padding: mobileTheme.spacing[3] },

@@ -1,6 +1,7 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, type TextProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'active' | 'current';
 
@@ -50,7 +51,7 @@ export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) 
   const toneTokens = badgeToneTokens[tone];
 
   return (
-    <Text
+    <AppText
       style={[
         styles.badge,
         {
@@ -61,9 +62,10 @@ export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) 
         style,
       ]}
       {...props}
+      weight={700}
     >
       {label}
-    </Text>
+    </AppText>
   );
 }
 

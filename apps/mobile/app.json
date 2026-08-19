@@ -11,7 +11,16 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "hi", "gu"],
+            "android": ["en", "hi", "gu"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

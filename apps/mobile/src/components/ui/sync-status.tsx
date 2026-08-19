@@ -1,15 +1,10 @@
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type SyncTone = 'online' | 'offline' | 'syncing' | 'attention';
-
-const syncCopy: Record<SyncTone, string> = {
-  online: 'All saved',
-  offline: 'Offline mode',
-  syncing: 'Syncing',
-  attention: 'Needs attention',
-};
 
 const toneColor: Record<SyncTone, string> = {
   online: mobileTheme.color.status.success.foreground,
@@ -19,20 +14,24 @@ const toneColor: Record<SyncTone, string> = {
 };
 
 export function SyncStatus({ tone = 'online', label, style, ...props }: ViewProps & { tone?: SyncTone; label?: string }) {
+  const { t } = useTranslation('common');
+
   return (
     <View style={[styles.status, style]} {...props}>
       <View style={[styles.dot, { backgroundColor: toneColor[tone] }]} />
-      <Text style={styles.label}>{label ?? syncCopy[tone]}</Text>
+      <AppText style={styles.label} weight={700}>{label ?? t(`sync.${tone}`)}</AppText>
     </View>
   );
 }
 
-export function OfflineBanner({ visible = true, message = 'Offline mode active. New field entries can be saved locally later.', style, ...props }: ViewProps & { visible?: boolean; message?: string }) {
+export function OfflineBanner({ visible = true, message, style, ...props }: ViewProps & { visible?: boolean; message?: string }) {
+  const { t } = useTranslation('common');
+
   if (!visible) return null;
 
   return (
     <View style={[styles.banner, style]} {...props}>
-      <Text style={styles.bannerText}>{message}</Text>
+      <AppText style={styles.bannerText} weight={500}>{message ?? t('sync.offlineBanner')}</AppText>
     </View>
   );
 }

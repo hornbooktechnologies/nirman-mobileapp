@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 
 type FloatingTab = {
   key: string;
@@ -16,17 +18,19 @@ type FloatingTabBarProps = ViewProps & {
 };
 
 export function FloatingTabBar({ tabs, activeKey, onChange, style, ...props }: FloatingTabBarProps) {
+  const { t } = useTranslation('navigation');
+
   return (
-    <View accessibilityLabel="Main navigation" style={[styles.bar, style]} {...props}>
+    <View accessibilityLabel={t('a11y.main')} accessibilityRole="tablist" style={[styles.bar, style]} {...props}>
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
 
         return (
           <Pressable
             accessibilityLabel={tab.label}
-            accessibilityRole="button"
+            accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            accessibilityHint={`Open ${tab.label}`}
+            accessibilityHint={t('a11y.open', { screen: tab.label })}
             key={tab.key}
             onPress={() => onChange?.(tab.key)}
             style={({ pressed }) => [
@@ -43,7 +47,9 @@ export function FloatingTabBar({ tabs, activeKey, onChange, style, ...props }: F
               />
             </View>
             {tab.key !== 'create' ? (
-              <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
+              <AppText style={[styles.label, active && styles.activeLabel]} weight={active ? 700 : 600}>
+                {tab.label}
+              </AppText>
             ) : null}
           </Pressable>
         );
@@ -93,12 +99,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: mobileTheme.component.nav.inactiveForeground,
-    fontFamily: 'Manrope_600SemiBold',
     fontSize: 12,
     lineHeight: 15,
   },
   activeLabel: {
     color: mobileTheme.component.nav.activeForeground,
-    fontFamily: 'Manrope_700Bold',
   },
 });

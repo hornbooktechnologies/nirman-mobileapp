@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppIcon, IconContainer, type AppIconName } from '../../../components/ui';
+import { AppIcon, AppText, IconContainer, type AppIconName } from '../../../components/ui';
 import { mobileShadows, mobileText, mobileTheme } from '../../../theme';
 
 type HomeSectionHeaderProps = {
@@ -14,8 +14,8 @@ export function HomeSectionHeader({ eyebrow, title, trailing }: HomeSectionHeade
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeadingCopy}>
-        <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <AppText style={styles.sectionEyebrow} weight={700}>{eyebrow}</AppText>
+        <AppText style={styles.sectionTitle} weight={700}>{title}</AppText>
       </View>
       {trailing}
     </View>
@@ -23,17 +23,22 @@ export function HomeSectionHeader({ eyebrow, title, trailing }: HomeSectionHeade
 }
 
 type HomeMetricCardProps = {
+  accessibilityLabel: string;
   icon: AppIconName;
   label: string;
   tone: 'primary' | 'secondary';
   value: string | number;
 };
 
-export function HomeMetricCard({ icon, label, tone, value }: HomeMetricCardProps) {
+export function HomeMetricCard({ accessibilityLabel, icon, label, tone, value }: HomeMetricCardProps) {
   const isPrimary = tone === 'primary';
 
   return (
-    <View style={[styles.metricCard, isPrimary ? styles.metricCardPrimary : styles.metricCardSecondary]}>
+    <View
+      accessibilityLabel={accessibilityLabel}
+      accessible
+      style={[styles.metricCard, isPrimary ? styles.metricCardPrimary : styles.metricCardSecondary]}
+    >
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -45,8 +50,8 @@ export function HomeMetricCard({ icon, label, tone, value }: HomeMetricCardProps
           color={isPrimary ? mobileTheme.color.text.inverse : mobileTheme.color.brand.primary}
         />
       </View>
-      <Text style={isPrimary ? styles.metricValuePrimary : styles.metricValueSecondary}>{value}</Text>
-      <Text style={isPrimary ? styles.metricLabelPrimary : styles.metricLabelSecondary}>{label}</Text>
+      <AppText style={isPrimary ? styles.metricValuePrimary : styles.metricValueSecondary} weight={700}>{value}</AppText>
+      <AppText style={isPrimary ? styles.metricLabelPrimary : styles.metricLabelSecondary} weight={500}>{label}</AppText>
     </View>
   );
 }
@@ -85,8 +90,8 @@ export function WorkspaceTile({ description, emphasis = false, icon, onPress, ti
         </View>
       </View>
       <View style={styles.workspaceTileCopy}>
-        <Text style={[styles.workspaceTileTitle, emphasis && styles.workspaceTileTitleInverse]}>{title}</Text>
-        <Text style={[styles.workspaceTileDescription, emphasis && styles.workspaceTileDescriptionInverse]}>{description}</Text>
+        <AppText style={[styles.workspaceTileTitle, emphasis && styles.workspaceTileTitleInverse]} weight={700}>{title}</AppText>
+        <AppText style={[styles.workspaceTileDescription, emphasis && styles.workspaceTileDescriptionInverse]} weight={500}>{description}</AppText>
       </View>
     </Pressable>
   );
@@ -105,9 +110,6 @@ const styles = StyleSheet.create({
   sectionEyebrow: {
     ...mobileText.caption,
     color: mobileTheme.color.text.brand,
-    fontFamily: 'Manrope_700Bold',
-    letterSpacing: mobileTheme.typography.letterSpacing.caps,
-    textTransform: 'uppercase',
   },
   sectionTitle: {
     ...mobileText.sectionTitle,
@@ -156,7 +158,6 @@ const styles = StyleSheet.create({
     ...mobileText.sectionTitle,
     color: mobileTheme.color.text.primary,
     marginTop: mobileTheme.spacing[3],
-    textTransform: 'capitalize',
   },
   metricLabelPrimary: {
     ...mobileText.caption,

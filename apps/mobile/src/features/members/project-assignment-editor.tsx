@@ -4,10 +4,24 @@ import {
   type ProjectMemberStatus,
   type ProjectPermissionMode,
 } from '@nirman-app/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
-import { Badge, Button, Card, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
+import { AppText, Badge, Button, Card, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
 import { mobileText, mobileTheme } from '../../theme';
+
+const permissionActionTranslationKeys = {
+  read: 'permissionAction.read',
+  update: 'permissionAction.update',
+  assign: 'permissionAction.assign',
+  switch: 'permissionAction.switch',
+  unassign: 'permissionAction.unassign',
+  create: 'permissionAction.create',
+  'assign-project': 'permissionAction.assign-project',
+  'update-rate': 'permissionAction.update-rate',
+  deactivate: 'permissionAction.deactivate',
+  export: 'permissionAction.export',
+} as const;
 
 export type ProjectAssignmentDraft = {
   roleLabel: string;
@@ -17,6 +31,8 @@ export type ProjectAssignmentDraft = {
   startsOn: string;
   endsOn: string;
 };
+
+export type ProjectAssignmentFieldErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
 
 export function createAssignmentDraft(
   assignment?: Partial<{
@@ -41,12 +57,15 @@ export function createAssignmentDraft(
 export function ProjectAssignmentEditor({
   value,
   rolePermissions,
+  errors = {},
   onChange,
 }: {
   value: ProjectAssignmentDraft;
   rolePermissions: PermissionKey[];
+  errors?: ProjectAssignmentFieldErrors;
   onChange: (value: ProjectAssignmentDraft) => void;
 }) {
+  const { t } = useTranslation('team');
   const allowedPermissions = PROJECT_PERMISSION_GROUPS.flatMap((group) =>
     group.permissions.filter((permission) => rolePermissions.includes(permission)),
   ).filter((permission, index, permissions) => permissions.indexOf(permission) === index);
@@ -79,23 +98,24 @@ export function ProjectAssignmentEditor({
   return (
     <View style={styles.root}>
       <FormField
-        label="Project responsibility"
-        helperText="A readable label such as Site Supervisor or Inspection Lead. It does not grant permissions."
+        label={t('assignment.responsibility')}
+        optional
+        helperText={t('assignment.responsibilityHelp')}
       >
         <Input
-          accessibilityLabel="Project responsibility"
-          placeholder="Optional responsibility"
+          accessibilityLabel={t('assignment.responsibility')}
+          placeholder={t('assignment.responsibilityPlaceholder')}
           value={value.roleLabel}
           onChangeText={(roleLabel) => update({ roleLabel })}
         />
       </FormField>
 
-      <FormField label="Assignment status">
+      <FormField label={t('assignment.status')} required>
         <View style={styles.choiceRow}>
           {(['ACTIVE', 'INACTIVE'] as const).map((status) => (
             <ChoiceChip
               key={status}
-              label={status === 'ACTIVE' ? 'Active' : 'Inactive'}
+              label={status === 'ACTIVE' ? t('assignment.active') : t('assignment.inactive')}
               tone={getStatusTone(status)}
               selected={value.status === status}
               onPress={() => update({ status })}
@@ -105,20 +125,22 @@ export function ProjectAssignmentEditor({
       </FormField>
 
       <View style={styles.dateRow}>
-        <FormField label="Start date" helperText="YYYY-MM-DD" style={styles.dateField}>
+        <FormField label={t('assignment.startDate')} optional helperText={t('assignment.dateFormat')} error={errors.startsOn} style={styles.dateField}>
           <Input
-            accessibilityLabel="Assignment start date"
+            accessibilityLabel={t('assignment.startDateA11y')}
             autoCapitalize="none"
-            placeholder="YYYY-MM-DD"
+            invalid={Boolean(errors.startsOn)}
+            placeholder={t('assignment.dateFormat')}
             value={value.startsOn}
             onChangeText={(startsOn) => update({ startsOn })}
           />
         </FormField>
-        <FormField label="End date" helperText="Optional" style={styles.dateField}>
+        <FormField label={t('assignment.endDate')} optional helperText={t('assignment.dateFormat')} error={errors.endsOn} style={styles.dateField}>
           <Input
-            accessibilityLabel="Assignment end date"
+            accessibilityLabel={t('assignment.endDateA11y')}
             autoCapitalize="none"
-            placeholder="YYYY-MM-DD"
+            invalid={Boolean(errors.endsOn)}
+            placeholder={t('assignment.dateFormat')}
             value={value.endsOn}
             onChangeText={(endsOn) => update({ endsOn })}
           />
@@ -128,13 +150,11 @@ export function ProjectAssignmentEditor({
       <Card variant="blueprint" style={styles.permissionsCard}>
         <View style={styles.headingRow}>
           <View style={styles.headingCopy}>
-            <Text style={styles.sectionTitle}>Project permissions</Text>
-            <Text style={styles.helpText}>
-              Choose what this member can do on this project. Their organization role remains the maximum allowed access.
-            </Text>
+            <AppText style={styles.sectionTitle} weight={700}>{t('assignment.permissions')}</AppText>
+            <AppText style={styles.helpText} weight={500}>{t('assignment.permissionsHelp')}</AppText>
           </View>
           <Badge
-            label={value.permissionMode === 'ROLE_DEFAULT' ? 'Role default' : 'Custom'}
+            label={value.permissionMode === 'ROLE_DEFAULT' ? t('assignment.roleDefault') : t('assignment.custom')}
             tone={value.permissionMode === 'ROLE_DEFAULT' ? 'neutral' : 'warning'}
           />
         </View>
@@ -145,8 +165,8 @@ export function ProjectAssignmentEditor({
           style={[styles.modeCard, value.permissionMode === 'ROLE_DEFAULT' && styles.modeCardSelected]}
           onPress={() => update({ permissionMode: 'ROLE_DEFAULT', permissions: [] })}
         >
-          <Text style={styles.modeTitle}>Use organization role defaults</Text>
-          <Text style={styles.helpText}>Use the normal permissions already defined for this role.</Text>
+          <AppText style={styles.modeTitle} weight={600}>{t('assignment.useRoleDefaults')}</AppText>
+          <AppText style={styles.helpText} weight={500}>{t('assignment.useRoleDefaultsHelp')}</AppText>
         </Pressable>
         <Pressable
           accessibilityRole="radio"
@@ -161,15 +181,15 @@ export function ProjectAssignmentEditor({
             update({ permissionMode: 'CUSTOM', permissions });
           }}
         >
-          <Text style={styles.modeTitle}>Custom for this project</Text>
-          <Text style={styles.helpText}>Narrow access for this project without changing the organization role.</Text>
+          <AppText style={styles.modeTitle} weight={600}>{t('assignment.customForProject')}</AppText>
+          <AppText style={styles.helpText} weight={500}>{t('assignment.customForProjectHelp')}</AppText>
         </Pressable>
 
         {value.permissionMode === 'CUSTOM' ? (
           <View style={styles.matrix}>
             <View style={styles.presetRow}>
-              <Button label="View preset" size="sm" variant="info" fullWidth={false} onPress={() => applyPreset('VIEW')} />
-              <Button label="Manage preset" size="sm" variant="brand" fullWidth={false} onPress={() => applyPreset('MANAGE')} />
+              <Button label={t('assignment.viewPreset')} size="sm" variant="info" fullWidth={false} onPress={() => applyPreset('VIEW')} />
+              <Button label={t('assignment.managePreset')} size="sm" variant="brand" fullWidth={false} onPress={() => applyPreset('MANAGE')} />
             </View>
             {PROJECT_PERMISSION_GROUPS.map((group) => {
               const permissions = group.permissions.filter((permission) =>
@@ -178,12 +198,12 @@ export function ProjectAssignmentEditor({
               if (!permissions.length) return null;
               return (
                 <View key={group.key} style={styles.permissionGroup}>
-                  <Text style={styles.groupLabel}>{group.label}</Text>
+                  <AppText style={styles.groupLabel} weight={600}>{t(`permissionGroup.${group.key}`)}</AppText>
                   <View style={styles.permissionChips}>
                     {permissions.map((permission) => (
                       <ChoiceChip
                         key={permission}
-                        label={permission.split(':')[1].replaceAll('-', ' ')}
+                        label={t(permissionActionTranslationKeys[permission.split(':')[1] as keyof typeof permissionActionTranslationKeys])}
                         selected={value.permissions.includes(permission)}
                         onPress={() => togglePermission(permission)}
                       />
@@ -193,9 +213,7 @@ export function ProjectAssignmentEditor({
               );
             })}
             {!value.permissions.includes('projects:read') ? (
-              <Text style={styles.warning}>
-                Add Project read access if this member should open the project.
-              </Text>
+              <AppText style={styles.warning} weight={500}>{t('assignment.projectReadWarning')}</AppText>
             ) : null}
           </View>
         ) : null}
@@ -223,7 +241,7 @@ function ChoiceChip({
       style={[styles.chip, selected && (toneTokens ? { backgroundColor: toneTokens.background, borderColor: toneTokens.foreground } : styles.chipSelected)]}
       onPress={onPress}
     >
-      <Text style={[styles.chipText, selected && (toneTokens ? { color: toneTokens.foreground } : styles.chipTextSelected)]}>{label}</Text>
+      <AppText style={[styles.chipText, selected && (toneTokens ? { color: toneTokens.foreground } : styles.chipTextSelected)]} weight={600}>{label}</AppText>
     </Pressable>
   );
 }
@@ -239,10 +257,13 @@ const styles = StyleSheet.create({
   },
   dateRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: mobileTheme.spacing[3],
   },
   dateField: {
     flex: 1,
+    flexBasis: 140,
+    minWidth: 140,
   },
   permissionsCard: {
     gap: mobileTheme.spacing[3],
@@ -294,7 +315,6 @@ const styles = StyleSheet.create({
   groupLabel: {
     ...mobileText.label,
     color: mobileTheme.color.text.secondary,
-    textTransform: 'uppercase',
   },
   permissionChips: {
     flexDirection: 'row',
@@ -317,7 +337,6 @@ const styles = StyleSheet.create({
   chipText: {
     ...mobileText.label,
     color: mobileTheme.color.text.primary,
-    textTransform: 'capitalize',
   },
   chipTextSelected: {
     color: mobileTheme.color.text.inverse,

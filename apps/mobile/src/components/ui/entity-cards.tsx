@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { StatusBadge, type BadgeTone } from './badge';
 import { Card } from './card';
+import { AppText } from './app-text';
 
 type EntityCardProps = ViewProps & {
   title: string;
@@ -17,12 +18,12 @@ function EntityCard({ title, subtitle, meta, status, tone = 'neutral', style, ..
     <Card style={[styles.card, style]} {...props}>
       <View style={styles.header}>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          <AppText style={styles.title} weight={700}>{title}</AppText>
+          {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
         </View>
         {status ? <StatusBadge label={status} tone={tone} /> : null}
       </View>
-      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+      {meta ? <AppText style={styles.meta} weight={700}>{meta}</AppText> : null}
     </Card>
   );
 }

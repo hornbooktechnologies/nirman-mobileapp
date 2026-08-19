@@ -1,0 +1,125 @@
+{
+  "screen": {
+    "title": "Team",
+    "chooseProject": "Choose a project",
+    "assignMemberA11y": "Assign project member",
+    "membersCount_one": "Members {{count}}",
+    "membersCount_other": "Members {{count}}",
+    "workers": "Workers",
+    "searchA11y": "Search assigned members",
+    "searchPlaceholder": "Search name, role or responsibility",
+    "loading": "Loading Project Team",
+    "unavailable": "Team unavailable",
+    "retry": "Retry",
+    "noEmail": "No email",
+    "projectMember": "Project member",
+    "roleDefaults": "role defaults",
+    "customActions_one": "{{count}} custom action",
+    "customActions_other": "{{count}} custom actions",
+    "noMatchingTitle": "No matching members",
+    "noMembersTitle": "No Project Members",
+    "tryAnotherSearch": "Try another search.",
+    "noMembersDescription": "Assign an active organization member to this project.",
+    "assignMember": "Assign Member"
+  },
+  "confirm": {
+    "endTitle": "End project assignment?",
+    "endDescription": "{{name}} will lose this project’s access. Their organization membership remains active.",
+    "cancel": "Cancel",
+    "endAction": "End assignment",
+    "notEnded": "Assignment not ended"
+  },
+  "actions": {
+    "edit": "Edit assignment and permissions",
+    "end": "End project assignment"
+  },
+  "editor": {
+    "assignTitle": "Set project access",
+    "editFallbackTitle": "Edit access",
+    "assignDescription": "Choose a member, then confirm responsibility, dates and permissions.",
+    "editDescription": "Edit responsibility, dates and permissions for this project.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "assign": "Assign",
+    "saveChanges": "Save changes",
+    "member": "Member",
+    "selected": "Selected",
+    "change": "CHANGE",
+    "chooseMember": "Choose member",
+    "organizationMember": "Organization member",
+    "activeOrganizationMember": "Active organization member",
+    "candidate": "Project assignment candidate",
+    "available": "Available for project assignment",
+    "fallbackMember": "Member",
+    "selectA11y": "{{name}}, selected. Change member",
+    "chooseA11y": "Select {{name}}, {{role}}",
+    "errors": {
+      "selectMember": "Select an active organization member.",
+      "dateOrder": "End date cannot be before start date."
+    }
+  },
+  "picker": {
+    "searchA11y": "Search organization members",
+    "searchPlaceholder": "Search name or role",
+    "noMatchTitle": "No matching members",
+    "noneAvailableTitle": "No members available",
+    "tryAnother": "Try another name or role.",
+    "allAssigned": "Every active member is already assigned to this project.",
+    "subtitle": "Active members not yet assigned",
+    "title": "Choose member"
+  },
+  "assignment": {
+    "responsibility": "Project responsibility",
+    "responsibilityHelp": "A readable label such as Site Supervisor or Inspection Lead. It does not grant permissions.",
+    "responsibilityPlaceholder": "e.g. Site Supervisor",
+    "status": "Assignment status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "startDateA11y": "Assignment start date",
+    "endDateA11y": "Assignment end date",
+    "dateFormat": "YYYY-MM-DD",
+    "permissions": "Project permissions",
+    "permissionsHelp": "Choose what this member can do on this project. Their organization role remains the maximum allowed access.",
+    "roleDefault": "Role default",
+    "custom": "Custom",
+    "useRoleDefaults": "Use organization role defaults",
+    "useRoleDefaultsHelp": "Use the normal permissions already defined for this role.",
+    "customForProject": "Custom for this project",
+    "customForProjectHelp": "Narrow access for this project without changing the organization role.",
+    "viewPreset": "View preset",
+    "managePreset": "Manage preset",
+    "projectReadWarning": "Add Project read access if this member should open the project.",
+    "withoutDateLimit": "without a date limit",
+    "now": "now",
+    "ongoing": "ongoing",
+    "dateRange": "{{start}} → {{end}}"
+  },
+  "status": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "ENDED": "Ended"
+  },
+  "permissionGroup": {
+    "PROJECT": "Project",
+    "TEAM": "Team",
+    "WORKERS": "Workers"
+  },
+  "permissionAction": {
+    "read": "Read",
+    "update": "Update",
+    "assign": "Assign",
+    "switch": "Switch",
+    "unassign": "Unassign",
+    "create": "Create",
+    "assign-project": "Assign project",
+    "update-rate": "Update rate",
+    "deactivate": "Deactivate",
+    "export": "Export"
+  },
+  "errors": {
+    "load": "Unable to load Project Team",
+    "generic": "Something went wrong. Please try again."
+  }
+}

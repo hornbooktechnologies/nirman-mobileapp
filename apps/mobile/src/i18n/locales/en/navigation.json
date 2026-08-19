@@ -1,0 +1,52 @@
+{
+  "a11y": {
+    "main": "Main navigation",
+    "open": "Open {{screen}}",
+    "openMenu": "Open menu",
+    "goBack": "Go back"
+  },
+  "tabs": {
+    "home": "Home",
+    "team": "Team",
+    "project": "Project",
+    "members": "Members",
+    "menu": "Menu"
+  },
+  "items": {
+    "home": {
+      "title": "Home",
+      "description": "Your field command center"
+    },
+    "team": {
+      "title": "Project Team",
+      "description": "Members and workers"
+    },
+    "project": {
+      "title": "Selected Project",
+      "description": "Site details and controls"
+    },
+    "members": {
+      "title": "Organization Members",
+      "description": "Access, roles and invitations"
+    },
+    "menu": {
+      "title": "Menu",
+      "description": "Account and organization"
+    }
+  },
+  "menu": {
+    "title": "Menu",
+    "customerUser": "Customer user",
+    "noActiveOrganization": "No active organization",
+    "organizationMember": "Organization member",
+    "organizations": "Organizations",
+    "active": "Active",
+    "switch": "Switch",
+    "organization": "Organization",
+    "selectProject": "Select an active project",
+    "openScreen": "Open screen",
+    "refreshingAccess": "Refreshing Access",
+    "refreshAccess": "Refresh Access",
+    "signOut": "Sign Out"
+  }
+}

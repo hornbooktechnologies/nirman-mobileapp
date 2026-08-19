@@ -1,0 +1,86 @@
+{
+  "detail": {
+    "title": "Project",
+    "chooseProject": "Choose a project",
+    "unavailableTitle": "Project unavailable",
+    "loadFailure": "Unable to load project",
+    "defaultCode": "PROJECT",
+    "workspace": "Project workspace",
+    "editProject": "Edit project",
+    "loading": "Loading…",
+    "edit": "Edit",
+    "team": "Team",
+    "teamA11y": "Open project team members and workers",
+    "organization": "Organization",
+    "customerOrganization": "Customer organization",
+    "notAvailable": "Not available",
+    "yourAccess": "Your access",
+    "projectAccess": "Project access",
+    "selectTitle": "Select a project",
+    "selectDescription": "Choose a project from Home before opening project work.",
+    "goHome": "Go to Home",
+    "summaryA11y": "{{name}}, {{status}}"
+  },
+  "form": {
+    "newTitle": "New project",
+    "editTitle": "Edit project",
+    "newDescription": "Create the workspace, then add its team and workers.",
+    "groups": {
+      "basics": "Basics",
+      "location": "Location",
+      "timeline": "Timeline",
+      "details": "Details"
+    },
+    "fields": {
+      "name": "Name",
+      "projectName": "Project name",
+      "code": "Code",
+      "projectCode": "Project code",
+      "type": "Type",
+      "status": "Status",
+      "addressLine": "Address line",
+      "city": "City",
+      "state": "State",
+      "postalCode": "Postal code",
+      "startDate": "Start date",
+      "expectedCompletion": "Expected completion",
+      "description": "Description",
+      "optional": "Optional",
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "create": "Create"
+    },
+    "errors": {
+      "nameRequired": "Project name is required.",
+      "completionBeforeStart": "Expected completion cannot be before the start date.",
+      "saveFailed": "Unable to save project"
+    }
+  },
+  "type": {
+    "RESIDENTIAL": "Residential",
+    "COMMERCIAL": "Commercial",
+    "MIXED": "Mixed use",
+    "SHED": "Shed",
+    "OTHER": "Other"
+  },
+  "status": {
+    "DRAFT": "Draft",
+    "ACTIVE": "Active",
+    "ON_HOLD": "On hold",
+    "COMPLETED": "Completed",
+    "ARCHIVED": "Archived"
+  },
+  "scope": {
+    "ALL": "All projects",
+    "ASSIGNED": "Assigned projects",
+    "NONE": "No project access"
+  },
+  "organizationType": {
+    "BUILDER": "Builder",
+    "CONTRACTOR": "Contractor"
+  }
+}

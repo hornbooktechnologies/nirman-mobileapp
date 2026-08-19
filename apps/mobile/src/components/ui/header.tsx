@@ -1,7 +1,8 @@
 import { type ReactNode } from 'react';
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type HeaderProps = ViewProps & {
   title: string;
@@ -14,9 +15,9 @@ export function Header({ title, eyebrow, subtitle, action, style, ...props }: He
   return (
     <View style={[styles.header, style]} {...props}>
       <View style={styles.textWrap}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {eyebrow ? <AppText style={styles.eyebrow} weight={700}>{eyebrow}</AppText> : null}
+        <AppText style={styles.title} weight={700}>{title}</AppText>
+        {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
       </View>
       {action ? <View style={styles.action}>{action}</View> : null}
     </View>
@@ -27,8 +28,8 @@ export function SectionHeader({ title, subtitle, action, style, ...props }: Head
   return (
     <View style={[styles.sectionHeader, style]} {...props}>
       <View style={styles.textWrap}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <AppText style={styles.sectionTitle} weight={700}>{title}</AppText>
+        {subtitle ? <AppText style={styles.subtitle}>{subtitle}</AppText> : null}
       </View>
       {action ? <View style={styles.action}>{action}</View> : null}
     </View>

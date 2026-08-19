@@ -1,0 +1,38 @@
+{
+  "app": {
+    "preparing": "NirmanSite તૈયાર થઈ રહ્યું છે"
+  },
+  "loading": {
+    "default": "લોડ થઈ રહ્યું છે",
+    "checkingSession": "સેશન તપાસી રહ્યા છીએ"
+  },
+  "actions": {
+    "retry": "ફરી પ્રયાસ કરો",
+    "close": "બંધ કરો",
+    "back": "પાછા"
+  },
+  "form": {
+    "required": "જરૂરી",
+    "optional": "વૈકલ્પિક"
+  },
+  "progress": {
+    "done": "પૂર્ણ"
+  },
+  "sync": {
+    "online": "બધા ફેરફારો સાચવાયા",
+    "offline": "ઑફલાઇન મોડ",
+    "syncing": "સિંક થઈ રહ્યું છે",
+    "attention": "ધ્યાન આપવું જરૂરી છે",
+    "offlineBanner": "ઑફલાઇન મોડ ચાલુ છે. નવી ફીલ્ડ એન્ટ્રીઓ પછીથી સ્થાનિક રીતે સાચવી શકાશે."
+  },
+  "language": {
+    "title": "ભાષા",
+    "description": "એપમાં ઉપયોગ કરવાની ભાષા પસંદ કરો.",
+    "system": "ડિવાઇસની ભાષા",
+    "english": "English",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "changeTo": "ભાષા {{language}} માં બદલો",
+    "changeFailed": "ભાષા બદલી શકાઈ નથી. ફરી પ્રયાસ કરો."
+  }
+}

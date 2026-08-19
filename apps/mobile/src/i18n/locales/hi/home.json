@@ -1,0 +1,57 @@
+{
+  "greeting": {
+    "eyebrow": "फील्ड कार्यक्षेत्र",
+    "welcomeBack": "वापसी पर स्वागत है, {{name}}",
+    "fallbackName": "साथी",
+    "noActiveOrganization": "कोई सक्रिय संगठन नहीं",
+    "organizationMember": "संगठन सदस्य"
+  },
+  "metrics": {
+    "workingSites": "कार्यरत साइटें",
+    "workingSitesA11y_one": "{{count}} कार्यरत साइट",
+    "workingSitesA11y_other": "{{count}} कार्यरत साइटें",
+    "projectScope": "प्रोजेक्ट पहुँच",
+    "projectScopeA11y": "प्रोजेक्ट पहुँच: {{scope}}"
+  },
+  "projectScope": {
+    "ALL": "सभी प्रोजेक्ट",
+    "ASSIGNED": "सौंपे गए प्रोजेक्ट",
+    "NONE": "प्रोजेक्ट पहुँच नहीं"
+  },
+  "workspace": {
+    "eyebrow": "मुख्य नेविगेशन",
+    "title": "आपका कार्यक्षेत्र",
+    "createProject": "प्रोजेक्ट बनाएँ",
+    "emptyTitle": "कार्यक्षेत्र की पहुँच लंबित है",
+    "emptyDescription": "व्यवस्थापक द्वारा प्रोजेक्ट पहुँच देने के बाद आपके उपलब्ध टूल यहाँ दिखाई देंगे।"
+  },
+  "projectContext": {
+    "selectedProject": "चुना गया प्रोजेक्ट",
+    "projectContext": "प्रोजेक्ट संदर्भ",
+    "switch": "बदलें",
+    "switchProject": "प्रोजेक्ट बदलें",
+    "noActiveOrganization": "कोई सक्रिय संगठन नहीं",
+    "selectProject": "प्रोजेक्ट चुनें",
+    "noProjectAvailable": "कोई प्रोजेक्ट उपलब्ध नहीं",
+    "access": "पहुँच",
+    "notAssigned": "सौंपा नहीं गया",
+    "openProject": "प्रोजेक्ट खोलें",
+    "openNamedProject": "{{project}} खोलें",
+    "assigned": "सौंपा गया",
+    "unassigned": "नहीं सौंपा गया",
+    "workingProjects_one": "{{count}} कार्यरत प्रोजेक्ट उपलब्ध है",
+    "workingProjects_other": "{{count}} कार्यरत प्रोजेक्ट उपलब्ध हैं",
+    "askAdministrator": "प्रोजेक्ट पहुँच के लिए व्यवस्थापक से कहें",
+    "pickerTitle": "प्रोजेक्ट बदलें",
+    "pickerDescription": "प्रबंधन या फील्ड कार्य के लिए प्रोजेक्ट चुनें। सक्रिय होने तक ड्राफ्ट प्रोजेक्ट केवल प्रबंधन के लिए उपलब्ध रहते हैं।",
+    "projectAccess": "प्रोजेक्ट पहुँच",
+    "selected": "चुना गया"
+  },
+  "projectStatus": {
+    "DRAFT": "ड्राफ्ट",
+    "ACTIVE": "सक्रिय",
+    "ON_HOLD": "होल्ड पर",
+    "COMPLETED": "पूर्ण",
+    "ARCHIVED": "आर्काइव किया गया"
+  }
+}

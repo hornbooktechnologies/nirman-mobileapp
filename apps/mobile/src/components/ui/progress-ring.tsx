@@ -1,7 +1,9 @@
 import Svg, { Circle } from 'react-native-svg';
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type ProgressRingProps = ViewProps & {
   value: number;
@@ -9,6 +11,7 @@ type ProgressRingProps = ViewProps & {
 };
 
 export function ProgressRing({ value, size = 168, style, ...props }: ProgressRingProps) {
+  const { t } = useTranslation('common');
   const stroke = 14;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -39,8 +42,8 @@ export function ProgressRing({ value, size = 168, style, ...props }: ProgressRin
         />
       </Svg>
       <View style={styles.center}>
-        <Text style={styles.value}>{value}%</Text>
-        <Text style={styles.label}>Done</Text>
+        <AppText style={styles.value} weight={700}>{value}%</AppText>
+        <AppText style={styles.label}>{t('progress.done')}</AppText>
       </View>
     </View>
   );
