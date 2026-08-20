@@ -13,7 +13,7 @@ export function GlassCard({ variant = 'default', padding = 'md', style, ...props
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: mobileTheme.radius.xxl,
+    borderRadius: mobileTheme.component.card.radius,
     borderWidth: 1,
   },
   subtle: {
@@ -34,8 +34,8 @@ const styles = StyleSheet.create({
   sheet: {
     backgroundColor: mobileTheme.color.surface.raised,
     borderColor: mobileTheme.color.border.inverse,
-    borderTopLeftRadius: mobileTheme.radius.xxl,
-    borderTopRightRadius: mobileTheme.radius.xxl,
+    borderTopLeftRadius: mobileTheme.radius.xl,
+    borderTopRightRadius: mobileTheme.radius.xl,
     ...mobileShadows.sheet,
   },
   selected: {

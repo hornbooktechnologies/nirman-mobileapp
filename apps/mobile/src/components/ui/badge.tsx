@@ -1,6 +1,7 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, type TextProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'active' | 'current';
 
@@ -16,11 +17,7 @@ export const badgeToneTokens = {
   danger: mobileTheme.color.status.danger,
   info: mobileTheme.color.status.info,
   purple: mobileTheme.color.status.purple,
-  active: {
-    foreground: mobileTheme.color.text.inverse,
-    background: mobileTheme.color.status.success.foreground,
-    border: mobileTheme.color.status.success.foreground,
-  },
+  active: mobileTheme.color.status.success,
   current: {
     foreground: mobileTheme.color.text.inverse,
     background: mobileTheme.color.brand.blueprint,
@@ -54,7 +51,7 @@ export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) 
   const toneTokens = badgeToneTokens[tone];
 
   return (
-    <Text
+    <AppText
       style={[
         styles.badge,
         {
@@ -65,9 +62,10 @@ export function Badge({ label, tone = 'neutral', style, ...props }: BadgeProps) 
         style,
       ]}
       {...props}
+      weight={700}
     >
       {label}
-    </Text>
+    </AppText>
   );
 }
 
@@ -78,7 +76,7 @@ export function StatusBadge({ label, tone, ...props }: BadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.badge.radius,
     borderWidth: 1,
     fontSize: mobileTheme.typography.size.xs,
     fontWeight: '700',

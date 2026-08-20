@@ -1,16 +1,19 @@
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
+import { useLocalizedFontFamily } from './app-text';
 
 type InputProps = TextInputProps & {
   invalid?: boolean;
 };
 
 export function Input({ invalid = false, style, placeholderTextColor = mobileTheme.color.text.muted, ...props }: InputProps) {
+  const fontFamily = useLocalizedFontFamily(500);
+
   return (
     <TextInput
       placeholderTextColor={placeholderTextColor}
-      style={[styles.input, invalid && styles.invalid, style]}
+      style={[styles.input, invalid && styles.invalid, style, { fontFamily }]}
       {...props}
     />
   );

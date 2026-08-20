@@ -1,0 +1,38 @@
+{
+  "app": {
+    "preparing": "NirmanSite तैयार हो रहा है"
+  },
+  "loading": {
+    "default": "लोड हो रहा है",
+    "checkingSession": "सत्र की जाँच हो रही है"
+  },
+  "actions": {
+    "retry": "फिर प्रयास करें",
+    "close": "बंद करें",
+    "back": "वापस"
+  },
+  "form": {
+    "required": "आवश्यक",
+    "optional": "वैकल्पिक"
+  },
+  "progress": {
+    "done": "पूर्ण"
+  },
+  "sync": {
+    "online": "सभी बदलाव सहेजे गए",
+    "offline": "ऑफ़लाइन मोड",
+    "syncing": "सिंक हो रहा है",
+    "attention": "ध्यान देने की ज़रूरत है",
+    "offlineBanner": "ऑफ़लाइन मोड चालू है। नई फील्ड प्रविष्टियाँ बाद में स्थानीय रूप से सहेजी जा सकती हैं।"
+  },
+  "language": {
+    "title": "भाषा",
+    "description": "ऐप में उपयोग की जाने वाली भाषा चुनें।",
+    "system": "डिवाइस की भाषा",
+    "english": "English",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "changeTo": "भाषा {{language}} में बदलें",
+    "changeFailed": "भाषा नहीं बदली जा सकी। फिर प्रयास करें।"
+  }
+}

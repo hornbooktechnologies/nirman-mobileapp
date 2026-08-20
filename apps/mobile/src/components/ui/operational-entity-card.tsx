@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
   View,
   type AccessibilityProps,
   type StyleProp,
@@ -11,6 +10,7 @@ import {
 
 import { mobileShadows, mobileText, mobileTheme } from '../../theme';
 import { badgeToneTokens, type BadgeTone } from './badge';
+import { AppText } from './app-text';
 
 type OperationalEntityCardProps = AccessibilityProps & {
   contextLeading: string;
@@ -44,24 +44,24 @@ export function OperationalEntityCard({
   const content = (
     <>
       <View style={[styles.contextStrip, { backgroundColor: toneTokens.background, borderLeftColor: toneTokens.foreground }]}>
-        <Text numberOfLines={1} style={[styles.contextLeading, { color: toneTokens.foreground }]}>{contextLeading}</Text>
-        {contextTrailing ? <Text numberOfLines={1} style={[styles.contextTrailing, { color: toneTokens.foreground }]}>{contextTrailing}</Text> : null}
+        <AppText numberOfLines={1} style={[styles.contextLeading, { color: toneTokens.foreground }]} weight={700}>{contextLeading}</AppText>
+        {contextTrailing ? <AppText numberOfLines={1} style={[styles.contextTrailing, { color: toneTokens.foreground }]} weight={700}>{contextTrailing}</AppText> : null}
       </View>
       <View style={styles.primaryRow}>
         <View style={styles.identity}>
-          <Text numberOfLines={2} style={styles.title}>{title}</Text>
-          {supporting ? <Text numberOfLines={1} style={styles.supporting}>{supporting}</Text> : null}
+          <AppText numberOfLines={2} style={styles.title} weight={700}>{title}</AppText>
+          {supporting ? <AppText numberOfLines={1} style={styles.supporting} weight={500}>{supporting}</AppText> : null}
         </View>
         {value ? (
           <View style={styles.valueWrap}>
-            <Text numberOfLines={1} style={styles.value}>{value}</Text>
-            {valueLabel ? <Text style={styles.valueLabel}>{valueLabel}</Text> : null}
+            <AppText numberOfLines={1} style={styles.value} weight={700}>{value}</AppText>
+            {valueLabel ? <AppText style={styles.valueLabel} weight={700}>{valueLabel}</AppText> : null}
           </View>
         ) : null}
       </View>
       {(footerLeading || footerTrailing) ? (
         <View style={styles.footer}>
-          {footerLeading ? <Text numberOfLines={1} style={styles.footerLeading}>{footerLeading}</Text> : <View style={styles.footerSpacer} />}
+          {footerLeading ? <AppText numberOfLines={1} style={styles.footerLeading} weight={500}>{footerLeading}</AppText> : <View style={styles.footerSpacer} />}
           {footerTrailing}
         </View>
       ) : null}
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: mobileTheme.color.surface.raised,
     borderColor: mobileTheme.color.border.subtle,
-    borderRadius: mobileTheme.radius.xl,
+    borderRadius: mobileTheme.component.card.radius,
     borderWidth: 1,
     overflow: 'hidden',
     ...mobileShadows.soft,
@@ -110,16 +110,12 @@ const styles = StyleSheet.create({
     ...mobileText.caption,
     color: mobileTheme.color.text.brand,
     flex: 1,
-    fontFamily: 'Manrope_700Bold',
-    letterSpacing: mobileTheme.typography.letterSpacing.caps,
   },
   contextTrailing: {
     ...mobileText.caption,
     color: mobileTheme.color.text.primary,
     flexShrink: 1,
-    fontFamily: 'Manrope_700Bold',
     textAlign: 'right',
-    textTransform: 'uppercase',
   },
   primaryRow: {
     alignItems: 'center',
@@ -160,8 +156,6 @@ const styles = StyleSheet.create({
   valueLabel: {
     ...mobileText.caption,
     color: mobileTheme.color.text.muted,
-    fontFamily: 'Manrope_700Bold',
-    textTransform: 'uppercase',
   },
   footer: {
     alignItems: 'center',

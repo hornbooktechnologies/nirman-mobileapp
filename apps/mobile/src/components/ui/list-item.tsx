@@ -1,7 +1,8 @@
 import { type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type ListItemProps = PressableProps & {
   title: string;
@@ -16,11 +17,11 @@ export function ListItem({ title, subtitle, meta, leading, trailing, style, ...p
     <Pressable style={(state) => [styles.row, state.pressed && styles.pressed, typeof style === 'function' ? style(state) : style]} {...props}>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <AppText style={styles.title} weight={700}>{title}</AppText>
+        {subtitle ? <AppText style={styles.subtitle} weight={500}>{subtitle}</AppText> : null}
       </View>
       <View style={styles.trailing}>
-        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+        {meta ? <AppText style={styles.meta} weight={600}>{meta}</AppText> : null}
         {trailing}
       </View>
     </Pressable>

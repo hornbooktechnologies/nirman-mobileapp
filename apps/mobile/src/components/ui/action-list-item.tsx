@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 
 export type ActionTone = 'primary' | 'brand' | 'info' | 'danger' | 'neutral';
 
@@ -46,7 +47,7 @@ export function ActionListItem({ icon, label, tone = 'neutral', disabled, style,
       <View style={[styles.iconShell, { borderColor: tokens.border }]}>
         <AppIcon color={tokens.foreground} name={icon} size={mobileTheme.icon.lg} />
       </View>
-      <Text style={[styles.label, { color: tokens.foreground }]}>{label}</Text>
+      <AppText style={[styles.label, { color: tokens.foreground }]} weight={700}>{label}</AppText>
       <AppIcon color={tokens.foreground} name="chevron-right" size={mobileTheme.icon.md} />
     </Pressable>
   );
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   iconShell: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.glass.strong,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     borderWidth: 1,
     height: 40,
     justifyContent: 'center',
@@ -75,7 +76,6 @@ const styles = StyleSheet.create({
   label: {
     ...mobileText.label,
     flex: 1,
-    fontFamily: 'Manrope_700Bold',
     fontSize: 16,
   },
   disabled: { opacity: 0.46 },

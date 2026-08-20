@@ -88,10 +88,101 @@ The guarded mysql2 seed was run after migration. Live read-only verification con
 
 ## Next Recommended Task
 
-Run an authenticated browser and physical-device matrix using explicitly approved disposable data:
+Run the complete current mobile localization acceptance matrix on an authenticated physical device in English, Hindi, and Gujarati. Cover every role-visible route, font shaping, persistence, long text/large text, screen-reader labels, and fluent construction-domain review.
+
+Localization Slice 2 implemented:
+
+1. `expo-localization`, `i18next`, `react-i18next`, and AsyncStorage setup;
+2. bundled Manrope/Noto Sans Devanagari/Noto Sans Gujarati typography;
+3. English/Hindi/Gujarati common, auth, navigation, and error resources;
+4. pre-auth and Profile/Settings language selection;
+5. static/persistence/font verification without migrating Projects, Members, Team, or Workers yet.
+
+The existing authorization matrix remains required:
 
 1. Organization Owner assigns CUSTOM Worker/Team grants to a Contractor Member.
 2. Contractor can manage only the granted modules on assigned Projects.
 3. Contractor cannot access an unassigned Project or exceed the role/delegation ceiling.
 4. Platform Super Admin creates a temporary plan and validates active Project/Member capacity errors.
 5. Builder Supervisor can read assigned Project oversight data but cannot perform Site Supervisor or final commercial actions.
+
+## Approved Mobile Localization Slice 1
+
+On 2026-08-19, the Product Owner approved the English, Hindi, and Gujarati mobile localization model and delegated the font choice.
+
+Completed documentation scope:
+
+- approved `docs/modules/foundation/localization/CONTRACTS.md`;
+- added the review-gated domain glossary;
+- added `docs/tasks/mobile-multilingual-implementation-plan.md`;
+- selected Manrope for English, Noto Sans Devanagari for Hindi, and Noto Sans Gujarati for Gujarati;
+- confirmed the current bundled Manrope files do not contain Devanagari or Gujarati glyphs;
+- kept web localization, server preference persistence, RTL, offline business sync, and all database work out of scope.
+
+No dependency, font asset, runtime source, API, schema, migration, seed, or database change was made in Slice 1.
+
+## Mobile Localization Slice 2 Implementation
+
+On 2026-08-19, the Product Owner approved the next slice. The mobile app now has:
+
+- `expo-localization`, i18next/react-i18next, and AsyncStorage runtime integration;
+- `system`, English, Hindi, and Gujarati preference resolution with English fallback;
+- locally bundled Manrope, Noto Sans Devanagari, and Noto Sans Gujarati fonts;
+- locale-aware text/input font aliases with platform fallback if custom font loading fails;
+- typed common/auth/navigation/error resources and India-aware `Intl` formatters;
+- localized bootstrap, Login, invitation activation, shared loading/actions/states, bottom navigation, and primary Menu copy;
+- a language selector on Login/activation and in the authenticated Menu profile area;
+- localized machine-code/status-based API recovery copy without displaying backend diagnostics as the primary error;
+- a project-owned locale key and interpolation-placeholder validator.
+
+Static verification passed for mobile/shared type-checks, locale parity, Expo supported-locale config resolution, scoped hard-coded pilot-copy review, the cached Expo web export, and `git diff --check`. Browser, emulator, physical-device shaping/persistence, screen reader, large-text, and fluent Hindi/Gujarati review remain pending.
+
+No API, shared contract, database, migration, seed, web-localization, business-module, or offline-record-sync behavior changed in Slice 2.
+
+## Mobile Localization Slice 3A — Home/Dashboard
+
+On 2026-08-19, after testing Gujarati and reporting remaining English Home copy, the Product Owner approved the next single task. The mobile Home/dashboard now localizes:
+
+- field-workspace and welcome copy;
+- selected-Project context, switch action, access, status, Project scope, assignment state, and Project-count copy;
+- working-site and Project-scope metric cards;
+- main-navigation and workspace headings;
+- the dashboard create-Project action, empty state, and related accessibility labels.
+
+The selected-Project card allows translated labels to wrap so Gujarati/Hindi content is not forced into English-sized rows. Stable enum values are mapped to display keys, while Project, Organization, person, and role/responsibility names remain stored/displayed exactly as users entered them.
+
+Add/Edit Project forms, Organization Members, Project Team, and Workers were deliberately excluded so each can remain a separate approved task. No API, shared contract, database, schema, migration, seed, web, or business behavior changed.
+
+Static verification passed for locale key/placeholder parity, mobile/shared type-checks, Expo web export with all eight Noto font files, scoped hard-coded Home-copy review, and `git diff --check`. Physical-device layout/font shaping, screen-reader, large-text, and fluent Hindi/Gujarati review remain pending.
+
+## Mobile Localization Slice 3B — Projects
+
+After the Home handoff, the Product Owner confirmed that Project screens, the Add/Edit Project form, Team/Assign, and Add Worker were still English. Projects was selected as the next single task.
+
+Implemented Projects scope:
+
+- localized Project Detail heading, status, actions, Organization/access summary, empty state, alert, and accessibility copy;
+- localized Add/Edit Project headings, sections, visible labels, helper text, buttons, validation/recovery messages, and accessibility labels;
+- translated display labels for Project types/statuses, Project access scope, and Organization type while retaining their stable API values;
+- locale-aware typography in the shared modal, compact header, quick action, and operational entity card used by this flow;
+- wrapping form rows and type/status choices for longer Hindi/Gujarati text.
+
+User-entered Project names, codes, addresses, descriptions, Organization names, and custom role/responsibility labels remain unchanged and may be entered in English, Hindi, Gujarati, or a mixture supported by the keyboard. No API, shared contract, database, schema, migration, seed, web, or business behavior changed.
+
+Project Team/Assign and Workers/Add Worker remain deliberately excluded as the next separate tasks. Six-namespace locale parity, mobile/shared type-checks, scoped hard-coded Project-copy review, Expo web export with one entry bundle and all eight Noto font files, and `git diff --check` passed. Authenticated physical-device layout/font shaping, screen-reader, large-text, and fluent Hindi/Gujarati review remain pending.
+
+## Mobile Localization Slice 3C — Current Customer Surface Completion
+
+After the Product Owner clarified that the entire discussed mobile app must be multilingual without reporting each remaining English string separately, the completion scope was expanded to every current Expo customer flow.
+
+Implemented:
+
+- Organization Members listing, capacity, search, invite/edit access, delivery states, activation/deactivation, and multi-Project assignment;
+- Project Team listing, member picker, Assign/Edit Member sheet, assignment dates/status/responsibility, role-default/custom permission grants, presets, warnings, and unassign confirmation;
+- Workers roster, assignment states/filters, Assign/Edit/End sheets, Add Worker form, duplicate handling, trade suggestions, rates/dates, validation, and recovery copy;
+- shared required/optional field labels, collection picker, sync/offline and progress copy, tabs, headers, links, cards, buttons, and localized typography;
+- related accessibility labels and stable enum/permission display mappings.
+
+User-entered business values remain exactly as typed and may be English, Hindi, Gujarati, or mixed-script. System values remain stable in API/database contracts and are translated only for display. No API, shared contract, schema, migration, seed, database, web-localization, or business authorization behavior changed.
+
+All nine namespaces passed English/Hindi/Gujarati key and placeholder parity. Mobile and shared type-checks passed. The mobile literal audit found no remaining hard-coded user-facing English phrases outside locale resources; the remaining English literals are internal provider guards or the `NirmanSite` brand. Expo web export passed with one entry bundle and all eight Noto font files, and `git diff --check` passed. Authenticated physical-device, screen-reader, large-text, and fluent Hindi/Gujarati review remain pending.

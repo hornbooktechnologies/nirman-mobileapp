@@ -3,17 +3,18 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  Text,
   View,
   type ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { Badge } from './badge';
 import { EmptyState } from './states';
 import { IconButton } from './icon-button';
 import { SearchField } from './search-field';
+import { AppText } from './app-text';
 
 type CollectionPickerModalProps<TItem> = {
   visible: boolean;
@@ -46,14 +47,15 @@ export function CollectionPickerModal<TItem>({
   emptyTitle,
   emptyDescription,
 }: CollectionPickerModalProps<TItem>) {
+  const { t } = useTranslation('common');
   return (
     <Modal animationType="slide" presentationStyle="fullScreen" visible={visible} onRequestClose={onClose}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <IconButton accessibilityLabel="Back" icon="arrow-left" variant="glass" onPress={onClose} />
+          <IconButton accessibilityLabel={t('actions.back')} icon="arrow-left" variant="glass" onPress={onClose} />
           <View style={styles.headerCopy}>
-            <Text style={styles.title}>{title}</Text>
-            {subtitle ? <Text numberOfLines={1} style={styles.subtitle}>{subtitle}</Text> : null}
+            <AppText style={styles.title} weight={700}>{title}</AppText>
+            {subtitle ? <AppText numberOfLines={1} style={styles.subtitle} weight={500}>{subtitle}</AppText> : null}
           </View>
           <Badge label={`${data.length}`} tone="info" />
         </View>

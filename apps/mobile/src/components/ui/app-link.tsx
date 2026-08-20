@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { AppIcon } from './app-icon';
+import { AppText } from './app-text';
 
 type TextLinkProps = PressableProps & {
   label: string;
@@ -12,7 +13,7 @@ type TextLinkProps = PressableProps & {
 export function TextLink({ label, variant = 'accent', withChevron = false, style, ...props }: TextLinkProps) {
   return (
     <Pressable style={(state) => [styles.link, state.pressed && styles.pressed, typeof style === 'function' ? style(state) : style]} {...props}>
-      <Text style={[styles.label, styles[variant]]}>{label}</Text>
+      <AppText style={[styles.label, styles[variant]]} weight={600}>{label}</AppText>
       {withChevron ? <AppIcon color={linkColors[variant]} name="chevron-right" size={mobileTheme.icon.xs} /> : null}
     </Pressable>
   );

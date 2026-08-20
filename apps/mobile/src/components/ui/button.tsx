@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 
 type ButtonProps = PressableProps & {
   label: string;
@@ -37,7 +38,9 @@ export function Button({ label, size = 'md', variant = 'primary', fullWidth = tr
           size={mobileTheme.icon.sm}
         />
       ) : null}
-      <Text style={[styles.label, usesInverseContent ? styles.inverseLabel : styles.secondaryLabel]}>{label}</Text>
+      <AppText style={[styles.label, usesInverseContent ? styles.inverseLabel : styles.secondaryLabel]} weight={700}>
+        {label}
+      </AppText>
     </Pressable>
   );
 }
@@ -45,7 +48,7 @@ export function Button({ label, size = 'md', variant = 'primary', fullWidth = tr
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
     justifyContent: 'center',
@@ -107,11 +110,11 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.82,
-    transform: [{ scale: 0.98 }],
   },
   label: {
     fontSize: 16,
-    fontFamily: 'Manrope_700Bold',
+    lineHeight: 24,
+    textAlign: 'center',
   },
   inverseLabel: {
     color: mobileTheme.color.text.inverse,

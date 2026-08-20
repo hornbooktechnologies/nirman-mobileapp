@@ -1,0 +1,125 @@
+{
+  "screen": {
+    "title": "टीम",
+    "chooseProject": "प्रोजेक्ट चुनें",
+    "assignMemberA11y": "प्रोजेक्ट सदस्य नियुक्त करें",
+    "membersCount_one": "सदस्य {{count}}",
+    "membersCount_other": "सदस्य {{count}}",
+    "workers": "श्रमिक",
+    "searchA11y": "नियुक्त सदस्यों को खोजें",
+    "searchPlaceholder": "नाम, भूमिका या जिम्मेदारी खोजें",
+    "loading": "प्रोजेक्ट टीम लोड हो रही है",
+    "unavailable": "टीम उपलब्ध नहीं है",
+    "retry": "फिर प्रयास करें",
+    "noEmail": "ईमेल नहीं है",
+    "projectMember": "प्रोजेक्ट सदस्य",
+    "roleDefaults": "भूमिका के डिफॉल्ट",
+    "customActions_one": "{{count}} कस्टम कार्रवाई",
+    "customActions_other": "{{count}} कस्टम कार्रवाइयाँ",
+    "noMatchingTitle": "कोई मेल खाता सदस्य नहीं",
+    "noMembersTitle": "कोई प्रोजेक्ट सदस्य नहीं",
+    "tryAnotherSearch": "दूसरी खोज आजमाएँ।",
+    "noMembersDescription": "इस प्रोजेक्ट में किसी सक्रिय संगठन सदस्य को नियुक्त करें।",
+    "assignMember": "सदस्य नियुक्त करें"
+  },
+  "confirm": {
+    "endTitle": "प्रोजेक्ट नियुक्ति समाप्त करें?",
+    "endDescription": "{{name}} की इस प्रोजेक्ट तक पहुँच समाप्त हो जाएगी। उनकी संगठन सदस्यता सक्रिय रहेगी।",
+    "cancel": "रद्द करें",
+    "endAction": "नियुक्ति समाप्त करें",
+    "notEnded": "नियुक्ति समाप्त नहीं हुई"
+  },
+  "actions": {
+    "edit": "नियुक्ति और अनुमतियाँ संपादित करें",
+    "end": "प्रोजेक्ट नियुक्ति समाप्त करें"
+  },
+  "editor": {
+    "assignTitle": "प्रोजेक्ट पहुँच तय करें",
+    "editFallbackTitle": "पहुँच संपादित करें",
+    "assignDescription": "सदस्य चुनें, फिर जिम्मेदारी, तिथियाँ और अनुमतियाँ निश्चित करें।",
+    "editDescription": "इस प्रोजेक्ट की जिम्मेदारी, तिथियाँ और अनुमतियाँ संपादित करें।",
+    "cancel": "रद्द करें",
+    "saving": "सहेजा जा रहा है…",
+    "assign": "नियुक्त करें",
+    "saveChanges": "बदलाव सहेजें",
+    "member": "सदस्य",
+    "selected": "चुना गया",
+    "change": "बदलें",
+    "chooseMember": "सदस्य चुनें",
+    "organizationMember": "संगठन सदस्य",
+    "activeOrganizationMember": "सक्रिय संगठन सदस्य",
+    "candidate": "प्रोजेक्ट नियुक्ति उम्मीदवार",
+    "available": "प्रोजेक्ट नियुक्ति के लिए उपलब्ध",
+    "fallbackMember": "सदस्य",
+    "selectA11y": "{{name}} चुना गया। सदस्य बदलें",
+    "chooseA11y": "{{name}}, {{role}} को चुनें",
+    "errors": {
+      "selectMember": "किसी सक्रिय संगठन सदस्य को चुनें।",
+      "dateOrder": "समाप्ति तिथि आरंभ तिथि से पहले नहीं हो सकती।"
+    }
+  },
+  "picker": {
+    "searchA11y": "संगठन सदस्यों को खोजें",
+    "searchPlaceholder": "नाम या भूमिका खोजें",
+    "noMatchTitle": "कोई मेल खाता सदस्य नहीं",
+    "noneAvailableTitle": "कोई सदस्य उपलब्ध नहीं",
+    "tryAnother": "दूसरा नाम या भूमिका आजमाएँ।",
+    "allAssigned": "हर सक्रिय सदस्य पहले से इस प्रोजेक्ट में नियुक्त है।",
+    "subtitle": "अभी तक नियुक्त नहीं किए गए सक्रिय सदस्य",
+    "title": "सदस्य चुनें"
+  },
+  "assignment": {
+    "responsibility": "प्रोजेक्ट जिम्मेदारी",
+    "responsibilityHelp": "साइट सुपरवाइज़र या निरीक्षण प्रमुख जैसा स्पष्ट नाम। इससे अनुमतियाँ नहीं मिलतीं।",
+    "responsibilityPlaceholder": "जैसे साइट सुपरवाइज़र",
+    "status": "नियुक्ति स्थिति",
+    "active": "सक्रिय",
+    "inactive": "निष्क्रिय",
+    "startDate": "आरंभ तिथि",
+    "endDate": "समाप्ति तिथि",
+    "startDateA11y": "नियुक्ति आरंभ तिथि",
+    "endDateA11y": "नियुक्ति समाप्ति तिथि",
+    "dateFormat": "YYYY-MM-DD",
+    "permissions": "प्रोजेक्ट अनुमतियाँ",
+    "permissionsHelp": "इस सदस्य के लिए प्रोजेक्ट की कार्रवाइयाँ चुनें। संगठन भूमिका अधिकतम अनुमत पहुँच बनी रहेगी।",
+    "roleDefault": "भूमिका डिफॉल्ट",
+    "custom": "कस्टम",
+    "useRoleDefaults": "संगठन भूमिका के डिफॉल्ट उपयोग करें",
+    "useRoleDefaultsHelp": "इस भूमिका के लिए पहले से तय सामान्य अनुमतियाँ उपयोग करें।",
+    "customForProject": "इस प्रोजेक्ट के लिए कस्टम",
+    "customForProjectHelp": "संगठन भूमिका बदले बिना इस प्रोजेक्ट की पहुँच सीमित करें।",
+    "viewPreset": "देखने का प्रीसेट",
+    "managePreset": "प्रबंधन प्रीसेट",
+    "projectReadWarning": "यदि सदस्य को प्रोजेक्ट खोलना है तो प्रोजेक्ट पढ़ने की अनुमति जोड़ें।",
+    "withoutDateLimit": "बिना तिथि सीमा",
+    "now": "अब",
+    "ongoing": "जारी",
+    "dateRange": "{{start}} → {{end}}"
+  },
+  "status": {
+    "ACTIVE": "सक्रिय",
+    "INACTIVE": "निष्क्रिय",
+    "ENDED": "समाप्त"
+  },
+  "permissionGroup": {
+    "PROJECT": "प्रोजेक्ट",
+    "TEAM": "टीम",
+    "WORKERS": "श्रमिक"
+  },
+  "permissionAction": {
+    "read": "देखें",
+    "update": "अपडेट करें",
+    "assign": "नियुक्त करें",
+    "switch": "बदलें",
+    "unassign": "हटाएँ",
+    "create": "बनाएँ",
+    "assign-project": "प्रोजेक्ट में नियुक्त करें",
+    "update-rate": "दर अपडेट करें",
+    "deactivate": "निष्क्रिय करें",
+    "export": "निर्यात करें"
+  },
+  "errors": {
+    "load": "प्रोजेक्ट टीम लोड नहीं हो सकी",
+    "generic": "कुछ गलत हुआ। फिर प्रयास करें।"
+  }
+}

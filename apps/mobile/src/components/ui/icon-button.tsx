@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 
 type IconButtonProps = PressableProps & {
   label?: string;
@@ -24,7 +25,7 @@ export function IconButton({ label, icon: Icon, showDot = false, variant = 'defa
           size={mobileTheme.icon.md}
         />
       ) : (
-        <Text style={[styles.label, variant === 'primary' || variant === 'dark' || variant === 'danger' ? styles.inverseLabel : styles.defaultLabel]}>{label}</Text>
+        <AppText style={[styles.label, variant === 'primary' || variant === 'dark' || variant === 'danger' ? styles.inverseLabel : styles.defaultLabel]} weight={700}>{label}</AppText>
       )}
       {showDot ? <View style={styles.dot} /> : null}
     </Pressable>
@@ -34,7 +35,7 @@ export function IconButton({ label, icon: Icon, showDot = false, variant = 'defa
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconButton.radius,
     height: 50,
     justifyContent: 'center',
     width: 50,
@@ -70,7 +71,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: mobileTheme.typography.size.md,
-    fontFamily: 'Manrope_700Bold',
   },
   defaultLabel: {
     color: mobileTheme.color.text.primary,

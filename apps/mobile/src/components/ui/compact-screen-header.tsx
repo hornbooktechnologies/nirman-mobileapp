@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type CompactScreenHeaderProps = ViewProps & {
   title: string;
@@ -15,8 +16,8 @@ export function CompactScreenHeader({ title, subtitle, leading, action, style, .
     <View style={[styles.header, style]} {...props}>
       {leading ? <View style={styles.slot}>{leading}</View> : null}
       <View style={styles.copy}>
-        <Text numberOfLines={1} style={styles.title}>{title}</Text>
-        {subtitle ? <Text numberOfLines={1} style={styles.subtitle}>{subtitle}</Text> : null}
+        <AppText numberOfLines={1} style={styles.title} weight={700}>{title}</AppText>
+        {subtitle ? <AppText numberOfLines={1} style={styles.subtitle} weight={500}>{subtitle}</AppText> : null}
       </View>
       {action ? <View style={styles.slot}>{action}</View> : null}
     </View>

@@ -38,7 +38,7 @@ const iconColors = {
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     justifyContent: 'center',
   },
   neutral: {

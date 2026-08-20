@@ -1,8 +1,10 @@
-import { ActivityIndicator, StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { Button } from './button';
 import { Card } from './card';
+import { AppText } from './app-text';
 
 type EmptyStateProps = ViewProps & {
   title: string;
@@ -14,18 +16,20 @@ type EmptyStateProps = ViewProps & {
 export function EmptyState({ title, description, actionLabel, onAction, style, ...props }: EmptyStateProps) {
   return (
     <Card style={[styles.state, style]} {...props}>
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      <AppText style={styles.title} weight={700}>{title}</AppText>
+      {description ? <AppText style={styles.description} weight={500}>{description}</AppText> : null}
       {actionLabel && onAction ? <Button label={actionLabel} fullWidth={false} onPress={onAction} /> : null}
     </Card>
   );
 }
 
-export function LoadingState({ label = 'Loading', style, ...props }: ViewProps & { label?: string }) {
+export function LoadingState({ label, style, ...props }: ViewProps & { label?: string }) {
+  const { t } = useTranslation('common');
+
   return (
     <View style={[styles.loading, style]} {...props}>
       <ActivityIndicator color={mobileTheme.color.action.primary} />
-      <Text style={styles.description}>{label}</Text>
+      <AppText style={styles.description} weight={500}>{label ?? t('loading.default')}</AppText>
     </View>
   );
 }
