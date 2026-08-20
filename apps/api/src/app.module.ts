@@ -10,6 +10,7 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { WorkersModule } from "./modules/workers/workers.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
+import { WagesModule } from "./modules/wages/wages.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -30,6 +31,7 @@ import { AppService } from "./app.service";
     ProjectsModule,
     WorkersModule,
     AttendanceModule,
+    WagesModule,
     SubscriptionsModule,
   ],
   controllers: [AppController],

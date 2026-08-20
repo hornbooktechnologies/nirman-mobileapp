@@ -27,8 +27,13 @@ export type {
   WorkerPermissionKey,
   WorkerSortKey,
   WorkerStatus,
+  WageBatchStatus,
+  WagePaymentMethod,
+  WagePaymentStatus,
+  WagePermissionKey,
 } from "../constants";
 
 export * from "./attendance";
 export * from "./workers";
 export * from "./onboarding";
+export * from "./wages";

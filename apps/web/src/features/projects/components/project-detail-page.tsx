@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Archive, CalendarCheck, RotateCcw, UsersRound } from "lucide-react";
+import { Archive, Banknote, CalendarCheck, RotateCcw, UsersRound } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Card, PageHeader, StatusBadge } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
@@ -91,6 +91,14 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
               >
                 <CalendarCheck size={16} />
                 Attendance
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/projects/${projectId}/wages`)}
+                disabled={!organizationId || !hasPermission("wages:read")}
+              >
+                <Banknote size={16} />
+                Wages
               </Button>
               <Button
                 variant="outline"

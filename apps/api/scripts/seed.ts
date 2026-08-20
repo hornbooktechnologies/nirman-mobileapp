@@ -12,6 +12,7 @@ import {
   ATTENDANCE_PERMISSIONS,
   PLATFORM_ADMIN_PERMISSIONS,
   PROJECT_PERMISSIONS,
+  WAGE_PERMISSIONS,
   WORKER_PERMISSIONS,
   type PermissionKey,
 } from "@nirman-app/shared";
@@ -88,6 +89,7 @@ const ORGANIZATION_ADMIN_PERMISSIONS = [
   "reports:read",
   ...WORKER_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
+  ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 const PROJECT_MANAGER_PERMISSIONS = [
@@ -101,6 +103,9 @@ const PROJECT_MANAGER_PERMISSIONS = [
   "attendance:read",
   "attendance:mark",
   "attendance:update",
+  "wages:read",
+  "wages:generate",
+  "wages:mark-paid",
 ] as const satisfies readonly PermissionKey[];
 
 const CONTRACTOR_MEMBER_PERMISSIONS = [
@@ -115,6 +120,7 @@ const CONTRACTOR_MEMBER_PERMISSIONS = [
   "project-members:unassign",
   ...WORKER_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
+  ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 const BUILDER_SUPERVISOR_PERMISSIONS = [
@@ -126,6 +132,7 @@ const BUILDER_SUPERVISOR_PERMISSIONS = [
   "workers:read",
   "attendance:read",
   "attendance:mark",
+  "wages:read",
 ] as const satisfies readonly PermissionKey[];
 
 const SITE_SUPERVISOR_PERMISSIONS = [

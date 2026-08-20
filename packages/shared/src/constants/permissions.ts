@@ -14,6 +14,7 @@ export const PERMISSION_RESOURCES = [
   "project-members",
   "workers",
   "attendance",
+  "wages",
   "settings",
   "files",
   "audit-logs",
@@ -34,7 +35,9 @@ export const PERMISSION_ACTIONS = [
   "assign",
   "assign-project",
   "unassign",
+  "generate",
   "mark",
+  "mark-paid",
   "switch",
   "view-all",
   "view-own",
@@ -67,6 +70,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   "project-members": "Project Members",
   workers: "Workers",
   attendance: "Attendance",
+  wages: "Wages",
   settings: "Settings",
   files: "Files",
   "audit-logs": "Audit Logs",
@@ -212,6 +216,16 @@ export const ATTENDANCE_PERMISSIONS = [
 
 export type AttendancePermissionKey = (typeof ATTENDANCE_PERMISSIONS)[number];
 
+export const WAGE_PERMISSIONS = [
+  "wages:read",
+  "wages:generate",
+  "wages:update",
+  "wages:mark-paid",
+  "wages:export",
+] as const satisfies readonly PermissionKey[];
+
+export type WagePermissionKey = (typeof WAGE_PERMISSIONS)[number];
+
 /**
  * Permission keys an Organization Owner may narrow for one Project assignment.
  * The member's Organization Role remains the ceiling; storing a key here never
@@ -228,6 +242,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   "project-members:unassign",
   ...WORKER_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
+  ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type ProjectDelegatablePermissionKey =
@@ -264,6 +279,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     label: "Attendance",
     permissions: ATTENDANCE_PERMISSIONS,
   },
+  {
+    key: "WAGES",
+    label: "Wages",
+    permissions: WAGE_PERMISSIONS,
+  },
 ] as const;
 
 export function isProjectDelegatablePermission(
@@ -280,6 +300,7 @@ export const ALL_PERMISSIONS = [
   ...LEGACY_USER_MANAGEMENT_PERMISSIONS,
   ...WORKER_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
+  ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type KnownPermissionKey = (typeof ALL_PERMISSIONS)[number];
@@ -368,6 +389,12 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "attendance:update": "Update attendance records.",
   "attendance:correct-locked": "Correct locked or historical attendance.",
   "attendance:export": "Export attendance data.",
+
+  "wages:read": "Read project wage batches and payment history.",
+  "wages:generate": "Generate wage previews and batches.",
+  "wages:update": "Update wage batches and wage item adjustments.",
+  "wages:mark-paid": "Record wage payments.",
+  "wages:export": "Export wage summaries and payment history.",
 
   "settings:read": "Read settings.",
   "settings:update": "Update settings.",
