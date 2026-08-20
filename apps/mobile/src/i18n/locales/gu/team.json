@@ -1,0 +1,125 @@
+{
+  "screen": {
+    "title": "ટીમ",
+    "chooseProject": "પ્રોજેક્ટ પસંદ કરો",
+    "assignMemberA11y": "પ્રોજેક્ટ સભ્ય સોંપો",
+    "membersCount_one": "સભ્યો {{count}}",
+    "membersCount_other": "સભ્યો {{count}}",
+    "workers": "કામદારો",
+    "searchA11y": "સોંપેલા સભ્યો શોધો",
+    "searchPlaceholder": "નામ, ભૂમિકા અથવા જવાબદારી શોધો",
+    "loading": "પ્રોજેક્ટ ટીમ લોડ થઈ રહી છે",
+    "unavailable": "ટીમ ઉપલબ્ધ નથી",
+    "retry": "ફરી પ્રયાસ કરો",
+    "noEmail": "ઈમેલ નથી",
+    "projectMember": "પ્રોજેક્ટ સભ્ય",
+    "roleDefaults": "ભૂમિકાના ડિફૉલ્ટ",
+    "customActions_one": "{{count}} કસ્ટમ કાર્યવાહી",
+    "customActions_other": "{{count}} કસ્ટમ કાર્યવાહી",
+    "noMatchingTitle": "મેળ ખાતા સભ્યો નથી",
+    "noMembersTitle": "કોઈ પ્રોજેક્ટ સભ્ય નથી",
+    "tryAnotherSearch": "બીજી શોધ અજમાવો.",
+    "noMembersDescription": "આ પ્રોજેક્ટમાં સક્રિય ઓર્ગેનાઇઝેશન સભ્યને સોંપો.",
+    "assignMember": "સભ્ય સોંપો"
+  },
+  "confirm": {
+    "endTitle": "પ્રોજેક્ટ સોંપણી સમાપ્ત કરવી છે?",
+    "endDescription": "{{name}}ની આ પ્રોજેક્ટની ઍક્સેસ સમાપ્ત થશે. તેમનું ઓર્ગેનાઇઝેશન સભ્યપદ સક્રિય રહેશે.",
+    "cancel": "રદ કરો",
+    "endAction": "સોંપણી સમાપ્ત કરો",
+    "notEnded": "સોંપણી સમાપ્ત થઈ નથી"
+  },
+  "actions": {
+    "edit": "સોંપણી અને પરવાનગીઓમાં ફેરફાર કરો",
+    "end": "પ્રોજેક્ટ સોંપણી સમાપ્ત કરો"
+  },
+  "editor": {
+    "assignTitle": "પ્રોજેક્ટ ઍક્સેસ નક્કી કરો",
+    "editFallbackTitle": "ઍક્સેસમાં ફેરફાર કરો",
+    "assignDescription": "સભ્ય પસંદ કરો, પછી જવાબદારી, તારીખો અને પરવાનગીઓ નક્કી કરો.",
+    "editDescription": "આ પ્રોજેક્ટ માટે જવાબદારી, તારીખો અને પરવાનગીઓમાં ફેરફાર કરો.",
+    "cancel": "રદ કરો",
+    "saving": "સાચવી રહ્યું છે…",
+    "assign": "સોંપો",
+    "saveChanges": "ફેરફારો સાચવો",
+    "member": "સભ્ય",
+    "selected": "પસંદ કરેલ",
+    "change": "બદલો",
+    "chooseMember": "સભ્ય પસંદ કરો",
+    "organizationMember": "ઓર્ગેનાઇઝેશન સભ્ય",
+    "activeOrganizationMember": "સક્રિય ઓર્ગેનાઇઝેશન સભ્ય",
+    "candidate": "પ્રોજેક્ટ સોંપણી ઉમેદવાર",
+    "available": "પ્રોજેક્ટ સોંપણી માટે ઉપલબ્ધ",
+    "fallbackMember": "સભ્ય",
+    "selectA11y": "{{name}} પસંદ કરેલ છે. સભ્ય બદલો",
+    "chooseA11y": "{{name}}, {{role}} પસંદ કરો",
+    "errors": {
+      "selectMember": "સક્રિય ઓર્ગેનાઇઝેશન સભ્ય પસંદ કરો.",
+      "dateOrder": "સમાપ્તિ તારીખ શરૂઆતની તારીખ પહેલાં હોઈ શકે નહીં."
+    }
+  },
+  "picker": {
+    "searchA11y": "ઓર્ગેનાઇઝેશન સભ્યો શોધો",
+    "searchPlaceholder": "નામ અથવા ભૂમિકા શોધો",
+    "noMatchTitle": "મેળ ખાતા સભ્યો નથી",
+    "noneAvailableTitle": "કોઈ સભ્ય ઉપલબ્ધ નથી",
+    "tryAnother": "બીજું નામ અથવા ભૂમિકા અજમાવો.",
+    "allAssigned": "દરેક સક્રિય સભ્ય પહેલેથી આ પ્રોજેક્ટમાં સોંપાયેલ છે.",
+    "subtitle": "હજુ સુધી ન સોંપાયેલા સક્રિય સભ્યો",
+    "title": "સભ્ય પસંદ કરો"
+  },
+  "assignment": {
+    "responsibility": "પ્રોજેક્ટ જવાબદારી",
+    "responsibilityHelp": "સાઇટ સુપરવાઇઝર અથવા ઇન્સ્પેક્શન લીડ જેવું સ્પષ્ટ નામ. તે પરવાનગી આપતું નથી.",
+    "responsibilityPlaceholder": "દા.ત. સાઇટ સુપરવાઇઝર",
+    "status": "સોંપણી સ્થિતિ",
+    "active": "સક્રિય",
+    "inactive": "નિષ્ક્રિય",
+    "startDate": "શરૂઆતની તારીખ",
+    "endDate": "સમાપ્તિ તારીખ",
+    "startDateA11y": "સોંપણી શરૂઆતની તારીખ",
+    "endDateA11y": "સોંપણી સમાપ્તિ તારીખ",
+    "dateFormat": "YYYY-MM-DD",
+    "permissions": "પ્રોજેક્ટ પરવાનગીઓ",
+    "permissionsHelp": "આ સભ્ય પ્રોજેક્ટમાં શું કરી શકે તે પસંદ કરો. ઓર્ગેનાઇઝેશનની ભૂમિકા મહત્તમ મંજૂર ઍક્સેસ રહેશે.",
+    "roleDefault": "ભૂમિકા ડિફૉલ્ટ",
+    "custom": "કસ્ટમ",
+    "useRoleDefaults": "ઓર્ગેનાઇઝેશન ભૂમિકાના ડિફૉલ્ટ વાપરો",
+    "useRoleDefaultsHelp": "આ ભૂમિકા માટે પહેલેથી નક્કી કરેલી સામાન્ય પરવાનગીઓ વાપરો.",
+    "customForProject": "આ પ્રોજેક્ટ માટે કસ્ટમ",
+    "customForProjectHelp": "ઓર્ગેનાઇઝેશન ભૂમિકા બદલ્યા વિના આ પ્રોજેક્ટની ઍક્સેસ મર્યાદિત કરો.",
+    "viewPreset": "જોવાનો પ્રીસેટ",
+    "managePreset": "મેનેજમેન્ટ પ્રીસેટ",
+    "projectReadWarning": "સભ્યએ પ્રોજેક્ટ ખોલવાનો હોય તો પ્રોજેક્ટ વાંચવાની પરવાનગી ઉમેરો.",
+    "withoutDateLimit": "તારીખ મર્યાદા વગર",
+    "now": "હમણાં",
+    "ongoing": "ચાલુ",
+    "dateRange": "{{start}} → {{end}}"
+  },
+  "status": {
+    "ACTIVE": "સક્રિય",
+    "INACTIVE": "નિષ્ક્રિય",
+    "ENDED": "સમાપ્ત"
+  },
+  "permissionGroup": {
+    "PROJECT": "પ્રોજેક્ટ",
+    "TEAM": "ટીમ",
+    "WORKERS": "કામદારો"
+  },
+  "permissionAction": {
+    "read": "જુઓ",
+    "update": "અપડેટ કરો",
+    "assign": "સોંપો",
+    "switch": "બદલો",
+    "unassign": "દૂર કરો",
+    "create": "બનાવો",
+    "assign-project": "પ્રોજેક્ટમાં સોંપો",
+    "update-rate": "દર અપડેટ કરો",
+    "deactivate": "નિષ્ક્રિય કરો",
+    "export": "નિકાસ કરો"
+  },
+  "errors": {
+    "load": "પ્રોજેક્ટ ટીમ લોડ થઈ શકી નથી",
+    "generic": "કંઈક ખોટું થયું. ફરી પ્રયાસ કરો."
+  }
+}

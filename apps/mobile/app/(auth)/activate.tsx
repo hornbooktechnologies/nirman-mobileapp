@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import type { OrganizationOwnerInvitationPreview } from '@nirman-app/shared';
+import { useTranslation } from 'react-i18next';
 
-import { Button, GlassCard, GradientScreen, Input } from '../../src/components/ui';
+import { AppText, Button, FormError, FormField, GlassCard, Input, LanguagePicker, NirmanScreenBackground } from '../../src/components/ui';
+import { getLocalizedErrorMessage } from '../../src/i18n';
 import { apiRequest } from '../../src/lib/api';
 import { mobileText, mobileTheme } from '../../src/theme';
 
@@ -12,7 +14,20 @@ type ApiEnvelope<TData> = {
   data: TData;
 };
 
+type ActivationErrorKey =
+  | 'validation.tokenRequired'
+  | 'validation.passwordMismatch'
+  | 'failure.activateOrganization'
+  | 'failure.loadInvitation'
+  | 'failure.activateAccount';
+
+type ActivationErrorState = {
+  cause?: unknown;
+  fallbackKey: ActivationErrorKey;
+};
+
 export default function ActivateInvitationRoute() {
+  const { t } = useTranslation('auth');
   const params = useLocalSearchParams<{ token?: string }>();
   const automaticAcceptanceStarted = useRef(false);
   const [token, setToken] = useState(
@@ -24,7 +39,13 @@ export default function ActivateInvitationRoute() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ActivationErrorState | null>(null);
+  const errorMessage = error
+    ? getLocalizedErrorMessage(error.cause, t(error.fallbackKey))
+    : null;
+  const tokenFieldError = error?.fallbackKey === 'validation.tokenRequired' ? errorMessage ?? undefined : undefined;
+  const confirmPasswordFieldError = error?.fallbackKey === 'validation.passwordMismatch' ? errorMessage ?? undefined : undefined;
+  const generalErrorMessage = tokenFieldError || confirmPasswordFieldError ? null : errorMessage;
 
   const continueToLogin = useCallback((email: string) => {
     router.replace({
@@ -56,7 +77,7 @@ export default function ActivateInvitationRoute() {
   const loadInvitation = useCallback(async (invitationToken: string) => {
     const normalizedToken = invitationToken.trim();
     if (!normalizedToken) {
-      setError('Enter the invitation token from your activation message.');
+      setError({ fallbackKey: 'validation.tokenRequired' });
       return;
     }
 
@@ -79,20 +100,15 @@ export default function ActivateInvitationRoute() {
         try {
           await activateExistingAccount(loadedInvitation, normalizedToken);
         } catch (activationError) {
-          setError(
-            activationError instanceof Error
-              ? activationError.message
-              : 'Unable to activate this organization',
-          );
+          setError({
+            cause: activationError,
+            fallbackKey: 'failure.activateOrganization',
+          });
         }
       }
     } catch (loadError) {
       setInvitation(null);
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Unable to load this invitation',
-      );
+      setError({ cause: loadError, fallbackKey: 'failure.loadInvitation' });
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +124,7 @@ export default function ActivateInvitationRoute() {
     if (!invitation) return;
     setError(null);
     if (invitation.requiresPasswordSetup && password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError({ fallbackKey: 'validation.passwordMismatch' });
       return;
     }
 
@@ -123,51 +139,52 @@ export default function ActivateInvitationRoute() {
       );
       continueToLogin(invitation.owner.email);
     } catch (acceptError) {
-      setError(
-        acceptError instanceof Error
-          ? acceptError.message
-          : 'Unable to activate this account',
-      );
+      setError({ cause: acceptError, fallbackKey: 'failure.activateAccount' });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <GradientScreen scroll>
+    <NirmanScreenBackground scroll>
       <View style={styles.brandBlock}>
         <Image
+          accessibilityLabel="NirmanSite"
+          accessible
           source={require('../../assets/brand/logo-full.png')}
           resizeMode="contain"
           style={styles.logo}
         />
-        <Text style={styles.title}>
+        <AppText style={styles.title} weight={700}>
           {invitation && !invitation.requiresPasswordSetup
-            ? 'Adding Organization'
-            : 'Activate Account'}
-        </Text>
+            ? t('activation.addOrganizationTitle')
+            : t('activation.activateAccountTitle')}
+        </AppText>
       </View>
+
+      <GlassCard variant="strong">
+        <LanguagePicker compact />
+      </GlassCard>
 
       <GlassCard variant="strong" style={styles.form}>
         {invitation && !invitation.requiresPasswordSetup ? (
           <>
-            <Text style={styles.body}>
+            <AppText style={styles.body} weight={500}>
               {isSubmitting
-                ? 'Activating this organization for your existing account.'
-                : 'Your existing password is unchanged. Continue to Login to access this organization.'}
-            </Text>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+                ? t('activation.activatingExisting')
+                : t('activation.existingReady')}
+            </AppText>
+            <FormError message={generalErrorMessage} />
             {!isSubmitting ? (
               <Button
-                label="Retry Activation"
+                label={t('activation.retryActivation')}
                 size="lg"
                 onPress={() => {
                   void activateExistingAccount(invitation, token).catch((retryError) => {
-                    setError(
-                      retryError instanceof Error
-                        ? retryError.message
-                        : 'Unable to activate this organization',
-                    );
+                    setError({
+                      cause: retryError,
+                      fallbackKey: 'failure.activateOrganization',
+                    });
                   });
                 }}
               />
@@ -175,62 +192,72 @@ export default function ActivateInvitationRoute() {
           </>
         ) : invitation ? (
           <>
-            <Text style={styles.body}>
-              {invitation.owner.name}, you were invited as {invitation.roleName} for{' '}
-              {invitation.organization.name}.
-            </Text>
-            <Text style={styles.loginIdentity}>
-              Login email: {invitation.owner.email}
-            </Text>
-            <Input
-              autoCapitalize="none"
-              placeholder="Create password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-            <Input
-              autoCapitalize="none"
-              placeholder="Confirm password"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <AppText style={styles.body} weight={500}>
+              {t('activation.invitedAs', {
+                name: invitation.owner.name,
+                organization: invitation.organization.name,
+                role: invitation.roleName,
+              })}
+            </AppText>
+            <AppText style={styles.loginIdentity} weight={500}>
+              {t('activation.loginEmail', { email: invitation.owner.email })}
+            </AppText>
+            <FormError message={generalErrorMessage} />
+            <FormField label={t('activation.createPassword')} required>
+              <Input
+                autoCapitalize="none"
+                autoComplete="new-password"
+                placeholder={t('activation.createPassword')}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </FormField>
+            <FormField label={t('activation.confirmPassword')} required error={confirmPasswordFieldError}>
+              <Input
+                autoCapitalize="none"
+                autoComplete="new-password"
+                invalid={Boolean(confirmPasswordFieldError)}
+                placeholder={t('activation.confirmPassword')}
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+            </FormField>
             <Button
               disabled={password.length < 8 || isSubmitting}
-              label={isSubmitting ? 'Activating' : 'Activate Account'}
+              label={isSubmitting ? t('activation.activating') : t('activation.activateAccountTitle')}
               size="lg"
               onPress={acceptInvitation}
             />
           </>
         ) : (
           <>
-            <Text style={styles.body}>
-              Open the activation link sent by NirmanSite or paste its invitation
-              token below.
-            </Text>
-            <Input
-              autoCapitalize="none"
-              placeholder="Invitation token"
-              value={token}
-              onChangeText={setToken}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <AppText style={styles.body} weight={500}>{t('activation.instructions')}</AppText>
+            <FormError message={generalErrorMessage} />
+            <FormField label={t('activation.invitationToken')} required error={tokenFieldError}>
+              <Input
+                autoCapitalize="none"
+                invalid={Boolean(tokenFieldError)}
+                placeholder={t('activation.invitationToken')}
+                value={token}
+                onChangeText={setToken}
+              />
+            </FormField>
             <Button
               disabled={!token.trim() || isLoading}
-              label={isLoading ? 'Checking' : 'Check Invitation'}
+              label={isLoading ? t('activation.checking') : t('activation.checkInvitation')}
               onPress={() => loadInvitation(token)}
             />
             <Button
-              label="Back to Login"
+              label={t('activation.backToLogin')}
               variant="ghost"
               onPress={() => router.replace('/(auth)/login')}
             />
           </>
         )}
       </GlassCard>
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
@@ -260,11 +287,6 @@ const styles = StyleSheet.create({
   loginIdentity: {
     ...mobileText.caption,
     color: mobileTheme.color.text.primary,
-    textAlign: 'center',
-  },
-  error: {
-    ...mobileText.caption,
-    color: mobileTheme.color.status.danger.foreground,
     textAlign: 'center',
   },
 });

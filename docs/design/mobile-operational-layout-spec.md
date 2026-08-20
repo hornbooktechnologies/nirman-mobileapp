@@ -135,8 +135,7 @@ NirmanSite uses a small, learnable color vocabulary sourced only from shared pal
 | Copper (`action.primary`) | Create, add, invite, assign, send, or make the primary commitment | Assign, Create & assign, Send invite |
 | Olive (`brand.primary`) | Edit, save an existing record, activate, or positively maintain | Edit, Save changes, Activate |
 | Blueprint (`brand.blueprint` / `status.info`) | Selected context, view, choose, manage, configure, switch, or share | Current project, Choose member, Manage projects, Configure access, Share link |
-| Deep success green (`status.success.foreground`) | Active lifecycle state with strong separation from pale sage surfaces | Active |
-| Soft success green (`status.success`) | Healthy or completed operational state | Assigned, Completed, Email sent |
+| Light success green (`status.success`) | Healthy or completed operational state | Active, Assigned, Completed, Email sent |
 | Amber (`status.warning`) | Needs attention or is not yet operational | Unassigned, Invited, Pending, Draft, On hold |
 | Red (`status.danger`) | Stopped, failed, unavailable, or destructive | Inactive, Suspended, Failed, End assignment, Deactivate |
 | Neutral sage | Informational metadata or a reversible secondary action | Counts, role default, Cancel |
@@ -470,23 +469,27 @@ Every screen must expose at least one clear orientation path: a selected top-lev
 
 ### 14.1 Protected app shell
 
-- Home, Team, Project, and Workers are the permission-derived top-level destinations and use one persistent bottom navigation.
+- Home, Team, and Project are the permission-derived top-level destinations and use one persistent bottom navigation.
+- Team owns two permission-aware sections: Members and Workers. Workers is not duplicated as a separate top-level destination or Project-detail shortcut.
 - Menu is a secondary utility route opened from the Home header. It is not a fifth bottom-navigation destination.
 - A top-level destination does not need a Back button solely to imitate a hierarchy; its selected bottom-navigation item supplies orientation.
 - A secondary route such as Menu or Organization Members shows a compact Back/Close control and does not render bottom navigation with a false selected destination.
 - A focused full-screen picker or multi-step editor may hide bottom navigation only when it has a visible Back/Close path and preserves the parent state.
-- Cross-links from Project detail to Team or Workers navigate to that top-level destination with the correct project context and selected navigation item. They do not create an unexplained navigation dead end.
+- The Project-detail Team link opens Team with the correct project context. Members is the default section when authorized; Workers opens by default when it is the only authorized Team section.
 - Direct links and permission redirects retain their current route contracts.
+- The shared bottom navigation uses a compact floating light-glass dock with a 24dp shell radius, restrained border, and soft navigation shadow.
+- Active destination: one 12dp olive rounded rectangle with a white icon/label and semantic selected state. Do not nest a copper icon well or another colored layer inside it. Inactive destinations remain unboxed with readable secondary icons and labels.
+- Each destination retains an equal-width target at least 48dp high; pressed feedback changes surface/opacity without moving surrounding content.
 
 ### 14.2 Current Project Workers finding
 
-The standalone Project Workers screen now includes both a compact Back control and Workers-selected bottom navigation; this is the required orientation standard for the route.
+The legacy standalone Project Workers screen includes a compact Back control and Team-selected bottom navigation; normal navigation opens Workers inside Team.
 
 Approved behavior:
 
-- Standalone Workers: compact top app bar, current Project subtitle/switch affordance, Add action when permitted, and persistent bottom navigation with Workers selected.
+- Legacy standalone Workers: compact top app bar, current Project subtitle/switch affordance, Add action when permitted, and persistent bottom navigation with Team selected.
 - Workers inside Project Team: inherit the Team header, Back behavior, segmented tab state, and Team-selected navigation; do not render a second header or second bottom bar.
-- No selected Project: keep Workers selected and show a contextual recovery action to choose a Project.
+- No selected Project: keep Team selected and show a contextual recovery action to choose a Project.
 
 ### 14.3 Header contract
 
@@ -552,14 +555,14 @@ The Project detail header is an operational identity surface, not a Home hero. A
 │ Green Heights Redevelopment            │  max 2 lines, 22–24sp
 │ Pune, Maharashtra                      │
 ├───────────────────┬────────────────────┤
-│ [people] Team   > │ [helmet] Workers > │  equal quick links
+│ [people] Team — Members & Workers   > │  one workforce entry
 └───────────────────┴────────────────────┘
                          [pencil] Edit
 ```
 
 - Project name uses 22–24sp, semibold/bold, a balanced line height, maximum two visual lines at standard text size, and responsive reflow rather than clipping at large text.
 - The code, type, and status use the compact context strip. Missing values collapse without filler such as `No project code` unless the absence needs action.
-- Team and Workers become equal icon-plus-text quick links with at least 48dp targets; their accessible names remain `Open project team` and `Open project workers`.
+- Project detail exposes one icon-plus-text Team link with at least a 48dp target. Team then exposes permission-aware Members and Workers sections without duplicating workforce navigation.
 - Edit is a permission-aware tertiary icon/text action in the header or summary footer, not a third full-width button of equal prominence.
 - If only one quick link is authorized, it may span the available action row. Hidden actions leave no empty column.
 - The summary card target is approximately 156–184dp including quick links at standard text size.
@@ -574,8 +577,8 @@ This is the minimum migration map. Every current route remains in scope even whe
 | Startup | Generic waiting state can feel disconnected from the product | Branded lightweight state, stable layout, honest timeout/error recovery |
 | Login | Context and labels are not consistently explicit | Concise title, visible labels, autofill/password control, keyboard-safe primary action |
 | Invitation activation | Multiple activation states share one long surface | State-based progressive layout with explicit Back/Login path and preserved token behavior |
-| Home | Expressive layout is the current visual reference | Preserve brand hero; keep portfolio cards compact and all destinations permission-driven |
-| Project detail | Oversized name and three full-width action buttons waste the first viewport | Compact identity card, 22–24sp two-line name, two-column Team/Workers quick links, tertiary Edit |
+| Home | Expressive layout is the current visual reference | Preserve brand hero and workspace navigation; remove the duplicate Your sites portfolio while retaining Project switching and permission-aware creation |
+| Project detail | Oversized name and duplicate workforce actions waste the first viewport | Compact identity card, 22–24sp two-line name, one Team entry for Members and Workers, tertiary Edit |
 | Create/edit Project | `Create project`, `Project name`, and `Create project` repeat context | `New project`, `Name`, `Create`; progressive groups and sticky action |
 | Project Team | Member list is non-virtualized and shell behavior differs from other top-level screens | Persistent Team navigation, compact project header, segmented Members/Workers, virtualized list |
 | Assign Project Member | Searchable unbounded Member collection is mapped inside a form sheet | Full-screen virtualized Choose Member step followed by focused access editor |
@@ -597,7 +600,7 @@ No full-app implementation begins until these layouts are reviewed in this order
 2. Project card at 375px using only fields available in the session summary.
 3. Project Team and Organization Member cards with long role/responsibility labels.
 4. One list screen showing header, search, filters, three cards, and persistent navigation.
-5. Project detail at 375px with a long three-word name and each permission combination for Team, Workers, and Edit.
+5. Project detail at 375px with a long three-word name and each permission combination for Team access and Edit; verify Members/Workers visibility inside Team.
 6. Choose Member with 0, 8, 50, and 500 representative rows, keyboard open, no-match, and selection-return states.
 7. Add Worker, Create Project, and Edit Member copy maps at standard and largest text sizes.
 8. One complex assignment editor with keyboard open, sticky footer, and unsaved-change protection.

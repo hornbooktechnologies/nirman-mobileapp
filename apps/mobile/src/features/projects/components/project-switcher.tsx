@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppIcon,
+  AppText,
   BottomSheet,
+  getStatusTone,
   GlassCard,
   IconContainer,
   ListItem,
@@ -13,6 +16,20 @@ import { getActiveProject, type MobileProjectSummary } from '../../../lib/auth';
 import { useSession } from '../../../providers';
 import { mobileText, mobileTheme } from '../../../theme';
 
+const projectScopeTranslationKeys = {
+  ALL: 'projectScope.ALL',
+  ASSIGNED: 'projectScope.ASSIGNED',
+  NONE: 'projectScope.NONE',
+} as const;
+
+const projectStatusTranslationKeys = {
+  DRAFT: 'projectStatus.DRAFT',
+  ACTIVE: 'projectStatus.ACTIVE',
+  ON_HOLD: 'projectStatus.ON_HOLD',
+  COMPLETED: 'projectStatus.COMPLETED',
+  ARCHIVED: 'projectStatus.ARCHIVED',
+} as const;
+
 type ProjectContextCardProps = {
   compact?: boolean;
   featured?: boolean;
@@ -20,6 +37,7 @@ type ProjectContextCardProps = {
 };
 
 export function ProjectContextCard({ compact = false, featured = false, onOpenProject }: ProjectContextCardProps) {
+  const { t } = useTranslation('home');
   const { session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const activeProject = getActiveProject(session);
@@ -37,8 +55,12 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
 
   if (!session) return null;
 
-  const organizationName = session.activeOrganization?.name ?? 'No active organization';
-  const projectName = activeProject?.name ?? (selectableProjects.length ? 'Select project' : 'No project available');
+  const organizationName = session.activeOrganization?.name ?? t('projectContext.noActiveOrganization');
+  const projectName = activeProject?.name ?? (
+    selectableProjects.length ? t('projectContext.selectProject') : t('projectContext.noProjectAvailable')
+  );
+  const projectScope = session.projectAccess?.projectScope ?? 'NONE';
+  const accessLabel = activeProject?.roleLabel ?? t(projectScopeTranslationKeys[projectScope]);
 
   if (featured) {
     return (
@@ -50,41 +72,41 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
           <View style={styles.featuredTopRow}>
             <View style={styles.featuredEyebrow}>
               <View style={styles.activeDot} />
-              <Text style={styles.featuredEyebrowText}>{activeProject ? 'Active project' : 'Project context'}</Text>
+              <AppText style={styles.featuredEyebrowText} weight={700}>
+                {activeProject ? t('projectContext.selectedProject') : t('projectContext.projectContext')}
+              </AppText>
             </View>
             {canSwitch ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Switch project"
+                accessibilityLabel={t('projectContext.switchProject')}
                 style={({ pressed }) => [styles.switchButton, pressed && styles.pressed]}
                 onPress={() => setIsOpen(true)}
               >
                 <AppIcon color={mobileTheme.color.text.inverse} name="swap-horizontal" size={mobileTheme.icon.md} />
-                <Text style={styles.switchLabel}>Switch</Text>
+                <AppText style={styles.switchLabel} weight={600}>{t('projectContext.switch')}</AppText>
               </Pressable>
             ) : null}
           </View>
 
           <View style={styles.featuredCopy}>
-            <Text style={styles.featuredProject} numberOfLines={2}>{projectName}</Text>
-            <Text style={styles.featuredOrganization} numberOfLines={1}>{organizationName}</Text>
+            <AppText style={styles.featuredProject} numberOfLines={2} weight={700}>{projectName}</AppText>
+            <AppText style={styles.featuredOrganization} numberOfLines={1} weight={500}>{organizationName}</AppText>
           </View>
 
           <View style={styles.featuredFooter}>
             <View style={styles.featuredMeta}>
-              <Text style={styles.featuredMetaLabel}>Access</Text>
-              <Text style={styles.featuredMetaValue} numberOfLines={1}>
-                {activeProject?.roleLabel ?? session.projectAccess?.projectScope ?? 'Not assigned'}
-              </Text>
+              <AppText style={styles.featuredMetaLabel} weight={500}>{t('projectContext.access')}</AppText>
+              <AppText style={styles.featuredMetaValue} numberOfLines={2} weight={600}>{accessLabel}</AppText>
             </View>
             {activeProject && onOpenProject ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${activeProject.name}`}
+                accessibilityLabel={t('projectContext.openNamedProject', { project: activeProject.name })}
                 onPress={onOpenProject}
                 style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}
               >
-                <Text style={styles.openButtonLabel}>Open site</Text>
+                <AppText style={styles.openButtonLabel} weight={600}>{t('projectContext.openProject')}</AppText>
                 <AppIcon color={mobileTheme.color.text.primary} name="arrow-right" size={mobileTheme.icon.md} />
               </Pressable>
             ) : null}
@@ -104,7 +126,9 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
   return (
     <>
       <Pressable
+        accessibilityLabel={`${organizationName}, ${projectName}`}
         accessibilityRole="button"
+        accessibilityState={{ disabled: !canSwitch }}
         disabled={!canSwitch}
         onPress={() => canSwitch && setIsOpen(true)}
       >
@@ -112,12 +136,12 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
           <View style={styles.cardHeader}>
             <IconContainer icon="folder-cog-outline" size="sm" variant={activeProject ? 'accent' : 'glass'} />
             <View style={styles.cardText}>
-              <Text style={styles.organization} numberOfLines={1}>
+              <AppText style={styles.organization} numberOfLines={1} weight={500}>
                 {organizationName}
-              </Text>
-              <Text style={styles.project} numberOfLines={1}>
+              </AppText>
+              <AppText style={styles.project} numberOfLines={1} weight={700}>
                 {projectName}
-              </Text>
+              </AppText>
             </View>
             {canSwitch ? (
               <AppIcon color={mobileTheme.color.text.primary} name="chevron-down" size={mobileTheme.icon.sm} />
@@ -125,12 +149,15 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
           </View>
           {!compact ? (
             <View style={styles.metaRow}>
-              <StatusBadge label={session.projectAccess?.projectScope === 'NONE' ? 'UNASSIGNED' : 'ASSIGNED'} />
-              <Text style={styles.caption}>
+              <StatusBadge
+                label={projectScope === 'NONE' ? t('projectContext.unassigned') : t('projectContext.assigned')}
+                tone={getStatusTone(projectScope === 'NONE' ? 'UNASSIGNED' : 'ASSIGNED')}
+              />
+              <AppText style={styles.caption} weight={500}>
                 {selectableProjects.length
-                  ? `${selectableProjects.length} working project${selectableProjects.length === 1 ? '' : 's'} available`
-                  : 'Ask an admin for project access'}
-              </Text>
+                  ? t('projectContext.workingProjects', { count: selectableProjects.length })
+                  : t('projectContext.askAdministrator')}
+              </AppText>
             </View>
           ) : null}
         </GlassCard>
@@ -159,6 +186,7 @@ function ProjectSwitcherSheet({
   visible,
   onClose,
 }: ProjectSwitcherSheetProps) {
+  const { t } = useTranslation('home');
   const { switchActiveProject } = useSession();
 
   async function handleSelect(projectId: string) {
@@ -169,8 +197,8 @@ function ProjectSwitcherSheet({
   return (
     <BottomSheet
       visible={visible}
-      title="Switch Project"
-      description="Choose a Project for management or field work. Draft Projects remain management-only until activated."
+      title={t('projectContext.pickerTitle')}
+      description={t('projectContext.pickerDescription')}
       onClose={onClose}
     >
       {projects.map((project) => (
@@ -178,11 +206,14 @@ function ProjectSwitcherSheet({
           key={project.id}
           leading={<IconContainer icon="office-building-marker-outline" size="sm" />}
           title={project.name}
-          subtitle={project.roleLabel ?? project.projectCode ?? 'Project access'}
-          meta={project.id === activeProjectId ? 'Selected' : undefined}
+          subtitle={project.roleLabel ?? project.projectCode ?? t('projectContext.projectAccess')}
+          meta={project.id === activeProjectId ? t('projectContext.selected') : undefined}
           trailing={
             <View style={styles.switcherStatus}>
-              <StatusBadge label={project.status} />
+              <StatusBadge
+                label={t(projectStatusTranslationKeys[project.status])}
+                tone={getStatusTone(project.status)}
+              />
               {project.id === activeProjectId ? <AppIcon color={mobileTheme.color.status.success.foreground} name="check" size={mobileTheme.icon.sm} /> : null}
             </View>
           }
@@ -213,6 +244,8 @@ const styles = StyleSheet.create({
   featuredTopRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: mobileTheme.spacing[3],
     justifyContent: 'space-between',
   },
   featuredEyebrow: {
@@ -229,15 +262,12 @@ const styles = StyleSheet.create({
   featuredEyebrowText: {
     ...mobileText.caption,
     color: mobileTheme.color.text.inverse,
-    fontFamily: 'Manrope_700Bold',
-    letterSpacing: mobileTheme.typography.letterSpacing.caps,
-    textTransform: 'uppercase',
   },
   switchButton: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.border.inverse,
     borderColor: mobileTheme.color.border.inverse,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     borderWidth: 1,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
@@ -266,6 +296,7 @@ const styles = StyleSheet.create({
   featuredFooter: {
     alignItems: 'flex-end',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: mobileTheme.spacing[4],
     justifyContent: 'space-between',
     marginTop: 'auto',
@@ -282,12 +313,11 @@ const styles = StyleSheet.create({
   featuredMetaValue: {
     ...mobileText.label,
     color: mobileTheme.color.text.inverse,
-    textTransform: 'capitalize',
   },
   openButton: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.background.elevated,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.button.radius,
     flexDirection: 'row',
     gap: mobileTheme.spacing[2],
     minHeight: 48,
@@ -318,7 +348,6 @@ const styles = StyleSheet.create({
   organization: {
     ...mobileText.caption,
     color: mobileTheme.color.text.secondary,
-    textTransform: 'uppercase',
   },
   project: {
     ...mobileText.sectionTitle,

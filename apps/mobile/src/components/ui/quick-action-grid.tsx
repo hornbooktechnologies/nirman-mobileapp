@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { mobileShadows, mobileText, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 import { actionToneTokens, type ActionTone } from './action-list-item';
 
 export type QuickActionItem = {
@@ -32,7 +33,7 @@ export function QuickActionGrid({ items }: { items: QuickActionItem[] }) {
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.iconShell, { borderColor: actionToneTokens[item.tone ?? 'brand'].border }]}>
             <AppIcon color={actionToneTokens[item.tone ?? 'brand'].foreground} name={item.icon} size={mobileTheme.icon.md} />
           </View>
-          <Text style={[styles.label, { color: actionToneTokens[item.tone ?? 'brand'].foreground }]}>{item.label}</Text>
+          <AppText style={[styles.label, { color: actionToneTokens[item.tone ?? 'brand'].foreground }]} weight={600}>{item.label}</AppText>
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <AppIcon color={actionToneTokens[item.tone ?? 'brand'].foreground} name="chevron-right" size={mobileTheme.icon.sm} />
           </View>
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   iconShell: {
     alignItems: 'center',
     backgroundColor: mobileTheme.color.glass.strong,
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.iconContainer.radius,
     borderWidth: 1,
     height: 34,
     justifyContent: 'center',

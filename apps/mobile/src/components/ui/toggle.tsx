@@ -1,6 +1,7 @@
-import { StyleSheet, Switch, Text, View, type SwitchProps } from 'react-native';
+import { StyleSheet, Switch, View, type SwitchProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type ToggleProps = SwitchProps & {
   label?: string;
@@ -9,7 +10,7 @@ type ToggleProps = SwitchProps & {
 export function Toggle({ label, ...props }: ToggleProps) {
   return (
     <View style={styles.row}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <AppText style={styles.label} weight={600}>{label}</AppText> : null}
       <Switch
         accessibilityLabel={props.accessibilityLabel ?? label}
         ios_backgroundColor={mobileTheme.color.border.default}

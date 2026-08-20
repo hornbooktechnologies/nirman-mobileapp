@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewProps } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 export type BottomTabItem = {
   key: string;
@@ -27,8 +28,8 @@ export function BottomTabs({ items, activeKey, onChange, style, ...props }: Bott
             onPress={() => onChange(item.key)}
             style={[styles.item, active && styles.activeItem]}
           >
-            {item.icon ? <Text style={[styles.icon, active && styles.activeText]}>{item.icon}</Text> : null}
-            <Text style={[styles.label, active && styles.activeText]}>{item.label}</Text>
+            {item.icon ? <AppText style={[styles.icon, active && styles.activeText]} weight={700}>{item.icon}</AppText> : null}
+            <AppText style={[styles.label, active && styles.activeText]} weight={700}>{item.label}</AppText>
           </Pressable>
         );
       })}
@@ -47,11 +48,11 @@ const styles = StyleSheet.create({
     gap: mobileTheme.spacing[1],
     minHeight: mobileTheme.layout.bottomNavHeight,
     padding: mobileTheme.spacing[2],
-    ...mobileShadows.floating,
+    ...mobileShadows.navigation,
   },
   item: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
+    borderRadius: mobileTheme.component.nav.itemRadius,
     flex: 1,
     gap: mobileTheme.spacing[1],
     justifyContent: 'center',
@@ -71,6 +72,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   activeText: {
-    color: mobileTheme.color.action.active,
+    color: mobileTheme.component.nav.activeForeground,
   },
 });

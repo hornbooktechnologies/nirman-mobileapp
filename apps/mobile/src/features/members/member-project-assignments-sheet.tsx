@@ -1,27 +1,40 @@
 import type { PermissionKey, ProjectStatus } from '@nirman-app/shared';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppIcon,
+  AppText,
   Badge,
   BottomSheet,
   Button,
   Card,
+  FormError,
   Input,
   StatusBadge,
 } from '../../components/ui';
+import { getLocalizedErrorMessage } from '../../i18n';
 import { mobileText, mobileTheme } from '../../theme';
 import {
   createAssignmentDraft,
   ProjectAssignmentEditor,
   type ProjectAssignmentDraft,
+  type ProjectAssignmentFieldErrors,
 } from './project-assignment-editor';
 import type {
   OrganizationMember,
   OrganizationProjectAssignmentsOverview,
   SaveMemberProjectAssignmentsInput,
 } from './types';
+
+const projectStatusTranslationKeys = {
+  DRAFT: 'projectStatus.DRAFT',
+  ACTIVE: 'projectStatus.ACTIVE',
+  ON_HOLD: 'projectStatus.ON_HOLD',
+  COMPLETED: 'projectStatus.COMPLETED',
+  ARCHIVED: 'projectStatus.ARCHIVED',
+} as const;
 
 function isWritableProject(status: ProjectStatus) {
   return status !== 'ARCHIVED' && status !== 'COMPLETED';
@@ -42,6 +55,7 @@ export function MemberProjectAssignmentsSheet({
   onClose: () => void;
   onSave: (input: SaveMemberProjectAssignmentsInput) => Promise<void>;
 }) {
+  const { t } = useTranslation('members');
   const memberAssignments = useMemo(
     () => overview.assignments.filter((assignment) => assignment.memberId === member.id),
     [member.id, overview.assignments],
@@ -64,6 +78,7 @@ export function MemberProjectAssignmentsSheet({
   const [configuringProjectId, setConfiguringProjectId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrorsByProject, setFieldErrorsByProject] = useState<Record<string, ProjectAssignmentFieldErrors>>({});
 
   const visibleProjects = overview.projects.filter((project) => {
     const needle = search.trim().toLowerCase();
@@ -86,12 +101,16 @@ export function MemberProjectAssignmentsSheet({
 
   async function save() {
     setError('');
+    setFieldErrorsByProject({});
     const invalidProject = selectedProjects.find((project) => {
       const draft = drafts[project.id];
       return draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn;
     });
     if (invalidProject) {
-      setError(`End date cannot be before start date for ${invalidProject.name}.`);
+      setFieldErrorsByProject({
+        [invalidProject.id]: { endsOn: t('assignments.dateOrder') },
+      });
+      setConfiguringProjectId(invalidProject.id);
       return;
     }
 
@@ -122,7 +141,7 @@ export function MemberProjectAssignmentsSheet({
     try {
       await onSave(input);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save assignments');
+      setError(getLocalizedErrorMessage(saveError, t('assignments.saveFailed')));
     }
   }
 
@@ -131,21 +150,21 @@ export function MemberProjectAssignmentsSheet({
       visible
       scroll
       showCloseButton={false}
-      title={configuringProject ? configuringProject.name : `Projects · ${member.user?.name ?? 'Member'}`}
+      title={configuringProject ? configuringProject.name : t('assignments.title', { name: member.user?.name ?? t('assignments.member') })}
       description={
         configuringProject
-          ? 'Set this project’s responsibility, dates, status, and allowed actions.'
-          : 'Select one or more projects. Configure details only where they need to differ.'
+          ? t('assignments.configureDescription')
+          : t('assignments.description')
       }
       onClose={onClose}
       footer={
         configuringProject ? (
-          <Button label="Back to projects" variant="secondary" onPress={() => setConfiguringProjectId(null)} />
+          <Button label={t('assignments.back')} variant="secondary" onPress={() => setConfiguringProjectId(null)} />
         ) : (
           <>
-            <Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} />
+            <Button label={t('assignments.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} />
             <Button
-              label={saving ? 'Saving' : 'Save assignments'}
+              label={saving ? t('assignments.saving') : t('assignments.save')}
               variant="brand"
               disabled={saving}
               style={styles.footerButton}
@@ -155,27 +174,29 @@ export function MemberProjectAssignmentsSheet({
         )
       }
     >
+      <FormError message={error} />
       {configuringProject ? (
         <ProjectAssignmentEditor
           value={drafts[configuringProject.id]}
           rolePermissions={rolePermissions}
-          onChange={(draft) =>
-            setDrafts((current) => ({ ...current, [configuringProject.id]: draft }))
-          }
+          errors={fieldErrorsByProject[configuringProject.id]}
+          onChange={(draft) => {
+            setDrafts((current) => ({ ...current, [configuringProject.id]: draft }));
+            setFieldErrorsByProject((current) => ({ ...current, [configuringProject.id]: {} }));
+          }}
         />
       ) : (
         <View style={styles.content}>
           <View style={styles.summaryRow}>
-            <Badge label={`${selectedIds.length} selected`} tone={selectedIds.length ? 'info' : 'neutral'} />
-            <Text style={styles.caption}>Changes save together</Text>
+            <Badge label={t('assignments.selected', { count: selectedIds.length })} tone={selectedIds.length ? 'info' : 'neutral'} />
+            <AppText style={styles.caption} weight={500}>{t('assignments.saveTogether')}</AppText>
           </View>
           <Input
-            accessibilityLabel="Search projects"
-            placeholder="Search projects"
+            accessibilityLabel={t('assignments.searchA11y')}
+            placeholder={t('assignments.searchPlaceholder')}
             value={search}
             onChangeText={setSearch}
           />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
           <View style={styles.projectList}>
             {visibleProjects.map((project) => {
               const selected = selectedIds.includes(project.id);
@@ -196,17 +217,17 @@ export function MemberProjectAssignmentsSheet({
                       ) : null}
                     </View>
                     <View style={styles.projectCopy}>
-                      <Text style={styles.projectName}>{project.name}</Text>
-                      <Text style={styles.caption}>{project.projectCode ?? 'No project code'}</Text>
+                      <AppText style={styles.projectName} weight={700}>{project.name}</AppText>
+                      <AppText style={styles.caption} weight={500}>{project.projectCode ?? t('assignments.noCode')}</AppText>
                       <View style={styles.badges}>
-                        <StatusBadge label={project.status} />
-                        {assigned ? <StatusBadge label="Assigned" /> : null}
+                        <StatusBadge label={t(projectStatusTranslationKeys[project.status])} />
+                        {assigned ? <StatusBadge label={t('assignments.assigned')} /> : null}
                       </View>
                     </View>
                   </Pressable>
                   {selected && writable ? (
                     <Button
-                      label="Configure access"
+                      label={t('assignments.configure')}
                       size="sm"
                       variant="info"
                       onPress={() => setConfiguringProjectId(project.id)}
@@ -216,12 +237,10 @@ export function MemberProjectAssignmentsSheet({
               );
             })}
             {!visibleProjects.length ? (
-              <Text style={styles.empty}>No projects match your search.</Text>
+              <AppText style={styles.empty}>{t('assignments.noMatch')}</AppText>
             ) : null}
           </View>
-          <Text style={styles.caption}>
-            Completed and archived projects remain visible for history and cannot be changed.
-          </Text>
+          <AppText style={styles.caption} weight={500}>{t('assignments.historyNote')}</AppText>
         </View>
       )}
     </BottomSheet>
@@ -240,10 +259,6 @@ const styles = StyleSheet.create({
   caption: {
     ...mobileText.caption,
     color: mobileTheme.color.text.secondary,
-  },
-  error: {
-    ...mobileText.caption,
-    color: mobileTheme.color.status.danger.foreground,
   },
   projectList: {
     gap: mobileTheme.spacing[3],

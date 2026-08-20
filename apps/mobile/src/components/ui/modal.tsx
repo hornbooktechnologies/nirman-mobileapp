@@ -6,13 +6,14 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   type ModalProps,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileShadows, mobileText, mobileTheme } from '../../theme';
 import { Button } from './button';
+import { AppText } from './app-text';
 
 type BottomSheetProps = ModalProps & {
   title: string;
@@ -31,10 +32,11 @@ export function BottomSheet({
   onClose,
   scroll = false,
   showCloseButton = true,
-  transparent = true,
+  transparent = false,
   animationType = 'slide',
   ...props
 }: BottomSheetProps) {
+  const { t } = useTranslation('common');
   const content = <View style={styles.content}>{children}</View>;
 
   return (
@@ -43,12 +45,12 @@ export function BottomSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        <Pressable accessibilityRole="button" accessibilityLabel="Close dialog" style={styles.scrim} onPress={onClose}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('actions.close')} style={styles.scrim} onPress={onClose}>
           <Pressable accessibilityRole="none" style={styles.sheet} onPress={() => undefined}>
             <View style={styles.handle} />
             <View style={styles.heading}>
-              <Text style={styles.title}>{title}</Text>
-              {description ? <Text style={styles.description}>{description}</Text> : null}
+              <AppText style={styles.title} weight={700}>{title}</AppText>
+              {description ? <AppText style={styles.description}>{description}</AppText> : null}
             </View>
             {scroll ? (
               <ScrollView
@@ -60,7 +62,7 @@ export function BottomSheet({
               </ScrollView>
             ) : content}
             {footer ? <View style={styles.footer}>{footer}</View> : null}
-            {showCloseButton && !footer ? <Button label="Close" variant="secondary" onPress={onClose} /> : null}
+            {showCloseButton && !footer ? <Button label={t('actions.close')} variant="secondary" onPress={onClose} /> : null}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>

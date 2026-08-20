@@ -1,29 +1,32 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
+  AppText,
   AppIcon,
-  Badge,
   Button,
+  CompactScreenHeader,
   EmptyState,
   GlassCard,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   IconContainer,
   ListItem,
+  LanguagePicker,
   OperationalEntityCard,
   QuickActionGrid,
   getStatusTone,
 } from '../../components/ui';
 import { getActiveProject, type MobileSession } from '../../lib/auth';
+import { getLocalizedErrorMessage } from '../../i18n';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import {
   CustomerTabBar,
   HomeMetricCard,
   HomeSectionHeader,
-  ProjectPortfolioItem,
   WorkspaceTile,
   visibleNavigation,
   visibleOrganizationNavigation,
@@ -38,52 +41,76 @@ import {
   type ProjectInput,
 } from '../projects';
 
-function activeRoleName(session: MobileSession | null) {
-  if (!session?.activeOrganization) return 'No active organization';
+const projectScopeTranslationKeys = {
+  ALL: 'projectScope.ALL',
+  ASSIGNED: 'projectScope.ASSIGNED',
+  NONE: 'projectScope.NONE',
+} as const;
+
+const projectDetailStatusTranslationKeys = {
+  DRAFT: 'status.DRAFT',
+  ACTIVE: 'status.ACTIVE',
+  ON_HOLD: 'status.ON_HOLD',
+  COMPLETED: 'status.COMPLETED',
+  ARCHIVED: 'status.ARCHIVED',
+} as const;
+
+const projectDetailScopeTranslationKeys = {
+  ALL: 'scope.ALL',
+  ASSIGNED: 'scope.ASSIGNED',
+  NONE: 'scope.NONE',
+} as const;
+
+const organizationTypeTranslationKeys = {
+  BUILDER: 'organizationType.BUILDER',
+  CONTRACTOR: 'organizationType.CONTRACTOR',
+} as const;
+
+function activeRoleName(session: MobileSession | null, noOrganizationLabel: string, memberLabel: string) {
+  if (!session?.activeOrganization) return noOrganizationLabel;
   return (
     session.memberships.find(
       (membership) =>
         membership.organizationId === session.activeOrganization?.id,
-    )?.role.name ?? 'Organization member'
+    )?.role.name ?? memberLabel
   );
 }
 
 export function DashboardScreen() {
-  const { refreshSession, session, switchActiveProject } = useSession();
+  const { t: tHome } = useTranslation('home');
+  const { t: tNavigation } = useTranslation('navigation');
+  const { refreshSession, session } = useSession();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
   const activeProject = getActiveProject(session);
   const availableProjects =
     session?.projectAccess.projects.filter((project) => project.status !== 'ARCHIVED') ?? [];
   const workspaceNavigation = [
-    ...visibleNavigation(session).filter((item) => item.key !== 'home' && item.key !== 'menu'),
-    ...visibleOrganizationNavigation(session),
+    ...visibleNavigation(session, tNavigation).filter((item) => item.key !== 'home' && item.key !== 'menu'),
+    ...visibleOrganizationNavigation(session, tNavigation),
   ];
-  const firstName = session?.user.name.trim().split(/\s+/)[0] || 'there';
-
-  async function openProject(projectId: string, status: string) {
-    if (status === 'ACTIVE' || status === 'DRAFT' || status === 'ON_HOLD') {
-      await switchActiveProject(projectId);
-    }
-    router.push({ pathname: '/(app)/project-detail', params: { projectId } });
-  }
+  const firstName = session?.user.name.trim().split(/\s+/)[0] || tHome('greeting.fallbackName');
+  const projectScope = session?.projectAccess.projectScope ?? 'NONE';
+  const projectScopeLabel = tHome(projectScopeTranslationKeys[projectScope]);
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
       <View style={styles.homeHeader}>
         <View style={styles.headerCopy}>
           <View style={styles.eyebrowRow}>
             <View style={styles.liveDot} />
-            <Text style={styles.eyebrow}>Field workspace</Text>
+            <AppText style={styles.eyebrow} weight={700}>{tHome('greeting.eyebrow')}</AppText>
           </View>
-          <Text style={styles.homeTitle}>Welcome back, {firstName}</Text>
-          <Text style={styles.homeSubtitle} numberOfLines={1}>
-            {activeRoleName(session)} · {session?.activeOrganization?.name ?? 'NirmanSite'}
-          </Text>
+          <AppText style={styles.homeTitle} weight={700}>
+            {tHome('greeting.welcomeBack', { name: firstName })}
+          </AppText>
+          <AppText style={styles.homeSubtitle} numberOfLines={1} weight={500}>
+            {activeRoleName(session, tHome('greeting.noActiveOrganization'), tHome('greeting.organizationMember'))} · {session?.activeOrganization?.name ?? 'NirmanSite'}
+          </AppText>
         </View>
         <IconButton
           icon="menu"
-          accessibilityLabel="Open menu"
+          accessibilityLabel={tNavigation('a11y.openMenu')}
           variant="dark"
           onPress={() => router.push('/(app)/menu')}
         />
@@ -95,14 +122,33 @@ export function DashboardScreen() {
       />
 
       <View style={styles.metricGrid}>
-        <HomeMetricCard icon="office-building-marker-outline" label="Working sites" tone="primary" value={availableProjects.length} />
-        <HomeMetricCard icon="shield-check-outline" label="Project scope" tone="secondary" value={session?.projectAccess.projectScope ?? 'NONE'} />
+        <HomeMetricCard
+          accessibilityLabel={tHome('metrics.workingSitesA11y', { count: availableProjects.length })}
+          icon="office-building-marker-outline"
+          label={tHome('metrics.workingSites')}
+          tone="primary"
+          value={availableProjects.length}
+        />
+        <HomeMetricCard
+          accessibilityLabel={tHome('metrics.projectScopeA11y', { scope: projectScopeLabel })}
+          icon="shield-check-outline"
+          label={tHome('metrics.projectScope')}
+          tone="secondary"
+          value={projectScopeLabel}
+        />
       </View>
 
       <HomeSectionHeader
-        eyebrow="Main navigation"
-        title="Your workspace"
-        trailing={<Badge label={`${workspaceNavigation.length} tools`} tone="info" />}
+        eyebrow={tHome('workspace.eyebrow')}
+        title={tHome('workspace.title')}
+        trailing={session?.permissions.includes('projects:create') ? (
+          <IconButton
+            accessibilityLabel={tHome('workspace.createProject')}
+            icon="plus"
+            variant="primary"
+            onPress={() => setShowCreateProject(true)}
+          />
+        ) : null}
       />
 
       {workspaceNavigation.length ? (
@@ -121,43 +167,8 @@ export function DashboardScreen() {
         </View>
       ) : (
         <EmptyState
-          title="Workspace access pending"
-          description="Your available tools will appear here when an administrator assigns project access."
-        />
-      )}
-
-      <HomeSectionHeader
-        eyebrow="Project portfolio"
-        title="Your sites"
-        trailing={session?.permissions.includes('projects:create') ? (
-          <Button
-            accessibilityLabel="Create project"
-            fullWidth={false}
-            label="New"
-            leadingIcon="plus"
-            size="sm"
-            onPress={() => setShowCreateProject(true)}
-          />
-        ) : null}
-      />
-
-      {availableProjects.length ? (
-        <View style={styles.projectList}>
-          {availableProjects.map((project) => (
-            <ProjectPortfolioItem
-              key={project.id}
-              meta={project.projectCode ?? project.roleLabel ?? 'Project access'}
-              name={project.name}
-              onPress={() => void openProject(project.id, project.status)}
-              selected={project.id === session?.activeProjectId}
-              status={project.status}
-            />
-          ))}
-        </View>
-      ) : (
-        <EmptyState
-          title="No project access"
-          description="Ask your Organization Owner or Admin to assign an active project."
+          title={tHome('workspace.emptyTitle')}
+          description={tHome('workspace.emptyDescription')}
         />
       )}
 
@@ -177,11 +188,13 @@ export function DashboardScreen() {
           }}
         />
       ) : null}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
 export function ProjectDetailScreen() {
+  const { t } = useTranslation('projects');
+  const { t: tCommon } = useTranslation('common');
   const { refreshSession, session } = useSession();
   const params = useLocalSearchParams<{ projectId?: string }>();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -191,6 +204,20 @@ export function ProjectDetailScreen() {
   const selectedProject =
     session?.projectAccess.projects.find((project) => project.id === params.projectId) ??
     activeProject;
+  const selectedStatusLabel = selectedProject
+    ? t(projectDetailStatusTranslationKeys[selectedProject.status])
+    : '';
+  const projectScope = session?.projectAccess.projectScope ?? 'NONE';
+  const projectScopeLabel = t(projectDetailScopeTranslationKeys[projectScope]);
+  const organizationType = session?.activeOrganization?.type;
+  const organizationTypeLabel = organizationType
+    ? t(organizationTypeTranslationKeys[organizationType])
+    : t('detail.customerOrganization');
+  const roleLabel = !session?.activeOrganization
+    ? t('detail.notAvailable')
+    : session.memberships.find(
+      (membership) => membership.organizationId === session.activeOrganization?.id,
+    )?.role.name ?? t('detail.projectAccess');
 
   async function openEditProject() {
     if (!session?.activeOrganization || !selectedProject) return;
@@ -199,45 +226,40 @@ export function ProjectDetailScreen() {
       const detail = await fetchProject(session.activeOrganization.id, selectedProject.id, session.accessToken);
       setEditingProject(detail);
     } catch (error) {
-      Alert.alert('Project unavailable', error instanceof Error ? error.message : 'Unable to load project');
+      Alert.alert(t('detail.unavailableTitle'), getLocalizedErrorMessage(error, t('detail.loadFailure')));
     } finally {
       setLoadingEdit(false);
     }
   }
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="project" />}>
-      <View style={styles.headerRow}>
-        <IconButton
-          icon="arrow-left"
-          accessibilityLabel="Back"
-          variant="glass"
-          onPress={() => router.back()}
-        />
-        <Text style={styles.compactTitle}>Project</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="project" />}>
+      <CompactScreenHeader
+        leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />}
+        subtitle={selectedProject?.name ?? t('detail.chooseProject')}
+        title={t('detail.title')}
+      />
 
       {selectedProject ? (
         <>
           <OperationalEntityCard
-            accessibilityLabel={`${selectedProject.name}, ${selectedProject.status}`}
-            contextLeading={selectedProject.projectCode ?? 'PROJECT'}
-            contextTrailing={selectedProject.status}
-            footerLeading={session?.activeOrganization?.name ?? 'Project workspace'}
+            accessibilityLabel={t('detail.summaryA11y', { name: selectedProject.name, status: selectedStatusLabel })}
+            contextLeading={selectedProject.projectCode ?? t('detail.defaultCode')}
+            contextTrailing={selectedStatusLabel}
+            footerLeading={session?.activeOrganization?.name ?? t('detail.workspace')}
             footerTrailing={selectedProject.permissions.includes('projects:update') ? (
               <Button
-                accessibilityLabel="Edit project"
+                accessibilityLabel={t('detail.editProject')}
                 disabled={loadingEdit}
                 fullWidth={false}
-                label={loadingEdit ? 'Loading…' : 'Edit'}
+                label={loadingEdit ? t('detail.loading') : t('detail.edit')}
                 leadingIcon="pencil-outline"
                 size="sm"
                 variant="brand"
                 onPress={() => void openEditProject()}
               />
             ) : null}
-            supporting={selectedProject.roleLabel ?? 'Project access'}
+            supporting={selectedProject.roleLabel ?? t('detail.projectAccess')}
             title={selectedProject.name}
             tone={getStatusTone(selectedProject.status)}
             style={styles.projectIdentity}
@@ -245,23 +267,19 @@ export function ProjectDetailScreen() {
 
           <QuickActionGrid
             items={[
-              ...(selectedProject.permissions.includes('project-members:read') ? [{
+              ...(selectedProject.permissions.includes('project-members:read') || selectedProject.permissions.includes('workers:read') ? [{
                 key: 'team',
-                label: 'Team',
-                accessibilityLabel: 'Open project team',
+                label: t('detail.team'),
+                accessibilityLabel: t('detail.teamA11y'),
                 icon: 'account-group-outline' as const,
                 tone: 'info' as const,
-                onPress: () => router.push({ pathname: '/(app)/team', params: { projectId: selectedProject.id } }),
-              }] : []),
-              ...(selectedProject.permissions.includes('workers:read') ? [{
-                key: 'workers',
-                label: 'Workers',
-                accessibilityLabel: 'Open project workers',
-                icon: 'account-hard-hat-outline' as const,
-                tone: 'primary' as const,
-                onPress: () => selectedProject.status === 'ACTIVE'
-                  ? router.push('/(app)/workers')
-                  : router.push({ pathname: '/(app)/team', params: { projectId: selectedProject.id, tab: 'workers' } }),
+                onPress: () => router.push({
+                  pathname: '/(app)/team',
+                  params: {
+                    projectId: selectedProject.id,
+                    ...(!selectedProject.permissions.includes('project-members:read') ? { tab: 'workers' } : {}),
+                  },
+                }),
               }] : []),
             ]}
           />
@@ -269,15 +287,15 @@ export function ProjectDetailScreen() {
           <GlassCard variant="strong" style={styles.menuList}>
             <ListItem
               leading={<IconContainer icon="office-building-outline" size="sm" />}
-              title="Organization"
-              subtitle={session?.activeOrganization?.type ?? 'Customer organization'}
-              meta={session?.activeOrganization?.name ?? 'Not available'}
+              title={t('detail.organization')}
+              subtitle={organizationTypeLabel}
+              meta={session?.activeOrganization?.name ?? t('detail.notAvailable')}
             />
             <ListItem
               leading={<IconContainer icon="shield-account-outline" size="sm" />}
-              title="Your Access"
-              subtitle={activeRoleName(session)}
-              meta={session?.projectAccess.projectScope ?? 'NONE'}
+              title={t('detail.yourAccess')}
+              subtitle={roleLabel}
+              meta={projectScopeLabel}
             />
           </GlassCard>
 
@@ -301,27 +319,33 @@ export function ProjectDetailScreen() {
         </>
       ) : (
         <EmptyState
-          title="Select a project"
-          description="Choose an active project from Home before opening project work."
-          actionLabel="Go to Home"
+          title={t('detail.selectTitle')}
+          description={t('detail.selectDescription')}
+          actionLabel={t('detail.goHome')}
           onAction={() => router.replace('/(app)/dashboard')}
         />
       )}
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
 export function MenuScreen() {
+  const { t } = useTranslation('navigation');
   const { isRefreshing, refreshSession, session, signOut, switchActiveOrganization } = useSession();
   const activeProject = getActiveProject(session);
+  const roleName = !session?.activeOrganization
+    ? t('menu.noActiveOrganization')
+    : session.memberships.find(
+      (membership) => membership.organizationId === session.activeOrganization?.id,
+    )?.role.name ?? t('menu.organizationMember');
 
   return (
-    <GradientScreen>
+    <NirmanScreenBackground>
       <View style={styles.headerRow}>
-        <Text style={styles.screenTitle}>Menu</Text>
+        <AppText style={styles.screenTitle} weight={700}>{t('menu.title')}</AppText>
         <IconButton
           icon="close"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('a11y.goBack')}
           variant="glass"
           onPress={() => router.back()}
         />
@@ -330,18 +354,22 @@ export function MenuScreen() {
       <GlassCard variant="strong" style={styles.profileCard}>
         <IconContainer icon="account-circle-outline" variant="accent" />
         <View style={styles.projectCopy}>
-          <Text style={styles.cardTitle}>{session?.user.name ?? 'Customer user'}</Text>
-          <Text style={styles.cardCaption}>{activeRoleName(session)}</Text>
-          <Text style={styles.cardCaption}>{session?.user.email ?? ''}</Text>
+          <AppText style={styles.cardTitle} weight={600}>{session?.user.name ?? t('menu.customerUser')}</AppText>
+          <AppText style={styles.cardCaption} weight={500}>{roleName}</AppText>
+          <AppText style={styles.cardCaption} weight={500}>{session?.user.email ?? ''}</AppText>
         </View>
       </GlassCard>
 
       <ProjectContextCard compact />
 
+      <GlassCard variant="strong">
+        <LanguagePicker />
+      </GlassCard>
+
       {session && session.memberships.length > 1 ? (
         <>
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Organizations</Text>
+            <AppText style={styles.sectionTitle} weight={700}>{t('menu.organizations')}</AppText>
           </View>
           <GlassCard variant="strong" style={styles.menuList}>
             {session.memberships
@@ -354,8 +382,8 @@ export function MenuScreen() {
                   subtitle={membership.role.name}
                   meta={
                     membership.organizationId === session.activeOrganization?.id
-                      ? 'Active'
-                      : 'Switch'
+                      ? t('menu.active')
+                      : t('menu.switch')
                   }
                   onPress={() =>
                     void switchActiveOrganization(membership.organizationId)
@@ -367,12 +395,12 @@ export function MenuScreen() {
       ) : null}
 
       <GlassCard variant="strong" style={styles.menuList}>
-        {visibleOrganizationNavigation(session).map((item) => (
+        {visibleOrganizationNavigation(session, t).map((item) => (
           <ListItem
             key={item.key}
             leading={<IconContainer icon={item.icon} size="sm" />}
             title={item.title}
-            subtitle={session?.activeOrganization?.name ?? 'Organization'}
+            subtitle={session?.activeOrganization?.name ?? t('menu.organization')}
             trailing={
               <AppIcon
                 color={mobileTheme.color.text.muted}
@@ -383,15 +411,15 @@ export function MenuScreen() {
             onPress={() => router.push(item.href as Href)}
           />
         ))}
-        {visibleNavigation(session).filter((item) => item.key !== 'menu').map((item) => (
+        {visibleNavigation(session, t).filter((item) => item.key !== 'menu').map((item) => (
           <ListItem
             key={item.key}
             leading={<IconContainer icon={item.icon} size="sm" />}
             title={item.title}
             subtitle={
               item.key === 'project'
-                ? activeProject?.name ?? 'Select an active project'
-                : 'Open screen'
+                ? activeProject?.name ?? t('menu.selectProject')
+                : t('menu.openScreen')
             }
             trailing={
               <AppIcon
@@ -406,13 +434,13 @@ export function MenuScreen() {
       </GlassCard>
 
       <Button
-        label={isRefreshing ? 'Refreshing Access' : 'Refresh Access'}
+        label={isRefreshing ? t('menu.refreshingAccess') : t('menu.refreshAccess')}
         variant="info"
         disabled={isRefreshing}
         onPress={() => void refreshSession()}
       />
-      <Button label="Sign Out" variant="danger" onPress={signOut} />
-    </GradientScreen>
+      <Button label={t('menu.signOut')} variant="danger" onPress={signOut} />
+    </NirmanScreenBackground>
   );
 }
 
@@ -433,9 +461,6 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
   },
-  headerSpacer: {
-    width: 48,
-  },
   eyebrowRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -451,9 +476,6 @@ const styles = StyleSheet.create({
   eyebrow: {
     ...mobileText.caption,
     color: mobileTheme.color.text.brand,
-    fontFamily: 'Manrope_700Bold',
-    letterSpacing: mobileTheme.typography.letterSpacing.caps,
-    textTransform: 'uppercase',
   },
   homeTitle: {
     ...mobileText.title,
@@ -469,11 +491,6 @@ const styles = StyleSheet.create({
     ...mobileText.title,
     fontSize: 28,
     lineHeight: 34,
-  },
-  compactTitle: {
-    ...mobileText.sectionTitle,
-    flex: 1,
-    textAlign: 'center',
   },
   sectionRow: {
     alignItems: 'center',
@@ -492,9 +509,6 @@ const styles = StyleSheet.create({
   workspaceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: mobileTheme.spacing[3],
-  },
-  projectList: {
     gap: mobileTheme.spacing[3],
   },
   projectIdentity: {

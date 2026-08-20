@@ -11,13 +11,13 @@ AI agents must update this file after every approved contract, implementation sl
 Current gate:
 
 ```text
-Mobile customer foundation implementation now covers Organization Members, projects, Project Team permissions, and Worker assignment parity. Authenticated physical-device role verification remains the gate; Workers retains its independent deactivation decision.
+The complete current Expo customer surface is implemented for English, Hindi, and Gujarati: common/auth/navigation, Home, Projects, Members, Team/Assign, Workers/forms, shared states, and accessibility copy. Hindi/Gujarati human review plus authenticated physical-device font shaping, persistence, layout, large-text, and accessibility verification remain open.
 ```
 
 Next recommended task:
 
 ```text
-Run the authenticated Expo physical-device matrix for Builder Owner, Contractor Member, Site Supervisor, and restricted roles before approving another operational module.
+Run the full authenticated physical-device and fluent-language review matrix across every role-visible mobile route before production acceptance.
 ```
 
 ## 3. Completed Path
@@ -60,6 +60,11 @@ Run the authenticated Expo physical-device matrix for Builder Owner, Contractor 
 | 34 | Workers vertical-slice reconciliation and completion | partial_owner_decision | shared/API/web/mobile corrections, API tests, `docs/modules/construction/workers/STATUS.md`, `REVIEW.md` | Shared/API/web/mobile gates and API unit/E2E pass; no DB mutation; deactivation lifecycle decision remains |
 | 35 | Mobile customer-product refocus and implementation plan | implementation_complete_plan_review | approved internal Contractor membership decision, real-data permission-aware Expo shell, `mobile-customer-experience-implementation-plan.md` | Mobile type-check and non-mutating source checks passed; no DB operation; device/role matrix pending |
 | 36 | Mobile customer foundation parity | implementation_complete_device_verification_pending | mobile Organization Members, subscriptions capacity, project create/edit, Draft Team access, member permissions, and Worker assignment lifecycle | Shared/API/mobile static checks and 57 API tests passed; Expo web export timed out without output; no database write; authenticated physical-device matrix pending |
+| 37 | Mobile Localization Foundation contract | contract_approved | `docs/modules/foundation/localization/CONTRACTS.md`, `GLOSSARY.md`, and `docs/tasks/mobile-multilingual-implementation-plan.md` | Documentation/source/font coverage review; no dependency, asset, application, API, schema, seed, or database change |
+| 38 | Mobile Localization common/auth/navigation pilot | implementation_complete_native_review_pending | Expo localization/i18next/AsyncStorage runtime, local Manrope/Noto fonts, typed locale resources, formatters, localized API error mapping, Login/activation/navigation/Menu selectors | Locale key/placeholder validator, mobile/shared type-checks, Expo config resolution, scoped literal review, Expo web export, and diff check passed; browser unavailable; physical device and fluent review pending |
+| 39 | Mobile Localization Home/dashboard namespace | implementation_complete_native_review_pending | localized welcome/workspace copy, Project context switcher, access/status/scope/count labels, metric cards, empty state, and accessibility labels | Locale parity, mobile/shared type-checks, Expo web export with bundled Noto fonts, scoped literal review, and diff check passed; physical-device layout, screen-reader, and fluent review pending |
+| 40 | Mobile Localization Projects namespace | implementation_complete_native_review_pending | localized Project Detail, Add/Edit Project form, validation/recovery copy, enum display mappings, shared modal/card typography, and responsive field/chip wrapping | Six-namespace locale parity, mobile/shared type-checks, Expo web export with eight Noto fonts, scoped literal review, and diff check passed; physical-device layout, screen-reader, and fluent review pending |
+| 41 | Mobile Localization current customer surface completion | implementation_complete_native_review_pending | localized Members/invite/access/Project assignments, Team/Assign/permission editor, Workers/Add-Edit-Assign-End, shared sync/progress/form/card/header UI, errors/statuses, and accessibility copy | Nine-namespace locale parity, mobile/shared type-checks, full mobile literal audit, Expo web export with eight Noto fonts, and diff check passed; authenticated device, screen-reader, large-text, and fluent review pending |
 
 ## 4. Verification Commands Recorded
 

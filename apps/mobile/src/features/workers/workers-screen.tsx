@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppIcon,
+  AppText,
   ActionListItem,
   BottomSheet,
   Button,
@@ -10,8 +12,9 @@ import {
   Chip,
   CompactScreenHeader,
   EmptyState,
+  FormError,
   FormField,
-  GradientScreen,
+  NirmanScreenBackground,
   IconButton,
   Input,
   LoadingState,
@@ -21,7 +24,8 @@ import {
 } from '../../components/ui';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
-import { useSession } from '../../providers';
+import { formatInr, getLocalizedErrorMessage } from '../../i18n';
+import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import {
@@ -39,22 +43,26 @@ import type {
   WorkerSummary,
 } from './types';
 
-const TRADE_SUGGESTIONS = ['Mason', 'Helper', 'Carpenter', 'Plumber', 'Electrician', 'Painter'];
+const TRADE_SUGGESTION_KEYS = ['mason', 'helper', 'carpenter', 'plumber', 'electrician', 'painter'] as const;
 const today = () => new Date().toISOString().slice(0, 10);
+type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
 
 export function WorkersScreen() {
+  const { t } = useTranslation('workers');
   const { session } = useSession();
   const activeProject = getActiveProject(session);
 
   return (
-    <GradientScreen footer={<CustomerTabBar activeKey="workers" />} scroll={false}>
-      <CompactScreenHeader title="Workers" subtitle={activeProject?.name ?? 'Choose a project to manage its crew'} />
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="team" />} scroll={false}>
+      <CompactScreenHeader title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
       <WorkersPanel />
-    </GradientScreen>
+    </NirmanScreenBackground>
   );
 }
 
 export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded?: boolean; projectIdOverride?: string }) {
+  const { t } = useTranslation('workers');
+  const { language } = useLocalization();
   const { refreshSession, session, signOut } = useSession();
   const activeProject =
     session?.projectAccess.projects.find((project) => project.id === projectIdOverride) ??
@@ -75,11 +83,17 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [showCreate, setShowCreate] = useState(false);
   const [assigningWorker, setAssigningWorker] = useState<WorkerSummary | null>(null);
   const [assignStartsOn, setAssignStartsOn] = useState(today());
+  const [assignError, setAssignError] = useState('');
+  const [assignFieldError, setAssignFieldError] = useState('');
   const [actionWorker, setActionWorker] = useState<ProjectWorkerRosterItem | null>(null);
   const [editingWorker, setEditingWorker] = useState<ProjectWorkerRosterItem | null>(null);
   const [editForm, setEditForm] = useState({ startsOn: today(), endsOn: '' });
+  const [editError, setEditError] = useState('');
+  const [editFieldErrors, setEditFieldErrors] = useState<AssignmentDateErrors>({});
   const [endingWorker, setEndingWorker] = useState<ProjectWorkerRosterItem | null>(null);
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: '' });
+  const [endError, setEndError] = useState('');
+  const [endFieldError, setEndFieldError] = useState('');
   const hasLoaded = useRef(false);
 
   const loadWorkers = useCallback(async () => {
@@ -101,21 +115,21 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         return;
       }
       if (loadError instanceof ApiRequestError && loadError.status === 403) {
-        setError('Project or Workers access is no longer available. Refreshing access.');
+        setError(t('network.accessChanged'));
         await refreshSession().catch(() => undefined);
         return;
       }
       const message = isNetworkFailure(loadError)
-        ? hasLoaded.current
-          ? 'Unable to refresh. Showing the roster already loaded on this screen; changes still require a connection.'
-          : 'Workers are unavailable without a connection. A persisted offline roster cache is not available yet.'
-        : errorMessage(loadError);
+          ? hasLoaded.current
+          ? t('network.refreshFailed')
+          : t('network.offlineUnavailable')
+        : getLocalizedErrorMessage(loadError, t('errors.generic'));
       if (hasLoaded.current) setAvailabilityMessage(message);
       else setError(message);
     } finally {
       setIsLoading(false);
     }
-  }, [organizationId, projectId, refreshSession, session?.accessToken, signOut]);
+  }, [organizationId, projectId, refreshSession, session?.accessToken, signOut, t]);
 
   useEffect(() => {
     void loadWorkers();
@@ -140,10 +154,12 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 
   async function assign() {
     if (!session?.accessToken || !organizationId || !projectId || !assigningWorker) return;
+    setAssignError('');
     if (!isDate(assignStartsOn)) {
-      Alert.alert('Check start date', 'Use the date format YYYY-MM-DD.');
+      setAssignFieldError(t('errors.dateFormat'));
       return;
     }
+    setAssignFieldError('');
     setIsSubmitting(true);
     try {
       await assignWorkerToProject(
@@ -157,7 +173,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       setAssignStartsOn(today());
       await loadWorkers();
     } catch (assignError) {
-      Alert.alert('Worker not assigned', errorMessage(assignError));
+      setAssignError(getLocalizedErrorMessage(assignError, t('errors.generic')));
     } finally {
       setIsSubmitting(false);
     }
@@ -166,6 +182,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   function openEdit(worker: ProjectWorkerRosterItem) {
     setActionWorker(null);
     setEditingWorker(worker);
+    setEditError('');
+    setEditFieldErrors({});
     setEditForm({
       startsOn: worker.currentAssignment.startsOn.slice(0, 10),
       endsOn: worker.currentAssignment.endsOn?.slice(0, 10) ?? '',
@@ -174,12 +192,16 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 
   async function saveEdit() {
     if (!session?.accessToken || !organizationId || !projectId || !editingWorker) return;
-    if (!isDate(editForm.startsOn) || (editForm.endsOn && !isDate(editForm.endsOn))) {
-      Alert.alert('Check assignment dates', 'Use the date format YYYY-MM-DD.');
-      return;
+    setEditError('');
+    const nextFieldErrors: AssignmentDateErrors = {};
+    if (!isDate(editForm.startsOn)) nextFieldErrors.startsOn = t('errors.dateFormat');
+    if (editForm.endsOn && !isDate(editForm.endsOn)) {
+      nextFieldErrors.endsOn = t('errors.dateFormat');
+    } else if (editForm.endsOn && editForm.endsOn < editForm.startsOn) {
+      nextFieldErrors.endsOn = t('errors.dateOrder');
     }
-    if (editForm.endsOn && editForm.endsOn < editForm.startsOn) {
-      Alert.alert('Check assignment dates', 'End date cannot be before start date.');
+    setEditFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) {
       return;
     }
     setIsSubmitting(true);
@@ -194,7 +216,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       setEditingWorker(null);
       await loadWorkers();
     } catch (saveError) {
-      Alert.alert('Assignment not updated', errorMessage(saveError));
+      setEditError(getLocalizedErrorMessage(saveError, t('errors.generic')));
     } finally {
       setIsSubmitting(false);
     }
@@ -202,10 +224,12 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 
   async function endAssignment() {
     if (!session?.accessToken || !organizationId || !projectId || !endingWorker) return;
+    setEndError('');
     if (!isDate(endForm.endsOn)) {
-      Alert.alert('Check end date', 'Use the date format YYYY-MM-DD.');
+      setEndFieldError(t('errors.dateFormat'));
       return;
     }
+    setEndFieldError('');
     setIsSubmitting(true);
     try {
       await endWorkerProjectAssignment(
@@ -219,14 +243,27 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       setEndForm({ endsOn: today(), reason: '' });
       await loadWorkers();
     } catch (endError) {
-      Alert.alert('Assignment not ended', errorMessage(endError));
+      setEndError(getLocalizedErrorMessage(endError, t('errors.generic')));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (!activeProject || !organizationId || !projectId || !session?.accessToken) {
-    return <EmptyState title="No selected project" description="Choose a Project from Home before opening Workers." />;
+    return <EmptyState title={t('screen.noProjectTitle')} description={t('screen.noProjectDescription')} />;
+  }
+
+  function displayRate(rate: string | null | undefined) {
+    if (!rate) return t('card.notSet');
+    const amount = Number(rate);
+    const formattedAmount = Number.isFinite(amount)
+      ? formatInr(amount, language, { maximumFractionDigits: 2 })
+      : rate;
+    return t('card.perDay', { amount: formattedAmount });
+  }
+
+  function displayDateRange(startsOn: string, endsOn: string | null) {
+    return t('card.dateRange', { start: startsOn.slice(0, 10), end: endsOn?.slice(0, 10) ?? t('card.ongoing') });
   }
 
   function renderWorkerCard(worker: WorkerSummary) {
@@ -239,22 +276,24 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         else {
           setAssigningWorker(worker);
           setAssignStartsOn(today());
+          setAssignError('');
+          setAssignFieldError('');
         }
       }
       : undefined;
 
     return (
       <OperationalEntityCard
-        accessibilityLabel={`${worker.workerCode}, ${worker.name}, ${worker.trade}, ${formatRate(effectiveRate)}, ${assignedWorker ? 'assigned' : 'unassigned'}`}
+        accessibilityLabel={t('card.summaryA11y', { code: worker.workerCode, name: worker.name, trade: worker.trade, rate: displayRate(effectiveRate), assignment: assignedWorker ? t('card.assigned') : t('card.unassigned') })}
         contextLeading={worker.workerCode}
         contextTrailing={worker.trade}
-        footerLeading={assignedWorker ? formatDateRange(assignedWorker.currentAssignment.startsOn, assignedWorker.currentAssignment.endsOn) : 'No current project'}
-        footerTrailing={<StatusBadge label={assignedWorker ? 'ASSIGNED' : 'UNASSIGNED'} />}
+        footerLeading={assignedWorker ? displayDateRange(assignedWorker.currentAssignment.startsOn, assignedWorker.currentAssignment.endsOn) : t('card.noCurrentProject')}
+        footerTrailing={<StatusBadge label={assignedWorker ? t('card.assigned') : t('card.unassigned')} />}
         onPress={openWorker}
-        supporting={assignedWorker ? 'Project allocation' : 'Available for assignment'}
+        supporting={assignedWorker ? t('card.projectAllocation') : t('card.available')}
         title={worker.name}
-        value={formatRate(effectiveRate)}
-        valueLabel="Rate"
+        value={displayRate(effectiveRate)}
+        valueLabel={t('card.rate')}
         tone={assignedWorker ? 'success' : 'warning'}
       />
     );
@@ -264,26 +303,26 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     <View style={[styles.panel, embedded && styles.embeddedPanel]}>
       <View style={styles.toolbar}>
         <View style={styles.toolbarCopy}>
-          <Text style={styles.sectionTitle}>{embedded ? 'Project workers' : 'Organization workers'}</Text>
-          <Text style={styles.subtle}>{roster.length} assigned to this project</Text>
+          <AppText style={styles.sectionTitle} weight={700}>{embedded ? t('panel.projectWorkers') : t('panel.organizationWorkers')}</AppText>
+          <AppText style={styles.subtle} weight={500}>{t('panel.assignedCount', { count: roster.length })}</AppText>
         </View>
         {canCreate && canAssign ? (
-          <IconButton icon="account-hard-hat-outline" accessibilityLabel="Add new worker" variant="primary" onPress={() => setShowCreate(true)} />
+          <IconButton icon="account-hard-hat-outline" accessibilityLabel={t('panel.addA11y')} variant="primary" onPress={() => setShowCreate(true)} />
         ) : null}
       </View>
 
-      {availabilityMessage ? <Card style={styles.notice}><Text style={styles.noticeText}>{availabilityMessage}</Text></Card> : null}
-      <SearchField accessibilityLabel="Search organization workers" placeholder="Search code, name or trade" value={search} onChangeText={setSearch} />
+      {availabilityMessage ? <Card style={styles.notice}><AppText style={styles.noticeText}>{availabilityMessage}</AppText></Card> : null}
+      <SearchField accessibilityLabel={t('panel.searchA11y')} placeholder={t('panel.searchPlaceholder')} value={search} onChangeText={setSearch} />
       <View style={styles.filters}>
-        <Chip label={`All ${workers.length}`} selected={filter === 'all'} onPress={() => setFilter('all')} />
-        <Chip label={`Assigned ${roster.length}`} selected={filter === 'assigned'} onPress={() => setFilter('assigned')} />
-        <Chip label={`Unassigned ${Math.max(workers.length - roster.length, 0)}`} selected={filter === 'unassigned'} onPress={() => setFilter('unassigned')} />
+        <Chip label={t('panel.allCount', { count: workers.length })} selected={filter === 'all'} onPress={() => setFilter('all')} />
+        <Chip label={t('panel.assignedFilter', { count: roster.length })} selected={filter === 'assigned'} onPress={() => setFilter('assigned')} />
+        <Chip label={t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })} selected={filter === 'unassigned'} onPress={() => setFilter('unassigned')} />
       </View>
 
-      {isLoading ? <LoadingState label="Loading organization workers" /> : null}
-      {error ? <EmptyState title="Unable to load workers" description={error} actionLabel="Retry" onAction={() => void loadWorkers()} /> : null}
+      {isLoading ? <LoadingState label={t('panel.loading')} /> : null}
+      {error ? <EmptyState title={t('panel.loadFailed')} description={error} actionLabel={t('panel.retry')} onAction={() => void loadWorkers()} /> : null}
       {!isLoading && !error ? embedded ? (
-        visibleWorkers.length ? <View style={styles.list}>{visibleWorkers.map((worker) => <View key={worker.id}>{renderWorkerCard(worker)}</View>)}</View> : <EmptyState title={search ? 'No matching workers' : 'No active workers'} description={search ? 'Try another search or filter.' : 'Add a worker when you are online.'} />
+        visibleWorkers.length ? <View style={styles.list}>{visibleWorkers.map((worker) => <View key={worker.id}>{renderWorkerCard(worker)}</View>)}</View> : <EmptyState title={search ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search ? t('panel.tryAnother') : t('panel.addOnline')} />
       ) : (
         <FlatList
           contentContainerStyle={[styles.list, !visibleWorkers.length && styles.emptyList]}
@@ -291,7 +330,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           initialNumToRender={10}
           keyboardShouldPersistTaps="handled"
           keyExtractor={(worker) => worker.id}
-          ListEmptyComponent={<EmptyState title={search ? 'No matching workers' : 'No active workers'} description={search ? 'Try another search or filter.' : 'Add a worker when you are online.'} />}
+          ListEmptyComponent={<EmptyState title={search ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search ? t('panel.tryAnother') : t('panel.addOnline')} />}
           maxToRenderPerBatch={12}
           renderItem={({ item }) => renderWorkerCard(item)}
           showsVerticalScrollIndicator={false}
@@ -302,29 +341,32 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       {showCreate ? <CreateWorkerSheet organizationId={organizationId} projectId={projectId} accessToken={session.accessToken} saving={isSubmitting} onClose={() => setShowCreate(false)} onSaving={setIsSubmitting} onSaved={async () => { setShowCreate(false); await loadWorkers(); }} /> : null}
 
       {assigningWorker ? (
-        <BottomSheet visible showCloseButton={false} title={`Assign ${assigningWorker.name}`} description="Confirm the project allocation start date." onClose={() => setAssigningWorker(null)} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={() => setAssigningWorker(null)} /><Button label={isSubmitting ? 'Assigning…' : 'Assign'} disabled={isSubmitting} style={styles.footerButton} onPress={() => void assign()} /></>}>
-          <Card variant="blueprint" style={styles.assignmentSummary}><Text style={styles.body}>{assigningWorker.trade}</Text><Text style={styles.assignmentRate}>{formatRate(assigningWorker.baseDailyRate)}</Text></Card>
-          <FormField label="Starts on" helperText="YYYY-MM-DD"><Input accessibilityLabel="Assignment start date" placeholder="YYYY-MM-DD" value={assignStartsOn} onChangeText={setAssignStartsOn} /></FormField>
+        <BottomSheet visible showCloseButton={false} title={t('assign.title', { name: assigningWorker.name })} description={t('assign.description')} onClose={() => setAssigningWorker(null)} footer={<><Button label={t('assign.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setAssigningWorker(null)} /><Button label={isSubmitting ? t('assign.assigning') : t('assign.action')} disabled={isSubmitting} style={styles.footerButton} onPress={() => void assign()} /></>}>
+          <FormError message={assignError} />
+          <Card variant="blueprint" style={styles.assignmentSummary}><AppText style={styles.body}>{assigningWorker.trade}</AppText><AppText style={styles.assignmentRate} weight={700}>{displayRate(assigningWorker.baseDailyRate)}</AppText></Card>
+          <FormField label={t('assign.startsOn')} required helperText={t('assign.dateFormat')} error={assignFieldError}><Input accessibilityLabel={t('assign.startDateA11y')} invalid={Boolean(assignFieldError)} placeholder={t('assign.dateFormat')} value={assignStartsOn} onChangeText={setAssignStartsOn} /></FormField>
         </BottomSheet>
       ) : null}
 
       {actionWorker ? (
-        <BottomSheet visible title={actionWorker.name} description={`${actionWorker.trade} · Assigned`} onClose={() => setActionWorker(null)}>
-          <ActionListItem icon="calendar-edit" label="Edit assignment dates" tone="brand" onPress={() => openEdit(actionWorker)} />
-          <ActionListItem icon="account-minus-outline" label="End project assignment" tone="danger" onPress={() => { setActionWorker(null); setEndingWorker(actionWorker); setEndForm({ endsOn: today(), reason: '' }); }} />
+        <BottomSheet visible title={actionWorker.name} description={t('actions.description', { trade: actionWorker.trade })} onClose={() => setActionWorker(null)}>
+          <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(actionWorker)} />
+          <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setActionWorker(null); setEndingWorker(actionWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} />
         </BottomSheet>
       ) : null}
 
       {editingWorker ? (
-        <BottomSheet visible showCloseButton={false} title={editingWorker.name} description="Edit project allocation. Trade and base rate stay unchanged." onClose={() => setEditingWorker(null)} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={() => setEditingWorker(null)} /><Button label={isSubmitting ? 'Saving…' : 'Save changes'} variant="brand" disabled={isSubmitting} style={styles.footerButton} onPress={() => void saveEdit()} /></>}>
-          <View style={styles.dateRow}><FormField label="Starts on" helperText="YYYY-MM-DD" style={styles.dateField}><Input accessibilityLabel="Assignment start date" value={editForm.startsOn} onChangeText={(startsOn) => setEditForm({ ...editForm, startsOn })} /></FormField><FormField label="Ends on" helperText="Optional" style={styles.dateField}><Input accessibilityLabel="Assignment end date" value={editForm.endsOn} onChangeText={(endsOn) => setEditForm({ ...editForm, endsOn })} /></FormField></View>
+        <BottomSheet visible showCloseButton={false} title={editingWorker.name} description={t('edit.description')} onClose={() => setEditingWorker(null)} footer={<><Button label={t('edit.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEditingWorker(null)} /><Button label={isSubmitting ? t('edit.saving') : t('edit.save')} variant="brand" disabled={isSubmitting} style={styles.footerButton} onPress={() => void saveEdit()} /></>}>
+          <FormError message={editError} />
+          <View style={styles.dateRow}><FormField label={t('edit.startsOn')} required helperText={t('edit.dateFormat')} error={editFieldErrors.startsOn} style={styles.dateField}><Input accessibilityLabel={t('edit.startDateA11y')} invalid={Boolean(editFieldErrors.startsOn)} value={editForm.startsOn} onChangeText={(startsOn) => setEditForm({ ...editForm, startsOn })} /></FormField><FormField label={t('edit.endsOn')} optional helperText={t('edit.dateFormat')} error={editFieldErrors.endsOn} style={styles.dateField}><Input accessibilityLabel={t('edit.endDateA11y')} invalid={Boolean(editFieldErrors.endsOn)} value={editForm.endsOn} onChangeText={(endsOn) => setEditForm({ ...editForm, endsOn })} /></FormField></View>
         </BottomSheet>
       ) : null}
 
       {endingWorker ? (
-        <BottomSheet visible showCloseButton={false} title="End assignment?" description={`${endingWorker.name} remains an active Worker and the allocation history is preserved.`} onClose={() => setEndingWorker(null)} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={() => setEndingWorker(null)} /><Button label={isSubmitting ? 'Ending…' : 'End assignment'} variant="danger" disabled={isSubmitting} style={styles.footerButton} onPress={() => void endAssignment()} /></>}>
-          <FormField label="Ends on" helperText="YYYY-MM-DD"><Input accessibilityLabel="Assignment end date" value={endForm.endsOn} onChangeText={(endsOn) => setEndForm({ ...endForm, endsOn })} /></FormField>
-          <FormField label="Reason" helperText="Optional"><Input accessibilityLabel="Reason" value={endForm.reason} onChangeText={(reason) => setEndForm({ ...endForm, reason })} /></FormField>
+        <BottomSheet visible showCloseButton={false} title={t('end.title')} description={t('end.description', { name: endingWorker.name })} onClose={() => setEndingWorker(null)} footer={<><Button label={t('end.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEndingWorker(null)} /><Button label={isSubmitting ? t('end.ending') : t('end.action')} variant="danger" disabled={isSubmitting} style={styles.footerButton} onPress={() => void endAssignment()} /></>}>
+          <FormError message={endError} />
+          <FormField label={t('end.endsOn')} required helperText={t('end.dateFormat')} error={endFieldError}><Input accessibilityLabel={t('end.endDateA11y')} invalid={Boolean(endFieldError)} value={endForm.endsOn} onChangeText={(endsOn) => setEndForm({ ...endForm, endsOn })} /></FormField>
+          <FormField label={t('end.reason')} optional><Input accessibilityLabel={t('end.reason')} value={endForm.reason} onChangeText={(reason) => setEndForm({ ...endForm, reason })} /></FormField>
         </BottomSheet>
       ) : null}
     </View>
@@ -332,15 +374,20 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 }
 
 function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onClose, onSaving, onSaved }: { organizationId: string; projectId: string; accessToken: string; saving: boolean; onClose: () => void; onSaving: (saving: boolean) => void; onSaved: () => Promise<void> }) {
+  const { t } = useTranslation('workers');
   const [form, setForm] = useState({ name: '', trade: '', mobileNumber: '', dailyRate: '' });
   const [duplicates, setDuplicates] = useState<WorkerDuplicateCandidate[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'trade', string>>>({});
 
   async function submit() {
     setError('');
-    if (!form.name.trim() || !form.trade.trim()) {
-      setError('Enter a name and trade to continue.');
+    const nextFieldErrors: Partial<Record<'name' | 'trade', string>> = {};
+    if (!form.name.trim()) nextFieldErrors.name = t('create.nameRequired');
+    if (!form.trade.trim()) nextFieldErrors.trade = t('create.tradeRequired');
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) {
       return;
     }
     onSaving(true);
@@ -348,47 +395,32 @@ function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onC
       const candidates = await fetchWorkerDuplicateCandidates(organizationId, accessToken, form);
       setDuplicates(candidates);
       if (candidates.length && !acknowledged) {
-        setError('Possible duplicates found. Review and confirm before saving.');
+        setError(t('create.duplicatesError'));
         return;
       }
       await createWorker(organizationId, accessToken, { name: form.name.trim(), trade: form.trade.trim(), mobileNumber: form.mobileNumber.trim() || null, dailyRate: form.dailyRate.trim() || null, projectId, startsOn: today(), acknowledgeDuplicateWarning: acknowledged });
       await onSaved();
     } catch (createError) {
-      setError(isNetworkFailure(createError) ? 'Worker changes are online-only. Reconnect and try again.' : errorMessage(createError));
+      setError(isNetworkFailure(createError) ? t('network.onlineOnly') : getLocalizedErrorMessage(createError, t('errors.generic')));
     } finally {
       onSaving(false);
     }
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title="New worker" description="Create the record and add it to this project." onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Creating…' : 'Create & assign'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <FormField label="Name"><Input accessibilityLabel="Worker name" value={form.name} onChangeText={(name) => { setForm({ ...form, name }); setAcknowledged(false); }} /></FormField>
-      <FormField label="Trade"><Input accessibilityLabel="Worker trade" value={form.trade} onChangeText={(trade) => setForm({ ...form, trade })} /><View style={styles.suggestions}>{TRADE_SUGGESTIONS.map((trade) => { const selected = form.trade === trade; return <Pressable key={trade} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.suggestion, selected && styles.suggestionSelected, pressed && styles.controlPressed]} onPress={() => setForm({ ...form, trade })}><Text style={[styles.suggestionText, selected && styles.suggestionTextSelected]}>{trade}</Text></Pressable>; })}</View></FormField>
-      <FormField label="Mobile" helperText="Optional"><Input accessibilityLabel="Worker mobile number" keyboardType="phone-pad" value={form.mobileNumber} onChangeText={(mobileNumber) => { setForm({ ...form, mobileNumber }); setAcknowledged(false); }} /></FormField>
-      <FormField label="Rate" helperText="Base daily rate used for new allocations."><Input accessibilityLabel="Base daily rate" keyboardType="numeric" value={form.dailyRate} onChangeText={(dailyRate) => setForm({ ...form, dailyRate })} /></FormField>
-      {duplicates.length ? <Card variant="blueprint" style={styles.duplicates}><Text style={styles.name}>Possible duplicates</Text>{duplicates.map((candidate) => <Text key={candidate.id} style={styles.body}>{candidate.workerCode} · {candidate.name} · {candidate.trade}</Text>)}<Pressable accessibilityRole="checkbox" accessibilityState={{ checked: acknowledged }} style={[styles.acknowledge, acknowledged && styles.acknowledgeSelected]} onPress={() => setAcknowledged((current) => !current)}><AppIcon name={acknowledged ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={22} color={acknowledged ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} /><Text style={[styles.body, acknowledged && styles.acknowledgeText]}>Continue with this Worker record</Text></Pressable></Card> : null}
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    <BottomSheet visible scroll showCloseButton={false} title={t('create.title')} description={t('create.description')} onClose={onClose} footer={<><Button label={t('create.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('create.creating') : t('create.action')} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
+      <FormError message={error} />
+      <FormField label={t('create.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('create.nameA11y')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); setAcknowledged(false); }} /></FormField>
+      <FormField label={t('create.trade')} required error={fieldErrors.trade}><Input accessibilityLabel={t('create.tradeA11y')} invalid={Boolean(fieldErrors.trade)} value={form.trade} onChangeText={(trade) => setForm({ ...form, trade })} /><View style={styles.suggestions}>{TRADE_SUGGESTION_KEYS.map((tradeKey) => { const trade = t(`trade.${tradeKey}`); const selected = form.trade === trade; return <Pressable key={tradeKey} accessibilityLabel={trade} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.suggestion, selected && styles.suggestionSelected, pressed && styles.controlPressed]} onPress={() => setForm({ ...form, trade })}><AppText style={[styles.suggestionText, selected && styles.suggestionTextSelected]} weight={600}>{trade}</AppText></Pressable>; })}</View></FormField>
+      <FormField label={t('create.mobile')} optional><Input accessibilityLabel={t('create.mobileA11y')} keyboardType="phone-pad" value={form.mobileNumber} onChangeText={(mobileNumber) => { setForm({ ...form, mobileNumber }); setAcknowledged(false); }} /></FormField>
+      <FormField label={t('create.rate')} optional helperText={t('create.rateHelp')}><Input accessibilityLabel={t('create.rateA11y')} keyboardType="numeric" value={form.dailyRate} onChangeText={(dailyRate) => setForm({ ...form, dailyRate })} /></FormField>
+      {duplicates.length ? <Card variant="blueprint" style={styles.duplicates}><AppText style={styles.name} weight={700}>{t('create.duplicatesTitle')}</AppText>{duplicates.map((candidate) => <AppText key={candidate.id} style={styles.body}>{candidate.workerCode} · {candidate.name} · {candidate.trade}</AppText>)}<Pressable accessibilityRole="checkbox" accessibilityState={{ checked: acknowledged }} style={[styles.acknowledge, acknowledged && styles.acknowledgeSelected]} onPress={() => setAcknowledged((current) => !current)}><AppIcon name={acknowledged ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={22} color={acknowledged ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} /><AppText style={[styles.body, acknowledged && styles.acknowledgeText]} weight={500}>{t('create.continue')}</AppText></Pressable></Card> : null}
     </BottomSheet>
   );
 }
 
-function formatDateRange(startsOn: string, endsOn: string | null) {
-  return `${startsOn.slice(0, 10)} → ${endsOn?.slice(0, 10) ?? 'ongoing'}`;
-}
-
-function formatRate(rate: string | null | undefined) {
-  if (!rate) return 'Not set';
-  const amount = Number(rate);
-  if (!Number.isFinite(amount)) return `${rate}/day`;
-  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/day`;
-}
-
 function isDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
 function isNetworkFailure(error: unknown) {
@@ -417,10 +449,10 @@ const styles = StyleSheet.create({
   assignmentSummary: { gap: mobileTheme.spacing[2] },
   assignmentRate: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
   footerButton: { flex: 1 },
-  dateRow: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
-  dateField: { flex: 1 },
+  dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
+  dateField: { flex: 1, flexBasis: 140, minWidth: 140 },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  suggestion: { backgroundColor: mobileTheme.color.surface.raised, borderRadius: mobileTheme.radius.full, minHeight: 44, justifyContent: 'center', paddingHorizontal: mobileTheme.spacing[3] },
+  suggestion: { backgroundColor: mobileTheme.color.surface.raised, borderRadius: mobileTheme.component.chip.radius, minHeight: 44, justifyContent: 'center', paddingHorizontal: mobileTheme.spacing[3] },
   suggestionSelected: { backgroundColor: mobileTheme.color.navigation.floating },
   suggestionText: { ...mobileText.caption, color: mobileTheme.color.text.primary },
   suggestionTextSelected: { color: mobileTheme.color.text.inverse },
@@ -429,5 +461,4 @@ const styles = StyleSheet.create({
   acknowledge: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[2], minHeight: 52, padding: mobileTheme.spacing[3] },
   acknowledgeSelected: { backgroundColor: mobileTheme.color.navigation.floating },
   acknowledgeText: { color: mobileTheme.color.text.inverse },
-  errorText: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
 });

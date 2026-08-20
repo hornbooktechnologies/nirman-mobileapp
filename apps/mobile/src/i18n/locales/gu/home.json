@@ -1,0 +1,57 @@
+{
+  "greeting": {
+    "eyebrow": "ફીલ્ડ વર્કસ્પેસ",
+    "welcomeBack": "ફરી સ્વાગત છે, {{name}}",
+    "fallbackName": "મિત્ર",
+    "noActiveOrganization": "કોઈ સક્રિય સંસ્થા નથી",
+    "organizationMember": "સંસ્થાનો સભ્ય"
+  },
+  "metrics": {
+    "workingSites": "ચાલુ સાઇટ્સ",
+    "workingSitesA11y_one": "{{count}} ચાલુ સાઇટ",
+    "workingSitesA11y_other": "{{count}} ચાલુ સાઇટ્સ",
+    "projectScope": "પ્રોજેક્ટ ઍક્સેસ",
+    "projectScopeA11y": "પ્રોજેક્ટ ઍક્સેસ: {{scope}}"
+  },
+  "projectScope": {
+    "ALL": "બધા પ્રોજેક્ટ",
+    "ASSIGNED": "સોંપેલા પ્રોજેક્ટ",
+    "NONE": "પ્રોજેક્ટ ઍક્સેસ નથી"
+  },
+  "workspace": {
+    "eyebrow": "મુખ્ય નેવિગેશન",
+    "title": "તમારું વર્કસ્પેસ",
+    "createProject": "પ્રોજેક્ટ બનાવો",
+    "emptyTitle": "વર્કસ્પેસ ઍક્સેસ બાકી છે",
+    "emptyDescription": "એડમિનિસ્ટ્રેટર પ્રોજેક્ટ ઍક્સેસ આપશે પછી તમારા માટે ઉપલબ્ધ ટૂલ્સ અહીં દેખાશે."
+  },
+  "projectContext": {
+    "selectedProject": "પસંદ કરેલો પ્રોજેક્ટ",
+    "projectContext": "પ્રોજેક્ટ સંદર્ભ",
+    "switch": "બદલો",
+    "switchProject": "પ્રોજેક્ટ બદલો",
+    "noActiveOrganization": "કોઈ સક્રિય ઓર્ગેનાઇઝેશન નથી",
+    "selectProject": "પ્રોજેક્ટ પસંદ કરો",
+    "noProjectAvailable": "કોઈ પ્રોજેક્ટ ઉપલબ્ધ નથી",
+    "access": "ઍક્સેસ",
+    "notAssigned": "સોંપેલ નથી",
+    "openProject": "પ્રોજેક્ટ ખોલો",
+    "openNamedProject": "{{project}} ખોલો",
+    "assigned": "સોંપેલ",
+    "unassigned": "સોંપેલ નથી",
+    "workingProjects_one": "{{count}} ચાલુ પ્રોજેક્ટ ઉપલબ્ધ છે",
+    "workingProjects_other": "{{count}} ચાલુ પ્રોજેક્ટ ઉપલબ્ધ છે",
+    "askAdministrator": "પ્રોજેક્ટ ઍક્સેસ માટે એડમિનિસ્ટ્રેટરને કહો",
+    "pickerTitle": "પ્રોજેક્ટ બદલો",
+    "pickerDescription": "મેનેજમેન્ટ અથવા ફીલ્ડ કામ માટે પ્રોજેક્ટ પસંદ કરો. સક્રિય ન થાય ત્યાં સુધી ડ્રાફ્ટ પ્રોજેક્ટ માત્ર મેનેજમેન્ટ માટે ઉપલબ્ધ રહે છે.",
+    "projectAccess": "પ્રોજેક્ટ ઍક્સેસ",
+    "selected": "પસંદ કરેલો"
+  },
+  "projectStatus": {
+    "DRAFT": "ડ્રાફ્ટ",
+    "ACTIVE": "સક્રિય",
+    "ON_HOLD": "હોલ્ડ પર",
+    "COMPLETED": "પૂર્ણ",
+    "ARCHIVED": "આર્કાઇવ કરેલ"
+  }
+}

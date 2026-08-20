@@ -25,6 +25,7 @@ AI agents must read this file before starting new module work.
 | 2 | Project Setup And Assignment | `docs/modules/foundation/project-access/CONTRACTS.md` | in_progress | Mobile now exposes only real authorized project context; assignment APIs already exist | Implement mobile project creation and member assignment after invitation UI |
 | 2A | Project Team And Permission Grants | `docs/modules/foundation/project-team-access/CONTRACTS.md` | in_progress | Contract approved with ROLE_DEFAULT compatibility and CUSTOM Project grants | Implement persistence, authorization, Team APIs, and web/mobile Team flows |
 | 3 | Role And Permission Model | `docs/modules/foundation/role-permission-model/PLAN.md` | in_progress | Platform Settings access/save restored; Gmail delivery reaches SMTP but awaits a valid same-account App Password | Replace/test SMTP credential, then run the remaining full platform/customer role matrix |
+| 3A | Mobile Localization Foundation | `docs/modules/foundation/localization/CONTRACTS.md` | in_progress | Current Expo customer surface localized across common/auth/navigation/Home/Projects/Members/Team/Workers; static checks passing | Run authenticated physical-device, accessibility, large-text, and fluent Hindi/Gujarati review |
 | 4 | Audit Foundation | `docs/modules/foundation/audit/CONTRACTS.md` | candidate | none | Contract after Phase 1 review |
 | 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | candidate | none | Contract before gallery/evidence |
 | 6 | Notifications Foundation | `docs/modules/foundation/notifications/CONTRACTS.md` | candidate | none | Contract before approval-heavy modules |
@@ -64,12 +65,12 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Review `docs/tasks/mobile-customer-experience-implementation-plan.md` and approve Slice 1 multi-organization switching. Then implement mobile Members/Invitations and Project Member Assignment before starting Attendance or another operational module.
+Verify the complete current Expo customer surface on a physical device in Gujarati and Hindi, including Login/activation, Home, Project Detail/Add-Edit, Members, Team/Assign, Workers/Add-Edit-Assign, font shaping, long-label/form-row wrapping, large text, and accessibility labels. The native/fluent acceptance gate remains open; new screens must ship with English, Hindi, and Gujarati resources together.
 
 Next document:
 
 ```text
-docs/tasks/mobile-customer-experience-implementation-plan.md
+docs/tasks/mobile-multilingual-implementation-plan.md
 ```
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.

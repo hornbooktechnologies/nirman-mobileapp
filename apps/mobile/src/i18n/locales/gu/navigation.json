@@ -1,0 +1,52 @@
+{
+  "a11y": {
+    "main": "મુખ્ય નેવિગેશન",
+    "open": "{{screen}} ખોલો",
+    "openMenu": "મેનુ ખોલો",
+    "goBack": "પાછા જાઓ"
+  },
+  "tabs": {
+    "home": "હોમ",
+    "team": "ટીમ",
+    "project": "પ્રોજેક્ટ",
+    "members": "સભ્યો",
+    "menu": "મેનુ"
+  },
+  "items": {
+    "home": {
+      "title": "હોમ",
+      "description": "તમારું ફીલ્ડ કમાન્ડ સેન્ટર"
+    },
+    "team": {
+      "title": "પ્રોજેક્ટ ટીમ",
+      "description": "સભ્યો અને કામદારો"
+    },
+    "project": {
+      "title": "પસંદ કરેલો પ્રોજેક્ટ",
+      "description": "સાઇટની વિગતો અને નિયંત્રણો"
+    },
+    "members": {
+      "title": "ઓર્ગેનાઇઝેશનના સભ્યો",
+      "description": "ઍક્સેસ, ભૂમિકાઓ અને આમંત્રણો"
+    },
+    "menu": {
+      "title": "મેનુ",
+      "description": "એકાઉન્ટ અને ઓર્ગેનાઇઝેશન"
+    }
+  },
+  "menu": {
+    "title": "મેનુ",
+    "customerUser": "ગ્રાહક વપરાશકર્તા",
+    "noActiveOrganization": "કોઈ સક્રિય ઓર્ગેનાઇઝેશન નથી",
+    "organizationMember": "ઓર્ગેનાઇઝેશનનો સભ્ય",
+    "organizations": "ઓર્ગેનાઇઝેશન",
+    "active": "સક્રિય",
+    "switch": "બદલો",
+    "organization": "ઓર્ગેનાઇઝેશન",
+    "selectProject": "કોઈ સક્રિય પ્રોજેક્ટ પસંદ કરો",
+    "openScreen": "સ્ક્રીન ખોલો",
+    "refreshingAccess": "ઍક્સેસ રિફ્રેશ થઈ રહી છે",
+    "refreshAccess": "ઍક્સેસ રિફ્રેશ કરો",
+    "signOut": "સાઇન આઉટ કરો"
+  }
+}

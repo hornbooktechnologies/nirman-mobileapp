@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
+import { AppText } from './app-text';
 
 type FloatingTab = {
   key: string;
@@ -16,31 +18,38 @@ type FloatingTabBarProps = ViewProps & {
 };
 
 export function FloatingTabBar({ tabs, activeKey, onChange, style, ...props }: FloatingTabBarProps) {
+  const { t } = useTranslation('navigation');
+
   return (
-    <View accessibilityLabel="Main navigation" style={[styles.bar, style]} {...props}>
+    <View accessibilityLabel={t('a11y.main')} accessibilityRole="tablist" style={[styles.bar, style]} {...props}>
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
-        const Icon = tab.icon;
 
         return (
           <Pressable
             accessibilityLabel={tab.label}
-            accessibilityRole="button"
+            accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            accessibilityHint={`Open ${tab.label}`}
+            accessibilityHint={t('a11y.open', { screen: tab.label })}
             key={tab.key}
             onPress={() => onChange?.(tab.key)}
-            style={({ pressed }) => [styles.item, active && styles.activeItem, pressed && styles.pressedItem]}
+            style={({ pressed }) => [
+              styles.item,
+              active && styles.activeItem,
+              pressed && (active ? styles.activePressedItem : styles.pressedItem),
+            ]}
           >
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.iconShell, active && styles.activeIconShell]}>
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.iconSlot}>
               <AppIcon
-                color={active ? mobileTheme.color.action.primary : mobileTheme.color.navigation.icon}
-                name={Icon}
+                color={active ? mobileTheme.component.nav.activeForeground : mobileTheme.component.nav.inactiveForeground}
+                name={tab.icon}
                 size={mobileTheme.icon.md}
               />
             </View>
             {tab.key !== 'create' ? (
-              <Text style={[styles.label, active && styles.activeLabel]}>{tab.label}</Text>
+              <AppText style={[styles.label, active && styles.activeLabel]} weight={active ? 700 : 600}>
+                {tab.label}
+              </AppText>
             ) : null}
           </Pressable>
         );
@@ -53,51 +62,47 @@ const styles = StyleSheet.create({
   bar: {
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: mobileTheme.color.navigation.floating,
-    borderColor: mobileTheme.color.border.inverse,
-    borderRadius: mobileTheme.radius.xxl,
+    backgroundColor: mobileTheme.component.nav.background,
+    borderColor: mobileTheme.color.border.subtle,
+    borderRadius: mobileTheme.component.nav.radius,
     borderWidth: 1,
     flexDirection: 'row',
     gap: mobileTheme.spacing[1],
-    minHeight: 76,
+    minHeight: mobileTheme.layout.bottomNavHeight,
     justifyContent: 'space-between',
     padding: mobileTheme.spacing[2],
-    width: '100%',
+    width: '86%',
     ...mobileShadows.navigation,
   },
   item: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.xl,
+    borderRadius: mobileTheme.component.nav.itemRadius,
     flex: 1,
-    gap: mobileTheme.spacing[1],
-    minHeight: 58,
+    gap: 2,
+    minHeight: 48,
     justifyContent: 'center',
   },
   activeItem: {
-    backgroundColor: mobileTheme.color.background.elevated,
-    ...mobileShadows.soft,
+    backgroundColor: mobileTheme.component.nav.activeBackground,
   },
   pressedItem: {
-    opacity: 0.72,
+    backgroundColor: mobileTheme.color.surface.mist,
   },
-  iconShell: {
+  activePressedItem: {
+    opacity: 0.82,
+  },
+  iconSlot: {
     alignItems: 'center',
-    borderRadius: mobileTheme.radius.full,
-    height: 28,
+    height: 24,
     justifyContent: 'center',
-    width: 34,
-  },
-  activeIconShell: {
-    backgroundColor: mobileTheme.color.brand.secondarySoft,
+    width: 28,
   },
   label: {
-    color: mobileTheme.color.navigation.icon,
-    fontFamily: 'Manrope_600SemiBold',
-    fontSize: 11,
-    lineHeight: 14,
+    color: mobileTheme.component.nav.inactiveForeground,
+    fontSize: 12,
+    lineHeight: 15,
   },
   activeLabel: {
-    color: mobileTheme.color.text.primary,
-    fontFamily: 'Manrope_700Bold',
+    color: mobileTheme.component.nav.activeForeground,
   },
 });

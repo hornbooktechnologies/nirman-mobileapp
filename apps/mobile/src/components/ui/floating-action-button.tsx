@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
+import { AppText } from './app-text';
 
 type FloatingActionButtonProps = PressableProps & {
   label?: string;
@@ -9,7 +10,7 @@ type FloatingActionButtonProps = PressableProps & {
 export function FloatingActionButton({ label = '+', style, ...props }: FloatingActionButtonProps) {
   return (
     <Pressable accessibilityRole="button" style={(state) => [styles.fab, state.pressed && styles.pressed, typeof style === 'function' ? style(state) : style]} {...props}>
-      <Text style={styles.label}>{label}</Text>
+      <AppText style={styles.label} weight={700}>{label}</AppText>
     </Pressable>
   );
 }

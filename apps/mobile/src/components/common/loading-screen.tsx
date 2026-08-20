@@ -1,20 +1,23 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { mobileTheme } from '../../theme';
-import { Screen } from '../ui';
+import { AppText, NirmanScreenBackground } from '../ui';
 
 type LoadingScreenProps = {
   message?: string;
 };
 
-export function LoadingScreen({ message = 'Loading' }: LoadingScreenProps) {
+export function LoadingScreen({ message }: LoadingScreenProps) {
+  const { t } = useTranslation('common');
+
   return (
-    <Screen style={styles.screen}>
+    <NirmanScreenBackground scroll={false} style={styles.screen}>
       <View style={styles.content}>
         <ActivityIndicator color={mobileTheme.color.brand.primary} size="large" />
-        <Text style={styles.message}>{message}</Text>
+        <AppText style={styles.message} weight={600}>{message ?? t('loading.default')}</AppText>
       </View>
-    </Screen>
+    </NirmanScreenBackground>
   );
 }
 

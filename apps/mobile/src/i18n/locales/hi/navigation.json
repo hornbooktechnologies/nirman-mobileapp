@@ -1,0 +1,52 @@
+{
+  "a11y": {
+    "main": "मुख्य नेविगेशन",
+    "open": "{{screen}} खोलें",
+    "openMenu": "मेन्यू खोलें",
+    "goBack": "वापस जाएँ"
+  },
+  "tabs": {
+    "home": "होम",
+    "team": "टीम",
+    "project": "प्रोजेक्ट",
+    "members": "सदस्य",
+    "menu": "मेन्यू"
+  },
+  "items": {
+    "home": {
+      "title": "होम",
+      "description": "आपका फील्ड कमांड सेंटर"
+    },
+    "team": {
+      "title": "प्रोजेक्ट टीम",
+      "description": "सदस्य और कामगार"
+    },
+    "project": {
+      "title": "चुना गया प्रोजेक्ट",
+      "description": "साइट की जानकारी और नियंत्रण"
+    },
+    "members": {
+      "title": "संगठन के सदस्य",
+      "description": "पहुँच, भूमिकाएँ और आमंत्रण"
+    },
+    "menu": {
+      "title": "मेन्यू",
+      "description": "खाता और संगठन"
+    }
+  },
+  "menu": {
+    "title": "मेन्यू",
+    "customerUser": "ग्राहक उपयोगकर्ता",
+    "noActiveOrganization": "कोई सक्रिय संगठन नहीं",
+    "organizationMember": "संगठन का सदस्य",
+    "organizations": "संगठन",
+    "active": "सक्रिय",
+    "switch": "बदलें",
+    "organization": "संगठन",
+    "selectProject": "कोई सक्रिय प्रोजेक्ट चुनें",
+    "openScreen": "स्क्रीन खोलें",
+    "refreshingAccess": "पहुँच रीफ़्रेश हो रही है",
+    "refreshAccess": "पहुँच रीफ़्रेश करें",
+    "signOut": "साइन आउट करें"
+  }
+}

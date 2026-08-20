@@ -5,11 +5,29 @@ import {
   type ProjectType,
 } from '@nirman-app/shared';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
-import { BottomSheet, Button, FormField, Input, badgeToneTokens, getStatusTone } from '../../../components/ui';
+import { AppText, BottomSheet, Button, FormError, FormField, Input, badgeToneTokens, getStatusTone } from '../../../components/ui';
+import { getLocalizedErrorMessage } from '../../../i18n';
 import { mobileText, mobileTheme } from '../../../theme';
 import type { Project, ProjectInput } from '../types';
+
+const projectTypeTranslationKeys = {
+  RESIDENTIAL: 'type.RESIDENTIAL',
+  COMMERCIAL: 'type.COMMERCIAL',
+  MIXED: 'type.MIXED',
+  SHED: 'type.SHED',
+  OTHER: 'type.OTHER',
+} as const;
+
+const projectStatusTranslationKeys = {
+  DRAFT: 'status.DRAFT',
+  ACTIVE: 'status.ACTIVE',
+  ON_HOLD: 'status.ON_HOLD',
+  COMPLETED: 'status.COMPLETED',
+  ARCHIVED: 'status.ARCHIVED',
+} as const;
 
 type ProjectForm = {
   name: string;
@@ -24,6 +42,8 @@ type ProjectForm = {
   expectedCompletionDate: string;
   description: string;
 };
+
+type ProjectFormErrors = Partial<Record<'name' | 'expectedCompletionDate', string>>;
 
 function initialForm(project?: Project): ProjectForm {
   return {
@@ -47,20 +67,25 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
   onClose: () => void;
   onSave: (input: ProjectInput) => Promise<void>;
 }) {
+  const { t } = useTranslation('projects');
   const [form, setForm] = useState(() => initialForm(project));
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ProjectFormErrors>({});
   const allowedStatuses: readonly ProjectStatus[] = project
     ? [project.status, ...PROJECT_STATUS_TRANSITIONS[project.status]].filter((status) => status !== 'ARCHIVED')
     : ['DRAFT', 'ACTIVE'];
 
   async function submit() {
     setError('');
+    const nextFieldErrors: ProjectFormErrors = {};
     if (!form.name.trim()) {
-      setError('Project name is required.');
-      return;
+      nextFieldErrors.name = t('form.errors.nameRequired');
     }
     if (form.startDate && form.expectedCompletionDate && form.expectedCompletionDate < form.startDate) {
-      setError('Expected completion cannot be before the start date.');
+      nextFieldErrors.expectedCompletionDate = t('form.errors.completionBeforeStart');
+    }
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) {
       return;
     }
     try {
@@ -80,49 +105,68 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
         description: form.description.trim() || null,
       });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save project');
+      setError(getLocalizedErrorMessage(saveError, t('form.errors.saveFailed')));
     }
   }
 
   return (
-    <BottomSheet visible scroll showCloseButton={false} title={project ? 'Edit project' : 'New project'} description={project ? project.name : 'Create the workspace, then add its team and workers.'} onClose={onClose} footer={<><Button label="Cancel" variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? 'Saving…' : project ? 'Save changes' : 'Create'} variant={project ? 'brand' : 'primary'} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
-      <Text style={styles.groupTitle}>Basics</Text>
-      <FormField label="Name"><Input accessibilityLabel="Project name" value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
-      <FormField label="Code" helperText="Optional"><Input accessibilityLabel="Project code" value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
-      <FormField label="Type"><ChoiceRow values={PROJECT_TYPES} selected={form.type} onSelect={(type) => setForm({ ...form, type })} /></FormField>
-      <FormField label="Status"><ChoiceRow values={allowedStatuses} selected={form.status} onSelect={(status) => setForm({ ...form, status })} /></FormField>
-      <Text style={styles.groupTitle}>Location</Text>
-      <FormField label="Address line" helperText="Optional"><Input accessibilityLabel="Address line" value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
-      <View style={styles.row}><FormField label="City" style={styles.flex}><Input accessibilityLabel="City" value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label="State" style={styles.flex}><Input accessibilityLabel="State" value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
-      <FormField label="Postal code" helperText="Optional"><Input accessibilityLabel="Postal code" keyboardType="number-pad" value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
-      <Text style={styles.groupTitle}>Timeline</Text>
-      <View style={styles.row}><FormField label="Start date" helperText="YYYY-MM-DD" style={styles.flex}><Input accessibilityLabel="Start date" value={form.startDate} onChangeText={(startDate) => setForm({ ...form, startDate })} /></FormField><FormField label="Expected completion" helperText="YYYY-MM-DD" style={styles.flex}><Input accessibilityLabel="Expected completion" value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => setForm({ ...form, expectedCompletionDate })} /></FormField></View>
-      <Text style={styles.groupTitle}>Details</Text>
-      <FormField label="Description" helperText="Optional"><Input accessibilityLabel="Description" multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+    <BottomSheet
+      visible
+      scroll
+      showCloseButton={false}
+      title={project ? t('form.editTitle') : t('form.newTitle')}
+      description={project ? project.name : t('form.newDescription')}
+      onClose={onClose}
+      footer={(
+        <>
+          <Button label={t('form.actions.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} />
+          <Button
+            label={saving ? t('form.actions.saving') : project ? t('form.actions.saveChanges') : t('form.actions.create')}
+            variant={project ? 'brand' : 'primary'}
+            disabled={saving}
+            style={styles.footerButton}
+            onPress={() => void submit()}
+          />
+        </>
+      )}
+    >
+      <FormError message={error} />
+      <AppText style={styles.groupTitle} weight={700}>{t('form.groups.basics')}</AppText>
+      <FormField label={t('form.fields.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
+      <FormField label={t('form.fields.code')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.projectCode')} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
+      <FormField label={t('form.fields.type')} required><ChoiceRow values={PROJECT_TYPES} selected={form.type} getLabel={(value) => t(projectTypeTranslationKeys[value])} onSelect={(type) => setForm({ ...form, type })} /></FormField>
+      <FormField label={t('form.fields.status')} required><ChoiceRow values={allowedStatuses} selected={form.status} getLabel={(value) => t(projectStatusTranslationKeys[value])} onSelect={(status) => setForm({ ...form, status })} /></FormField>
+      <AppText style={styles.groupTitle} weight={700}>{t('form.groups.location')}</AppText>
+      <FormField label={t('form.fields.addressLine')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.addressLine')} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
+      <View style={styles.row}><FormField label={t('form.fields.city')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
+      <FormField label={t('form.fields.postalCode')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
+      <AppText style={styles.groupTitle} weight={700}>{t('form.groups.timeline')}</AppText>
+      <View style={styles.row}><FormField label={t('form.fields.startDate')} optional optionalLabel={t('form.fields.optional')} helperText={t('form.fields.dateFormat')} style={styles.flex}><Input accessibilityLabel={t('form.fields.startDate')} value={form.startDate} onChangeText={(startDate) => setForm({ ...form, startDate })} /></FormField><FormField label={t('form.fields.expectedCompletion')} optional optionalLabel={t('form.fields.optional')} helperText={t('form.fields.dateFormat')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><Input accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => setForm({ ...form, expectedCompletionDate })} /></FormField></View>
+      <AppText style={styles.groupTitle} weight={700}>{t('form.groups.details')}</AppText>
+      <FormField label={t('form.fields.description')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.description')} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
     </BottomSheet>
   );
 }
 
-function ChoiceRow<TValue extends string>({ values, selected, onSelect }: { values: readonly TValue[]; selected: TValue; onSelect: (value: TValue) => void }) {
+function ChoiceRow<TValue extends string>({ values, selected, getLabel, onSelect }: { values: readonly TValue[]; selected: TValue; getLabel: (value: TValue) => string; onSelect: (value: TValue) => void }) {
   return <View style={styles.choices}>{values.map((value) => {
     const isSelected = value === selected;
     const tone = getStatusTone(value);
     const isStatus = tone !== 'neutral' || value === 'DRAFT';
     const tokens = badgeToneTokens[tone];
-    return <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: isSelected }} style={[styles.choice, isSelected && (isStatus ? { backgroundColor: tokens.background, borderColor: tokens.foreground } : styles.choiceSelected)]} onPress={() => onSelect(value)}><Text style={[styles.choiceText, isSelected && (isStatus ? { color: tokens.foreground } : styles.choiceTextSelected)]}>{value.replaceAll('_', ' ')}</Text></Pressable>;
+    const label = getLabel(value);
+    return <Pressable key={value} accessibilityLabel={label} accessibilityRole="radio" accessibilityState={{ checked: isSelected }} style={[styles.choice, isSelected && (isStatus ? { backgroundColor: tokens.background, borderColor: tokens.foreground } : styles.choiceSelected)]} onPress={() => onSelect(value)}><AppText style={[styles.choiceText, isSelected && (isStatus ? { color: tokens.foreground } : styles.choiceTextSelected)]} weight={600}>{label}</AppText></Pressable>;
   })}</View>;
 }
 
 const styles = StyleSheet.create({
-  groupTitle: { ...mobileText.label, color: mobileTheme.color.text.brand, fontFamily: 'Manrope_700Bold', letterSpacing: mobileTheme.typography.letterSpacing.caps, marginTop: mobileTheme.spacing[2], textTransform: 'uppercase' },
-  row: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
-  flex: { flex: 1 },
+  groupTitle: { ...mobileText.label, color: mobileTheme.color.text.brand, marginTop: mobileTheme.spacing[2] },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
+  flex: { flex: 1, flexBasis: 140, minWidth: 140 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  choice: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.full, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: mobileTheme.spacing[3] },
+  choice: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.component.chip.radius, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: mobileTheme.spacing[3] },
   choiceSelected: { backgroundColor: mobileTheme.color.navigation.floating, borderColor: mobileTheme.color.navigation.floating },
-  choiceText: { ...mobileText.label, color: mobileTheme.color.text.primary, textTransform: 'capitalize' },
+  choiceText: { ...mobileText.label, color: mobileTheme.color.text.primary },
   choiceTextSelected: { color: mobileTheme.color.text.inverse },
   footerButton: { flex: 1 },
-  error: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
 });

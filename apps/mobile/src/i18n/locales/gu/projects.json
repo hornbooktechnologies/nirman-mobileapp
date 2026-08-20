@@ -1,0 +1,86 @@
+{
+  "detail": {
+    "title": "પ્રોજેક્ટ",
+    "chooseProject": "પ્રોજેક્ટ પસંદ કરો",
+    "unavailableTitle": "પ્રોજેક્ટ ઉપલબ્ધ નથી",
+    "loadFailure": "પ્રોજેક્ટ લોડ થઈ શક્યો નથી",
+    "defaultCode": "પ્રોજેક્ટ",
+    "workspace": "પ્રોજેક્ટ વર્કસ્પેસ",
+    "editProject": "પ્રોજેક્ટમાં ફેરફાર કરો",
+    "loading": "લોડ થઈ રહ્યું છે…",
+    "edit": "ફેરફાર કરો",
+    "team": "ટીમ",
+    "teamA11y": "પ્રોજેક્ટ ટીમના સભ્યો અને કામદારો ખોલો",
+    "organization": "ઓર્ગેનાઇઝેશન",
+    "customerOrganization": "ગ્રાહક ઓર્ગેનાઇઝેશન",
+    "notAvailable": "ઉપલબ્ધ નથી",
+    "yourAccess": "તમારી ઍક્સેસ",
+    "projectAccess": "પ્રોજેક્ટ ઍક્સેસ",
+    "selectTitle": "પ્રોજેક્ટ પસંદ કરો",
+    "selectDescription": "પ્રોજેક્ટનું કામ ખોલતા પહેલાં હોમમાંથી કોઈ પ્રોજેક્ટ પસંદ કરો.",
+    "goHome": "હોમ પર જાઓ",
+    "summaryA11y": "{{name}}, {{status}}"
+  },
+  "form": {
+    "newTitle": "નવો પ્રોજેક્ટ",
+    "editTitle": "પ્રોજેક્ટમાં ફેરફાર કરો",
+    "newDescription": "વર્કસ્પેસ બનાવો, પછી તેની ટીમ અને કામદારો ઉમેરો.",
+    "groups": {
+      "basics": "મૂળ માહિતી",
+      "location": "સ્થળ",
+      "timeline": "સમયરેખા",
+      "details": "વિગતો"
+    },
+    "fields": {
+      "name": "નામ",
+      "projectName": "પ્રોજેક્ટનું નામ",
+      "code": "કોડ",
+      "projectCode": "પ્રોજેક્ટ કોડ",
+      "type": "પ્રકાર",
+      "status": "સ્થિતિ",
+      "addressLine": "સરનામું",
+      "city": "શહેર",
+      "state": "રાજ્ય",
+      "postalCode": "પિન કોડ",
+      "startDate": "શરૂઆતની તારીખ",
+      "expectedCompletion": "અપેક્ષિત પૂર્ણતા",
+      "description": "વર્ણન",
+      "optional": "વૈકલ્પિક",
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "actions": {
+      "cancel": "રદ કરો",
+      "saving": "સાચવી રહ્યું છે…",
+      "saveChanges": "ફેરફારો સાચવો",
+      "create": "બનાવો"
+    },
+    "errors": {
+      "nameRequired": "પ્રોજેક્ટનું નામ જરૂરી છે.",
+      "completionBeforeStart": "અપેક્ષિત પૂર્ણતાની તારીખ શરૂઆતની તારીખ પહેલાં હોઈ શકે નહીં.",
+      "saveFailed": "પ્રોજેક્ટ સાચવી શકાયો નથી"
+    }
+  },
+  "type": {
+    "RESIDENTIAL": "રહેણાંક",
+    "COMMERCIAL": "વ્યાવસાયિક",
+    "MIXED": "મિશ્ર ઉપયોગ",
+    "SHED": "શેડ",
+    "OTHER": "અન્ય"
+  },
+  "status": {
+    "DRAFT": "ડ્રાફ્ટ",
+    "ACTIVE": "સક્રિય",
+    "ON_HOLD": "હોલ્ડ પર",
+    "COMPLETED": "પૂર્ણ",
+    "ARCHIVED": "આર્કાઇવ કરેલ"
+  },
+  "scope": {
+    "ALL": "બધા પ્રોજેક્ટ",
+    "ASSIGNED": "સોંપેલા પ્રોજેક્ટ",
+    "NONE": "પ્રોજેક્ટ ઍક્સેસ નથી"
+  },
+  "organizationType": {
+    "BUILDER": "બિલ્ડર",
+    "CONTRACTOR": "કોન્ટ્રાક્ટર"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "greeting": {
+    "eyebrow": "Field workspace",
+    "welcomeBack": "Welcome back, {{name}}",
+    "fallbackName": "there",
+    "noActiveOrganization": "No active organization",
+    "organizationMember": "Organization member"
+  },
+  "metrics": {
+    "workingSites": "Working sites",
+    "workingSitesA11y_one": "{{count}} working site",
+    "workingSitesA11y_other": "{{count}} working sites",
+    "projectScope": "Project access",
+    "projectScopeA11y": "Project access: {{scope}}"
+  },
+  "projectScope": {
+    "ALL": "All projects",
+    "ASSIGNED": "Assigned projects",
+    "NONE": "No project access"
+  },
+  "workspace": {
+    "eyebrow": "Main navigation",
+    "title": "Your workspace",
+    "createProject": "Create project",
+    "emptyTitle": "Workspace access pending",
+    "emptyDescription": "Your available tools will appear here when an administrator assigns project access."
+  },
+  "projectContext": {
+    "selectedProject": "Selected project",
+    "projectContext": "Project context",
+    "switch": "Switch",
+    "switchProject": "Switch project",
+    "noActiveOrganization": "No active organization",
+    "selectProject": "Select project",
+    "noProjectAvailable": "No project available",
+    "access": "Access",
+    "notAssigned": "Not assigned",
+    "openProject": "Open project",
+    "openNamedProject": "Open {{project}}",
+    "assigned": "Assigned",
+    "unassigned": "Unassigned",
+    "workingProjects_one": "{{count}} working project available",
+    "workingProjects_other": "{{count}} working projects available",
+    "askAdministrator": "Ask an administrator for project access",
+    "pickerTitle": "Switch project",
+    "pickerDescription": "Choose a project for management or field work. Draft projects remain management-only until activated.",
+    "projectAccess": "Project access",
+    "selected": "Selected"
+  },
+  "projectStatus": {
+    "DRAFT": "Draft",
+    "ACTIVE": "Active",
+    "ON_HOLD": "On hold",
+    "COMPLETED": "Completed",
+    "ARCHIVED": "Archived"
+  }
+}

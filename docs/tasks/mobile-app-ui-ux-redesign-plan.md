@@ -17,6 +17,7 @@ Current implementation snapshot (2026-08-18):
 - Added persistent orientation to Team and Members and applied compact entity cards to Team and Organization Member lists.
 - Updated Project, Worker, Invite Member, and Edit Member form copy without changing payloads or business rules.
 - Added a centralized semantic status/action color language using NirmanSite palette tokens and removed Menu from the bottom navigation.
+- Removed the duplicate Home Your sites portfolio and consolidated Members/Workers under one Team destination while retaining Builder project creation in the workspace header.
 - Remaining slices include full auth/activation migration, Member project-assignment picker migration, broader list virtualization, state/accessibility hardening, and physical-device role verification.
 
 ## 2. Objective
@@ -63,7 +64,7 @@ Current user-facing route inventory:
 | Authentication | `/(auth)/login` | Email/password login and redirect to Home |
 | Activation | `/(auth)/activate` | Load invitation, support new/existing identities, accept invitation, continue to Login |
 | Home | `/(app)/dashboard` | Active organization/project context, permission-driven tools, project portfolio, project creation |
-| Project | `/(app)/project-detail` | Read selected project, edit when allowed, open Team or Workers |
+| Project | `/(app)/project-detail` | Read selected project, edit when allowed, open Team for Members and Workers |
 | Team | `/(app)/team` | Project Members and Workers tabs, assignment, permissions, dates, unassignment |
 | Workers | `/(app)/workers` | Organization worker search, project assignment, create, edit/end allocation |
 | Members | `/(app)/members` | Organization members, subscription capacity, invite, edit, deactivate, project assignments |
@@ -81,7 +82,7 @@ Current design-system strengths to preserve:
 Current UX/architecture gaps the redesign must address:
 
 - Protected navigation is not visually persistent on every top-level destination.
-- Standalone Workers now has a compact Back path and persistent Workers-selected navigation; authenticated physical-device verification remains pending.
+- The legacy standalone Workers route now has a compact Back path and Team-selected navigation; authenticated physical-device verification remains pending.
 - Large Members, Team, Workers, and Projects collections are rendered through a general ScrollView rather than virtualized lists.
 - Project Member assignment currently places an unbounded searchable Member collection inside a form sheet and renders it with `map`.
 - Project detail currently gives a long Project name and three full-width actions excessive, equal prominence.
@@ -135,7 +136,7 @@ NirmanSite mobile should feel like a premium field command application: calm, co
 ### 5.3 Density and use of space
 
 - Target density: 7/10—efficient and operational, never cramped.
-- Home may use a large project hero and bento composition.
+- Home may use a selective two-column composition, but must not apply oversized bento radii to every surface or control.
 - List and management screens use compact context headers so useful content appears above the fold.
 - Avoid repeated large hero cards on every screen.
 - Use one dominant action per screen; move secondary actions into contextual menus or sheets.
@@ -144,6 +145,7 @@ NirmanSite mobile should feel like a premium field command application: calm, co
 - Keep essential item identity and state visible; progressively disclose metadata and advanced permissions.
 - Avoid cards inside cards except when a repeated entity or warning genuinely needs containment.
 - Use two-column arrangements only for short, compatible fields; stack fields when text scaling or narrow width makes columns unsafe.
+- Use the shared radius hierarchy: 18dp cards, 12dp buttons/fields/icon controls, 10dp interactive chips, and 8dp status badges. Reserve full radius for genuinely circular indicators, avatars, and floating action buttons.
 
 ### 5.4 Motion
 
@@ -169,7 +171,8 @@ Create a shared protected `AppScaffold` or equivalent that owns:
 
 ### 6.2 Bottom navigation
 
-- Keep four labeled top-level items: Home, Team, Project, and Workers.
+- Keep three labeled top-level items: Home, Team, and Project.
+- Team contains the permission-aware Members and Workers sections; do not duplicate Workers as a top-level destination or Project-detail shortcut.
 - Continue deriving visible destinations from live permissions.
 - Keep the active destination visually and semantically selected.
 - Persist the bottom navigation on all top-level destinations for which it is shown in the permission model.
@@ -178,8 +181,11 @@ Create a shared protected `AppScaffold` or equivalent that owns:
 - Keep Organization Members as a secondary administration destination from Home/Menu unless future information architecture explicitly promotes it.
 - Menu remains a secondary utility route opened from Home, not a bottom-navigation item.
 - When Members is open as a secondary administration route, show a compact Back control and omit bottom navigation rather than implying a false selected destination.
-- A standalone Workers route keeps Workers selected in the shell; embedded Workers inherits Team navigation and must not render a duplicate shell.
+- A legacy standalone Workers route keeps Team selected in the shell; normal navigation opens the Workers section inside Team.
 - If a user is authorized for a destination but lacks required context, show the destination with an explanatory state; continue hiding genuinely unauthorized destinations.
+- Render the navigation as a floating light-glass dock with a restrained border and elevation, not a heavy full-width dark bar.
+- Give every destination an equal, stable touch region. The active destination uses one compact olive rounded rectangle with a white icon and label; it must not add a copper icon well or another nested selected surface. Inactive destinations use unboxed secondary icons and labels.
+- Keep visible labels at all times and use opacity/surface feedback on press without shifting layout bounds.
 
 ### 6.3 Context switching
 
@@ -338,7 +344,7 @@ No feature should recreate generic buttons, inputs, action rows, choice cards, s
 ### 9.4 Home
 
 - Keep the current redesigned Home as the visual reference.
-- Preserve the featured project card, permission-driven workspace tiles, project portfolio, project creation, and bottom navigation.
+- Preserve the featured project context, permission-driven workspace tiles, compact project creation access, and bottom navigation; do not repeat the project portfolio below the workspace.
 - Keep only live values and implemented tools.
 - On small screens, keep metrics readable and allow the layout to stack when text scaling requires it.
 - On larger screens, use a balanced two-column grid without increasing information noise.
@@ -347,7 +353,7 @@ No feature should recreate generic buttons, inputs, action rows, choice cards, s
 ### 9.5 Project detail and project switching
 
 - Use a compact operational identity card with code/type/status in the context strip and a 22–24sp Project name limited to two visual lines at standard text size.
-- Replace the three full-width action stack with equal icon-plus-text Team and Workers quick links; make Edit a permission-aware tertiary header/footer action.
+- Replace the three full-width action stack with one icon-plus-text Team link; expose Members and Workers as sections inside Team, and make Edit a permission-aware tertiary header/footer action.
 - Let one authorized quick link span the row; do not leave empty action columns.
 - Keep Organization and access metadata in a compact definition grid/disclosure section rather than another oversized card.
 - Show honest empty/context states when no project is selected.
@@ -393,7 +399,7 @@ No feature should recreate generic buttons, inputs, action rows, choice cards, s
 
 ### 9.9 Workers
 
-- Integrate standalone Workers with a compact app bar and persistent Workers-selected bottom navigation; when embedded, inherit Team navigation without duplication.
+- Keep the legacy standalone Workers route compatible with a compact app bar and Team-selected bottom navigation; normal navigation opens the embedded Workers section inside Team.
 - Use assigned-to-project status as the first scanning dimension.
 - Add shared filter chips for All, Assigned, and Unassigned; retain name/code/trade search.
 - Use a virtualized Worker list with code, name, trade, assignment state, rate, and allocation period.

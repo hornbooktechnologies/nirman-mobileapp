@@ -1,5 +1,7 @@
 import type { PermissionKey } from '@nirman-app/shared';
 import { router, type Href } from 'expo-router';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { FloatingTabBar, type AppIconName } from '../../../components/ui';
 import { getActiveProjectPermissions, type MobileSession } from '../../../lib/auth';
@@ -23,6 +25,7 @@ export type CustomerNavigationItem = {
   icon: AppIconName;
   href: CustomerRoute;
   permission?: PermissionKey;
+  permissionsAny?: readonly PermissionKey[];
 };
 
 const customerNavigation: readonly CustomerNavigationItem[] = [
@@ -35,22 +38,37 @@ const customerNavigation: readonly CustomerNavigationItem[] = [
   { key: 'menu', label: 'Menu', title: 'Menu', description: 'Account and organization', icon: 'menu', href: '/(app)/menu' },
 ];
 
-const organizationNavigation: readonly CustomerNavigationItem[] = [
-  { key: 'members', label: 'Members', title: 'Organization Members', description: 'Access, roles and invitations', icon: 'account-multiple-outline', href: '/(app)/members', permission: 'members:read' },
+const organizationNavigation: readonly CustomerNavigationDefinition[] = [
+  { key: 'members', labelKey: 'tabs.members', titleKey: 'items.members.title', descriptionKey: 'items.members.description', icon: 'account-multiple-outline', href: '/(app)/members', permission: 'members:read' },
 ];
 
-export function visibleNavigation(session: MobileSession | null) {
-  const projectPermissions = getActiveProjectPermissions(session);
-  return customerNavigation.filter((item) => !item.permission || projectPermissions.includes(item.permission));
+function localizeNavigationItem(item: CustomerNavigationDefinition, t: TFunction<'navigation'>): CustomerNavigationItem {
+  return {
+    ...item,
+    label: t(item.labelKey),
+    title: t(item.titleKey),
+    description: t(item.descriptionKey),
+  };
 }
 
-export function visibleOrganizationNavigation(session: MobileSession | null) {
-  return organizationNavigation.filter((item) => !item.permission || session?.permissions.includes(item.permission));
+export function visibleNavigation(session: MobileSession | null, t: TFunction<'navigation'>) {
+  const projectPermissions = getActiveProjectPermissions(session);
+  return customerNavigation.filter((item) =>
+    (!item.permission || projectPermissions.includes(item.permission)) &&
+    (!item.permissionsAny || item.permissionsAny.some((permission) => projectPermissions.includes(permission)))
+  ).map((item) => localizeNavigationItem(item, t));
+}
+
+export function visibleOrganizationNavigation(session: MobileSession | null, t: TFunction<'navigation'>) {
+  return organizationNavigation
+    .filter((item) => !item.permission || session?.permissions.includes(item.permission))
+    .map((item) => localizeNavigationItem(item, t));
 }
 
 export function CustomerTabBar({ activeKey }: { activeKey: string }) {
+  const { t } = useTranslation('navigation');
   const { session } = useSession();
-  const tabs = visibleNavigation(session)
+  const tabs = visibleNavigation(session, t)
     .filter((item) => item.key !== 'menu')
     .map(({ key, label, icon }) => ({ key, label, icon }));
 
@@ -59,7 +77,7 @@ export function CustomerTabBar({ activeKey }: { activeKey: string }) {
       activeKey={activeKey}
       tabs={tabs}
       onChange={(key) => {
-        const item = visibleNavigation(session).find((candidate) => candidate.key === key);
+        const item = visibleNavigation(session, t).find((candidate) => candidate.key === key);
         if (item) router.push(item.href as Href);
       }}
     />
