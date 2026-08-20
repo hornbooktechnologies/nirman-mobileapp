@@ -9,6 +9,7 @@ export type CustomerRoute =
   | '/(app)/dashboard'
   | '/(app)/project-detail'
   | '/(app)/workers'
+  | '/(app)/attendance'
   | '/(app)/team'
   | '/(app)/members'
   | '/(app)/menu';
@@ -28,6 +29,7 @@ const customerNavigation: readonly CustomerNavigationItem[] = [
   { key: 'team', label: 'Team', title: 'Project Team', description: 'Roles and site assignments', icon: 'account-group-outline', href: '/(app)/team', permission: 'project-members:read' },
   { key: 'project', label: 'Project', title: 'Selected Project', description: 'Site details and controls', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
   { key: 'workers', label: 'Workers', title: 'Workers', description: 'Crew and allocations', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
+  { key: 'attendance', label: 'Attendance', title: 'Attendance', description: 'Daily worker presence', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
   { key: 'menu', label: 'Menu', title: 'Menu', description: 'Account and organization', icon: 'menu', href: '/(app)/menu' },
 ];
 

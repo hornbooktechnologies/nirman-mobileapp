@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Archive, RotateCcw, UsersRound } from "lucide-react";
+import { Archive, CalendarCheck, RotateCcw, UsersRound } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Card, PageHeader, StatusBadge } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
@@ -29,7 +29,7 @@ const statusTone = {
 
 export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { activeOrganizationId } = useAuth();
+  const { activeOrganizationId, hasPermission } = useAuth();
   const organizationId = activeOrganizationId ?? "";
   const project = useProject(organizationId, projectId);
   const updateProject = useUpdateProject(organizationId, projectId);
@@ -83,6 +83,14 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
               >
                 <UsersRound size={16} />
                 Team
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/projects/${projectId}/attendance`)}
+                disabled={!organizationId || !hasPermission("attendance:read")}
+              >
+                <CalendarCheck size={16} />
+                Attendance
               </Button>
               <Button
                 variant="outline"
