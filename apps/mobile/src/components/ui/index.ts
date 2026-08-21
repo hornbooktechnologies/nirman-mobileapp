@@ -9,6 +9,7 @@ export * from './card';
 export * from './chip';
 export * from './collection-picker-modal';
 export * from './compact-screen-header';
+export * from './date-input';
 export * from './entity-cards';
 export * from './floating-action-button';
 export * from './floating-tab-bar';

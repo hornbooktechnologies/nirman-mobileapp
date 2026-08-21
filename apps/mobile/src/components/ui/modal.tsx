@@ -32,7 +32,7 @@ export function BottomSheet({
   onClose,
   scroll = false,
   showCloseButton = true,
-  transparent = false,
+  transparent = true,
   animationType = 'slide',
   ...props
 }: BottomSheetProps) {
@@ -45,26 +45,26 @@ export function BottomSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        <Pressable accessibilityRole="button" accessibilityLabel={t('actions.close')} style={styles.scrim} onPress={onClose}>
-          <Pressable accessibilityRole="none" style={styles.sheet} onPress={() => undefined}>
-            <View style={styles.handle} />
-            <View style={styles.heading}>
-              <AppText style={styles.title} weight={700}>{title}</AppText>
-              {description ? <AppText style={styles.description}>{description}</AppText> : null}
-            </View>
-            {scroll ? (
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {content}
-              </ScrollView>
-            ) : content}
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-            {showCloseButton && !footer ? <Button label={t('actions.close')} variant="secondary" onPress={onClose} /> : null}
-          </Pressable>
-        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('actions.close')} style={styles.scrim} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <View style={styles.heading}>
+            <AppText style={styles.title} weight={700}>{title}</AppText>
+            {description ? <AppText style={styles.description}>{description}</AppText> : null}
+          </View>
+          {scroll ? (
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={styles.scrollView}
+            >
+              {content}
+            </ScrollView>
+          ) : content}
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+          {showCloseButton && !footer ? <Button label={t('actions.close')} variant="secondary" onPress={onClose} /> : null}
+        </View>
       </KeyboardAvoidingView>
     </NativeModal>
   );
@@ -75,14 +75,14 @@ export const AppModal = BottomSheet;
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   scrim: {
     backgroundColor: mobileTheme.color.surface.scrim,
-    flex: 1,
-    justifyContent: 'flex-end',
+    ...StyleSheet.absoluteFillObject,
   },
   sheet: {
-    backgroundColor: mobileTheme.color.surface.card,
+    backgroundColor: mobileTheme.color.surface.app,
     borderTopLeftRadius: mobileTheme.radius.xxl,
     borderTopRightRadius: mobileTheme.radius.xxl,
     gap: mobileTheme.spacing[3],
@@ -111,6 +111,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: mobileTheme.spacing[2],
+  },
+  scrollView: {
+    flexShrink: 1,
   },
   footer: {
     flexDirection: 'row',

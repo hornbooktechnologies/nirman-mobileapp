@@ -8,8 +8,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, BottomSheet, Button, FormError, FormField, Input, badgeToneTokens, getStatusTone } from '../../../components/ui';
+import { AppText, BottomSheet, Button, DateInput, FormError, FormField, Input, badgeToneTokens, getStatusTone } from '../../../components/ui';
 import { getLocalizedErrorMessage } from '../../../i18n';
+import { isValidDateOnly, parseDateOnly } from '../../../lib/validation';
 import { mobileText, mobileTheme } from '../../../theme';
 import type { Project, ProjectInput } from '../types';
 
@@ -43,7 +44,7 @@ type ProjectForm = {
   description: string;
 };
 
-type ProjectFormErrors = Partial<Record<'name' | 'expectedCompletionDate', string>>;
+type ProjectFormErrors = Partial<Record<'name' | 'startDate' | 'expectedCompletionDate', string>>;
 
 function initialForm(project?: Project): ProjectForm {
   return {
@@ -68,6 +69,7 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
   onSave: (input: ProjectInput) => Promise<void>;
 }) {
   const { t } = useTranslation('projects');
+  const { t: tCommon } = useTranslation('common');
   const [form, setForm] = useState(() => initialForm(project));
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ProjectFormErrors>({});
@@ -81,7 +83,17 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
     if (!form.name.trim()) {
       nextFieldErrors.name = t('form.errors.nameRequired');
     }
-    if (form.startDate && form.expectedCompletionDate && form.expectedCompletionDate < form.startDate) {
+    if (form.startDate && !isValidDateOnly(form.startDate)) {
+      nextFieldErrors.startDate = tCommon('validation.date');
+    }
+    if (form.expectedCompletionDate && !isValidDateOnly(form.expectedCompletionDate)) {
+      nextFieldErrors.expectedCompletionDate = tCommon('validation.date');
+    } else if (
+      form.startDate
+      && isValidDateOnly(form.startDate)
+      && form.expectedCompletionDate
+      && form.expectedCompletionDate < form.startDate
+    ) {
       nextFieldErrors.expectedCompletionDate = t('form.errors.completionBeforeStart');
     }
     setFieldErrors(nextFieldErrors);
@@ -132,18 +144,18 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
     >
       <FormError message={error} />
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.basics')}</AppText>
-      <FormField label={t('form.fields.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
-      <FormField label={t('form.fields.code')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.projectCode')} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
+      <FormField label={t('form.fields.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} maxLength={120} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
+      <FormField label={t('form.fields.code')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.projectCode')} maxLength={40} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
       <FormField label={t('form.fields.type')} required><ChoiceRow values={PROJECT_TYPES} selected={form.type} getLabel={(value) => t(projectTypeTranslationKeys[value])} onSelect={(type) => setForm({ ...form, type })} /></FormField>
       <FormField label={t('form.fields.status')} required><ChoiceRow values={allowedStatuses} selected={form.status} getLabel={(value) => t(projectStatusTranslationKeys[value])} onSelect={(status) => setForm({ ...form, status })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.location')}</AppText>
-      <FormField label={t('form.fields.addressLine')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.addressLine')} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
-      <View style={styles.row}><FormField label={t('form.fields.city')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
-      <FormField label={t('form.fields.postalCode')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
+      <FormField label={t('form.fields.addressLine')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.addressLine')} maxLength={180} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
+      <View style={styles.row}><FormField label={t('form.fields.city')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} maxLength={100} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} maxLength={100} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
+      <FormField label={t('form.fields.postalCode')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" maxLength={20} value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.timeline')}</AppText>
-      <View style={styles.row}><FormField label={t('form.fields.startDate')} optional optionalLabel={t('form.fields.optional')} helperText={t('form.fields.dateFormat')} style={styles.flex}><Input accessibilityLabel={t('form.fields.startDate')} value={form.startDate} onChangeText={(startDate) => setForm({ ...form, startDate })} /></FormField><FormField label={t('form.fields.expectedCompletion')} optional optionalLabel={t('form.fields.optional')} helperText={t('form.fields.dateFormat')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><Input accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => setForm({ ...form, expectedCompletionDate })} /></FormField></View>
+      <View style={styles.row}><FormField label={t('form.fields.startDate')} optional optionalLabel={t('form.fields.optional')} error={fieldErrors.startDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.startDate')} invalid={Boolean(fieldErrors.startDate)} value={form.startDate} onChangeText={(startDate) => { setForm({ ...form, startDate }); setFieldErrors((current) => ({ ...current, startDate: undefined, expectedCompletionDate: undefined })); }} /></FormField><FormField label={t('form.fields.expectedCompletion')} optional optionalLabel={t('form.fields.optional')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} minimumDate={parseDateOnly(form.startDate) ?? undefined} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => { setForm({ ...form, expectedCompletionDate }); if (fieldErrors.expectedCompletionDate) setFieldErrors((current) => ({ ...current, expectedCompletionDate: undefined })); }} /></FormField></View>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.details')}</AppText>
-      <FormField label={t('form.fields.description')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.description')} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
+      <FormField label={t('form.fields.description')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.description')} maxLength={2000} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
     </BottomSheet>
   );
 }

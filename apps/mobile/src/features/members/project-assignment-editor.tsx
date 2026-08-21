@@ -7,7 +7,8 @@ import {
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Badge, Button, Card, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
+import { AppText, Badge, Button, Card, DateInput, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
+import { parseDateOnly } from '../../lib/validation';
 import { mobileText, mobileTheme } from '../../theme';
 
 const permissionActionTranslationKeys = {
@@ -104,6 +105,7 @@ export function ProjectAssignmentEditor({
       >
         <Input
           accessibilityLabel={t('assignment.responsibility')}
+          maxLength={120}
           placeholder={t('assignment.responsibilityPlaceholder')}
           value={value.roleLabel}
           onChangeText={(roleLabel) => update({ roleLabel })}
@@ -125,22 +127,19 @@ export function ProjectAssignmentEditor({
       </FormField>
 
       <View style={styles.dateRow}>
-        <FormField label={t('assignment.startDate')} optional helperText={t('assignment.dateFormat')} error={errors.startsOn} style={styles.dateField}>
-          <Input
+        <FormField label={t('assignment.startDate')} optional error={errors.startsOn} style={styles.dateField}>
+          <DateInput
             accessibilityLabel={t('assignment.startDateA11y')}
-            autoCapitalize="none"
             invalid={Boolean(errors.startsOn)}
-            placeholder={t('assignment.dateFormat')}
             value={value.startsOn}
             onChangeText={(startsOn) => update({ startsOn })}
           />
         </FormField>
-        <FormField label={t('assignment.endDate')} optional helperText={t('assignment.dateFormat')} error={errors.endsOn} style={styles.dateField}>
-          <Input
+        <FormField label={t('assignment.endDate')} optional error={errors.endsOn} style={styles.dateField}>
+          <DateInput
             accessibilityLabel={t('assignment.endDateA11y')}
-            autoCapitalize="none"
             invalid={Boolean(errors.endsOn)}
-            placeholder={t('assignment.dateFormat')}
+            minimumDate={parseDateOnly(value.startsOn) ?? undefined}
             value={value.endsOn}
             onChangeText={(endsOn) => update({ endsOn })}
           />

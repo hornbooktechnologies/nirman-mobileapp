@@ -15,6 +15,7 @@ import {
   StatusBadge,
 } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
+import { isValidDateOnly } from '../../lib/validation';
 import { mobileText, mobileTheme } from '../../theme';
 import {
   createAssignmentDraft,
@@ -56,6 +57,7 @@ export function MemberProjectAssignmentsSheet({
   onSave: (input: SaveMemberProjectAssignmentsInput) => Promise<void>;
 }) {
   const { t } = useTranslation('members');
+  const { t: tCommon } = useTranslation('common');
   const memberAssignments = useMemo(
     () => overview.assignments.filter((assignment) => assignment.memberId === member.id),
     [member.id, overview.assignments],
@@ -104,11 +106,23 @@ export function MemberProjectAssignmentsSheet({
     setFieldErrorsByProject({});
     const invalidProject = selectedProjects.find((project) => {
       const draft = drafts[project.id];
-      return draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn;
+      return (
+        (draft.startsOn && !isValidDateOnly(draft.startsOn))
+        || (draft.endsOn && !isValidDateOnly(draft.endsOn))
+        || (draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn)
+      );
     });
     if (invalidProject) {
+      const invalidDraft = drafts[invalidProject.id];
       setFieldErrorsByProject({
-        [invalidProject.id]: { endsOn: t('assignments.dateOrder') },
+        [invalidProject.id]: {
+          startsOn: invalidDraft.startsOn && !isValidDateOnly(invalidDraft.startsOn) ? tCommon('validation.date') : undefined,
+          endsOn: invalidDraft.endsOn && !isValidDateOnly(invalidDraft.endsOn)
+            ? tCommon('validation.date')
+            : invalidDraft.startsOn && invalidDraft.endsOn && invalidDraft.endsOn < invalidDraft.startsOn
+              ? t('assignments.dateOrder')
+              : undefined,
+        },
       });
       setConfiguringProjectId(invalidProject.id);
       return;

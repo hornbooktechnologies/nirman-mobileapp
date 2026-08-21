@@ -26,6 +26,7 @@ import {
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
+import { isValidDateOnly } from '../../lib/validation';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
@@ -278,6 +279,7 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
   onSave: (memberId: string, input: ProjectMemberInput) => Promise<void>;
 }) {
   const { t } = useTranslation('team');
+  const { t: tCommon } = useTranslation('common');
   const [selectedMemberId, setSelectedMemberId] = useState(member?.memberId ?? '');
   const [memberSearch, setMemberSearch] = useState('');
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -298,7 +300,12 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
     if (!selectedMemberId) {
       nextFieldErrors.memberId = t('editor.errors.selectMember');
     }
-    if (draft.startsOn && draft.endsOn && draft.endsOn < draft.startsOn) {
+    if (draft.startsOn && !isValidDateOnly(draft.startsOn)) {
+      nextFieldErrors.startsOn = tCommon('validation.date');
+    }
+    if (draft.endsOn && !isValidDateOnly(draft.endsOn)) {
+      nextFieldErrors.endsOn = tCommon('validation.date');
+    } else if (draft.startsOn && isValidDateOnly(draft.startsOn) && draft.endsOn && draft.endsOn < draft.startsOn) {
       nextFieldErrors.endsOn = t('editor.errors.dateOrder');
     }
     setFieldErrors(nextFieldErrors);
@@ -341,7 +348,7 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
           )}
         </FormField>
       ) : null}
-      {(mode === 'edit' || selectedMemberId) ? <ProjectAssignmentEditor value={draft} rolePermissions={rolePermissions} errors={fieldErrors} onChange={setDraft} /> : null}
+      {(mode === 'edit' || selectedMemberId) ? <ProjectAssignmentEditor value={draft} rolePermissions={rolePermissions} errors={fieldErrors} onChange={(value) => { setDraft(value); setFieldErrors((current) => ({ memberId: current.memberId })); }} /> : null}
     </BottomSheet>
     <CollectionPickerModal
       accessibilityLabel={t('picker.searchA11y')}
@@ -358,6 +365,7 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
           footerTrailing={candidate.id === selectedMemberId ? <StatusBadge label={t('editor.selected')} /> : <AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} />}
           onPress={() => {
             setSelectedMemberId(candidate.id);
+            setFieldErrors((current) => ({ ...current, memberId: undefined }));
             setPickerVisible(false);
           }}
           supporting={candidate.designation ?? t('editor.available')}
