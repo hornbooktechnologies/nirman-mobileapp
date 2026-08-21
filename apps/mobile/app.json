@@ -20,7 +20,8 @@
             "android": ["en", "hi", "gu"]
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

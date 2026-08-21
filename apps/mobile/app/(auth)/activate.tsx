@@ -15,8 +15,6 @@ type ApiEnvelope<TData> = {
 };
 
 type ActivationErrorKey =
-  | 'validation.tokenRequired'
-  | 'validation.passwordMismatch'
   | 'failure.activateOrganization'
   | 'failure.loadInvitation'
   | 'failure.activateAccount';
@@ -40,12 +38,10 @@ export default function ActivateInvitationRoute() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<ActivationErrorState | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'token' | 'password' | 'confirmPassword', string>>>({});
   const errorMessage = error
     ? getLocalizedErrorMessage(error.cause, t(error.fallbackKey))
     : null;
-  const tokenFieldError = error?.fallbackKey === 'validation.tokenRequired' ? errorMessage ?? undefined : undefined;
-  const confirmPasswordFieldError = error?.fallbackKey === 'validation.passwordMismatch' ? errorMessage ?? undefined : undefined;
-  const generalErrorMessage = tokenFieldError || confirmPasswordFieldError ? null : errorMessage;
 
   const continueToLogin = useCallback((email: string) => {
     router.replace({
@@ -77,11 +73,13 @@ export default function ActivateInvitationRoute() {
   const loadInvitation = useCallback(async (invitationToken: string) => {
     const normalizedToken = invitationToken.trim();
     if (!normalizedToken) {
-      setError({ fallbackKey: 'validation.tokenRequired' });
+      setError(null);
+      setFieldErrors({ token: t('validation.tokenRequired') });
       return;
     }
 
     setError(null);
+    setFieldErrors({});
     setIsLoading(true);
     try {
       const response = await apiRequest<
@@ -112,7 +110,7 @@ export default function ActivateInvitationRoute() {
     } finally {
       setIsLoading(false);
     }
-  }, [activateExistingAccount]);
+  }, [activateExistingAccount, t]);
 
   useEffect(() => {
     if (typeof params.token === 'string' && params.token) {
@@ -123,10 +121,21 @@ export default function ActivateInvitationRoute() {
   async function acceptInvitation() {
     if (!invitation) return;
     setError(null);
-    if (invitation.requiresPasswordSetup && password !== confirmPassword) {
-      setError({ fallbackKey: 'validation.passwordMismatch' });
-      return;
+    const nextFieldErrors: Partial<Record<'password' | 'confirmPassword', string>> = {};
+    if (invitation.requiresPasswordSetup) {
+      if (!password) {
+        nextFieldErrors.password = t('validation.passwordRequired');
+      } else if (password.length < 8) {
+        nextFieldErrors.password = t('validation.passwordMinimum');
+      }
+      if (!confirmPassword) {
+        nextFieldErrors.confirmPassword = t('validation.confirmPasswordRequired');
+      } else if (password && password !== confirmPassword) {
+        nextFieldErrors.confirmPassword = t('validation.passwordMismatch');
+      }
     }
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length) return;
 
     setIsSubmitting(true);
     try {
@@ -169,12 +178,12 @@ export default function ActivateInvitationRoute() {
       <GlassCard variant="strong" style={styles.form}>
         {invitation && !invitation.requiresPasswordSetup ? (
           <>
+            <FormError message={errorMessage} />
             <AppText style={styles.body} weight={500}>
               {isSubmitting
                 ? t('activation.activatingExisting')
                 : t('activation.existingReady')}
             </AppText>
-            <FormError message={generalErrorMessage} />
             {!isSubmitting ? (
               <Button
                 label={t('activation.retryActivation')}
@@ -192,6 +201,7 @@ export default function ActivateInvitationRoute() {
           </>
         ) : invitation ? (
           <>
+            <FormError message={errorMessage} />
             <AppText style={styles.body} weight={500}>
               {t('activation.invitedAs', {
                 name: invitation.owner.name,
@@ -202,30 +212,36 @@ export default function ActivateInvitationRoute() {
             <AppText style={styles.loginIdentity} weight={500}>
               {t('activation.loginEmail', { email: invitation.owner.email })}
             </AppText>
-            <FormError message={generalErrorMessage} />
-            <FormField label={t('activation.createPassword')} required>
+            <FormField label={t('activation.createPassword')} required error={fieldErrors.password}>
               <Input
                 autoCapitalize="none"
                 autoComplete="new-password"
+                invalid={Boolean(fieldErrors.password)}
                 placeholder={t('activation.createPassword')}
                 secureTextEntry
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }));
+                }}
               />
             </FormField>
-            <FormField label={t('activation.confirmPassword')} required error={confirmPasswordFieldError}>
+            <FormField label={t('activation.confirmPassword')} required error={fieldErrors.confirmPassword}>
               <Input
                 autoCapitalize="none"
                 autoComplete="new-password"
-                invalid={Boolean(confirmPasswordFieldError)}
+                invalid={Boolean(fieldErrors.confirmPassword)}
                 placeholder={t('activation.confirmPassword')}
                 secureTextEntry
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(value) => {
+                  setConfirmPassword(value);
+                  if (fieldErrors.confirmPassword) setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
+                }}
               />
             </FormField>
             <Button
-              disabled={password.length < 8 || isSubmitting}
+              disabled={isSubmitting}
               label={isSubmitting ? t('activation.activating') : t('activation.activateAccountTitle')}
               size="lg"
               onPress={acceptInvitation}
@@ -233,19 +249,22 @@ export default function ActivateInvitationRoute() {
           </>
         ) : (
           <>
+            <FormError message={errorMessage} />
             <AppText style={styles.body} weight={500}>{t('activation.instructions')}</AppText>
-            <FormError message={generalErrorMessage} />
-            <FormField label={t('activation.invitationToken')} required error={tokenFieldError}>
+            <FormField label={t('activation.invitationToken')} required error={fieldErrors.token}>
               <Input
                 autoCapitalize="none"
-                invalid={Boolean(tokenFieldError)}
+                invalid={Boolean(fieldErrors.token)}
                 placeholder={t('activation.invitationToken')}
                 value={token}
-                onChangeText={setToken}
+                onChangeText={(value) => {
+                  setToken(value);
+                  if (fieldErrors.token) setFieldErrors((current) => ({ ...current, token: undefined }));
+                }}
               />
             </FormField>
             <Button
-              disabled={!token.trim() || isLoading}
+              disabled={isLoading}
               label={isLoading ? t('activation.checking') : t('activation.checkInvitation')}
               onPress={() => loadInvitation(token)}
             />

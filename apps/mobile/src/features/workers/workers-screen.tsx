@@ -11,6 +11,7 @@ import {
   Card,
   Chip,
   CompactScreenHeader,
+  DateInput,
   EmptyState,
   FormError,
   FormField,
@@ -25,6 +26,7 @@ import {
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
 import { formatInr, getLocalizedErrorMessage } from '../../i18n';
+import { isValidDateOnly, isValidNonNegativeNumber, isValidPhone, parseDateOnly } from '../../lib/validation';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
@@ -62,6 +64,7 @@ export function WorkersScreen() {
 
 export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded?: boolean; projectIdOverride?: string }) {
   const { t } = useTranslation('workers');
+  const { t: tCommon } = useTranslation('common');
   const { language } = useLocalization();
   const { refreshSession, session, signOut } = useSession();
   const activeProject =
@@ -155,8 +158,12 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   async function assign() {
     if (!session?.accessToken || !organizationId || !projectId || !assigningWorker) return;
     setAssignError('');
-    if (!isDate(assignStartsOn)) {
-      setAssignFieldError(t('errors.dateFormat'));
+    if (!assignStartsOn) {
+      setAssignFieldError(tCommon('validation.required', { field: t('assign.startsOn') }));
+      return;
+    }
+    if (!isValidDateOnly(assignStartsOn)) {
+      setAssignFieldError(tCommon('validation.date'));
       return;
     }
     setAssignFieldError('');
@@ -194,10 +201,11 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     if (!session?.accessToken || !organizationId || !projectId || !editingWorker) return;
     setEditError('');
     const nextFieldErrors: AssignmentDateErrors = {};
-    if (!isDate(editForm.startsOn)) nextFieldErrors.startsOn = t('errors.dateFormat');
-    if (editForm.endsOn && !isDate(editForm.endsOn)) {
-      nextFieldErrors.endsOn = t('errors.dateFormat');
-    } else if (editForm.endsOn && editForm.endsOn < editForm.startsOn) {
+    if (!editForm.startsOn) nextFieldErrors.startsOn = tCommon('validation.required', { field: t('edit.startsOn') });
+    else if (!isValidDateOnly(editForm.startsOn)) nextFieldErrors.startsOn = tCommon('validation.date');
+    if (editForm.endsOn && !isValidDateOnly(editForm.endsOn)) {
+      nextFieldErrors.endsOn = tCommon('validation.date');
+    } else if (editForm.endsOn && isValidDateOnly(editForm.startsOn) && editForm.endsOn < editForm.startsOn) {
       nextFieldErrors.endsOn = t('errors.dateOrder');
     }
     setEditFieldErrors(nextFieldErrors);
@@ -225,8 +233,16 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   async function endAssignment() {
     if (!session?.accessToken || !organizationId || !projectId || !endingWorker) return;
     setEndError('');
-    if (!isDate(endForm.endsOn)) {
-      setEndFieldError(t('errors.dateFormat'));
+    if (!endForm.endsOn) {
+      setEndFieldError(tCommon('validation.required', { field: t('end.endsOn') }));
+      return;
+    }
+    if (!isValidDateOnly(endForm.endsOn)) {
+      setEndFieldError(tCommon('validation.date'));
+      return;
+    }
+    if (endForm.endsOn < endingWorker.currentAssignment.startsOn.slice(0, 10)) {
+      setEndFieldError(t('errors.dateOrder'));
       return;
     }
     setEndFieldError('');
@@ -344,7 +360,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         <BottomSheet visible showCloseButton={false} title={t('assign.title', { name: assigningWorker.name })} description={t('assign.description')} onClose={() => setAssigningWorker(null)} footer={<><Button label={t('assign.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setAssigningWorker(null)} /><Button label={isSubmitting ? t('assign.assigning') : t('assign.action')} disabled={isSubmitting} style={styles.footerButton} onPress={() => void assign()} /></>}>
           <FormError message={assignError} />
           <Card variant="blueprint" style={styles.assignmentSummary}><AppText style={styles.body}>{assigningWorker.trade}</AppText><AppText style={styles.assignmentRate} weight={700}>{displayRate(assigningWorker.baseDailyRate)}</AppText></Card>
-          <FormField label={t('assign.startsOn')} required helperText={t('assign.dateFormat')} error={assignFieldError}><Input accessibilityLabel={t('assign.startDateA11y')} invalid={Boolean(assignFieldError)} placeholder={t('assign.dateFormat')} value={assignStartsOn} onChangeText={setAssignStartsOn} /></FormField>
+          <FormField label={t('assign.startsOn')} required error={assignFieldError}><DateInput accessibilityLabel={t('assign.startDateA11y')} invalid={Boolean(assignFieldError)} value={assignStartsOn} onChangeText={(startsOn) => { setAssignStartsOn(startsOn); setAssignFieldError(''); }} /></FormField>
         </BottomSheet>
       ) : null}
 
@@ -358,15 +374,15 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       {editingWorker ? (
         <BottomSheet visible showCloseButton={false} title={editingWorker.name} description={t('edit.description')} onClose={() => setEditingWorker(null)} footer={<><Button label={t('edit.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEditingWorker(null)} /><Button label={isSubmitting ? t('edit.saving') : t('edit.save')} variant="brand" disabled={isSubmitting} style={styles.footerButton} onPress={() => void saveEdit()} /></>}>
           <FormError message={editError} />
-          <View style={styles.dateRow}><FormField label={t('edit.startsOn')} required helperText={t('edit.dateFormat')} error={editFieldErrors.startsOn} style={styles.dateField}><Input accessibilityLabel={t('edit.startDateA11y')} invalid={Boolean(editFieldErrors.startsOn)} value={editForm.startsOn} onChangeText={(startsOn) => setEditForm({ ...editForm, startsOn })} /></FormField><FormField label={t('edit.endsOn')} optional helperText={t('edit.dateFormat')} error={editFieldErrors.endsOn} style={styles.dateField}><Input accessibilityLabel={t('edit.endDateA11y')} invalid={Boolean(editFieldErrors.endsOn)} value={editForm.endsOn} onChangeText={(endsOn) => setEditForm({ ...editForm, endsOn })} /></FormField></View>
+          <View style={styles.dateRow}><FormField label={t('edit.startsOn')} required error={editFieldErrors.startsOn} style={styles.dateField}><DateInput accessibilityLabel={t('edit.startDateA11y')} invalid={Boolean(editFieldErrors.startsOn)} value={editForm.startsOn} onChangeText={(startsOn) => { setEditForm({ ...editForm, startsOn }); setEditFieldErrors((current) => ({ ...current, startsOn: undefined, endsOn: undefined })); }} /></FormField><FormField label={t('edit.endsOn')} optional error={editFieldErrors.endsOn} style={styles.dateField}><DateInput accessibilityLabel={t('edit.endDateA11y')} invalid={Boolean(editFieldErrors.endsOn)} minimumDate={parseDateOnly(editForm.startsOn) ?? undefined} value={editForm.endsOn} onChangeText={(endsOn) => { setEditForm({ ...editForm, endsOn }); setEditFieldErrors((current) => ({ ...current, endsOn: undefined })); }} /></FormField></View>
         </BottomSheet>
       ) : null}
 
       {endingWorker ? (
         <BottomSheet visible showCloseButton={false} title={t('end.title')} description={t('end.description', { name: endingWorker.name })} onClose={() => setEndingWorker(null)} footer={<><Button label={t('end.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEndingWorker(null)} /><Button label={isSubmitting ? t('end.ending') : t('end.action')} variant="danger" disabled={isSubmitting} style={styles.footerButton} onPress={() => void endAssignment()} /></>}>
           <FormError message={endError} />
-          <FormField label={t('end.endsOn')} required helperText={t('end.dateFormat')} error={endFieldError}><Input accessibilityLabel={t('end.endDateA11y')} invalid={Boolean(endFieldError)} value={endForm.endsOn} onChangeText={(endsOn) => setEndForm({ ...endForm, endsOn })} /></FormField>
-          <FormField label={t('end.reason')} optional><Input accessibilityLabel={t('end.reason')} value={endForm.reason} onChangeText={(reason) => setEndForm({ ...endForm, reason })} /></FormField>
+          <FormField label={t('end.endsOn')} required error={endFieldError}><DateInput accessibilityLabel={t('end.endDateA11y')} invalid={Boolean(endFieldError)} minimumDate={parseDateOnly(endingWorker.currentAssignment.startsOn.slice(0, 10)) ?? undefined} value={endForm.endsOn} onChangeText={(endsOn) => { setEndForm({ ...endForm, endsOn }); setEndFieldError(''); }} /></FormField>
+          <FormField label={t('end.reason')} optional><Input accessibilityLabel={t('end.reason')} maxLength={500} value={endForm.reason} onChangeText={(reason) => setEndForm({ ...endForm, reason })} /></FormField>
         </BottomSheet>
       ) : null}
     </View>
@@ -375,17 +391,20 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 
 function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onClose, onSaving, onSaved }: { organizationId: string; projectId: string; accessToken: string; saving: boolean; onClose: () => void; onSaving: (saving: boolean) => void; onSaved: () => Promise<void> }) {
   const { t } = useTranslation('workers');
+  const { t: tCommon } = useTranslation('common');
   const [form, setForm] = useState({ name: '', trade: '', mobileNumber: '', dailyRate: '' });
   const [duplicates, setDuplicates] = useState<WorkerDuplicateCandidate[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'trade', string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate', string>>>({});
 
   async function submit() {
     setError('');
-    const nextFieldErrors: Partial<Record<'name' | 'trade', string>> = {};
+    const nextFieldErrors: Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate', string>> = {};
     if (!form.name.trim()) nextFieldErrors.name = t('create.nameRequired');
     if (!form.trade.trim()) nextFieldErrors.trade = t('create.tradeRequired');
+    if (form.mobileNumber.trim() && !isValidPhone(form.mobileNumber)) nextFieldErrors.mobileNumber = tCommon('validation.phone');
+    if (form.dailyRate.trim() && !isValidNonNegativeNumber(form.dailyRate)) nextFieldErrors.dailyRate = tCommon('validation.number');
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) {
       return;
@@ -410,17 +429,13 @@ function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onC
   return (
     <BottomSheet visible scroll showCloseButton={false} title={t('create.title')} description={t('create.description')} onClose={onClose} footer={<><Button label={t('create.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('create.creating') : t('create.action')} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
       <FormError message={error} />
-      <FormField label={t('create.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('create.nameA11y')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); setAcknowledged(false); }} /></FormField>
-      <FormField label={t('create.trade')} required error={fieldErrors.trade}><Input accessibilityLabel={t('create.tradeA11y')} invalid={Boolean(fieldErrors.trade)} value={form.trade} onChangeText={(trade) => setForm({ ...form, trade })} /><View style={styles.suggestions}>{TRADE_SUGGESTION_KEYS.map((tradeKey) => { const trade = t(`trade.${tradeKey}`); const selected = form.trade === trade; return <Pressable key={tradeKey} accessibilityLabel={trade} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.suggestion, selected && styles.suggestionSelected, pressed && styles.controlPressed]} onPress={() => setForm({ ...form, trade })}><AppText style={[styles.suggestionText, selected && styles.suggestionTextSelected]} weight={600}>{trade}</AppText></Pressable>; })}</View></FormField>
-      <FormField label={t('create.mobile')} optional><Input accessibilityLabel={t('create.mobileA11y')} keyboardType="phone-pad" value={form.mobileNumber} onChangeText={(mobileNumber) => { setForm({ ...form, mobileNumber }); setAcknowledged(false); }} /></FormField>
-      <FormField label={t('create.rate')} optional helperText={t('create.rateHelp')}><Input accessibilityLabel={t('create.rateA11y')} keyboardType="numeric" value={form.dailyRate} onChangeText={(dailyRate) => setForm({ ...form, dailyRate })} /></FormField>
+      <FormField label={t('create.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('create.nameA11y')} invalid={Boolean(fieldErrors.name)} maxLength={160} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); setAcknowledged(false); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
+      <FormField label={t('create.trade')} required error={fieldErrors.trade}><Input accessibilityLabel={t('create.tradeA11y')} invalid={Boolean(fieldErrors.trade)} maxLength={80} value={form.trade} onChangeText={(trade) => { setForm({ ...form, trade }); if (fieldErrors.trade) setFieldErrors((current) => ({ ...current, trade: undefined })); }} /><View style={styles.suggestions}>{TRADE_SUGGESTION_KEYS.map((tradeKey) => { const trade = t(`trade.${tradeKey}`); const selected = form.trade === trade; return <Pressable key={tradeKey} accessibilityLabel={trade} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.suggestion, selected && styles.suggestionSelected, pressed && styles.controlPressed]} onPress={() => { setForm({ ...form, trade }); setFieldErrors((current) => ({ ...current, trade: undefined })); }}><AppText style={[styles.suggestionText, selected && styles.suggestionTextSelected]} weight={600}>{trade}</AppText></Pressable>; })}</View></FormField>
+      <FormField label={t('create.mobile')} optional error={fieldErrors.mobileNumber}><Input accessibilityLabel={t('create.mobileA11y')} invalid={Boolean(fieldErrors.mobileNumber)} keyboardType="phone-pad" maxLength={20} value={form.mobileNumber} onChangeText={(mobileNumber) => { setForm({ ...form, mobileNumber }); setAcknowledged(false); if (fieldErrors.mobileNumber) setFieldErrors((current) => ({ ...current, mobileNumber: undefined })); }} /></FormField>
+      <FormField label={t('create.rate')} optional helperText={t('create.rateHelp')} error={fieldErrors.dailyRate}><Input accessibilityLabel={t('create.rateA11y')} invalid={Boolean(fieldErrors.dailyRate)} keyboardType="decimal-pad" value={form.dailyRate} onChangeText={(dailyRate) => { setForm({ ...form, dailyRate }); if (fieldErrors.dailyRate) setFieldErrors((current) => ({ ...current, dailyRate: undefined })); }} /></FormField>
       {duplicates.length ? <Card variant="blueprint" style={styles.duplicates}><AppText style={styles.name} weight={700}>{t('create.duplicatesTitle')}</AppText>{duplicates.map((candidate) => <AppText key={candidate.id} style={styles.body}>{candidate.workerCode} · {candidate.name} · {candidate.trade}</AppText>)}<Pressable accessibilityRole="checkbox" accessibilityState={{ checked: acknowledged }} style={[styles.acknowledge, acknowledged && styles.acknowledgeSelected]} onPress={() => setAcknowledged((current) => !current)}><AppIcon name={acknowledged ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={22} color={acknowledged ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} /><AppText style={[styles.body, acknowledged && styles.acknowledgeText]} weight={500}>{t('create.continue')}</AppText></Pressable></Card> : null}
     </BottomSheet>
   );
-}
-
-function isDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
 function isNetworkFailure(error: unknown) {

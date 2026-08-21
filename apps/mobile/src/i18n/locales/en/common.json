@@ -15,6 +15,20 @@
     "required": "required",
     "optional": "Optional"
   },
+  "validation": {
+    "required": "{{field}} is required.",
+    "email": "Enter a valid email address.",
+    "phone": "Enter a valid mobile number with 10 to 15 digits.",
+    "number": "Enter a valid non-negative amount with up to 2 decimal places.",
+    "date": "Choose a valid date.",
+    "endBeforeStart": "End date cannot be before start date."
+  },
+  "date": {
+    "select": "Select date",
+    "clear": "Clear date",
+    "cancel": "Cancel",
+    "selectAction": "Select"
+  },
   "progress": {
     "done": "Done"
   },
