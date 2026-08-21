@@ -1,4 +1,5 @@
 export type {
+  AttendanceStatus,
   ErrorCode,
   FoundationPermissionKey,
   InvitationStatus,
@@ -26,7 +27,13 @@ export type {
   WorkerPermissionKey,
   WorkerSortKey,
   WorkerStatus,
-} from '../constants';
+  WageBatchStatus,
+  WagePaymentMethod,
+  WagePaymentStatus,
+  WagePermissionKey,
+} from "../constants";
 
-export * from './workers';
-export * from './onboarding';
+export * from "./attendance";
+export * from "./workers";
+export * from "./onboarding";
+export * from "./wages";

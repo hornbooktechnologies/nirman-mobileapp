@@ -1,23 +1,25 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { RolesModule } from './modules/roles/roles.module';
-import { SettingsModule } from './modules/settings/settings.module';
-import { UploadModule } from './modules/upload/upload.module';
-import { OrganizationsModule } from './modules/organizations/organizations.module';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { WorkersModule } from './modules/workers/workers.module';
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { DatabaseModule } from "./database/database.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { UsersModule } from "./modules/users/users.module";
+import { RolesModule } from "./modules/roles/roles.module";
+import { SettingsModule } from "./modules/settings/settings.module";
+import { UploadModule } from "./modules/upload/upload.module";
+import { OrganizationsModule } from "./modules/organizations/organizations.module";
+import { ProjectsModule } from "./modules/projects/projects.module";
+import { WorkersModule } from "./modules/workers/workers.module";
+import { AttendanceModule } from "./modules/attendance/attendance.module";
+import { WagesModule } from "./modules/wages/wages.module";
+import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../../.env'],
+      envFilePath: [".env", "../../.env"],
     }),
     DatabaseModule,
     AuthModule,
@@ -28,6 +30,8 @@ import { AppService } from './app.service';
     OrganizationsModule,
     ProjectsModule,
     WorkersModule,
+    AttendanceModule,
+    WagesModule,
     SubscriptionsModule,
   ],
   controllers: [AppController],
