@@ -11,6 +11,8 @@ export type CustomerRoute =
   | '/(app)/dashboard'
   | '/(app)/project-detail'
   | '/(app)/workers'
+  | '/(app)/attendance'
+  | '/(app)/wages'
   | '/(app)/team'
   | '/(app)/members'
   | '/(app)/menu';
@@ -26,17 +28,14 @@ export type CustomerNavigationItem = {
   permissionsAny?: readonly PermissionKey[];
 };
 
-type CustomerNavigationDefinition = Omit<CustomerNavigationItem, 'label' | 'title' | 'description'> & {
-  labelKey: 'tabs.home' | 'tabs.team' | 'tabs.project' | 'tabs.members' | 'tabs.menu';
-  titleKey: 'items.home.title' | 'items.team.title' | 'items.project.title' | 'items.members.title' | 'items.menu.title';
-  descriptionKey: 'items.home.description' | 'items.team.description' | 'items.project.description' | 'items.members.description' | 'items.menu.description';
-};
-
-const customerNavigation: readonly CustomerNavigationDefinition[] = [
-  { key: 'home', labelKey: 'tabs.home', titleKey: 'items.home.title', descriptionKey: 'items.home.description', icon: 'home-outline', href: '/(app)/dashboard' },
-  { key: 'team', labelKey: 'tabs.team', titleKey: 'items.team.title', descriptionKey: 'items.team.description', icon: 'account-group-outline', href: '/(app)/team', permissionsAny: ['project-members:read', 'workers:read'] },
-  { key: 'project', labelKey: 'tabs.project', titleKey: 'items.project.title', descriptionKey: 'items.project.description', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
-  { key: 'menu', labelKey: 'tabs.menu', titleKey: 'items.menu.title', descriptionKey: 'items.menu.description', icon: 'menu', href: '/(app)/menu' },
+const customerNavigation: readonly CustomerNavigationItem[] = [
+  { key: 'home', label: 'Home', title: 'Home', description: 'Your field command center', icon: 'home-outline', href: '/(app)/dashboard' },
+  { key: 'team', label: 'Team', title: 'Project Team', description: 'Roles and site assignments', icon: 'account-group-outline', href: '/(app)/team', permission: 'project-members:read' },
+  { key: 'project', label: 'Project', title: 'Selected Project', description: 'Site details and controls', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
+  { key: 'workers', label: 'Workers', title: 'Workers', description: 'Crew and allocations', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
+  { key: 'attendance', label: 'Attendance', title: 'Attendance', description: 'Daily worker presence', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
+  { key: 'wages', label: 'Wages', title: 'Wages', description: 'Pay workers', icon: 'cash-multiple', href: '/(app)/wages', permission: 'wages:read' },
+  { key: 'menu', label: 'Menu', title: 'Menu', description: 'Account and organization', icon: 'menu', href: '/(app)/menu' },
 ];
 
 const organizationNavigation: readonly CustomerNavigationDefinition[] = [
