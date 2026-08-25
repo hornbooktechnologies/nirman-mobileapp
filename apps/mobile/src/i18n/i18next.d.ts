@@ -1,6 +1,8 @@
 import 'i18next';
 
-import type { resources } from './resources';
+import type { namespaces, resources } from './resources';
+
+export type MobileI18nNamespace = (typeof namespaces)[number];
 
 declare module 'i18next' {
   interface CustomTypeOptions {

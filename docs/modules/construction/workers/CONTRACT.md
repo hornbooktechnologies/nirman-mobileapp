@@ -488,6 +488,23 @@ Retention:
 - No hard delete in MVP.
 - End assignment to preserve history.
 
+### Entity: Worker Primary Project Period
+
+Purpose: preserve the one effective primary Project assignment used by default Attendance for each Worker/date. This is a Workers allocation extension, not Calendar ownership.
+
+SQL table: `worker_primary_project_periods`.
+
+Fields: `id`, `organization_id`, `worker_id`, `worker_assignment_id`, `starts_on`, nullable `ends_on`, create/update actor and timestamps, and `ended_by`/`ended_at`.
+
+Rules:
+
+- A Worker may have overlapping assignments to multiple Projects.
+- Primary periods for the same Organization/Worker may not overlap, including open-ended periods.
+- The referenced assignment must belong to the same Organization/Worker and cover the complete primary period.
+- Creation/update uses a transaction and locks the Worker's relevant period rows before overlap validation.
+- History is changed only through effective-dated update/end operations; no mutable assignment `is_primary` flag is introduced.
+- Split-day Project allocation is deferred.
+
 ## F. Shared Application Contract
 
 Add to `packages/shared` during implementation:
@@ -520,6 +537,10 @@ Responses:
 - `WorkerSummary`
 - `WorkerDetail`
 - `WorkerProjectAssignmentSummary`
+- `WorkerPrimaryProjectPeriod`
+- `CreateWorkerPrimaryProjectPeriodInput`
+- `UpdateWorkerPrimaryProjectPeriodInput`
+- `EndWorkerPrimaryProjectPeriodInput`
 - `ProjectWorkerRosterItem`
 - `WorkerListResponse`
 - `ProjectWorkerRosterResponse`
@@ -538,6 +559,10 @@ Error codes:
 - `WORKER_RATE_CHANGE_ELEVATED_PERMISSION_REQUIRED`
 - `WORKER_HAS_HISTORY`
 - `WORKER_PROJECT_ACCESS_REQUIRED`
+- `WORKER_PRIMARY_PERIOD_NOT_FOUND`
+- `WORKER_PRIMARY_PERIOD_OVERLAP`
+- `WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT`
+- `WORKER_PRIMARY_PERIOD_PROJECT_ACCESS_REQUIRED`
 
 State commands:
 
@@ -546,6 +571,9 @@ State commands:
 - `updateWorkerProjectAssignment`
 - `updateWorkerAssignmentRate`
 - `endWorkerProjectAssignment`
+- `createWorkerPrimaryProjectPeriod`
+- `updateWorkerPrimaryProjectPeriod`
+- `endWorkerPrimaryProjectPeriod`
 
 ## G. API Contract
 
@@ -648,6 +676,26 @@ All routes are under `/api/v1`.
 - Permission: `workers:create`
 - Query: `name`, `mobileNumber`
 - Response: similar existing workers.
+
+### Primary Project Periods
+
+- `GET /organizations/:organizationId/workers/:workerId/primary-project-periods`
+  - Permission: `workers:read`; response is `WorkerPrimaryProjectPeriod[]`.
+  - Non-Organization-wide users may see periods only when they can access the referenced Projects.
+- `POST /organizations/:organizationId/workers/:workerId/primary-project-periods`
+  - Permission: `workers:assign-project` plus access to the assignment's Project.
+  - Body: `{ workerAssignmentId, startsOn, endsOn? }`.
+  - Response: `WorkerPrimaryProjectPeriod`.
+- `PATCH /organizations/:organizationId/workers/:workerId/primary-project-periods/:periodId`
+  - Permission: `workers:assign-project` plus access to both the existing and resulting assignment Projects.
+  - Body: `{ workerAssignmentId?, startsOn?, endsOn? }`.
+  - Response: `WorkerPrimaryProjectPeriod`.
+- `POST /organizations/:organizationId/workers/:workerId/primary-project-periods/:periodId/end`
+  - Permission: `workers:assign-project` plus access to the referenced Project.
+  - Body: `{ endsOn }`.
+  - Response: `WorkerPrimaryProjectPeriod` with end actor/time retained.
+
+Stable failures are `WORKER_PRIMARY_PERIOD_NOT_FOUND`, `WORKER_PRIMARY_PERIOD_OVERLAP`, `WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT`, and `WORKER_PRIMARY_PERIOD_PROJECT_ACCESS_REQUIRED`.
 
 ## H. Web-Admin Experience
 

@@ -9,6 +9,7 @@
   "actions": {
     "retry": "Retry",
     "close": "Close",
+    "cancel": "Cancel",
     "back": "Back"
   },
   "form": {

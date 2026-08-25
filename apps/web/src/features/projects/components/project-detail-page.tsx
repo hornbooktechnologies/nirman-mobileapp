@@ -86,7 +86,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push(`/projects/${projectId}/attendance`)}
+                onClick={() => router.push(`/attendance?projectId=${projectId}`)}
                 disabled={!organizationId || !hasPermission("attendance:read")}
               >
                 <CalendarCheck size={16} />

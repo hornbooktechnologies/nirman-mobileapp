@@ -33,10 +33,11 @@ const projectStatusTranslationKeys = {
 type ProjectContextCardProps = {
   compact?: boolean;
   featured?: boolean;
+  showSwitchAction?: boolean;
   onOpenProject?: () => void;
 };
 
-export function ProjectContextCard({ compact = false, featured = false, onOpenProject }: ProjectContextCardProps) {
+export function ProjectContextCard({ compact = false, featured = false, showSwitchAction = false, onOpenProject }: ProjectContextCardProps) {
   const { t } = useTranslation('home');
   const { session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
@@ -139,12 +140,19 @@ export function ProjectContextCard({ compact = false, featured = false, onOpenPr
               <AppText style={styles.organization} numberOfLines={1} weight={500}>
                 {organizationName}
               </AppText>
-              <AppText style={styles.project} numberOfLines={1} weight={700}>
+              <AppText style={styles.project} numberOfLines={2} weight={700}>
                 {projectName}
               </AppText>
             </View>
             {canSwitch ? (
-              <AppIcon color={mobileTheme.color.text.primary} name="chevron-down" size={mobileTheme.icon.sm} />
+              showSwitchAction ? (
+                <View style={styles.compactSwitchAction}>
+                  <AppIcon color={mobileTheme.color.text.brand} name="swap-horizontal" size={mobileTheme.icon.sm} />
+                  <AppText style={styles.compactSwitchLabel} weight={600}>{t('projectContext.switch')}</AppText>
+                </View>
+              ) : (
+                <AppIcon color={mobileTheme.color.text.primary} name="chevron-down" size={mobileTheme.icon.sm} />
+              )
             ) : null}
           </View>
           {!compact ? (
@@ -344,6 +352,16 @@ const styles = StyleSheet.create({
   cardText: {
     flex: 1,
     gap: mobileTheme.spacing[1],
+  },
+  compactSwitchAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: mobileTheme.spacing[1],
+    minHeight: 48,
+  },
+  compactSwitchLabel: {
+    ...mobileText.label,
+    color: mobileTheme.color.text.brand,
   },
   organization: {
     ...mobileText.caption,

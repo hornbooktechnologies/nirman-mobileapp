@@ -13,6 +13,7 @@ export const PERMISSION_RESOURCES = [
   "projects",
   "project-members",
   "workers",
+  "work-calendar",
   "attendance",
   "wages",
   "settings",
@@ -46,6 +47,8 @@ export const PERMISSION_ACTIONS = [
   "export",
   "update-rate",
   "correct-locked",
+  "update-organization",
+  "update-project",
   "access",
   "impersonate",
 ] as const;
@@ -69,6 +72,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   projects: "Projects",
   "project-members": "Project Members",
   workers: "Workers",
+  "work-calendar": "Work Calendar",
   attendance: "Attendance",
   wages: "Wages",
   settings: "Settings",
@@ -206,6 +210,15 @@ export const WORKER_PERMISSIONS = [
 
 export type WorkerPermissionKey = (typeof WORKER_PERMISSIONS)[number];
 
+export const WORK_CALENDAR_PERMISSIONS = [
+  "work-calendar:read",
+  "work-calendar:update-organization",
+  "work-calendar:update-project",
+] as const satisfies readonly PermissionKey[];
+
+export type WorkCalendarPermissionKey =
+  (typeof WORK_CALENDAR_PERMISSIONS)[number];
+
 export const ATTENDANCE_PERMISSIONS = [
   "attendance:read",
   "attendance:mark",
@@ -241,6 +254,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   "project-members:update",
   "project-members:unassign",
   ...WORKER_PERMISSIONS,
+  ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
@@ -275,6 +289,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     permissions: WORKER_PERMISSIONS,
   },
   {
+    key: "WORK_CALENDAR",
+    label: "Work Calendar",
+    permissions: WORK_CALENDAR_PERMISSIONS,
+  },
+  {
     key: "ATTENDANCE",
     label: "Attendance",
     permissions: ATTENDANCE_PERMISSIONS,
@@ -299,6 +318,7 @@ export const ALL_PERMISSIONS = [
   ...FOUNDATION_PERMISSIONS,
   ...LEGACY_USER_MANAGEMENT_PERMISSIONS,
   ...WORKER_PERMISSIONS,
+  ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
@@ -383,6 +403,11 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
     "Change worker assignment rates after attendance exists.",
   "workers:deactivate": "Deactivate workers.",
   "workers:export": "Export worker lists.",
+
+  "work-calendar:read": "Read Organization and effective Project calendars.",
+  "work-calendar:update-organization":
+    "Configure the Organization working week and Organization overrides.",
+  "work-calendar:update-project": "Manage Project calendar overrides.",
 
   "attendance:read": "Read project attendance records.",
   "attendance:mark": "Mark attendance for assigned projects.",

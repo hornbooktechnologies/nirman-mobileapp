@@ -104,7 +104,10 @@
   "permissionGroup": {
     "PROJECT": "प्रोजेक्ट",
     "TEAM": "टीम",
-    "WORKERS": "श्रमिक"
+    "WORKERS": "कामगार",
+    "WORK_CALENDAR": "कार्य कैलेंडर",
+    "ATTENDANCE": "हाज़िरी",
+    "WAGES": "मज़दूरी"
   },
   "permissionAction": {
     "read": "देखें",
@@ -116,7 +119,13 @@
     "assign-project": "प्रोजेक्ट में नियुक्त करें",
     "update-rate": "दर अपडेट करें",
     "deactivate": "निष्क्रिय करें",
-    "export": "निर्यात करें"
+    "export": "निर्यात करें",
+    "mark": "हाज़िरी दर्ज करें",
+    "correct-locked": "लॉक हाज़िरी सुधारें",
+    "generate": "बनाएँ",
+    "mark-paid": "भुगतान दर्ज करें",
+    "update-organization": "संगठन कैलेंडर अपडेट करें",
+    "update-project": "प्रोजेक्ट कैलेंडर अपडेट करें"
   },
   "errors": {
     "load": "प्रोजेक्ट टीम लोड नहीं हो सकी",

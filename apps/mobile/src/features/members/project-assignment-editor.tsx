@@ -22,6 +22,12 @@ const permissionActionTranslationKeys = {
   'update-rate': 'permissionAction.update-rate',
   deactivate: 'permissionAction.deactivate',
   export: 'permissionAction.export',
+  mark: 'permissionAction.mark',
+  'correct-locked': 'permissionAction.correct-locked',
+  generate: 'permissionAction.generate',
+  'mark-paid': 'permissionAction.mark-paid',
+  'update-organization': 'permissionAction.update-organization',
+  'update-project': 'permissionAction.update-project',
 } as const;
 
 export type ProjectAssignmentDraft = {

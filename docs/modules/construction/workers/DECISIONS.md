@@ -1,5 +1,17 @@
 # Workers Decisions
 
+## 2026-08-21: Effective-Dated Primary Project Allocation
+
+- A Worker may have date-overlapping assignments to multiple Projects.
+- Exactly one assignment may be primary for a Worker/date; default Attendance derives only for that Project.
+- Primary ownership is stored as effective-dated `worker_primary_project_periods`, not a mutable `is_primary` flag.
+- Every period must stay within its referenced assignment window and Organization/Worker ownership.
+- The API locks the Worker's relevant periods and rejects overlap transactionally.
+- Split-day allocation across Projects is deferred.
+- This is a Workers allocation extension. Calendar and Attendance consume it but do not own it.
+
+> Status: approved by the Calendar and Attendance exception-model plan.
+
 ## 2026-08-17: Row Assignment And Worker-Level Rate
 
 - The Project Team Workers tab lists active Organization workers, including assigned and unassigned workers.

@@ -12,6 +12,14 @@
     "AUTH_SESSION_REQUIRED": "आपका सत्र समाप्त हो गया है। फिर से साइन इन करें।",
     "PERMISSION_DENIED": "आपको यह करने की अनुमति नहीं है।",
     "VALIDATION_FAILED": "दर्ज की गई जानकारी जाँचकर फिर प्रयास करें।",
-    "SERVER_ERROR": "NirmanSite अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर प्रयास करें।"
+    "SERVER_ERROR": "NirmanSite अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर प्रयास करें।",
+    "ATTENDANCE_EXCEPTION_DUPLICATE": "इस कामगार और तारीख के लिए हाज़िरी अपवाद पहले से है। रीफ़्रेश करके उसी को संपादित करें।",
+    "ATTENDANCE_NON_WORKING_DATE": "यह गैर-कार्य दिवस है, इसलिए अनुपस्थिति दर्ज नहीं की जा सकती।",
+    "ATTENDANCE_PRIMARY_PROJECT_REQUIRED": "इस तारीख पर यह कामगार का प्राथमिक प्रोजेक्ट नहीं है।",
+    "ATTENDANCE_WORKER_NOT_ASSIGNED": "इस तारीख पर कामगार इस प्रोजेक्ट में आवंटित नहीं है।",
+    "WORK_CALENDAR_NOT_CONFIGURED": "यह तारीख उपयोग करने से पहले संगठन का कार्य सप्ताह सेट करें।",
+    "WORK_CALENDAR_DATE_RANGE_INVALID": "शुरू और समाप्ति की तारीख जाँचें।",
+    "WORK_CALENDAR_OVERRIDE_CONFLICT": "यह तारीख सीमा इसी स्तर के दूसरे सक्रिय अपवाद से टकराती है।",
+    "WORK_CALENDAR_TIMEZONE_INVALID": "Asia/Kolkata जैसा मान्य IANA समय क्षेत्र दर्ज करें।"
   }
 }

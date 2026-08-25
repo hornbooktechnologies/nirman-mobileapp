@@ -1,5 +1,27 @@
 # Current Task
 
+## Calendar And Attendance Implementation Status
+
+The sequential Calendar and Attendance exception-model redesign is documented in `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`.
+
+Slices A0, A1, B, C, and C2 are complete. Mobile Attendance now separates period summary at `/(app)/attendance`, daily exception marking at `/(app)/attendance-mark`, and exact Worker history at `/(app)/worker-attendance`; Mobile Work Calendar remains a separate protected route. Derived Present, Full-day/Half-day exception-only writes, selected-Project context, `FlatList`, failed-input retention, permission states, and en/hi/gu remain intact. Slice D compatibility cleanup remains optional after client acceptance and requires separate authorization. Do not start Wages, migration/seed execution, offline sync, or compatibility cleanup from this status.
+
+Slice C2 passed 11-namespace en/hi/gu locale parity, shared build, Mobile type-check, Android Expo export, and `git diff --check`. The export produced one 3.89 MB Hermes bundle with the bundled Manrope, Noto Sans Devanagari, and Noto Sans Gujarati assets. Authenticated API mutation, emulator/physical-device behavior, screen reader, largest text, keyboard avoidance, touch-target measurement, rotation/tablet, and fluent Hindi/Gujarati acceptance remain unrun and must not be inferred from static evidence. Slice C2 changed no API, shared-contract source, database, migration, seed, dependency, Web, Work Calendar, Wages, offline-sync, or compatibility-cleanup behavior.
+
+Slice B added canonical `/attendance` and `/work-calendar`, redirected the old Project Attendance route, removed deprecated Web Attendance calls, implemented exception and Calendar override management, and passed shared build, Web type-check, focused changed-file lint, Web production build, and `git diff --check`. Package-wide Web lint remains blocked by three inherited `react-hooks/set-state-in-effect` errors outside the new feature files. Authenticated browser verification and automated Web tests were not run.
+
+The 2026-08-24 Web refinement made `/attendance` period-summary-only, added `/attendance/mark` for daily absence entry, added a Worker Attendance tab for exact dated absence details, and added the canonical worker-period read endpoint. Shared build, API type-check, all 18 API Jest suites/90 tests, Web type-check, focused Web lint, Web production build, and `git diff --check` passed. Runtime probes established route registration and HTTP availability only; authenticated absence mutation, responsive browser, and accessibility acceptance remain unrun. No Mobile source was changed by that refinement.
+
+The weekly-pattern contract mismatch is resolved. Uppercase `WorkingWeek` keys are canonical in shared, API DTO validation, service, repository, Web, and Mobile. All seven Boolean weekday values are required, lowercase-only payloads are rejected, and Mobile offers explicit Sunday-off, no-fixed-off, and custom choices without assuming Sunday.
+
+Slice A0 reconciled `MVP_REQUIREMENTS.md` section 12, the Attendance contract, the new separate Calendar contract, Workers allocation ownership, and the module index. No unresolved contradiction remains about derived Present, Calendar precedence, effective-dated primary Project ownership, offline exclusion, or Wages safety.
+
+Slice A1 added shared Calendar/Attendance contracts and permissions, proposed migration `009_calendar_attendance_exception_model.sql` plus a read-only preflight, implemented Calendar APIs, effective-dated Workers primary-project periods, Attendance exception summary/CRUD/export and compatibility adapters, selected-date roster filtering, and the Wages calculation safety gate. Shared build, API type-check, all 16 API Jest suites (76 tests), and `git diff --check` passed.
+
+The final Attendance summary contract has no separate Half Day count. `presentDays` and `absentDays` are decimal day equivalents: a Half Day contributes `0.5` to each, so their sum equals `expectedWorkingDays`. The stored `ABSENCE + HALF_DAY` exception and selected-date `HALF_DAY` display state remain unchanged.
+
+Slice C verification passed for 11-namespace en/hi/gu locale parity, shared build, Mobile type-check, Android Expo export, and `git diff --check`. Local API health reported app/database `ok`, but no authenticated Attendance/Calendar integration test ran. Emulator, physical-device, screen-reader, large-text, keyboard, responsive/rotation, and fluent Hindi/Gujarati checks remain unrun. Slice C itself did not execute migration `009`, its preflight, or the seed; current database status must come from a fresh guarded status check rather than this historical evidence. The existing user-owned `pnpm-lock.yaml` modification remains untouched.
+
 ## Objective
 
 Implement the approved Organization Members, Project Team, Project permission matrix, Builder Supervisor, operational Contractor, subscription-capacity, and mobile access foundations without conflating commercial plans, roles, Project scope, or workflow responsibility.

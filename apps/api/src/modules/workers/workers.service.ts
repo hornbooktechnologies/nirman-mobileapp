@@ -16,6 +16,11 @@ import { QueryWorkerDto } from "./dto/query-worker.dto";
 import { UpdateWorkerAssignmentDto } from "./dto/update-worker-assignment.dto";
 import { UpdateWorkerRateDto } from "./dto/update-worker-rate.dto";
 import { UpdateWorkerDto } from "./dto/update-worker.dto";
+import {
+  CreatePrimaryProjectPeriodDto,
+  EndPrimaryProjectPeriodDto,
+  UpdatePrimaryProjectPeriodDto,
+} from "./dto/primary-project-period.dto";
 import { WorkersRepository } from "./workers.repository";
 
 @Injectable()
@@ -468,6 +473,77 @@ export class WorkersService {
     return assignment;
   }
 
+  async findPrimaryProjectPeriods(
+    organizationId: string,
+    workerId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const access = await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "workers:read",
+    );
+    const worker = await this.workersRepo.findById(organizationId, workerId);
+    if (!worker) throw new NotFoundException(this.error("WORKER_NOT_FOUND", "Worker not found"));
+    return this.workersRepo.findPrimaryProjectPeriods(
+      organizationId,
+      workerId,
+      access.organizationWideProjectAccess ? undefined : access.membership.id,
+    );
+  }
+
+  async createPrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    dto: CreatePrimaryProjectPeriodDto,
+    actor: AuthenticatedUser,
+  ) {
+    this.validateAssignmentDates(dto.startsOn, dto.endsOn);
+    const assignment = await this.workersRepo.findAssignmentById(organizationId, workerId, dto.workerAssignmentId);
+    if (!assignment) throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
+    await this.projectAccess.resolveProjectAccess(actor, organizationId, assignment.projectId, "workers:assign-project");
+    return this.translatePrimaryPeriodError(() =>
+      this.workersRepo.createPrimaryProjectPeriod(organizationId, workerId, dto, actor.id),
+    );
+  }
+
+  async updatePrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    periodId: string,
+    dto: UpdatePrimaryProjectPeriodDto,
+    actor: AuthenticatedUser,
+  ) {
+    const current = await this.workersRepo.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    if (!current) throw this.primaryPeriodNotFound();
+    await this.projectAccess.resolveProjectAccess(actor, organizationId, current.projectId, "workers:assign-project");
+    if (dto.workerAssignmentId && dto.workerAssignmentId !== current.workerAssignmentId) {
+      const target = await this.workersRepo.findAssignmentById(organizationId, workerId, dto.workerAssignmentId);
+      if (!target) throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
+      await this.projectAccess.resolveProjectAccess(actor, organizationId, target.projectId, "workers:assign-project");
+    }
+    this.validateAssignmentDates(dto.startsOn ?? current.startsOn, dto.endsOn === undefined ? current.endsOn : dto.endsOn);
+    return this.translatePrimaryPeriodError(() =>
+      this.workersRepo.updatePrimaryProjectPeriod(organizationId, workerId, periodId, dto, actor.id),
+    );
+  }
+
+  async endPrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    periodId: string,
+    dto: EndPrimaryProjectPeriodDto,
+    actor: AuthenticatedUser,
+  ) {
+    const current = await this.workersRepo.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    if (!current) throw this.primaryPeriodNotFound();
+    await this.projectAccess.resolveProjectAccess(actor, organizationId, current.projectId, "workers:assign-project");
+    this.validateAssignmentDates(current.startsOn, dto.endsOn);
+    return this.translatePrimaryPeriodError(() =>
+      this.workersRepo.endPrimaryProjectPeriod(organizationId, workerId, periodId, dto.endsOn, actor.id),
+    );
+  }
+
   async duplicateCandidates(
     organizationId: string,
     name: string | undefined,
@@ -555,6 +631,32 @@ export class WorkersService {
     details: Record<string, unknown> = {},
   ) {
     return { code, message, details };
+  }
+
+  private async translatePrimaryPeriodError<T>(operation: () => Promise<T>) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      if (error.message === "WORKER_PRIMARY_PERIOD_OVERLAP") {
+        throw new ConflictException(this.error("WORKER_PRIMARY_PERIOD_OVERLAP", "Primary Project period overlaps another period for this Worker"));
+      }
+      if (error.message === "WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT") {
+        throw new BadRequestException(this.error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT", "Primary Project period must stay within the assignment date window"));
+      }
+      if (error.message === "WORKER_PRIMARY_PERIOD_NOT_FOUND") throw this.primaryPeriodNotFound();
+      if (error.message === "WORKER_ASSIGNMENT_NOT_FOUND") {
+        throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
+      }
+      if (error.message === "WORKER_NOT_FOUND") {
+        throw new NotFoundException(this.error("WORKER_NOT_FOUND", "Worker not found"));
+      }
+      throw error;
+    }
+  }
+
+  private primaryPeriodNotFound() {
+    return new NotFoundException(this.error("WORKER_PRIMARY_PERIOD_NOT_FOUND", "Worker primary Project period not found"));
   }
 
   private isWorkerCodeAllocationError(error: unknown) {

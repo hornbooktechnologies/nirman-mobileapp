@@ -12,6 +12,14 @@
     "AUTH_SESSION_REQUIRED": "Your session has expired. Sign in again.",
     "PERMISSION_DENIED": "You do not have permission to do this.",
     "VALIDATION_FAILED": "Check the entered information and try again.",
-    "SERVER_ERROR": "NirmanSite is temporarily unavailable. Try again shortly."
+    "SERVER_ERROR": "NirmanSite is temporarily unavailable. Try again shortly.",
+    "ATTENDANCE_EXCEPTION_DUPLICATE": "An attendance exception already exists for this worker and date. Refresh and edit it instead.",
+    "ATTENDANCE_NON_WORKING_DATE": "Absence cannot be recorded because this is a non-working date.",
+    "ATTENDANCE_PRIMARY_PROJECT_REQUIRED": "This Project is not the worker's primary Project for that date.",
+    "ATTENDANCE_WORKER_NOT_ASSIGNED": "The worker is not assigned to this Project for that date.",
+    "WORK_CALENDAR_NOT_CONFIGURED": "Configure the Organization working week before using this date.",
+    "WORK_CALENDAR_DATE_RANGE_INVALID": "Check the start and end dates.",
+    "WORK_CALENDAR_OVERRIDE_CONFLICT": "This date range overlaps another active override at the same scope.",
+    "WORK_CALENDAR_TIMEZONE_INVALID": "Enter a valid IANA timezone, such as Asia/Kolkata."
   }
 }

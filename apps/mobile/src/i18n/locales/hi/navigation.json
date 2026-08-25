@@ -29,6 +29,10 @@
       "title": "संगठन के सदस्य",
       "description": "पहुँच, भूमिकाएँ और आमंत्रण"
     },
+    "workers": { "title": "कामगार", "description": "श्रम दल और आवंटन" },
+    "attendance": { "title": "हाज़िरी", "description": "कामगारों की उपस्थिति और अनुपस्थिति" },
+    "wages": { "title": "मज़दूरी", "description": "कामगारों का भुगतान" },
+    "calendar": { "title": "कार्य कैलेंडर", "description": "कार्य दिवस और साइट बंदी" },
     "menu": {
       "title": "मेन्यू",
       "description": "खाता और संगठन"

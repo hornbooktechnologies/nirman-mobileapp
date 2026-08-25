@@ -1,225 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarCheck, Check, Download, Search } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CalendarDays, ClipboardCheck, Download, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
-import { PermissionGuard } from "@/features/user-management/components/permission-guard";
+import type { AttendanceSummaryRow } from "@nirman-app/shared";
+import { Button, Card, Checkbox, EmptyState, Input, LoadingState, NotificationBanner, PageHeader, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useProjectWorkers } from "@/features/workers/hooks/use-workers";
-import { useAttendance, useSaveAttendance } from "@/features/attendance/hooks/use-attendance";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
+import { ApiError } from "@/lib/api/api-client";
 import { attendanceService } from "@/features/attendance/services/attendance.service";
-import type { AttendanceEntryInput, AttendanceRecord } from "@/features/attendance/types/attendance.types";
-import { ATTENDANCE_STATUSES, type AttendanceStatus } from "@nirman-app/shared";
+import { useAttendanceSummary } from "@/features/attendance/hooks/use-attendance";
 
-const today = () => {
-    const now = new Date();
-    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(0, 10);
-};
+const PAGE_SIZE = 20;
 
-const currentTime = () => {
-    const now = new Date();
-    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(11, 16);
-};
-
-const toTimeValue = (value: string | null | undefined) => {
-    if (!value) return "";
-    const timeValue = /^(\d{2}:\d{2})(?::\d{2})?$/.exec(value);
-    if (timeValue) return timeValue[1];
-    if (Number.isNaN(Date.parse(value))) return "";
-    const date = new Date(value);
-    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(11, 16);
-};
-
-const timeToSeconds = (value: string | null | undefined) => {
-    if (!value) return null;
-    const [hours, minutes, seconds = "0"] = value.split(":");
-    return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
-};
-
-const statusLabels: Record<AttendanceStatus, string> = {
-    PRESENT: "Present",
-    HALF_DAY: "Half day",
-    ABSENT: "Absent",
-    HOLIDAY: "Holiday",
-};
-
-function initialEntry(assignmentId: string, record?: AttendanceRecord): AttendanceEntryInput {
-    return {
-        workerAssignmentId: assignmentId,
-        status: record?.status ?? "PRESENT",
-        checkIn: record?.checkIn ?? null,
-        checkOut: record?.checkOut ?? null,
-        notes: record?.notes ?? null,
-    };
+function dateValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function AttendancePage({ projectId }: { projectId: string }) {
-    const { activeOrganizationId, hasPermission } = useAuth();
-    const organizationId = activeOrganizationId ?? "";
-    const [date, setDate] = useState(today);
-    const [defaultTime] = useState(currentTime);
-    const [search, setSearch] = useState("");
-    const [entries, setEntries] = useState<Record<string, AttendanceEntryInput>>({});
-    const roster = useProjectWorkers(organizationId, projectId, { pageSize: 100, assignmentScope: "ALL_ACTIVE", sortBy: "name", sortOrder: "asc" });
-    const attendance = useAttendance(organizationId, projectId, date);
-    const saveAttendance = useSaveAttendance(organizationId, projectId, date);
-    const canMark = hasPermission("attendance:mark");
-    const canRead = hasPermission("attendance:read");
-    const canExport = hasPermission("attendance:export");
-    const [isExporting, setIsExporting] = useState(false);
-    const [validationError, setValidationError] = useState("");
-
-    useEffect(() => {
-        if (!roster.data?.data) return;
-        const existing = new Map((attendance.data ?? []).map((record) => [record.workerAssignmentId, record]));
-        setEntries(Object.fromEntries(roster.data.data.map((worker) => [
-            worker.currentAssignment.id,
-            initialEntry(worker.currentAssignment.id, existing.get(worker.currentAssignment.id)),
-        ])));
-    }, [attendance.data, roster.data]);
-
-    const visibleWorkers = useMemo(() => {
-        const needle = search.trim().toLowerCase();
-        return (roster.data?.data ?? []).filter((worker) =>
-            !needle || worker.name.toLowerCase().includes(needle) || worker.trade.toLowerCase().includes(needle) || worker.workerCode.toLowerCase().includes(needle),
-        );
-    }, [roster.data?.data, search]);
-
-    function updateEntry(assignmentId: string, patch: Partial<AttendanceEntryInput>) {
-        setEntries((current) => ({ ...current, [assignmentId]: { ...current[assignmentId], ...patch } }));
-    }
-
-    function useDisplayedTime(assignmentId: string, field: "checkIn" | "checkOut") {
-        setEntries((current) => {
-            const entry = current[assignmentId] ?? initialEntry(assignmentId);
-            if (entry[field]) return current;
-            return { ...current, [assignmentId]: { ...entry, [field]: defaultTime } };
-        });
-    }
-
-    function markAllPresent() {
-        setEntries((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, { ...entry, status: "PRESENT" }])));
-    }
-
-    async function save() {
-        setValidationError("");
-        const invalidRange = Object.values(entries).find((entry) => {
-            const checkIn = timeToSeconds(entry.checkIn);
-            const checkOut = timeToSeconds(entry.checkOut);
-            return checkIn !== null && checkOut !== null && checkOut < checkIn;
-        });
-        if (invalidRange) {
-            setValidationError("Check-out time cannot be before check-in time.");
-            return;
-        }
-        await saveAttendance.mutateAsync(Object.values(entries));
-    }
-
-    async function exportAttendance() {
-        if (!organizationId) return;
-        setIsExporting(true);
-        try {
-            const csv = await attendanceService.exportCsv(organizationId, projectId, date);
-            const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `attendance-${projectId}-${date}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-        } finally {
-            setIsExporting(false);
-        }
-    }
-
-    return (
-        <PermissionGuard permission="attendance:read">
-            <div className="space-y-4 pb-8">
-                <PageHeader
-                    title="Attendance"
-                    description="Record the daily status of workers assigned to this project."
-                    onBack={() => window.history.back()}
-                    actions={
-                        <div className="flex flex-wrap gap-2">
-                            <Link href={`/projects/${projectId}`}><Button variant="outline">Project</Button></Link>
-                            {canExport ? <Button onClick={exportAttendance} disabled={isExporting} variant="outline"><Download size={16} /> {isExporting ? "Exporting" : "Export"}</Button> : null}
-                            {canMark ? <Button onClick={markAllPresent} variant="outline"><Check size={16} /> Mark all present</Button> : null}
-                        </div>
-                    }
-                />
-
-                <Card className="space-y-4">
-                    <div className="flex flex-wrap items-end justify-between gap-3">
-                        <label className="grid gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-sub">
-                            Attendance date
-                            <Input
-                                className="min-w-[180px]"
-                                type="date"
-                                max={today()}
-                                value={date}
-                                onChange={(event) => setDate(event.target.value || today())}
-                            />
-                        </label>
-                        <label className="relative w-full sm:w-72">
-                            <span className="sr-only">Search workers</span>
-                            <Search className="pointer-events-none absolute left-2.5 top-3.5 text-sub" size={16} />
-                            <Input className="w-full pl-8" type="search" placeholder="Search workers" value={search} onChange={(event) => setSearch(event.target.value)} />
-                        </label>
-                    </div>
-                    <div className="flex items-center justify-between text-[12px] text-sub">
-                        <span>{visibleWorkers.length} workers in this project</span>
-                        <span>{attendance.isFetching ? "Refreshing" : "Project scoped"}</span>
-                    </div>
-                </Card>
-
-                {!organizationId ? <Card>No active organization is available.</Card> : attendance.isError || roster.isError ? <Card className="text-red-600">Unable to load attendance or project workers.</Card> : roster.isLoading || attendance.isLoading ? <Card>Loading attendance</Card> : !visibleWorkers.length ? <Card className="py-12 text-center"><CalendarCheck className="mx-auto mb-3 text-sub" size={28} /><p className="font-semibold text-body">No assigned workers found</p><p className="mt-1 text-[13px] text-sub">Assign workers to this project before marking attendance.</p></Card> : (
-                    <Card className="overflow-hidden p-0">
-                        <div className="hidden grid-cols-[minmax(180px,1.4fr)_140px_180px_180px_minmax(160px,1fr)] gap-3 border-b border-hairline bg-sunken px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-sub md:grid">
-                            <span>Worker</span><span>Status</span><span>Check in</span><span>Check out</span><span>Notes</span>
-                        </div>
-                        <div className="divide-y divide-hairline">
-                            {visibleWorkers.map((worker) => {
-                                const assignmentId = worker.currentAssignment.id;
-                                const entry = entries[assignmentId] ?? initialEntry(assignmentId);
-                                return (
-                                    <div className="grid gap-3 px-4 py-4 md:grid-cols-[minmax(180px,1.4fr)_140px_180px_180px_minmax(160px,1fr)] md:items-center md:px-5" key={assignmentId}>
-                                        <div className="min-w-0">
-                                            <p className="truncate font-semibold text-body">{worker.name}</p>
-                                            <p className="text-[12px] text-sub">{worker.workerCode} · {worker.trade}</p>
-                                        </div>
-                                        <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sub">
-                                            <span className="md:hidden">Status</span>
-                                            <Select className="min-h-9 !text-[12px] !font-semibold" disabled={!canMark} value={entry.status} onChange={(event) => updateEntry(assignmentId, { status: event.target.value as AttendanceStatus })}>
-                                                {ATTENDANCE_STATUSES.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-                                            </Select>
-                                        </label>
-                                        <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sub">
-                                            <span className="md:hidden">Check in</span>
-                                            <Input className="min-h-9 !text-[12px]" disabled={!canMark} type="time" value={toTimeValue(entry.checkIn) || defaultTime} onFocus={() => useDisplayedTime(assignmentId, "checkIn")} onChange={(event) => updateEntry(assignmentId, { checkIn: event.target.value || null })} />
-                                        </label>
-                                        <label className="grid gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-sub">
-                                            <span className="md:hidden">Check out</span>
-                                            <Input className="min-h-9 !text-[12px]" disabled={!canMark} type="time" value={toTimeValue(entry.checkOut) || defaultTime} onFocus={() => useDisplayedTime(assignmentId, "checkOut")} onChange={(event) => updateEntry(assignmentId, { checkOut: event.target.value || null })} />
-                                        </label>
-                                        <Input className="min-h-9 !h-9 !text-[11px]" disabled={!canMark} placeholder="Optional note" value={entry.notes ?? ""} onChange={(event) => updateEntry(assignmentId, { notes: event.target.value || null })} />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </Card>
-                )}
-
-                {canMark && visibleWorkers.length ? <div className="flex justify-end"><Button onClick={save} disabled={saveAttendance.isPending}>{saveAttendance.isPending ? "Saving attendance" : "Save attendance"}</Button></div> : null}
-                {!canMark && canRead ? <Card className="text-[13px] text-sub">You have read-only attendance access. An authorised project member must save changes.</Card> : null}
-                {validationError ? <p className="text-[13px] text-red-600">{validationError}</p> : null}
-                {saveAttendance.isError ? <p className="text-[13px] text-red-600">Unable to save attendance. Check your project access and try again.</p> : null}
-                {saveAttendance.isSuccess ? <p className="text-[13px] text-success">Attendance saved for {date}.</p> : null}
-            </div>
-        </PermissionGuard>
-    );
+function monthRange(month: string) {
+  const [year, value] = month.split("-").map(Number);
+  const last = new Date(year, value, 0).getDate();
+  return { startDate: `${month}-01`, endDate: `${month}-${String(last).padStart(2, "0")}` };
 }
+
+function errorMessage(error: unknown) {
+  return error instanceof ApiError ? error.message : "The request could not be completed. Check your connection and try again.";
+}
+
+export function AttendancePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { activeOrganizationId, hasPermission } = useAuth();
+  const access = useProjectAccess(activeOrganizationId);
+  const projects = useMemo(() => access.data?.projects ?? [], [access.data?.projects]);
+  const requestedProjectId = searchParams.get("projectId") ?? "";
+  const selectedProject = projects.find((project) => project.id === requestedProjectId) ?? null;
+  const projectId = selectedProject?.id ?? "";
+  const defaultRange = monthRange(dateValue().slice(0, 7));
+  const startDate = searchParams.get("startDate") ?? defaultRange.startDate;
+  const endDate = searchParams.get("endDate") ?? defaultRange.endDate;
+  const rawSearch = searchParams.get("search") ?? "";
+  const exceptionsOnly = searchParams.get("exceptionsOnly") === "true";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const [search, setSearch] = useState(rawSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(rawSearch);
+  const [success, setSuccess] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+
+  function replaceQuery(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
+    router.replace(`/attendance?${next.toString()}`);
+  }
+
+  useEffect(() => {
+    if (!access.isSuccess || projects.length === 0 || selectedProject) return;
+    const fallback = projects.find((project) => project.isDefault) ?? projects[0];
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("projectId", fallback.id);
+    router.replace(`/attendance?${next.toString()}`);
+  }, [access.isSuccess, projects, router, searchParams, selectedProject]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    if (debouncedSearch === rawSearch) return;
+    replaceQuery({ search: debouncedSearch || null, page: null });
+    // URL synchronization intentionally reacts to the debounced value only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  const query = useMemo(() => ({ startDate, endDate, search: debouncedSearch || undefined, exceptionsOnly: exceptionsOnly || undefined, page, pageSize: PAGE_SIZE }), [debouncedSearch, endDate, exceptionsOnly, page, startDate]);
+  const summary = useAttendanceSummary(activeOrganizationId, projectId, query);
+  const selectedPermissions: readonly string[] = selectedProject?.permissions ?? [];
+  const can = (permission: string) => hasPermission(permission) || selectedPermissions.includes(permission);
+  const canRead = can("attendance:read");
+  const canMark = can("attendance:mark");
+  const canExport = can("attendance:export");
+
+  async function exportPeriod() {
+    if (!activeOrganizationId || !projectId) return;
+    setIsExporting(true);
+    try {
+      const csv = await attendanceService.exportCsv(activeOrganizationId, projectId, startDate, endDate);
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `attendance-${projectId}-${startDate}-${endDate}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) { setSuccess(`Export failed. ${errorMessage(error)}`); }
+    finally { setIsExporting(false); }
+  }
+
+  const totals = summary.data?.totals;
+  return (
+    <div className="space-y-4 pb-8 text-base sm:text-[13px]">
+      <PageHeader title="Attendance" description="Review worker attendance totals for a selected period." actions={<div className="flex flex-wrap gap-2">{canMark ? <Link href={projectId ? `/attendance/mark?projectId=${projectId}` : "/attendance/mark"}><Button><ClipboardCheck size={16} aria-hidden="true" />Mark attendance</Button></Link> : null}<Link href={projectId ? `/work-calendar?projectId=${projectId}` : "/work-calendar"}><Button variant="outline"><CalendarDays size={16} aria-hidden="true" />Work Calendar</Button></Link>{canExport ? <Button variant="outline" onClick={exportPeriod} disabled={isExporting || !projectId}><Download size={16} aria-hidden="true" />{isExporting ? "Exporting" : "Export"}</Button> : null}</div>} />
+      {success ? <div aria-live="polite"><NotificationBanner variant={success.startsWith("Export failed") ? "danger" : "success"} title={success} onClose={() => setSuccess("")} /></div> : null}
+      {!activeOrganizationId ? <EmptyState title="No active organization" description="Select an organization before opening Attendance." /> : access.isLoading ? <LoadingState label="Loading accessible projects" /> : access.isError ? <NotificationBanner variant="danger" title="Projects could not be loaded" description="Retry to restore your accessible project list." action={<Button variant="outline" onClick={() => access.refetch()}>Retry</Button>} /> : projects.length === 0 ? <EmptyState title="No accessible projects" description="Attendance becomes available after you receive access to a project." /> : !selectedProject ? <LoadingState label="Selecting an accessible project" /> : !canRead ? <NotificationBanner variant="warning" title="Attendance access removed" description="Your permissions changed. Ask an administrator for attendance read access." /> : <AttendanceContent projectId={projectId} projects={projects} startDate={startDate} endDate={endDate} search={search} setSearch={setSearch} exceptionsOnly={exceptionsOnly} replaceQuery={replaceQuery} totals={totals} summary={summary} debouncedSearch={debouncedSearch} page={page} />}
+    </div>
+  );
+}
+
+type ProjectOption = { id: string; name: string; projectCode: string | null };
+function AttendanceContent({ projectId, projects, startDate, endDate, search, setSearch, exceptionsOnly, replaceQuery, totals, summary, debouncedSearch, page }: { projectId: string; projects: ProjectOption[]; startDate: string; endDate: string; search: string; setSearch: (value: string) => void; exceptionsOnly: boolean; replaceQuery: (updates: Record<string, string | null>) => void; totals?: { workers: number; expectedWorkingDays: number; presentDays: number; absentDays: number }; summary: ReturnType<typeof useAttendanceSummary>; debouncedSearch: string; page: number }) {
+  return <><Card padding="compact"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.2fr)_170px_170px_minmax(220px,1fr)_auto] xl:items-end"><label className="grid gap-1.5 font-semibold">Project<Select className="text-base sm:text-[13px]" value={projectId} onChange={(event) => replaceQuery({ projectId: event.target.value, page: null })}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}{project.projectCode ? ` · ${project.projectCode}` : ""}</option>)}</Select></label><label className="grid gap-1.5 font-semibold">Start date<Input className="text-base sm:text-[13px]" type="date" value={startDate} max={endDate} onChange={(event) => replaceQuery({ startDate: event.target.value, month: null, selectedDate: null, page: null })} /></label><label className="grid gap-1.5 font-semibold">End date<Input className="text-base sm:text-[13px]" type="date" value={endDate} min={startDate} onChange={(event) => replaceQuery({ endDate: event.target.value, month: null, selectedDate: null, page: null })} /></label><label className="grid gap-1.5 font-semibold">Search workers<span className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sub" size={16} aria-hidden="true" /><Input className="pl-9 text-base sm:text-[13px]" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, code or trade" /></span></label><Checkbox className="min-h-10" label="With exceptions only" checked={exceptionsOnly} onChange={(event) => replaceQuery({ exceptionsOnly: event.target.checked ? "true" : null, page: null })} /></div></Card>{totals ? <section aria-label="Attendance totals" className="grid grid-cols-2 gap-2 lg:grid-cols-4"><Metric label="Workers" value={totals.workers} /><Metric label="Expected worker-days" value={totals.expectedWorkingDays} /><Metric label="Present worker-days" value={totals.presentDays} /><Metric label="Absent worker-days" value={totals.absentDays} /></section> : null}{summary.isLoading ? <LoadingState label="Loading attendance summary" /> : summary.isError ? <NotificationBanner variant="danger" title="Attendance could not be loaded" description={errorMessage(summary.error)} action={<Button variant="outline" onClick={() => summary.refetch()}><RefreshCw size={15} aria-hidden="true" />Retry</Button>} /> : summary.data?.rows.length === 0 ? <EmptyState title={debouncedSearch || exceptionsOnly ? "No matching workers" : "No workers in this period"} description={debouncedSearch || exceptionsOnly ? "Clear or change the filters to see more workers." : "Workers appear after a primary project assignment covers the selected period."} /> : <WorkerList rows={summary.data?.rows ?? []} refreshing={summary.isFetching} projectId={projectId} startDate={startDate} endDate={endDate} />}{summary.data && summary.data.meta.totalPages > 1 ? <div className="flex items-center justify-between gap-3"><p className="text-sub">Page <span className="tabular-nums">{summary.data.meta.page}</span> of <span className="tabular-nums">{summary.data.meta.totalPages}</span></p><div className="flex gap-2"><Button variant="outline" disabled={page <= 1} onClick={() => replaceQuery({ page: String(page - 1) })}>Previous</Button><Button variant="outline" disabled={page >= summary.data.meta.totalPages} onClick={() => replaceQuery({ page: String(page + 1) })}>Next</Button></div></div> : null}</>;
+}
+
+function Metric({ label, value }: { label: string; value: number }) { return <Card padding="compact"><p className="text-[11px] font-bold uppercase tracking-wide text-sub">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></Card>; }
+function WorkerList({ rows, refreshing, projectId, startDate, endDate }: { rows: AttendanceSummaryRow[]; refreshing: boolean; projectId: string; startDate: string; endDate: string }) { const href = (workerId: string) => `/workers/${workerId}?tab=attendance&projectId=${projectId}&startDate=${startDate}&endDate=${endDate}`; return <section aria-label="Workers" aria-busy={refreshing} className="space-y-2"><p className="sr-only" aria-live="polite">{refreshing ? "Refreshing attendance" : "Attendance loaded"}</p><div className="hidden md:block"><Table><TableHeader><TableRow><TableHead>Worker</TableHead><TableHead className="text-right">Expected days</TableHead><TableHead className="text-right">Present days</TableHead><TableHead className="text-right">Absent days</TableHead><TableHead className="text-right">Action</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.workerAssignmentId}><TableCell><p className="font-semibold">{row.worker.name}</p><p className="text-[12px] text-sub">{row.worker.workerCode} · {row.worker.trade}</p></TableCell><TableCell className="text-right tabular-nums">{row.expectedWorkingDays}</TableCell><TableCell className="text-right tabular-nums">{row.presentDays}</TableCell><TableCell className="text-right tabular-nums">{row.absentDays}</TableCell><TableCell className="text-right"><Link href={href(row.worker.id)}><Button variant="outline">View details</Button></Link></TableCell></TableRow>)}</TableBody></Table></div><div className="grid gap-3 md:hidden">{rows.map((row) => <Card key={row.workerAssignmentId} padding="compact"><div><p className="font-semibold">{row.worker.name}</p><p className="text-sm text-sub">{row.worker.workerCode} · {row.worker.trade}</p></div><dl className="mt-4 grid grid-cols-3 gap-2 border-y border-hairline py-3 text-center"><MetricItem label="Expected" value={row.expectedWorkingDays} /><MetricItem label="Present" value={row.presentDays} /><MetricItem label="Absent" value={row.absentDays} /></dl><div className="mt-3 flex justify-end"><Link href={href(row.worker.id)}><Button variant="outline">View details</Button></Link></div></Card>)}</div></section>; }
+function MetricItem({ label, value }: { label: string; value: number }) { return <div><dt className="text-xs text-sub">{label}</dt><dd className="mt-1 font-semibold tabular-nums">{value}</dd></div>; }

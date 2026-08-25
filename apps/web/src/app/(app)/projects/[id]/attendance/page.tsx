@@ -1,4 +1,4 @@
-import { AttendancePage } from "@/features/attendance";
+import { redirect } from "next/navigation";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -6,5 +6,5 @@ interface PageProps {
 
 export default async function AttendanceRoute({ params }: PageProps) {
     const { id } = await params;
-    return <AttendancePage projectId={id} />;
+    redirect(`/attendance?projectId=${encodeURIComponent(id)}`);
 }

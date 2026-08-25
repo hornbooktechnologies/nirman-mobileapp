@@ -30,6 +30,39 @@ export type WorkerProjectAssignmentSummary = {
   endedAt: string | null;
 };
 
+export type WorkerPrimaryProjectPeriod = {
+  id: string;
+  organizationId: string;
+  workerId: string;
+  workerAssignmentId: string;
+  projectId: string;
+  projectName?: string | null;
+  startsOn: string;
+  endsOn: string | null;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  endedBy: string | null;
+  endedAt: string | null;
+};
+
+export type CreateWorkerPrimaryProjectPeriodInput = {
+  workerAssignmentId: string;
+  startsOn: string;
+  endsOn?: string | null;
+};
+
+export type UpdateWorkerPrimaryProjectPeriodInput = {
+  workerAssignmentId?: string;
+  startsOn?: string;
+  endsOn?: string | null;
+};
+
+export type EndWorkerPrimaryProjectPeriodInput = {
+  endsOn: string;
+};
+
 export type WorkerSummary = {
   id: string;
   organizationId: string;

@@ -104,7 +104,10 @@
   "permissionGroup": {
     "PROJECT": "Project",
     "TEAM": "Team",
-    "WORKERS": "Workers"
+    "WORKERS": "Workers",
+    "WORK_CALENDAR": "Work Calendar",
+    "ATTENDANCE": "Attendance",
+    "WAGES": "Wages"
   },
   "permissionAction": {
     "read": "Read",
@@ -116,7 +119,13 @@
     "assign-project": "Assign project",
     "update-rate": "Update rate",
     "deactivate": "Deactivate",
-    "export": "Export"
+    "export": "Export",
+    "mark": "Mark attendance",
+    "correct-locked": "Correct locked attendance",
+    "generate": "Generate",
+    "mark-paid": "Mark paid",
+    "update-organization": "Update Organization calendar",
+    "update-project": "Update Project calendar"
   },
   "errors": {
     "load": "Unable to load Project Team",

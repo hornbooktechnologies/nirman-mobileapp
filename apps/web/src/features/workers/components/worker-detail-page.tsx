@@ -11,12 +11,14 @@ import {
   Input,
   PageHeader,
   StatusBadge,
+  TabButton,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  Tabs,
 } from "@/components/ui";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
@@ -25,6 +27,7 @@ import {
   WorkerForm,
   type WorkerFormState,
 } from "@/features/workers/components/worker-form";
+import { WorkerAttendancePanel } from "@/features/workers/components/worker-attendance-panel";
 import {
   useDeactivateWorker,
   useUpdateWorker,
@@ -38,7 +41,7 @@ const statusTone = {
 } as const;
 
 export function WorkerDetailPage({ workerId }: { workerId: string }) {
-  const { hasPermission } = useAuth();
+  const { activeOrganizationId, hasPermission } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const organizations = useOrganizations();
@@ -46,7 +49,8 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
     searchParams.get("organizationId") ?? "",
   );
   const organizationId =
-    selectedOrganizationId || organizations.data?.[0]?.id || "";
+    selectedOrganizationId || activeOrganizationId || organizations.data?.[0]?.id || "";
+  const activeTab = searchParams.get("tab") === "attendance" ? "attendance" : "profile";
   const worker = useWorker(organizationId, workerId);
   const updateWorker = useUpdateWorker(organizationId, workerId);
   const deactivateWorker = useDeactivateWorker(organizationId, workerId);
@@ -77,12 +81,19 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
     }
   }
 
+  function selectTab(tab: "profile" | "attendance") {
+    const next = new URLSearchParams(searchParams.toString());
+    if (tab === "attendance") next.set("tab", "attendance");
+    else next.delete("tab");
+    router.replace(`/workers/${workerId}?${next.toString()}`, { scroll: false });
+  }
+
   return (
     <PermissionGuard permission="workers:read">
       <div className="space-y-4">
         <PageHeader
           title={worker.data?.name ?? "Worker"}
-          description="Review worker identity, assignment history, and current rate context."
+          description={activeTab === "attendance" ? "Review attendance totals and exact absence dates." : "Review worker identity, assignment history, and current rate context."}
           onBack={() => router.push("/workers")}
           actions={
             worker.data ? (
@@ -108,6 +119,13 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
           }
         />
 
+        {worker.data ? (
+          <Tabs aria-label="Worker detail sections">
+            <TabButton active={activeTab === "profile"} onClick={() => selectTab("profile")}>Profile</TabButton>
+            <TabButton active={activeTab === "attendance"} onClick={() => selectTab("attendance")}>Attendance</TabButton>
+          </Tabs>
+        ) : null}
+
         {!organizationId ? (
           <Card className="text-[13px] text-body">
             Select an organization from Workers first.
@@ -120,7 +138,13 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
           </Card>
         ) : (
           <>
-            {hasPermission("workers:update") ? (
+            {activeTab === "attendance" ? (
+              <WorkerAttendancePanel
+                organizationId={organizationId}
+                workerId={workerId}
+                assignments={worker.data.assignments}
+              />
+            ) : hasPermission("workers:update") ? (
               <Card>
                 <WorkerForm
                   organizationId={organizationId}
@@ -140,7 +164,7 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
               </Card>
             )}
 
-            <Card className="space-y-4">
+            {activeTab === "profile" ? <Card className="space-y-4">
               <div>
                 <h2 className="text-[17px] font-semibold text-body">
                   Assignments
@@ -188,7 +212,7 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
                   </TableBody>
                 </Table>
               )}
-            </Card>
+            </Card> : null}
           </>
         )}
 

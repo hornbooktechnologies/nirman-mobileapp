@@ -23,6 +23,7 @@ const ACTIVE_ORGANIZATION_STORAGE_KEY = `${APP_STORAGE_NAMESPACE}.activeOrganiza
 const CUSTOMER_OPERATION_PERMISSION_PREFIXES = [
   "workers:",
   "attendance:",
+  "work-calendar:",
   "kharchi:",
   "wages:",
   "leads:",

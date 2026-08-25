@@ -1,347 +1,342 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type {
-  AttendanceRecord,
-  AttendanceListResponse,
-  SaveAttendanceInput,
+  AttendanceException,
+  CreateAttendanceExceptionInput,
+  UpdateAttendanceExceptionInput,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type { QueryParam } from "../../database/database.types";
+import type { DatabaseConnection } from "../../database/database.types";
 
-export type AttendanceExportRow = {
+export type AttendanceRosterPeriodRow = {
+  workerId: string;
   workerCode: string;
   workerName: string;
   trade: string;
-  workDate: string;
-  status: string;
-  checkIn: string | null;
-  checkOut: string | null;
-  notes: string | null;
-  markedAt: string;
-  lastEditedAt: string | null;
+  workerStatus: string;
+  deactivatedAt: string | null;
+  workerAssignmentId: string;
+  assignmentStartsOn: string;
+  assignmentEndsOn: string | null;
+  primaryStartsOn: string;
+  primaryEndsOn: string | null;
 };
+
+function dateOnly(value: Date | string) {
+  return value instanceof Date
+    ? value.toISOString().slice(0, 10)
+    : value.slice(0, 10);
+}
+
+function nullableDateOnly(value: Date | string | null) {
+  return value ? dateOnly(value) : null;
+}
 
 @Injectable()
 export class AttendanceRepository {
   constructor(private readonly database: DatabaseService) {}
 
-  async findByProjectDate(
+  async findPrimaryRosterPeriods(
     organizationId: string,
     projectId: string,
-    workDate: string,
-  ): Promise<AttendanceRecord[]> {
-    const rows = await this.database.query<any>(
-      `SELECT *
-       FROM attendance_records
-       WHERE organization_id = ?
-         AND project_id = ?
-         AND work_date = ?
-         AND deleted_at IS NULL`,
-      [organizationId, projectId, workDate],
-    );
-
-    return rows.map((row) => this.mapRow(row));
-  }
-
-  async findExportRowsByProjectDate(
-    organizationId: string,
-    projectId: string,
-    workDate: string,
-  ): Promise<AttendanceExportRow[]> {
+    startDate: string,
+    endDate: string,
+    search?: string,
+    workerId?: string,
+  ): Promise<AttendanceRosterPeriodRow[]> {
     const rows = await this.database.query<any>(
       `SELECT
-         w.worker_code,
-         w.name AS worker_name,
-         w.trade,
-         ar.work_date,
-         ar.status,
-         ar.check_in,
-         ar.check_out,
-         ar.notes,
-         ar.marked_at,
-         ar.last_edited_at
-       FROM attendance_records ar
+         w.id AS worker_id, w.worker_code, w.name AS worker_name, w.trade,
+         w.status AS worker_status, w.deactivated_at,
+         wpa.id AS worker_assignment_id,
+         wpa.starts_on AS assignment_starts_on, wpa.ends_on AS assignment_ends_on,
+         wpp.starts_on AS primary_starts_on, wpp.ends_on AS primary_ends_on
+       FROM worker_primary_project_periods wpp
        INNER JOIN worker_project_assignments wpa
-         ON wpa.id = ar.worker_assignment_id
-        AND wpa.organization_id = ar.organization_id
-        AND wpa.project_id = ar.project_id
+         ON wpa.id = wpp.worker_assignment_id
+        AND wpa.organization_id = wpp.organization_id
+        AND wpa.worker_id = wpp.worker_id
        INNER JOIN workers w
-         ON w.id = wpa.worker_id
-        AND w.organization_id = ar.organization_id
-       WHERE ar.organization_id = ?
-         AND ar.project_id = ?
-         AND ar.work_date = ?
-         AND ar.deleted_at IS NULL
-       ORDER BY w.name ASC, w.worker_code ASC`,
-      [organizationId, projectId, workDate],
+         ON w.id = wpp.worker_id AND w.organization_id = wpp.organization_id
+       WHERE wpp.organization_id = ?
+         AND wpa.project_id = ?
+         AND wpp.starts_on <= ?
+         AND COALESCE(wpp.ends_on, '9999-12-31') >= ?
+          AND wpa.starts_on <= ?
+          AND COALESCE(wpa.ends_on, '9999-12-31') >= ?
+          ${workerId ? "AND w.id = ?" : ""}
+          ${search ? "AND (w.name LIKE ? OR w.worker_code LIKE ? OR w.trade LIKE ?)" : ""}
+       ORDER BY w.name ASC, w.worker_code ASC, wpp.starts_on ASC`,
+      [
+        organizationId,
+        projectId,
+        endDate,
+        startDate,
+        endDate,
+        startDate,
+        ...(workerId ? [workerId] : []),
+        ...(search
+          ? [`%${search}%`, `%${search}%`, `%${search}%`]
+          : []),
+      ],
     );
-
-    return rows.map((row) => ({
+    return rows.map((row: any) => ({
+      workerId: row.worker_id,
       workerCode: row.worker_code,
       workerName: row.worker_name,
       trade: row.trade,
-      workDate: row.work_date,
-      status: row.status,
-      checkIn: row.check_in,
-      checkOut: row.check_out,
-      notes: row.notes,
-      markedAt: row.marked_at,
-      lastEditedAt: row.last_edited_at,
+      workerStatus: row.worker_status,
+      deactivatedAt: row.deactivated_at
+        ? new Date(row.deactivated_at).toISOString()
+        : null,
+      workerAssignmentId: row.worker_assignment_id,
+      assignmentStartsOn: dateOnly(row.assignment_starts_on),
+      assignmentEndsOn: nullableDateOnly(row.assignment_ends_on),
+      primaryStartsOn: dateOnly(row.primary_starts_on),
+      primaryEndsOn: nullableDateOnly(row.primary_ends_on),
     }));
   }
 
-  async upsertMany(
+  async findExceptions(
     organizationId: string,
     projectId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<AttendanceException[]> {
+    const rows = await this.database.query<any>(
+      `SELECT * FROM attendance_exceptions
+       WHERE organization_id = ? AND project_id = ?
+         AND work_date BETWEEN ? AND ? AND deleted_at IS NULL
+       ORDER BY work_date ASC`,
+      [organizationId, projectId, startDate, endDate],
+    );
+    return rows.map((row: any) => this.mapException(row));
+  }
+
+  async findExceptionById(
+    organizationId: string,
+    projectId: string,
+    exceptionId: string,
+    includeDeleted = false,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT * FROM attendance_exceptions
+       WHERE id = ? AND organization_id = ? AND project_id = ?
+         ${includeDeleted ? "" : "AND deleted_at IS NULL"}
+       LIMIT 1`,
+      [exceptionId, organizationId, projectId],
+    );
+    return rows[0] ? this.mapException(rows[0]) : null;
+  }
+
+  async findExceptionByAssignmentDate(
+    organizationId: string,
+    projectId: string,
+    workerAssignmentId: string,
     workDate: string,
-    entries: SaveAttendanceInput["entries"],
+    connection?: DatabaseConnection,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT * FROM attendance_exceptions
+       WHERE organization_id = ? AND project_id = ?
+         AND worker_assignment_id = ? AND work_date = ?
+         AND deleted_at IS NULL LIMIT 1`,
+      [organizationId, projectId, workerAssignmentId, workDate],
+      connection,
+    );
+    return rows[0] ? this.mapException(rows[0]) : null;
+  }
+
+  async findPrimaryAssignmentForDate(
+    organizationId: string,
+    projectId: string,
+    workerAssignmentId: string,
+    workDate: string,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT wpa.id, wpa.worker_id, wpa.project_id,
+              w.status AS worker_status, w.deactivated_at
+       FROM worker_project_assignments wpa
+       INNER JOIN workers w
+         ON w.id = wpa.worker_id AND w.organization_id = wpa.organization_id
+       INNER JOIN worker_primary_project_periods wpp
+         ON wpp.worker_assignment_id = wpa.id
+        AND wpp.organization_id = wpa.organization_id
+        AND wpp.worker_id = wpa.worker_id
+        AND wpp.starts_on <= ?
+        AND (wpp.ends_on IS NULL OR wpp.ends_on >= ?)
+       WHERE wpa.id = ? AND wpa.organization_id = ? AND wpa.project_id = ?
+         AND wpa.starts_on <= ?
+         AND (wpa.ends_on IS NULL OR wpa.ends_on >= ?)
+       LIMIT 1`,
+      [
+        workDate,
+        workDate,
+        workerAssignmentId,
+        organizationId,
+        projectId,
+        workDate,
+        workDate,
+      ],
+    );
+    return rows[0] ?? null;
+  }
+
+  async createException(
+    organizationId: string,
+    projectId: string,
+    input: CreateAttendanceExceptionInput,
     actorId: string,
-  ): Promise<AttendanceRecord[]> {
-    const created: AttendanceRecord[] = [];
-
-    for (const entry of entries) {
-      const existing = await this.database.query<any>(
-        `SELECT *
-         FROM attendance_records
-         WHERE organization_id = ?
-           AND project_id = ?
-           AND worker_assignment_id = ?
-           AND work_date = ?
-           AND deleted_at IS NULL
-         LIMIT 1`,
-        [organizationId, projectId, entry.workerAssignmentId, workDate],
+  ) {
+    let unchanged: AttendanceException | null = null;
+    const id = randomUUID();
+    await this.database.transaction(async (connection) => {
+      await this.database.query<any>(
+        `SELECT id FROM worker_project_assignments
+         WHERE id = ? AND organization_id = ? FOR UPDATE`,
+        [input.workerAssignmentId, organizationId],
+        connection,
       );
-
-      if (existing.length > 0) {
-        const previousStatus = existing[0].status;
-        const updated = await this.database.execute(
-          `UPDATE attendance_records
-           SET status = ?,
-               check_in = ?,
-               check_out = ?,
-               notes = ?,
-               last_edited_by = ?,
-               last_edited_at = CURRENT_TIMESTAMP(3),
-               updated_at = CURRENT_TIMESTAMP(3)
-           WHERE id = ?`,
-          [
-            entry.status,
-            entry.checkIn ?? null,
-            entry.checkOut ?? null,
-            entry.notes ?? null,
-            actorId,
-            existing[0].id,
-          ],
-        );
-
-        created.push({
-          id: existing[0].id,
-          organizationId,
-          projectId,
-          workerAssignmentId: entry.workerAssignmentId,
-          workDate,
-          status: entry.status,
-          checkIn: entry.checkIn ?? null,
-          checkOut: entry.checkOut ?? null,
-          notes: entry.notes ?? null,
-          markedBy: existing[0].marked_by,
-          markedAt: existing[0].marked_at,
-          lastEditedBy: actorId,
-          lastEditedAt: new Date().toISOString(),
-          deletedAt: existing[0].deleted_at,
-          deletedBy: existing[0].deleted_by,
-          createdAt: existing[0].created_at,
-          updatedAt: new Date().toISOString(),
-          ...({ previousStatus } as any),
-        });
-        continue;
+      const existing = await this.findExceptionByAssignmentDate(
+        organizationId,
+        projectId,
+        input.workerAssignmentId,
+        input.workDate,
+        connection,
+      );
+      if (existing) {
+        if (
+          existing.exceptionType === input.exceptionType &&
+          existing.duration === input.duration &&
+          existing.reasonCode === (input.reasonCode?.trim() || null) &&
+          existing.notes === (input.notes?.trim() || null)
+        ) {
+          unchanged = existing;
+          return;
+        }
+        throw new Error("ATTENDANCE_EXCEPTION_DUPLICATE");
       }
-
-      const id = randomUUID();
       await this.database.execute(
-        `INSERT INTO attendance_records (
-          id,
-          organization_id,
-          project_id,
-          worker_assignment_id,
-          work_date,
-          status,
-          check_in,
-          check_out,
-          notes,
-          marked_by,
-          marked_at,
-          last_edited_by,
-          last_edited_at,
-          created_at,
-          updated_at,
-          sync_status,
-          client_created_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3), ?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3), 'PENDING', ? )`,
+        `INSERT INTO attendance_exceptions
+          (id, organization_id, project_id, worker_assignment_id, work_date,
+           exception_type, duration, reason_code, notes, recorded_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           organizationId,
           projectId,
-          entry.workerAssignmentId,
-          workDate,
-          entry.status,
-          entry.checkIn ?? null,
-          entry.checkOut ?? null,
-          entry.notes ?? null,
+          input.workerAssignmentId,
+          input.workDate,
+          input.exceptionType,
+          input.duration,
+          input.reasonCode?.trim() || null,
+          input.notes?.trim() || null,
           actorId,
           actorId,
-          randomUUID(),
         ],
+        connection,
       );
+    });
+    return unchanged ?? this.findExceptionById(organizationId, projectId, id);
+  }
 
-      created.push({
-        id,
+  async updateException(
+    organizationId: string,
+    projectId: string,
+    exceptionId: string,
+    input: UpdateAttendanceExceptionInput,
+    actorId: string,
+  ) {
+    const result = await this.database.execute(
+      `UPDATE attendance_exceptions SET
+         duration = COALESCE(?, duration),
+         reason_code = CASE WHEN ? THEN ? ELSE reason_code END,
+         notes = CASE WHEN ? THEN ? ELSE notes END,
+         updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+       WHERE id = ? AND organization_id = ? AND project_id = ?
+         AND deleted_at IS NULL`,
+      [
+        input.duration ?? null,
+        input.reasonCode !== undefined,
+        input.reasonCode?.trim() || null,
+        input.notes !== undefined,
+        input.notes?.trim() || null,
+        actorId,
+        exceptionId,
         organizationId,
         projectId,
-        workerAssignmentId: entry.workerAssignmentId,
-        workDate,
-        status: entry.status,
-        checkIn: entry.checkIn ?? null,
-        checkOut: entry.checkOut ?? null,
-        notes: entry.notes ?? null,
-        markedBy: actorId,
-        markedAt: new Date().toISOString(),
-        lastEditedBy: actorId,
-        lastEditedAt: new Date().toISOString(),
-        deletedAt: null,
-        deletedBy: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    return created;
+      ],
+    );
+    if (result.affectedRows === 0) return null;
+    return this.findExceptionById(organizationId, projectId, exceptionId);
   }
 
-  async findAssignableAssignmentIds(
+  async removeException(
     organizationId: string,
     projectId: string,
+    exceptionId: string,
+    actorId: string,
+  ) {
+    const result = await this.database.execute(
+      `UPDATE attendance_exceptions
+       SET deleted_at = CURRENT_TIMESTAMP(3), deleted_by = ?,
+           updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+       WHERE id = ? AND organization_id = ? AND project_id = ?
+         AND deleted_at IS NULL`,
+      [actorId, actorId, exceptionId, organizationId, projectId],
+    );
+    if (result.affectedRows > 0) return true;
+    return Boolean(
+      await this.findExceptionById(
+        organizationId,
+        projectId,
+        exceptionId,
+        true,
+      ),
+    );
+  }
+
+  async removeExceptionByAssignmentDate(
+    organizationId: string,
+    projectId: string,
+    workerAssignmentId: string,
     workDate: string,
-    assignmentIds: string[],
-  ): Promise<string[]> {
-    if (!assignmentIds.length) return [];
-
-    const placeholders = assignmentIds.map(() => "?").join(", ");
-    const rows = await this.database.query<{ id: string } & any>(
-      `SELECT id
-       FROM worker_project_assignments
-       WHERE organization_id = ?
-         AND project_id = ?
-         AND status = 'ACTIVE'
-         AND starts_on <= ?
-         AND (ends_on IS NULL OR ends_on >= ?)
-         AND id IN (${placeholders})`,
-      [organizationId, projectId, workDate, workDate, ...assignmentIds],
+    actorId: string,
+  ) {
+    const result = await this.database.execute(
+      `UPDATE attendance_exceptions
+       SET deleted_at = CURRENT_TIMESTAMP(3), deleted_by = ?,
+           updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+       WHERE organization_id = ? AND project_id = ?
+         AND worker_assignment_id = ? AND work_date = ?
+         AND deleted_at IS NULL`,
+      [
+        actorId,
+        actorId,
+        organizationId,
+        projectId,
+        workerAssignmentId,
+        workDate,
+      ],
     );
-
-    return rows.map((row) => row.id);
+    return result.affectedRows > 0;
   }
 
-  async findById(organizationId: string, projectId: string, id: string) {
-    const rows = await this.database.query<any>(
-      `SELECT *
-       FROM attendance_records
-       WHERE organization_id = ?
-         AND project_id = ?
-         AND id = ?
-         AND deleted_at IS NULL
-       LIMIT 1`,
-      [organizationId, projectId, id],
-    );
-
-    return rows[0] ? this.mapRow(rows[0]) : null;
-  }
-
-  async updateById(
-    id: string,
-    organizationId: string,
-    projectId: string,
-    fields: {
-      status?: string;
-      checkIn?: string | null;
-      checkOut?: string | null;
-      notes?: string | null;
-      lastEditedBy: string;
-      previousStatus?: string | null;
-    },
-  ): Promise<AttendanceRecord> {
-    const row = await this.findById(organizationId, projectId, id);
-    if (!row) {
-      throw new Error("ATTENDANCE_NOT_FOUND");
-    }
-
-    const previousStatus = fields.previousStatus ?? row.status;
-    const updates: string[] = [];
-    const params: QueryParam[] = [];
-
-    if (fields.status) {
-      updates.push("status = ?");
-      params.push(fields.status);
-    }
-    if (fields.checkIn !== undefined) {
-      updates.push("check_in = ?");
-      params.push(fields.checkIn ?? null);
-    }
-    if (fields.checkOut !== undefined) {
-      updates.push("check_out = ?");
-      params.push(fields.checkOut ?? null);
-    }
-    if (fields.notes !== undefined) {
-      updates.push("notes = ?");
-      params.push(fields.notes ?? null);
-    }
-
-    updates.push("last_edited_by = ?");
-    params.push(fields.lastEditedBy);
-    updates.push("last_edited_at = CURRENT_TIMESTAMP(3)");
-    updates.push("updated_at = CURRENT_TIMESTAMP(3)");
-
-    params.push(id, organizationId, projectId);
-    await this.database.execute(
-      `UPDATE attendance_records
-       SET ${updates.join(", ")}
-       WHERE id = ?
-         AND organization_id = ?
-         AND project_id = ?`,
-      params,
-    );
-
-    const updated = await this.findById(organizationId, projectId, id);
-    if (!updated) {
-      throw new Error("ATTENDANCE_NOT_FOUND_AFTER_UPDATE");
-    }
-    return {
-      ...updated,
-      previousStatus,
-    } as AttendanceRecord & { previousStatus?: string | null };
-  }
-
-  private mapRow(row: any): AttendanceRecord {
+  private mapException(row: any): AttendanceException {
     return {
       id: row.id,
       organizationId: row.organization_id,
       projectId: row.project_id,
       workerAssignmentId: row.worker_assignment_id,
-      workDate: row.work_date,
-      status: row.status,
-      checkIn: row.check_in,
-      checkOut: row.check_out,
-      overtimeHours: row.overtime_hours,
+      workDate: dateOnly(row.work_date),
+      exceptionType: row.exception_type,
+      duration: row.duration,
+      reasonCode: row.reason_code,
       notes: row.notes,
-      markedBy: row.marked_by,
-      markedAt: row.marked_at,
-      lastEditedBy: row.last_edited_by,
-      lastEditedAt: row.last_edited_at,
-      syncMetadata: row.sync_metadata ?? null,
-      deletedAt: row.deleted_at,
-      deletedBy: row.deleted_by,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      recordedBy: row.recorded_by,
+      recordedAt: new Date(row.recorded_at).toISOString(),
+      updatedBy: row.updated_by,
+      updatedAt: new Date(row.updated_at).toISOString(),
     };
   }
 }

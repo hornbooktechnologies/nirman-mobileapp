@@ -17,6 +17,7 @@ type DateInputProps = {
   invalid?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
+  allowClear?: boolean;
 };
 
 export function DateInput({
@@ -26,6 +27,7 @@ export function DateInput({
   invalid = false,
   minimumDate,
   maximumDate,
+  allowClear = true,
 }: DateInputProps) {
   const { t, i18n } = useTranslation('common');
   const selectedDate = parseDateOnly(value) ?? new Date();
@@ -83,7 +85,7 @@ export function DateInput({
             <AppIcon name="chevron-down" size={20} color={mobileTheme.color.text.muted} />
           </Pressable>
         )}
-        {value ? (
+        {value && allowClear ? (
           <Pressable
             accessibilityLabel={t('date.clear')}
             accessibilityRole="button"
