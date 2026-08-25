@@ -49,6 +49,23 @@ describe("WorkersRepository", () => {
     expect(rosterSql).not.toContain("wpa.ends_on >= CURRENT_DATE()");
   });
 
+  it("uses the requested historical date for a selected-date roster", async () => {
+    database.query.mockResolvedValue([]);
+
+    await repository.findProjectRoster("organization-id", "project-id", {
+      date: "2026-07-15",
+    });
+
+    const rosterSql = database.query.mock.calls[0]?.[0];
+    const rosterParams = database.query.mock.calls[0]?.[1];
+    expect(rosterSql).toContain("wpa.starts_on <= ?");
+    expect(rosterSql).toContain("wpa.ends_on >= ?");
+    expect(rosterSql).not.toContain("CURRENT_DATE()");
+    expect(rosterParams).toEqual(
+      expect.arrayContaining(["2026-07-15", "2026-07-15"]),
+    );
+  });
+
   it("retries a worker-code collision and returns the created worker", async () => {
     let allocation = 0;
     database.query.mockImplementation((sql: string) => {

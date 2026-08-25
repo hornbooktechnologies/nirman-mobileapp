@@ -27,6 +27,7 @@ import {
 } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
+import { isValidEmail, isValidPhone } from '../../lib/validation';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { MemberProjectAssignmentsSheet } from './member-project-assignments-sheet';
@@ -428,15 +429,18 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
   onInvite: (input: { name: string; email: string; phone?: string; roleId: string; designation?: string; organizationWideProjectAccess?: boolean }) => Promise<void>;
 }) {
   const { t } = useTranslation('members');
+  const { t: tCommon } = useTranslation('common');
   const [form, setForm] = useState({ name: '', email: '', phone: '', roleId: '', designation: '', organizationWideProjectAccess: false });
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'roleId', string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'phone' | 'roleId', string>>>({});
 
   async function submit() {
     setError('');
-    const nextFieldErrors: Partial<Record<'name' | 'email' | 'roleId', string>> = {};
+    const nextFieldErrors: Partial<Record<'name' | 'email' | 'phone' | 'roleId', string>> = {};
     if (!form.name.trim()) nextFieldErrors.name = t('invite.nameRequired');
     if (!form.email.trim()) nextFieldErrors.email = t('invite.emailRequired');
+    else if (!isValidEmail(form.email)) nextFieldErrors.email = tCommon('validation.email');
+    if (form.phone.trim() && !isValidPhone(form.phone)) nextFieldErrors.phone = tCommon('validation.phone');
     if (!form.roleId) nextFieldErrors.roleId = t('invite.roleRequired');
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) {
@@ -459,11 +463,11 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
   return (
     <BottomSheet visible scroll showCloseButton={false} title={t('invite.title')} description={t('invite.description')} onClose={onClose} footer={<><Button label={t('invite.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('invite.sending') : t('invite.send')} disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
       <FormError message={error} />
-      <FormField label={t('invite.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('invite.nameA11y')} invalid={Boolean(fieldErrors.name)} value={form.name} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
-      <FormField label={t('invite.email')} required error={fieldErrors.email}><Input accessibilityLabel={t('invite.emailA11y')} invalid={Boolean(fieldErrors.email)} keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(email) => setForm({ ...form, email })} /></FormField>
-      <FormField label={t('invite.mobile')} optional><Input accessibilityLabel={t('invite.mobileA11y')} keyboardType="phone-pad" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} /></FormField>
-      <FormField label={t('invite.role')} required error={fieldErrors.roleId} helperText={t('invite.roleHelp')}><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => setForm({ ...form, roleId })} /></FormField>
-      <FormField label={t('invite.designation')} optional helperText={t('invite.designationHelp')}><Input accessibilityLabel={t('invite.designation')} value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
+      <FormField label={t('invite.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('invite.nameA11y')} invalid={Boolean(fieldErrors.name)} maxLength={100} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
+      <FormField label={t('invite.email')} required error={fieldErrors.email}><Input accessibilityLabel={t('invite.emailA11y')} invalid={Boolean(fieldErrors.email)} keyboardType="email-address" autoCapitalize="none" autoComplete="email" value={form.email} onChangeText={(email) => { setForm({ ...form, email }); if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined })); }} /></FormField>
+      <FormField label={t('invite.mobile')} optional error={fieldErrors.phone}><Input accessibilityLabel={t('invite.mobileA11y')} invalid={Boolean(fieldErrors.phone)} keyboardType="phone-pad" maxLength={20} value={form.phone} onChangeText={(phone) => { setForm({ ...form, phone }); if (fieldErrors.phone) setFieldErrors((current) => ({ ...current, phone: undefined })); }} /></FormField>
+      <FormField label={t('invite.role')} required error={fieldErrors.roleId} helperText={t('invite.roleHelp')}><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => { setForm({ ...form, roleId }); if (fieldErrors.roleId) setFieldErrors((current) => ({ ...current, roleId: undefined })); }} /></FormField>
+      <FormField label={t('invite.designation')} optional helperText={t('invite.designationHelp')}><Input accessibilityLabel={t('invite.designation')} maxLength={120} value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
       <Toggle label={t('invite.allProjects')} value={form.organizationWideProjectAccess} onValueChange={(organizationWideProjectAccess) => setForm({ ...form, organizationWideProjectAccess })} />
     </BottomSheet>
   );
@@ -482,9 +486,15 @@ function EditMemberSheet({ member, roles, saving, isCurrentUser, onClose, onSave
   const [designation, setDesignation] = useState(member.designation ?? '');
   const [organizationWideProjectAccess, setOrganizationWideProjectAccess] = useState(member.organizationWideProjectAccess);
   const [error, setError] = useState('');
+  const [roleError, setRoleError] = useState('');
 
   async function submit() {
     setError('');
+    if (!roleId) {
+      setRoleError(t('invite.roleRequired'));
+      return;
+    }
+    setRoleError('');
     try {
       await onSave({
         ...(isCurrentUser ? {} : { roleId }),
@@ -499,10 +509,10 @@ function EditMemberSheet({ member, roles, saving, isCurrentUser, onClose, onSave
   return (
     <BottomSheet visible scroll showCloseButton={false} title={t('edit.title')} description={member.user?.name ?? t('edit.organizationMember')} onClose={onClose} footer={<><Button label={t('edit.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} /><Button label={saving ? t('edit.saving') : t('edit.save')} variant="brand" disabled={saving} style={styles.footerButton} onPress={() => void submit()} /></>}>
       <FormError message={error} />
-      <FormField label={t('edit.role')} required helperText={isCurrentUser ? t('edit.ownRoleHelp') : t('edit.roleHelp')}>
-        <RolePicker roles={roles} selectedRoleId={roleId} disabled={isCurrentUser} onSelect={setRoleId} />
+      <FormField label={t('edit.role')} required error={roleError} helperText={isCurrentUser ? t('edit.ownRoleHelp') : t('edit.roleHelp')}>
+        <RolePicker roles={roles} selectedRoleId={roleId} disabled={isCurrentUser} onSelect={(value) => { setRoleId(value); setRoleError(''); }} />
       </FormField>
-      <FormField label={t('edit.designation')} optional helperText={t('edit.designationHelp')}><Input accessibilityLabel={t('edit.designation')} value={designation} onChangeText={setDesignation} /></FormField>
+      <FormField label={t('edit.designation')} optional helperText={t('edit.designationHelp')}><Input accessibilityLabel={t('edit.designation')} maxLength={120} value={designation} onChangeText={setDesignation} /></FormField>
       <Toggle label={t('edit.allProjects')} value={organizationWideProjectAccess} onValueChange={setOrganizationWideProjectAccess} />
       {!organizationWideProjectAccess ? <AppText style={styles.helpText} weight={500}>{t('edit.selectedHelp')}</AppText> : null}
     </BottomSheet>

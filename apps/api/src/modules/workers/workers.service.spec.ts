@@ -28,6 +28,12 @@ describe("WorkersService", () => {
     assignWorker: jest.fn(),
     findAssignment: jest.fn(),
     findActiveAssignment: jest.fn(),
+    findAssignmentById: jest.fn(),
+    findPrimaryProjectPeriods: jest.fn(),
+    findPrimaryProjectPeriodById: jest.fn(),
+    createPrimaryProjectPeriod: jest.fn(),
+    updatePrimaryProjectPeriod: jest.fn(),
+    endPrimaryProjectPeriod: jest.fn(),
     updateAssignment: jest.fn(),
     updateAssignmentRate: jest.fn(),
     endAssignment: jest.fn(),
@@ -61,6 +67,7 @@ describe("WorkersService", () => {
     projectAccess.resolveProjectAccess.mockResolvedValue(projectAccessResult());
     workersRepo.findById.mockResolvedValue(worker());
     workersRepo.findActiveAssignment.mockResolvedValue(assignment());
+    workersRepo.findAssignmentById.mockResolvedValue(assignment());
     workersRepo.duplicateCandidates.mockResolvedValue([]);
     workersRepo.hasActiveAssignment.mockResolvedValue(false);
   });
@@ -340,6 +347,62 @@ describe("WorkersService", () => {
         actor,
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("rejects overlapping primary Project periods transactionally", async () => {
+    workersRepo.createPrimaryProjectPeriod.mockRejectedValueOnce(
+      new Error("WORKER_PRIMARY_PERIOD_OVERLAP"),
+    );
+    await expect(
+      service.createPrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        {
+          workerAssignmentId: assignment().id,
+          startsOn: "2026-08-10",
+        },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_PRIMARY_PERIOD_OVERLAP" },
+    });
+  });
+
+  it("rejects a primary period outside its assignment window", async () => {
+    workersRepo.createPrimaryProjectPeriod.mockRejectedValueOnce(
+      new Error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT"),
+    );
+    await expect(
+      service.createPrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        {
+          workerAssignmentId: assignment().id,
+          startsOn: "2026-07-01",
+        },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT" },
+    });
+  });
+
+  it("enforces Project permission isolation for primary allocation", async () => {
+    projectAccess.resolveProjectAccess.mockRejectedValueOnce(
+      new ForbiddenException("project denied"),
+    );
+    await expect(
+      service.createPrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        {
+          workerAssignmentId: assignment().id,
+          startsOn: "2026-08-10",
+        },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(workersRepo.createPrimaryProjectPeriod).not.toHaveBeenCalled();
   });
 });
 

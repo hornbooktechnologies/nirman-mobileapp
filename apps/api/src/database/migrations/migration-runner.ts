@@ -1,4 +1,3 @@
-import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createPool, type Pool, type PoolConnection, type RowDataPacket } from 'mysql2/promise';
@@ -17,6 +16,10 @@ import {
   validateMigrationMutationSafety,
 } from './migration-safety';
 import { acquireMigrationLock, releaseMigrationLock } from './migration-lock';
+import {
+  calculateMigrationChecksum,
+  matchesMigrationChecksum,
+} from './migration-checksum';
 
 const DEFAULT_CONNECTION_LIMIT = 5;
 const DEFAULT_LOCK_TIMEOUT_SECONDS = 30;
@@ -151,7 +154,7 @@ export async function discoverMigrationFiles(options: MigrationRunnerOptions): P
     const order = Number(match[1]);
     const absolutePath = path.join(sqlDir, filename);
     const sql = await fs.readFile(absolutePath, 'utf8');
-    const checksumSha256 = crypto.createHash('sha256').update(sql).digest('hex');
+    const checksumSha256 = calculateMigrationChecksum(sql);
 
     orderCounts.set(order, [...(orderCounts.get(order) ?? []), filename]);
     migrations.push({
@@ -209,7 +212,7 @@ function buildReport(
   const draftMigrations = localMigrations.filter((migration) => migration.isDraft);
   const checksumMismatches = appliedMigrations.flatMap((applied) => {
     const local = localByName.get(applied.filename);
-    if (!local || local.checksumSha256 === applied.checksumSha256) return [];
+    if (!local || matchesMigrationChecksum(local.sql, applied.checksumSha256)) return [];
     return [
       {
         filename: applied.filename,

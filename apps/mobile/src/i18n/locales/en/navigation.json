@@ -29,6 +29,10 @@
       "title": "Organization Members",
       "description": "Access, roles and invitations"
     },
+    "workers": { "title": "Workers", "description": "Crew and allocations" },
+    "attendance": { "title": "Attendance", "description": "Worker presence and absences" },
+    "wages": { "title": "Wages", "description": "Worker payments" },
+    "calendar": { "title": "Work Calendar", "description": "Working days and site closures" },
     "menu": {
       "title": "Menu",
       "description": "Account and organization"

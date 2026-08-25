@@ -23,6 +23,11 @@ import { QueryWorkerDto } from "./dto/query-worker.dto";
 import { UpdateWorkerAssignmentDto } from "./dto/update-worker-assignment.dto";
 import { UpdateWorkerRateDto } from "./dto/update-worker-rate.dto";
 import { UpdateWorkerDto } from "./dto/update-worker.dto";
+import {
+  CreatePrimaryProjectPeriodDto,
+  EndPrimaryProjectPeriodDto,
+  UpdatePrimaryProjectPeriodDto,
+} from "./dto/primary-project-period.dto";
 import { WorkersService } from "./workers.service";
 
 @Controller("organizations/:organizationId")
@@ -82,6 +87,52 @@ export class WorkersController {
       user,
     );
     return { success: true, message: "Worker retrieved", data };
+  }
+
+  @Get("workers/:workerId/primary-project-periods")
+  async findPrimaryProjectPeriods(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("workerId", new ParseUUIDPipe()) workerId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.workersService.findPrimaryProjectPeriods(organizationId, workerId, user);
+    return { success: true, message: "Worker primary Project periods retrieved", data };
+  }
+
+  @Post("workers/:workerId/primary-project-periods")
+  async createPrimaryProjectPeriod(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("workerId", new ParseUUIDPipe()) workerId: string,
+    @Body() dto: CreatePrimaryProjectPeriodDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.workersService.createPrimaryProjectPeriod(organizationId, workerId, dto, user);
+    return { success: true, message: "Worker primary Project period created", data };
+  }
+
+  @Patch("workers/:workerId/primary-project-periods/:periodId")
+  async updatePrimaryProjectPeriod(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("workerId", new ParseUUIDPipe()) workerId: string,
+    @Param("periodId", new ParseUUIDPipe()) periodId: string,
+    @Body() dto: UpdatePrimaryProjectPeriodDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.workersService.updatePrimaryProjectPeriod(organizationId, workerId, periodId, dto, user);
+    return { success: true, message: "Worker primary Project period updated", data };
+  }
+
+  @Post("workers/:workerId/primary-project-periods/:periodId/end")
+  @HttpCode(HttpStatus.OK)
+  async endPrimaryProjectPeriod(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("workerId", new ParseUUIDPipe()) workerId: string,
+    @Param("periodId", new ParseUUIDPipe()) periodId: string,
+    @Body() dto: EndPrimaryProjectPeriodDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.workersService.endPrimaryProjectPeriod(organizationId, workerId, periodId, dto, user);
+    return { success: true, message: "Worker primary Project period ended", data };
   }
 
   @Patch("workers/:workerId")

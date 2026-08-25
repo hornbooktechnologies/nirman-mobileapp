@@ -29,6 +29,10 @@
       "title": "ઓર્ગેનાઇઝેશનના સભ્યો",
       "description": "ઍક્સેસ, ભૂમિકાઓ અને આમંત્રણો"
     },
+    "workers": { "title": "કામદારો", "description": "મજૂર ટુકડી અને ફાળવણી" },
+    "attendance": { "title": "હાજરી", "description": "કામદારોની હાજરી અને ગેરહાજરી" },
+    "wages": { "title": "મજૂરી", "description": "કામદારોની ચુકવણી" },
+    "calendar": { "title": "કાર્ય કૅલેન્ડર", "description": "કાર્ય દિવસો અને સાઇટ બંધ" },
     "menu": {
       "title": "મેનુ",
       "description": "એકાઉન્ટ અને ઓર્ગેનાઇઝેશન"

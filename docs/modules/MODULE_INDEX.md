@@ -35,10 +35,11 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | blocked | Existing permission-aware mobile roster/create retained in cleaned customer shell | Complete mobile assignment lifecycle after owner decides active-assignment behavior on deactivation |
-| 9 | Attendance | `docs/modules/construction/attendance/CONTRACTS.md` | candidate | Workers + Project Access | Contract |
+| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation contract approved as a Workers extension | Implement and verify primary-project-period API in Slice A1; deactivation policy remains separately blocked |
+| 8A | Work Calendar | `docs/modules/calendar/CONTRACT.md` | in_progress | Project Access | Formal contract reconciled; implement and verify Slice A1 API foundation |
+| 9 | Attendance | `docs/modules/attendance/CONTRACT.md` | in_progress | Workers primary periods + Work Calendar + Project Access | Formal exception-model contract reconciled; implement and verify Slice A1 API foundation |
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md` | candidate | Workers + Attendance + Audit | Contract |
-| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | candidate | Workers + Attendance + Kharchi | Contract |
+| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | candidate | Workers + Attendance + Kharchi | Separate redesign required; Slice A1 adds only the incompatible-calculation safety gate |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md` | candidate | Project Access + Files/Media | Contract |
@@ -65,12 +66,12 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Verify the complete current Expo customer surface on a physical device in Gujarati and Hindi, including Login/activation, Home, Project Detail/Add-Edit, Members, Team/Assign, Workers/Add-Edit-Assign, font shaping, long-label/form-row wrapping, large text, and accessibility labels. The native/fluent acceptance gate remains open; new screens must ship with English, Hindi, and Gujarati resources together.
+Calendar/Attendance Slices A0 and A1 are complete. The next module task is Slice B Web only: canonical `/attendance`, compatibility redirect from the Project route, and `/work-calendar` against the approved APIs. Do not begin Mobile, Wages redesign, migration/seed execution, or compatibility cleanup in that task.
 
 Next document:
 
 ```text
-docs/tasks/mobile-multilingual-implementation-plan.md
+docs/tasks/calendar-attendance-exception-model-implementation-plan.md
 ```
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.

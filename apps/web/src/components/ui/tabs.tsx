@@ -1,9 +1,9 @@
-import { type ButtonHTMLAttributes, type ReactNode } from "react";
+import { type ButtonHTMLAttributes, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export function Tabs({ children, className }: { children: ReactNode; className?: string }) {
+export function Tabs({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-hairline bg-surface/60 p-1 shadow-pill", className)} role="tablist">
+    <div className={cn("inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-hairline bg-surface/60 p-1 shadow-pill", className)} role="tablist" {...props}>
       {children}
     </div>
   );

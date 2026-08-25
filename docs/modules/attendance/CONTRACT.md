@@ -1,194 +1,281 @@
 # Attendance Module Contract
 
-> Status: approved for MVP implementation.
+> Status: approved exception-model contract; API implementation is Slice A1.
 >
-> Source of truth: `MVP_REQUIREMENTS.md` section `12. Module: Attendance`.
+> Source of truth: `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`, especially sections 4, 6, 7, and 8.
 >
-> Scope: project-scoped daily worker attendance records for Builder, Contractor, and Site Supervisor roles using `attendance:*` permissions.
+> Scope: project-scoped worker absence exceptions and derived period attendance. Calendar owns working/non-working dates; Workers owns assignments and primary-project periods; Wages remains separate.
 
-## A. Module Identity
+## A. Module Identity And Boundaries
 
-Module name: Attendance.
+Attendance answers how an expected Worker differed from the default for a working date. It does not own the working calendar, Project allocation, wage calculation, or daily approval.
 
-Business purpose: replace paper attendance registers with a project-scoped daily record of worker presence for the current project.
+For a date to derive as `PRESENT`, all of these must be true:
 
-Target users:
+1. the effective Project calendar says the date is working;
+2. the Worker is active for roster purposes;
+3. a Worker assignment covers the date;
+4. that assignment is the Worker's effective primary Project assignment;
+5. no active Attendance exception exists.
 
-- Builder Owner
-- Independent Contractor
-- Contractor under Builder
-- Site Supervisor
+No explicit Present row is created. Removing an exception restores derived Present. Secondary Project assignments do not create expected Attendance. Split-day allocation across Projects is deferred.
 
-Business value:
+Included:
 
-- Daily labour status captured in a consistent record.
-- Attendance can be completed quickly for many workers.
-- Attendance is project-scoped and auditable.
-- Attendance feeds wage generation and reporting.
+- period-based Worker summaries and CSV export;
+- `ABSENCE` exceptions with `FULL_DAY` or `HALF_DAY` duration;
+- create, update, and soft-remove exception corrections;
+- optional reason code and notes;
+- historical selected-date roster resolution;
+- tenant, Project, and permission enforcement.
 
-Included MVP scope:
+Excluded:
 
-- Mark attendance for workers assigned to the current project.
-- Use project date defaulted to today.
-- Allow bulk daily save with default `PRESENT` marking and exception edits.
-- Keep exactly one active record per project + worker assignment + date.
-- Update existing record instead of creating duplicates.
-- Support offline entry and later sync.
-- Record actor and previous value on corrections.
+- worker-level `HOLIDAY`; Calendar owns non-working dates;
+- explicit Present records and daily approval;
+- paid leave, check-in/out, overtime, biometric/GPS enforcement;
+- offline persistence, queueing, or sync;
+- Wages calculation, holiday pay, Kharchi, locking, and financial adjustment.
 
-Excluded or deferred:
+## B. Domain Contract
 
-- `PAID_LEAVE` and `SITE_CLOSED` statuses are later options, not MVP values.
-- Overtime tracking is deferred unless promoted.
-- Biometric, GPS, and geofencing enforcement are deferred.
-- Attendance approval workflow beyond permission gating is not defined in the MVP requirement.
+### Stored exception
 
-Dependencies:
+`attendance_exceptions` stores only deviations from derived full-day Present:
 
-- Identity and project access.
-- Worker master and project assignment records.
-- Shared permission keys and status enums.
-- mysql2 repository architecture.
+- `id`, `organization_id`, `project_id`, `worker_assignment_id`, `work_date`;
+- `exception_type`: `ABSENCE`;
+- `duration`: `FULL_DAY | HALF_DAY`;
+- optional `reason_code` and `notes`;
+- `recorded_by`, `recorded_at`, `updated_by`, `updated_at`;
+- `deleted_at`, `deleted_by`.
 
-Downstream modules:
+There is at most one active exception for Organization + Project + Worker assignment + date. Corrections retain actor and timestamps. A valid exception date must be working, and the referenced assignment must be the effective primary assignment on that date.
 
-- Wages.
-- Kharchi.
-- Reports and dashboards.
-- Audit.
+### Derived display states
 
-## B. Domain Terminology
+- `PRESENT`: expected working date with no exception; worked fraction `1`.
+- `HALF_DAY`: `ABSENCE + HALF_DAY`; worked fraction `0.5`.
+- `ABSENT`: `ABSENCE + FULL_DAY`; worked fraction `0`.
+- `NON_WORKING`: Calendar says the date is not working; it is not an absence.
 
-- Attendance record: the daily status for one worker assignment on one project on one date.
-- Worker assignment: project-level link to a worker.
-- Marked by: the system user who recorded the attendance.
-- Last edited by: the user who last corrected the attendance.
-- Correction: any change to an existing attendance record after creation.
+Date-only values are interpreted in the Organization timezone and must not shift through UTC conversion. A requested period is inclusive and may not exceed 366 days.
 
-## C. Actors And Permissions
+## C. Permissions And Authorization
 
-Permission keys:
+Existing permissions remain:
 
 - `attendance:read`
 - `attendance:mark`
 - `attendance:update`
-- `attendance:correct-locked`
 - `attendance:export`
+- `attendance:correct-locked` is reserved and not enforced until Wages locking is approved.
 
-Required rule:
+Every route requires an active Organization membership. Project routes additionally require Project access and the matching effective Project permission through `ProjectAccessService`. Platform Super Admin has no normal customer Attendance bypass.
 
-- A user with `attendance:mark` may mark attendance only for assigned projects unless granted organisation-wide access.
+## D. Shared Request And Response Schemas
 
-## D. Business Workflows
+```ts
+type AttendanceExceptionType = "ABSENCE";
+type AttendanceDuration = "FULL_DAY" | "HALF_DAY";
+type DerivedAttendanceState = "PRESENT" | "HALF_DAY" | "ABSENT" | "NON_WORKING";
 
-### Daily mark attendance
+type AttendanceException = {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  workerAssignmentId: string;
+  workDate: string; // YYYY-MM-DD
+  exceptionType: AttendanceExceptionType;
+  duration: AttendanceDuration;
+  reasonCode: string | null;
+  notes: string | null;
+  recordedBy: string;
+  recordedAt: string;
+  updatedBy: string;
+  updatedAt: string;
+};
 
-Starting condition:
+type CreateAttendanceExceptionInput = {
+  workerAssignmentId: string;
+  workDate: string;
+  exceptionType: "ABSENCE";
+  duration: AttendanceDuration;
+  reasonCode?: string | null;
+  notes?: string | null;
+};
 
-- User is authenticated.
-- User has active organisation membership.
-- User has project access.
-- User has `attendance:mark`.
+type UpdateAttendanceExceptionInput = {
+  duration?: AttendanceDuration;
+  reasonCode?: string | null;
+  notes?: string | null;
+};
 
-Action:
+type AttendanceSummaryQuery = {
+  startDate: string;
+  endDate: string;
+  selectedDate?: string;
+  search?: string;
+  exceptionsOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+};
 
-1. Open project.
-2. Select Attendance.
-3. Select date, default today.
-4. Worker list loads.
-5. Mark all present by default, optional.
-6. Change exceptions to `HALF_DAY`, `ABSENT`, or `HOLIDAY`.
-7. Save.
+type AttendanceSummaryRow = {
+  worker: { id: string; workerCode: string; name: string; trade: string };
+  workerAssignmentId: string;
+  expectedWorkingDays: number;
+  presentDays: number; // worked-day equivalent; HALF_DAY contributes 0.5
+  absentDays: number;
+  selectedDate?: {
+    date: string;
+    state: DerivedAttendanceState;
+    exception: AttendanceException | null;
+  };
+};
 
-Validation:
+type AttendanceSummaryResponse = {
+  organizationId: string;
+  projectId: string;
+  startDate: string;
+  endDate: string;
+  rows: AttendanceSummaryRow[];
+  totals: {
+    workers: number;
+    expectedWorkingDays: number;
+    presentDays: number;
+    absentDays: number;
+  };
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+};
 
-- Attendance is project-scoped.
-- A worker must be assigned to the project.
-- A user cannot mark attendance for an unassigned project.
-- A record is unique per project + worker assignment + date.
+type WorkerAttendancePeriodResponse = {
+  organizationId: string;
+  projectId: string;
+  workerId: string;
+  startDate: string;
+  endDate: string;
+  totals: {
+    expectedWorkingDays: number;
+    presentDays: number;
+    absentDays: number;
+  };
+  exceptions: AttendanceException[];
+};
+```
 
-Result state:
+Summary arithmetic uses day equivalents rather than a separate Half Day column:
 
-- An attendance record is created or updated for each worker/date.
+- Full Present contributes `1` to `presentDays` and `0` to `absentDays`.
+- `ABSENCE + HALF_DAY` contributes `0.5` to both `presentDays` and `absentDays`.
+- `ABSENCE + FULL_DAY` contributes `0` to `presentDays` and `1` to `absentDays`.
+- Therefore `presentDays + absentDays = expectedWorkingDays` for every row and total.
 
-Fail paths:
+## E. API Contract
 
-- Missing project access.
-- Invalid status.
-- Duplicate server-side prevention.
+All JSON endpoints use the standard `{ success, message, data }` envelope.
 
-### Correction workflow
+### Period summary
 
-- Every correction records actor and previous value.
-- Editing old or paid-period attendance may require elevated permission.
+`GET /organizations/:organizationId/projects/:projectId/attendance/summary?startDate=&endDate=&selectedDate=&search=&exceptionsOnly=&page=&pageSize=`
 
-## E. Domain Model
+- Permission: `attendance:read`.
+- Response data: `AttendanceSummaryResponse`.
+- The roster is resolved against the requested dates, never `CURRENT_DATE()`.
+- With `selectedDate`, rows include date state/exception detail and Workers whose primary assignment covers that historical date.
 
-Attendance record fields:
+### Worker period detail
 
-- id
-- organisation_id
-- project_id
-- worker_assignment_id
-- work_date
-- status
-- check_in, optional
-- check_out, optional
-- overtime_hours, deferred unless promoted
-- notes, optional
-- marked_by
-- marked_at
-- last_edited_by
-- last_edited_at
-- sync metadata
-- soft-delete metadata where required
+`GET /organizations/:organizationId/projects/:projectId/attendance/workers/:workerId?startDate=&endDate=`
 
-Rules:
+- Permission: `attendance:read`.
+- Response data: `WorkerAttendancePeriodResponse`.
+- Totals use the same derived day-equivalent arithmetic as the period summary.
+- `exceptions` contains the Worker’s dated Full Day/Half Day absence details for the selected Project and period, newest first.
 
-- Unique active record per project + worker assignment + date.
-- Saving the same worker/date updates the record instead of creating a duplicate.
-- `PRESENT`, `HALF_DAY`, `ABSENT`, and `HOLIDAY` are the approved MVP statuses.
+### Create exception
 
-## F. Shared Application Contract
+`POST /organizations/:organizationId/projects/:projectId/attendance/exceptions`
 
-Shared enums and permissions are declared in `packages/shared`.
+- Permission: `attendance:mark`.
+- Body: `CreateAttendanceExceptionInput`.
+- Response data: `AttendanceException`.
+- Repeating an identical active exception returns that exception; a different active value is `ATTENDANCE_EXCEPTION_DUPLICATE` and must be updated explicitly.
 
-Allowed statuses:
+### Update exception
 
-- PRESENT
-- HALF_DAY
-- ABSENT
-- HOLIDAY
+`PATCH /organizations/:organizationId/projects/:projectId/attendance/exceptions/:exceptionId`
 
-## G. API Contract
+- Permission: `attendance:update`.
+- Body: `UpdateAttendanceExceptionInput`.
+- Response data: `AttendanceException`.
 
-The initial backend module exposes project-scoped reads and writes consistent with these rules.
+### Remove exception
 
-- GET attendance for a project/date
-- POST attendance bulk save
-- PATCH attendance update
+`DELETE /organizations/:organizationId/projects/:projectId/attendance/exceptions/:exceptionId`
 
-The API must enforce project and permission scopes before saving.
+- Permission: `attendance:update`.
+- Soft-removes the active exception and returns `{ id, removed: true, restoredState: "PRESENT" }`.
+- Repeating removal is idempotent when the tenant/Project-owned row exists.
 
-## H. Mobile Experience
+### Period export
 
-- large touch targets
-- one-hand operation
-- “mark all present” action
-- quick search
-- clear unsynced indicator
-- never block saving because of no network
+`GET /organizations/:organizationId/projects/:projectId/attendance/export?startDate=&endDate=`
 
-## I. Offline And Synchronisation Contract
+- Permission: `attendance:export`.
+- Returns CSV containing worker identity, assignment, date, expected-working flag, derived state, worked fraction, and optional exception reason/notes.
 
-- Attendance works offline.
-- Offline records sync when connectivity returns.
-- The system must not block saving due to no network.
-- Duplicate attendance is prevented server-side.
+## F. Sequential Client Compatibility
 
-## J. Acceptance Criteria
+The legacy endpoints remain temporarily while Web and Mobile migrate:
 
-- Attendance can be completed for 50 workers with minimal taps.
-- Offline records sync when connectivity returns.
-- Duplicate attendance is prevented server-side.
-- A user cannot mark attendance for an unassigned project.
+- `GET .../attendance?date=` returns compatibility records derived for the selected date.
+- `POST .../attendance` accepts the legacy bulk shape only as an adapter:
+  - `PRESENT` removes an active exception;
+  - `ABSENT` creates/updates `ABSENCE + FULL_DAY`;
+  - `HALF_DAY` creates/updates `ABSENCE + HALF_DAY`.
+- `PATCH .../attendance/:attendanceId` updates a migrated exception when safely identifiable.
+
+Legacy `HOLIDAY`, check-in/out, overtime, sync claims, and offline success cannot be safely translated and return `ATTENDANCE_LEGACY_INPUT_UNSUPPORTED`. Compatibility exports are deprecated and are removed only after both clients migrate.
+
+Legacy `attendance_records` remains read-only history. Unambiguous legacy `ABSENT` and `HALF_DAY` rows may be converted by the forward migration; `PRESENT` creates no exception; `HOLIDAY` requires owner review.
+
+## G. Stable Errors
+
+- `ATTENDANCE_PERIOD_INVALID`
+- `ATTENDANCE_PERIOD_TOO_LARGE`
+- `ATTENDANCE_EXCEPTION_TYPE_INVALID`
+- `ATTENDANCE_EXCEPTION_DURATION_INVALID`
+- `ATTENDANCE_EXCEPTION_DUPLICATE`
+- `ATTENDANCE_EXCEPTION_NOT_FOUND`
+- `ATTENDANCE_NON_WORKING_DATE`
+- `ATTENDANCE_PRIMARY_PROJECT_REQUIRED`
+- `ATTENDANCE_WORKER_NOT_ASSIGNED`
+- `ATTENDANCE_LEGACY_INPUT_UNSUPPORTED`
+
+Organization, Project, membership, and permission failures use the established stable access errors.
+
+## H. Client Flow Contract
+
+Attendance clients separate three questions:
+
+1. Period summary: “How many expected, present, and absent days does each Worker have?”
+2. Daily marking: “Who was absent or half day on this date?”
+3. Worker history: “On which exact dates was this Worker absent or half day, and why?”
+
+The period summary must not require a selected Attendance date and must not become a full-roster edit form. Daily marking shows the historical-date roster with derived Present and writes only absence exceptions. Worker history uses the worker-period endpoint for totals and dated exception details.
+
+Web implements these as `/attendance`, `/attendance/mark`, and the existing Worker detail Attendance tab. Mobile Slice C2 will align `/(app)/attendance` and add separate daily-marking and Worker-history routes as specified in `docs/tasks/mobile-attendance-ux-alignment-plan.md`.
+
+## I. Wages Safety And Acceptance
+
+Existing wage batches, items, payments, and exports remain readable. New wage preview and batch generation must fail with `WAGE_CALCULATION_MODEL_UNAVAILABLE` until Wages is redesigned to consume Calendar, primary periods, and Attendance exceptions.
+
+Acceptance requires:
+
+- no explicit Present rows are created;
+- Calendar precedence and primary assignment determine expectation;
+- non-working dates do not become absences;
+- Full Day/Half Day/remove behavior derives correctly;
+- historical roster, tenant, Project, and permission isolation are covered;
+- no offline-save success or Wages correctness is claimed by this slice.

@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import type {
   ErrorCode,
@@ -38,6 +39,7 @@ export class WagesService {
       projectId,
       "wages:read",
     );
+    this.assertCalculationModelAvailable();
     this.validatePeriod(query.start, query.end);
     return this.buildPreview(organizationId, projectId, query.start, query.end);
   }
@@ -122,6 +124,7 @@ export class WagesService {
       projectId,
       "wages:generate",
     );
+    this.assertCalculationModelAvailable();
     this.validatePeriod(dto.periodStart, dto.periodEnd);
     const existing = await this.wagesRepo.findActiveBatchForPeriod(
       organizationId,
@@ -487,5 +490,14 @@ export class WagesService {
 
   private error(code: ErrorCode, message: string) {
     return { code, message };
+  }
+
+  private assertCalculationModelAvailable(): void {
+    throw new ServiceUnavailableException(
+      this.error(
+        "WAGE_CALCULATION_MODEL_UNAVAILABLE",
+        "New wage preview and generation are unavailable until Wages consumes the Calendar and Attendance exception model",
+      ),
+    );
   }
 }

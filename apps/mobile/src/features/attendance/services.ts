@@ -1,91 +1,93 @@
 import type {
-  AttendanceRecord,
-  AttendanceEntryInput,
-} from "@nirman-app/shared";
+  AttendanceException,
+  AttendanceSummaryQuery,
+  AttendanceSummaryResponse,
+  CreateAttendanceExceptionInput,
+  UpdateAttendanceExceptionInput,
+  WorkerAttendancePeriodResponse,
+} from '@nirman-app/shared';
 
-import { appConfig } from "../../config";
-import { ApiRequestError, apiRequest } from "../../lib/api";
-import type { ProjectWorkerRosterResponse } from "../workers/types";
+import { apiRequest } from '../../lib/api';
 
-type ApiEnvelope<TData> = {
-  success: boolean;
-  data: TData;
-};
+type ApiEnvelope<TData> = { success: boolean; data: TData };
 
-export async function fetchAttendance(
+function attendancePath(organizationId: string, projectId: string) {
+  return `/organizations/${organizationId}/projects/${projectId}/attendance`;
+}
+
+export async function fetchAttendanceSummary(
   organizationId: string,
   projectId: string,
-  date: string,
+  query: AttendanceSummaryQuery,
   accessToken: string,
 ) {
-  const response = await apiRequest<ApiEnvelope<AttendanceRecord[]>>(
-    `/organizations/${organizationId}/projects/${projectId}/attendance?date=${encodeURIComponent(date)}`,
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  });
+  const response = await apiRequest<ApiEnvelope<AttendanceSummaryResponse>>(
+    `${attendancePath(organizationId, projectId)}/summary?${params.toString()}`,
     {},
     { accessToken },
   );
   return response.data;
 }
 
-export async function saveAttendance(
+export async function fetchWorkerAttendancePeriod(
   organizationId: string,
   projectId: string,
-  date: string,
-  entries: AttendanceEntryInput[],
+  workerId: string,
+  query: { startDate: string; endDate: string },
   accessToken: string,
 ) {
-  const response = await apiRequest<
-    ApiEnvelope<{ date: string; data: AttendanceRecord[] }>
-  >(
-    `/organizations/${organizationId}/projects/${projectId}/attendance`,
-    { method: "POST", body: JSON.stringify({ date, entries }) },
+  const params = new URLSearchParams(query);
+  const response = await apiRequest<ApiEnvelope<WorkerAttendancePeriodResponse>>(
+    `${attendancePath(organizationId, projectId)}/workers/${workerId}?${params.toString()}`,
+    {},
     { accessToken },
   );
   return response.data;
 }
 
-export async function exportAttendanceCsv(
+export async function createAttendanceException(
   organizationId: string,
   projectId: string,
-  date: string,
+  input: CreateAttendanceExceptionInput,
   accessToken: string,
 ) {
-  const response = await fetch(
-    `${appConfig.apiBaseUrl}/organizations/${organizationId}/projects/${projectId}/attendance/export?date=${encodeURIComponent(date)}`,
-    {
-      headers: {
-        Accept: "text/csv",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+  const response = await apiRequest<ApiEnvelope<AttendanceException>>(
+    `${attendancePath(organizationId, projectId)}/exceptions`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
   );
-
-  if (!response.ok) {
-    throw new ApiRequestError(
-      `Attendance export failed with ${response.status}`,
-      response.status,
-    );
-  }
-
-  return response.text();
+  return response.data;
 }
 
-export async function fetchAttendanceRoster(
+export async function updateAttendanceException(
   organizationId: string,
   projectId: string,
+  exceptionId: string,
+  input: UpdateAttendanceExceptionInput,
   accessToken: string,
 ) {
-  const [attendance, roster] = await Promise.all([
-    fetchAttendance(
-      organizationId,
-      projectId,
-      new Date().toISOString().slice(0, 10),
-      accessToken,
-    ),
-    apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
-      `/organizations/${organizationId}/projects/${projectId}/workers?pageSize=100&assignmentScope=ALL_ACTIVE&sortBy=name&sortOrder=asc`,
-      {},
-      { accessToken },
-    ),
-  ]);
-  return { attendance, roster: roster.data };
+  const response = await apiRequest<ApiEnvelope<AttendanceException>>(
+    `${attendancePath(organizationId, projectId)}/exceptions/${exceptionId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function removeAttendanceException(
+  organizationId: string,
+  projectId: string,
+  exceptionId: string,
+  accessToken: string,
+) {
+  const response = await apiRequest<ApiEnvelope<{ id: string; removed: true; restoredState: 'PRESENT' }>>(
+    `${attendancePath(organizationId, projectId)}/exceptions/${exceptionId}`,
+    { method: 'DELETE' },
+    { accessToken },
+  );
+  return response.data;
 }

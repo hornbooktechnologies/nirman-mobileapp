@@ -1,5 +1,6 @@
 export * from "./app";
 export * from "./attendance";
+export * from "./calendar";
 export * from "./errors";
 export * from "./permissions";
 export * from "./roles";

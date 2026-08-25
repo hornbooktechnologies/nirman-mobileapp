@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { ServiceUnavailableException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { WagesRepository } from "./wages.repository";
@@ -41,55 +41,21 @@ describe("WagesService", () => {
     projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
   });
 
-  it("generates a wage preview from attendance and rates", async () => {
-    wagesRepo.previewRows.mockResolvedValue([
-      {
-        worker_assignment_id: "assignment-id",
-        worker_id: "worker-id",
-        worker_code: "WRK-001",
-        worker_name: "Rajesh Patel",
-        trade: "Helper",
-        daily_rate: "800.00",
-        present_days: 2,
-        half_days: 1,
-        holiday_days: 1,
-        absent_days: 1,
-      },
-    ] as any);
-
-    const result = await service.preview(
-      organizationId,
-      projectId,
-      { start: "2026-08-01", end: "2026-08-05" },
-      actor,
-    );
-
-    expect(result.items[0]).toEqual(
-      expect.objectContaining({
-        grossAmount: "2000.00",
-        netAmount: "2000.00",
-        isReady: true,
-      }),
-    );
+  it("blocks incompatible new wage preview with a stable safety error", async () => {
+    await expect(
+      service.preview(
+        organizationId,
+        projectId,
+        { start: "2026-08-01", end: "2026-08-05" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WAGE_CALCULATION_MODEL_UNAVAILABLE" },
+    });
+    expect(wagesRepo.previewRows).not.toHaveBeenCalled();
   });
 
-  it("blocks batch creation when a worker is missing a daily rate", async () => {
-    wagesRepo.findActiveBatchForPeriod.mockResolvedValue(null);
-    wagesRepo.previewRows.mockResolvedValue([
-      {
-        worker_assignment_id: "assignment-id",
-        worker_id: "worker-id",
-        worker_code: "WRK-001",
-        worker_name: "Rajesh Patel",
-        trade: "Helper",
-        daily_rate: null,
-        present_days: 1,
-        half_days: 0,
-        holiday_days: 0,
-        absent_days: 0,
-      },
-    ] as any);
-
+  it("blocks incompatible new wage generation before legacy calculation", async () => {
     await expect(
       service.createBatch(
         organizationId,
@@ -97,20 +63,9 @@ describe("WagesService", () => {
         { periodStart: "2026-08-01", periodEnd: "2026-08-05" },
         actor,
       ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it("blocks duplicate active wage batches for the same period", async () => {
-    wagesRepo.findActiveBatchForPeriod.mockResolvedValue("batch-id");
-
-    await expect(
-      service.createBatch(
-        organizationId,
-        projectId,
-        { periodStart: "2026-08-01", periodEnd: "2026-08-05" },
-        actor,
-      ),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(wagesRepo.findActiveBatchForPeriod).not.toHaveBeenCalled();
+    expect(wagesRepo.createBatch).not.toHaveBeenCalled();
   });
 
   it("records a wage payment through the repository", async () => {

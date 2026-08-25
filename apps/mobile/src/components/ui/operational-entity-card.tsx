@@ -21,7 +21,9 @@ type OperationalEntityCardProps = AccessibilityProps & {
   valueLabel?: string;
   footerLeading?: string;
   footerTrailing?: ReactNode;
+  details?: ReactNode;
   tone?: BadgeTone;
+  compact?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -35,7 +37,9 @@ export function OperationalEntityCard({
   valueLabel,
   footerLeading,
   footerTrailing,
+  details,
   tone = 'neutral',
+  compact = false,
   onPress,
   style,
   ...accessibilityProps
@@ -43,11 +47,11 @@ export function OperationalEntityCard({
   const toneTokens = badgeToneTokens[tone];
   const content = (
     <>
-      <View style={[styles.contextStrip, { backgroundColor: toneTokens.background, borderLeftColor: toneTokens.foreground }]}>
+      <View style={[styles.contextStrip, compact && styles.contextStripCompact, { backgroundColor: toneTokens.background, borderLeftColor: toneTokens.foreground }]}>
         <AppText numberOfLines={1} style={[styles.contextLeading, { color: toneTokens.foreground }]} weight={700}>{contextLeading}</AppText>
         {contextTrailing ? <AppText numberOfLines={1} style={[styles.contextTrailing, { color: toneTokens.foreground }]} weight={700}>{contextTrailing}</AppText> : null}
       </View>
-      <View style={styles.primaryRow}>
+      <View style={[styles.primaryRow, compact && styles.primaryRowCompact]}>
         <View style={styles.identity}>
           <AppText numberOfLines={2} style={styles.title} weight={700}>{title}</AppText>
           {supporting ? <AppText numberOfLines={1} style={styles.supporting} weight={500}>{supporting}</AppText> : null}
@@ -59,8 +63,9 @@ export function OperationalEntityCard({
           </View>
         ) : null}
       </View>
+      {details ? <View style={styles.details}>{details}</View> : null}
       {(footerLeading || footerTrailing) ? (
-        <View style={styles.footer}>
+        <View style={[styles.footer, compact && styles.footerCompact]}>
           {footerLeading ? <AppText numberOfLines={1} style={styles.footerLeading} weight={500}>{footerLeading}</AppText> : <View style={styles.footerSpacer} />}
           {footerTrailing}
         </View>
@@ -111,6 +116,10 @@ const styles = StyleSheet.create({
     color: mobileTheme.color.text.brand,
     flex: 1,
   },
+  contextStripCompact: {
+    minHeight: 30,
+    paddingVertical: mobileTheme.spacing[1],
+  },
   contextTrailing: {
     ...mobileText.caption,
     color: mobileTheme.color.text.primary,
@@ -125,6 +134,10 @@ const styles = StyleSheet.create({
     minHeight: 66,
     paddingHorizontal: mobileTheme.spacing[4],
     paddingVertical: mobileTheme.spacing[3],
+  },
+  primaryRowCompact: {
+    minHeight: 52,
+    paddingVertical: mobileTheme.spacing[2],
   },
   identity: {
     flex: 1,
@@ -157,6 +170,10 @@ const styles = StyleSheet.create({
     ...mobileText.caption,
     color: mobileTheme.color.text.muted,
   },
+  details: {
+    borderTopColor: mobileTheme.color.border.subtle,
+    borderTopWidth: 1,
+  },
   footer: {
     alignItems: 'center',
     borderTopColor: mobileTheme.color.border.subtle,
@@ -167,6 +184,10 @@ const styles = StyleSheet.create({
     minHeight: 38,
     paddingHorizontal: mobileTheme.spacing[4],
     paddingVertical: mobileTheme.spacing[2],
+  },
+  footerCompact: {
+    minHeight: 34,
+    paddingVertical: mobileTheme.spacing[1],
   },
   footerLeading: {
     ...mobileText.caption,

@@ -12,6 +12,14 @@
     "AUTH_SESSION_REQUIRED": "તમારું સેશન પૂર્ણ થયું છે. ફરી સાઇન ઇન કરો.",
     "PERMISSION_DENIED": "તમને આ કરવાની પરવાનગી નથી.",
     "VALIDATION_FAILED": "દાખલ કરેલી માહિતી તપાસીને ફરી પ્રયાસ કરો.",
-    "SERVER_ERROR": "NirmanSite હમણાં ઉપલબ્ધ નથી. થોડી વાર પછી ફરી પ્રયાસ કરો."
+    "SERVER_ERROR": "NirmanSite હમણાં ઉપલબ્ધ નથી. થોડી વાર પછી ફરી પ્રયાસ કરો.",
+    "ATTENDANCE_EXCEPTION_DUPLICATE": "આ કામદાર અને તારીખ માટે હાજરી અપવાદ પહેલેથી છે. રિફ્રેશ કરીને તેમાં ફેરફાર કરો.",
+    "ATTENDANCE_NON_WORKING_DATE": "આ બિનકાર્યકારી દિવસ છે, તેથી ગેરહાજરી નોંધી શકાતી નથી.",
+    "ATTENDANCE_PRIMARY_PROJECT_REQUIRED": "આ તારીખે આ કામદારનો પ્રાથમિક પ્રોજેક્ટ નથી.",
+    "ATTENDANCE_WORKER_NOT_ASSIGNED": "આ તારીખે કામદાર આ પ્રોજેક્ટમાં ફાળવેલો નથી.",
+    "WORK_CALENDAR_NOT_CONFIGURED": "આ તારીખ વાપરતા પહેલાં ઓર્ગેનાઇઝેશનનું કાર્ય સપ્તાહ ગોઠવો.",
+    "WORK_CALENDAR_DATE_RANGE_INVALID": "શરૂઆત અને અંતિમ તારીખ તપાસો.",
+    "WORK_CALENDAR_OVERRIDE_CONFLICT": "આ તારીખ શ્રેણી આ જ સ્તરના બીજા સક્રિય અપવાદ સાથે અથડાય છે.",
+    "WORK_CALENDAR_TIMEZONE_INVALID": "Asia/Kolkata જેવું માન્ય IANA સમય ક્ષેત્ર દાખલ કરો."
   }
 }

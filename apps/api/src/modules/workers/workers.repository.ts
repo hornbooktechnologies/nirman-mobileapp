@@ -7,6 +7,7 @@ import type {
   WorkerDuplicateCandidate,
   WorkerListResponse,
   WorkerProjectAssignmentSummary,
+  WorkerPrimaryProjectPeriod,
   WorkerSummary,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
@@ -56,6 +57,16 @@ function serializeDate(value: Date | string | null) {
   return value instanceof Date
     ? value.toISOString()
     : new Date(value).toISOString();
+}
+
+function dateOnlyValue(value: Date | string) {
+  return value instanceof Date
+    ? value.toISOString().slice(0, 10)
+    : value.slice(0, 10);
+}
+
+function nullableDateOnly(value: Date | string | null) {
+  return value ? dateOnlyValue(value) : null;
 }
 
 function mapAssignmentRow(
@@ -219,10 +230,18 @@ export class WorkersRepository {
       "wpa.status = 'ACTIVE'",
     ];
     if (query.assignmentScope !== "ALL_ACTIVE") {
-      where.push(
-        "wpa.starts_on <= CURRENT_DATE()",
-        "(wpa.ends_on IS NULL OR wpa.ends_on >= CURRENT_DATE())",
-      );
+      if (query.date) {
+        where.push(
+          "wpa.starts_on <= ?",
+          "(wpa.ends_on IS NULL OR wpa.ends_on >= ?)",
+        );
+        params.push(query.date, query.date);
+      } else {
+        where.push(
+          "wpa.starts_on <= CURRENT_DATE()",
+          "(wpa.ends_on IS NULL OR wpa.ends_on >= CURRENT_DATE())",
+        );
+      }
     }
     if (query.status) {
       where.push("w.status = ?");
@@ -349,6 +368,149 @@ export class WorkersRepository {
       [organizationId, projectId, workerId],
     );
     return rows[0] ? mapAssignmentRow(rows[0]) : null;
+  }
+
+  async findAssignmentById(
+    organizationId: string,
+    workerId: string,
+    assignmentId: string,
+  ) {
+    const rows = await this.database.query<WorkerAssignmentRow>(
+      `${this.assignmentSelectSql()}
+       WHERE wpa.organization_id = ? AND wpa.worker_id = ? AND wpa.id = ?
+       LIMIT 1`,
+      [organizationId, workerId, assignmentId],
+    );
+    return rows[0] ? mapAssignmentRow(rows[0]) : null;
+  }
+
+  async findPrimaryProjectPeriods(
+    organizationId: string,
+    workerId: string,
+    memberId?: string,
+  ): Promise<WorkerPrimaryProjectPeriod[]> {
+    const rows = await this.database.query<any>(
+      `SELECT wpp.*, wpa.project_id, p.name AS project_name
+       FROM worker_primary_project_periods wpp
+       INNER JOIN worker_project_assignments wpa
+         ON wpa.id = wpp.worker_assignment_id
+        AND wpa.organization_id = wpp.organization_id
+        AND wpa.worker_id = wpp.worker_id
+       INNER JOIN projects p
+         ON p.id = wpa.project_id AND p.organization_id = wpa.organization_id
+       ${memberId ? `INNER JOIN project_members pm
+         ON pm.organization_id = wpa.organization_id
+        AND pm.project_id = wpa.project_id
+        AND pm.member_id = ?
+        AND pm.status = 'ACTIVE'` : ""}
+       WHERE wpp.organization_id = ? AND wpp.worker_id = ?
+       ORDER BY wpp.starts_on DESC`,
+      [...(memberId ? [memberId] : []), organizationId, workerId],
+    );
+    return rows.map((row: any) => this.mapPrimaryPeriod(row));
+  }
+
+  async findPrimaryProjectPeriodById(
+    organizationId: string,
+    workerId: string,
+    periodId: string,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT wpp.*, wpa.project_id, p.name AS project_name
+       FROM worker_primary_project_periods wpp
+       INNER JOIN worker_project_assignments wpa ON wpa.id = wpp.worker_assignment_id
+       INNER JOIN projects p ON p.id = wpa.project_id AND p.organization_id = wpp.organization_id
+       WHERE wpp.organization_id = ? AND wpp.worker_id = ? AND wpp.id = ?
+       LIMIT 1`,
+      [organizationId, workerId, periodId],
+    );
+    return rows[0] ? this.mapPrimaryPeriod(rows[0]) : null;
+  }
+
+  async createPrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    input: { workerAssignmentId: string; startsOn: string; endsOn?: string | null },
+    actorId: string,
+  ) {
+    const id = randomUUID();
+    await this.database.transaction(async (connection) => {
+      await this.lockWorker(organizationId, workerId, connection);
+      await this.assertPrimaryAssignmentWindow(organizationId, workerId, input.workerAssignmentId, input.startsOn, input.endsOn ?? null, connection);
+      await this.assertNoPrimaryOverlap(organizationId, workerId, input.startsOn, input.endsOn ?? null, null, connection);
+      await this.database.execute(
+        `INSERT INTO worker_primary_project_periods
+          (id, organization_id, worker_id, worker_assignment_id, starts_on, ends_on, created_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, organizationId, workerId, input.workerAssignmentId, input.startsOn, input.endsOn ?? null, actorId, actorId],
+        connection,
+      );
+    });
+    return this.findPrimaryProjectPeriodById(organizationId, workerId, id);
+  }
+
+  async updatePrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    periodId: string,
+    input: { workerAssignmentId?: string; startsOn?: string; endsOn?: string | null },
+    actorId: string,
+  ) {
+    await this.database.transaction(async (connection) => {
+      await this.lockWorker(organizationId, workerId, connection);
+      const rows = await this.database.query<any>(
+        `SELECT * FROM worker_primary_project_periods
+         WHERE organization_id = ? AND worker_id = ? AND id = ? FOR UPDATE`,
+        [organizationId, workerId, periodId],
+        connection,
+      );
+      const current = rows[0];
+      if (!current) throw new Error("WORKER_PRIMARY_PERIOD_NOT_FOUND");
+      const assignmentId = input.workerAssignmentId ?? current.worker_assignment_id;
+      const startsOn = input.startsOn ?? dateOnlyValue(current.starts_on);
+      const endsOn = input.endsOn === undefined ? nullableDateOnly(current.ends_on) : input.endsOn;
+      await this.assertPrimaryAssignmentWindow(organizationId, workerId, assignmentId, startsOn, endsOn, connection);
+      await this.assertNoPrimaryOverlap(organizationId, workerId, startsOn, endsOn, periodId, connection);
+      await this.database.execute(
+        `UPDATE worker_primary_project_periods
+         SET worker_assignment_id = ?, starts_on = ?, ends_on = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ?`,
+        [assignmentId, startsOn, endsOn, actorId, periodId],
+        connection,
+      );
+    });
+    return this.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+  }
+
+  async endPrimaryProjectPeriod(
+    organizationId: string,
+    workerId: string,
+    periodId: string,
+    endsOn: string,
+    actorId: string,
+  ) {
+    await this.database.transaction(async (connection) => {
+      await this.lockWorker(organizationId, workerId, connection);
+      const rows = await this.database.query<any>(
+        `SELECT * FROM worker_primary_project_periods
+         WHERE organization_id = ? AND worker_id = ? AND id = ? FOR UPDATE`,
+        [organizationId, workerId, periodId],
+        connection,
+      );
+      const current = rows[0];
+      if (!current) throw new Error("WORKER_PRIMARY_PERIOD_NOT_FOUND");
+      const startsOn = dateOnlyValue(current.starts_on);
+      await this.assertPrimaryAssignmentWindow(organizationId, workerId, current.worker_assignment_id, startsOn, endsOn, connection);
+      await this.assertNoPrimaryOverlap(organizationId, workerId, startsOn, endsOn, periodId, connection);
+      await this.database.execute(
+        `UPDATE worker_primary_project_periods
+         SET ends_on = ?, ended_by = ?, ended_at = CURRENT_TIMESTAMP(3), updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ?`,
+        [endsOn, actorId, actorId, periodId],
+        connection,
+      );
+    });
+    return this.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
   }
 
   async hasActiveAssignment(
@@ -706,6 +868,81 @@ export class WorkersRepository {
       ],
       connection,
     );
+  }
+
+  private async lockWorker(organizationId: string, workerId: string, connection: DatabaseConnection) {
+    const rows = await this.database.query<any>(
+      "SELECT id FROM workers WHERE organization_id = ? AND id = ? FOR UPDATE",
+      [organizationId, workerId],
+      connection,
+    );
+    if (!rows[0]) throw new Error("WORKER_NOT_FOUND");
+  }
+
+  private async assertPrimaryAssignmentWindow(
+    organizationId: string,
+    workerId: string,
+    assignmentId: string,
+    startsOn: string,
+    endsOn: string | null,
+    connection: DatabaseConnection,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT id, starts_on, ends_on FROM worker_project_assignments
+       WHERE id = ? AND organization_id = ? AND worker_id = ?
+       LIMIT 1 FOR UPDATE`,
+      [assignmentId, organizationId, workerId],
+      connection,
+    );
+    const assignment = rows[0];
+    if (!assignment) throw new Error("WORKER_ASSIGNMENT_NOT_FOUND");
+    const assignmentStart = dateOnlyValue(assignment.starts_on);
+    const assignmentEnd = nullableDateOnly(assignment.ends_on);
+    if (
+      startsOn < assignmentStart ||
+      (endsOn !== null && endsOn < startsOn) ||
+      (assignmentEnd !== null && (endsOn === null || endsOn > assignmentEnd))
+    ) throw new Error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT");
+  }
+
+  private async assertNoPrimaryOverlap(
+    organizationId: string,
+    workerId: string,
+    startsOn: string,
+    endsOn: string | null,
+    excludeId: string | null,
+    connection: DatabaseConnection,
+  ) {
+    const rows = await this.database.query<any>(
+      `SELECT id FROM worker_primary_project_periods
+       WHERE organization_id = ? AND worker_id = ?
+         AND starts_on <= COALESCE(?, '9999-12-31')
+         AND COALESCE(ends_on, '9999-12-31') >= ?
+         ${excludeId ? "AND id <> ?" : ""}
+       LIMIT 1 FOR UPDATE`,
+      [organizationId, workerId, endsOn, startsOn, ...(excludeId ? [excludeId] : [])],
+      connection,
+    );
+    if (rows[0]) throw new Error("WORKER_PRIMARY_PERIOD_OVERLAP");
+  }
+
+  private mapPrimaryPeriod(row: any): WorkerPrimaryProjectPeriod {
+    return {
+      id: row.id,
+      organizationId: row.organization_id,
+      workerId: row.worker_id,
+      workerAssignmentId: row.worker_assignment_id,
+      projectId: row.project_id,
+      projectName: row.project_name ?? null,
+      startsOn: dateOnlyValue(row.starts_on),
+      endsOn: nullableDateOnly(row.ends_on),
+      createdBy: row.created_by,
+      updatedBy: row.updated_by,
+      createdAt: serializeDate(row.created_at) ?? "",
+      updatedAt: serializeDate(row.updated_at) ?? "",
+      endedBy: row.ended_by,
+      endedAt: serializeDate(row.ended_at),
+    };
   }
 
   private async findAssignmentsForWorker(

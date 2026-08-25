@@ -12,6 +12,7 @@ export type CustomerRoute =
   | '/(app)/project-detail'
   | '/(app)/workers'
   | '/(app)/attendance'
+  | '/(app)/work-calendar'
   | '/(app)/wages'
   | '/(app)/team'
   | '/(app)/members'
@@ -28,26 +29,33 @@ export type CustomerNavigationItem = {
   permissionsAny?: readonly PermissionKey[];
 };
 
-const customerNavigation: readonly CustomerNavigationItem[] = [
-  { key: 'home', label: 'Home', title: 'Home', description: 'Your field command center', icon: 'home-outline', href: '/(app)/dashboard' },
-  { key: 'team', label: 'Team', title: 'Project Team', description: 'Roles and site assignments', icon: 'account-group-outline', href: '/(app)/team', permission: 'project-members:read' },
-  { key: 'project', label: 'Project', title: 'Selected Project', description: 'Site details and controls', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
-  { key: 'workers', label: 'Workers', title: 'Workers', description: 'Crew and allocations', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
-  { key: 'attendance', label: 'Attendance', title: 'Attendance', description: 'Daily worker presence', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
-  { key: 'wages', label: 'Wages', title: 'Wages', description: 'Pay workers', icon: 'cash-multiple', href: '/(app)/wages', permission: 'wages:read' },
-  { key: 'menu', label: 'Menu', title: 'Menu', description: 'Account and organization', icon: 'menu', href: '/(app)/menu' },
-];
+type CustomerNavigationDefinition = Omit<CustomerNavigationItem, 'label' | 'title' | 'description'> & {
+  labelKey: string;
+  titleKey: string;
+  descriptionKey: string;
+};
 
 const organizationNavigation: readonly CustomerNavigationDefinition[] = [
   { key: 'members', labelKey: 'tabs.members', titleKey: 'items.members.title', descriptionKey: 'items.members.description', icon: 'account-multiple-outline', href: '/(app)/members', permission: 'members:read' },
+  { key: 'work-calendar', labelKey: 'items.calendar.title', titleKey: 'items.calendar.title', descriptionKey: 'items.calendar.description', icon: 'calendar-month-outline', href: '/(app)/work-calendar', permission: 'work-calendar:read' },
+];
+
+const customerNavigation: readonly CustomerNavigationDefinition[] = [
+  { key: 'home', labelKey: 'tabs.home', titleKey: 'items.home.title', descriptionKey: 'items.home.description', icon: 'home-outline', href: '/(app)/dashboard' },
+  { key: 'team', labelKey: 'tabs.team', titleKey: 'items.team.title', descriptionKey: 'items.team.description', icon: 'account-group-outline', href: '/(app)/team', permission: 'project-members:read' },
+  { key: 'project', labelKey: 'tabs.project', titleKey: 'items.project.title', descriptionKey: 'items.project.description', icon: 'folder-cog-outline', href: '/(app)/project-detail', permission: 'projects:read' },
+  { key: 'workers', labelKey: 'items.workers.title', titleKey: 'items.workers.title', descriptionKey: 'items.workers.description', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
+  { key: 'attendance', labelKey: 'items.attendance.title', titleKey: 'items.attendance.title', descriptionKey: 'items.attendance.description', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
+  { key: 'wages', labelKey: 'items.wages.title', titleKey: 'items.wages.title', descriptionKey: 'items.wages.description', icon: 'cash-multiple', href: '/(app)/wages', permission: 'wages:read' },
+  { key: 'menu', labelKey: 'tabs.menu', titleKey: 'items.menu.title', descriptionKey: 'items.menu.description', icon: 'menu', href: '/(app)/menu' },
 ];
 
 function localizeNavigationItem(item: CustomerNavigationDefinition, t: TFunction<'navigation'>): CustomerNavigationItem {
   return {
     ...item,
-    label: t(item.labelKey),
-    title: t(item.titleKey),
-    description: t(item.descriptionKey),
+    label: t(item.labelKey as never),
+    title: t(item.titleKey as never),
+    description: t(item.descriptionKey as never),
   };
 }
 
@@ -60,8 +68,9 @@ export function visibleNavigation(session: MobileSession | null, t: TFunction<'n
 }
 
 export function visibleOrganizationNavigation(session: MobileSession | null, t: TFunction<'navigation'>) {
+  const projectPermissions = getActiveProjectPermissions(session);
   return organizationNavigation
-    .filter((item) => !item.permission || session?.permissions.includes(item.permission))
+    .filter((item) => !item.permission || session?.permissions.includes(item.permission) || projectPermissions.includes(item.permission))
     .map((item) => localizeNavigationItem(item, t));
 }
 
@@ -69,7 +78,7 @@ export function CustomerTabBar({ activeKey }: { activeKey: string }) {
   const { t } = useTranslation('navigation');
   const { session } = useSession();
   const tabs = visibleNavigation(session, t)
-    .filter((item) => item.key !== 'menu')
+    .filter((item) => item.key === 'home' || item.key === 'team' || item.key === 'project')
     .map(({ key, label, icon }) => ({ key, label, icon }));
 
   return (

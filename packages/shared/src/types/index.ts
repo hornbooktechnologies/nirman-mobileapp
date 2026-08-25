@@ -31,9 +31,19 @@ export type {
   WagePaymentMethod,
   WagePaymentStatus,
   WagePermissionKey,
+  WorkCalendarPermissionKey,
+  WorkCalendarDayType,
+  WorkCalendarOverrideScope,
+  Weekday,
+  EffectiveWorkCalendarDayType,
+  WorkCalendarDaySource,
+  AttendanceExceptionType,
+  AttendanceDuration,
+  DerivedAttendanceState,
 } from "../constants";
 
 export * from "./attendance";
+export * from "./calendar";
 export * from "./workers";
 export * from "./onboarding";
 export * from "./wages";

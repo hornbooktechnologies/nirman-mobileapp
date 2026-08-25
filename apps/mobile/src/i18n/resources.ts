@@ -7,6 +7,8 @@ import navigationEn from './locales/en/navigation.json';
 import projectsEn from './locales/en/projects.json';
 import teamEn from './locales/en/team.json';
 import workersEn from './locales/en/workers.json';
+import attendanceEn from './locales/en/attendance.json';
+import calendarEn from './locales/en/calendar.json';
 import authGu from './locales/gu/auth.json';
 import commonGu from './locales/gu/common.json';
 import errorsGu from './locales/gu/errors.json';
@@ -16,6 +18,8 @@ import navigationGu from './locales/gu/navigation.json';
 import projectsGu from './locales/gu/projects.json';
 import teamGu from './locales/gu/team.json';
 import workersGu from './locales/gu/workers.json';
+import attendanceGu from './locales/gu/attendance.json';
+import calendarGu from './locales/gu/calendar.json';
 import authHi from './locales/hi/auth.json';
 import commonHi from './locales/hi/common.json';
 import errorsHi from './locales/hi/errors.json';
@@ -25,11 +29,13 @@ import navigationHi from './locales/hi/navigation.json';
 import projectsHi from './locales/hi/projects.json';
 import teamHi from './locales/hi/team.json';
 import workersHi from './locales/hi/workers.json';
+import attendanceHi from './locales/hi/attendance.json';
+import calendarHi from './locales/hi/calendar.json';
 
 export const resources = {
-  en: { common: commonEn, auth: authEn, navigation: navigationEn, errors: errorsEn, home: homeEn, projects: projectsEn, team: teamEn, members: membersEn, workers: workersEn },
-  hi: { common: commonHi, auth: authHi, navigation: navigationHi, errors: errorsHi, home: homeHi, projects: projectsHi, team: teamHi, members: membersHi, workers: workersHi },
-  gu: { common: commonGu, auth: authGu, navigation: navigationGu, errors: errorsGu, home: homeGu, projects: projectsGu, team: teamGu, members: membersGu, workers: workersGu },
+  en: { common: commonEn, auth: authEn, navigation: navigationEn, errors: errorsEn, home: homeEn, projects: projectsEn, team: teamEn, members: membersEn, workers: workersEn, attendance: attendanceEn, calendar: calendarEn },
+  hi: { common: commonHi, auth: authHi, navigation: navigationHi, errors: errorsHi, home: homeHi, projects: projectsHi, team: teamHi, members: membersHi, workers: workersHi, attendance: attendanceHi, calendar: calendarHi },
+  gu: { common: commonGu, auth: authGu, navigation: navigationGu, errors: errorsGu, home: homeGu, projects: projectsGu, team: teamGu, members: membersGu, workers: workersGu, attendance: attendanceGu, calendar: calendarGu },
 } as const;
 
-export const namespaces = ['common', 'auth', 'navigation', 'errors', 'home', 'projects', 'team', 'members', 'workers'] as const;
+export const namespaces = ['common', 'auth', 'navigation', 'errors', 'home', 'projects', 'team', 'members', 'workers', 'attendance', 'calendar'] as const;

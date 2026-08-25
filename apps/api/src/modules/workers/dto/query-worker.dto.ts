@@ -6,6 +6,7 @@ import {
 } from "@nirman-app/shared";
 import { Type } from "class-transformer";
 import {
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -16,6 +17,10 @@ import {
 } from "class-validator";
 
 export class QueryWorkerDto {
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
   @IsOptional()
   @IsString()
   search?: string;

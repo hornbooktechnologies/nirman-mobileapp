@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
@@ -24,18 +24,42 @@ export function Dialog({
   onOpenChange,
   className,
 }: DialogProps) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
     if (!open) return;
 
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusableSelector = "a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
+    const focusable = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
+    const focusFrame = window.requestAnimationFrame(() => (focusable()[0] ?? dialogRef.current)?.focus());
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        event.preventDefault();
         onOpenChange(false);
+        return;
       }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) { event.preventDefault(); dialogRef.current?.focus(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
 
-    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
 
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [onOpenChange, open]);
 
   if (!open) {
@@ -49,9 +73,12 @@ export function Dialog({
       onMouseDown={() => onOpenChange(false)}
     >
       <section
+        ref={dialogRef}
+        tabIndex={-1}
         aria-modal="true"
         role="dialog"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         className={cn(
           "flex max-h-[min(100dvh,720px)] w-full max-w-lg flex-col rounded-t-card border border-hairline bg-surface p-5 text-body shadow-floating sm:max-h-[calc(100dvh-48px)] sm:rounded-card sm:p-6",
           className,
@@ -61,13 +88,13 @@ export function Dialog({
         <header className="mb-4 flex min-w-0 shrink-0 items-start justify-between gap-4 border-b border-hairline/60 pb-4">
           <div className="min-w-0">
             <h2
-              id="dialog-title"
+              id={titleId}
               className="break-words text-[16px] font-semibold leading-6 text-body sm:text-[18px]"
             >
               {title}
             </h2>
             {description ? (
-              <p className="mt-0.5 break-words text-[13px] leading-5 text-sub">
+              <p id={descriptionId} className="mt-0.5 break-words text-[13px] leading-5 text-sub">
                 {description}
               </p>
             ) : null}

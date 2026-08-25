@@ -836,71 +836,63 @@ Possible actors:
 
 Required permission: `attendance:mark`.
 
-## 12.2 Daily flow
+## 12.2 Default and module boundaries
 
-```text
-Open project
-→ Attendance
-→ Select date, default today
-→ Worker list loads
-→ Mark all Present by default, optional
-→ Change exceptions to Half Day / Absent / Holiday
-→ Save
-```
+Workers are Present Full Day by default when the effective Project calendar is working, the Worker and assignment cover the date, that assignment is the Worker's effective primary Project assignment, and no active Attendance exception exists.
 
-## 12.3 Attendance statuses
+Attendance stores only exceptions. It does not create explicit Present rows and requires no daily approval. Calendar owns working/non-working dates; Workers owns Project assignments and effective-dated primary-project periods; Wages remains separate.
 
-- PRESENT
-- HALF_DAY
-- ABSENT
-- HOLIDAY
+## 12.3 Attendance exceptions and display states
 
-Optional later:
+Initial stored exception:
 
-- PAID_LEAVE
-- SITE_CLOSED
+- `ABSENCE + FULL_DAY` derives `ABSENT` and worked fraction `0`;
+- `ABSENCE + HALF_DAY` derives `HALF_DAY` and worked fraction `0.5`.
 
-## 12.4 Attendance record fields
+Derived display states are `PRESENT`, `HALF_DAY`, `ABSENT`, and `NON_WORKING`. `HOLIDAY` is not a Worker Attendance status; Calendar represents site/Organization non-working dates. Removing an exception restores derived Present.
+
+## 12.4 Exception fields
 
 - id;
 - organisation_id;
 - project_id;
 - worker_assignment_id;
 - work_date;
-- status;
-- check_in, optional;
-- check_out, optional;
-- overtime_hours, deferred unless promoted;
+- exception_type: `ABSENCE`;
+- duration: `FULL_DAY` or `HALF_DAY`;
+- reason_code, optional;
 - notes, optional;
-- marked_by;
-- marked_at;
-- last_edited_by;
-- last_edited_at;
-- sync metadata;
-- soft-delete metadata where required.
+- recorded_by and recorded_at;
+- updated_by and updated_at;
+- deleted_at and deleted_by.
 
 ## 12.5 Rules
 
-- Unique active record per project + worker assignment + date.
-- Saving the same worker/date updates the record rather than creating a duplicate.
-- Editing old or paid-period attendance may require elevated permission.
-- Every correction records actor and previous value.
-- Attendance works offline.
+- One active exception per Organization + Project + Worker assignment + date.
+- The assignment must be primary and cover the date; the effective Calendar date must be working.
+- A Worker may have multiple Project assignments, but exactly one may be primary on a date.
+- Primary ownership is effective-dated; overlapping periods are rejected transactionally.
+- Organization/Project date ranges and weekly patterns determine working dates; Project override wins over Organization override, which wins over weekly pattern.
+- No weekday, including Sunday, is assumed non-working before Calendar configuration.
+- Historical corrections retain actor and timestamps. Locking waits for the Wages contract.
+- Check-in/out, overtime, paid leave, split-day Project allocation, external holidays, and offline writes/sync are excluded.
 
 ## 12.6 Mobile usability
 
 - large touch targets;
 - one-hand operation;
-- “mark all present” action;
+- no action when all expected Workers are present;
 - quick search;
-- clear unsynced indicator;
-- never block saving because of no network.
+- clear period totals and selected Project context;
+- honest online failure; do not claim queued or saved offline writes.
 
 ## 12.7 Acceptance criteria
 
-- Attendance can be completed for 50 workers with minimal taps.
-- Offline records sync when connectivity returns.
-- Duplicate attendance is prevented server-side.
+- Present is derived without creating a record.
+- Full-day and half-day exceptions derive the approved states and totals.
+- Non-working dates do not become Worker absences.
+- Removing an exception restores Present.
+- Historical selected-date rosters use assignment and primary-period dates, not the current date.
 - A user cannot mark attendance for an unassigned project.
 
 ---
@@ -913,7 +905,9 @@ Generate worker wages from attendance and track payment history.
 
 ## 13.2 Calculation
 
-Default rules:
+The approved future calculation source is Calendar + Worker assignment and primary-project periods + Attendance exceptions. Existing wage and payment history remains readable, but new wage preview/generation must return the stable `WAGE_CALCULATION_MODEL_UNAVAILABLE` safety error until the separate Wages redesign is approved and implemented.
+
+Target rules for that later redesign:
 
 - PRESENT = daily rate × 1.0
 - HALF_DAY = daily rate × 0.5
