@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { Plus, UsersRound } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
 import {
   Button,
   Card,
   Input,
+  NotificationBanner,
   PageHeader,
   Select,
   StatusBadge,
@@ -30,6 +32,7 @@ const statusTone = {
 } as const;
 
 export function WorkerListPage() {
+  const searchParams = useSearchParams();
   const { hasPermission } = useAuth();
   const organizations = useOrganizations();
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
@@ -44,6 +47,7 @@ export function WorkerListPage() {
   }>({ search: "", status: "", trade: "", page: 1, pageSize: 20 });
   const workers = useWorkers(organizationId, query);
   const workerRows = workers.data?.data ?? [];
+  const deletedWorker = searchParams.get("deletedWorker");
 
   return (
     <PermissionGuard permission="workers:read">
@@ -64,6 +68,14 @@ export function WorkerListPage() {
             ) : undefined
           }
         />
+
+        {deletedWorker ? (
+          <NotificationBanner
+            variant="success"
+            title="Worker permanently deleted"
+            description={`${deletedWorker} and all related records were removed.`}
+          />
+        ) : null}
 
         <Card>
           <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_180px_180px]">

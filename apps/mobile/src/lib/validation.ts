@@ -5,10 +5,11 @@ export function isValidEmail(value: string) {
 }
 
 export function isValidPhone(value: string) {
-  const normalized = value.trim();
-  if (!normalized || !/^[+\d][\d\s().-]*$/.test(normalized)) return false;
-  const digits = normalized.replace(/\D/g, '');
-  return digits.length >= 10 && digits.length <= 15;
+  return /^[6-9]\d{9}$/.test(value.trim());
+}
+
+export function sanitizePhoneInput(value: string) {
+  return value.replace(/\D/g, '').slice(0, 10);
 }
 
 export function isValidNonNegativeNumber(value: string) {

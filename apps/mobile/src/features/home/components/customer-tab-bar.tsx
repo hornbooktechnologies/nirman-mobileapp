@@ -14,6 +14,7 @@ export type CustomerRoute =
   | '/(app)/attendance'
   | '/(app)/work-calendar'
   | '/(app)/wages'
+  | '/(app)/sales'
   | '/(app)/team'
   | '/(app)/members'
   | '/(app)/menu';
@@ -47,6 +48,7 @@ const customerNavigation: readonly CustomerNavigationDefinition[] = [
   { key: 'workers', labelKey: 'items.workers.title', titleKey: 'items.workers.title', descriptionKey: 'items.workers.description', icon: 'account-hard-hat-outline', href: '/(app)/workers', permission: 'workers:read' },
   { key: 'attendance', labelKey: 'items.attendance.title', titleKey: 'items.attendance.title', descriptionKey: 'items.attendance.description', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
   { key: 'wages', labelKey: 'items.wages.title', titleKey: 'items.wages.title', descriptionKey: 'items.wages.description', icon: 'cash-multiple', href: '/(app)/wages', permission: 'wages:read' },
+  { key: 'sales', labelKey: 'items.sales.title', titleKey: 'items.sales.title', descriptionKey: 'items.sales.description', icon: 'account-tie-outline', href: '/(app)/sales', permissionsAny: ['leads:read-own', 'leads:read-team', 'leads:read-all', 'inventory:read'] },
   { key: 'menu', labelKey: 'tabs.menu', titleKey: 'items.menu.title', descriptionKey: 'items.menu.description', icon: 'menu', href: '/(app)/menu' },
 ];
 

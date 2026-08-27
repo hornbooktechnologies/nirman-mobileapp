@@ -32,6 +32,7 @@
     "workers": { "title": "Workers", "description": "Crew and allocations" },
     "attendance": { "title": "Attendance", "description": "Worker presence and absences" },
     "wages": { "title": "Wages", "description": "Worker payments" },
+    "sales": { "title": "Sales", "description": "Leads, follow-ups and inventory" },
     "calendar": { "title": "Work Calendar", "description": "Working days and site closures" },
     "menu": {
       "title": "Menu",

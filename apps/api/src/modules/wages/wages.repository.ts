@@ -13,19 +13,6 @@ import type {
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
 
-type PreviewRow = {
-  worker_assignment_id: string;
-  worker_id: string;
-  worker_code: string;
-  worker_name: string;
-  trade: string;
-  daily_rate: string | null;
-  present_days: string | number;
-  half_days: string | number;
-  holiday_days: string | number;
-  absent_days: string | number;
-};
-
 type BatchRow = {
   id: string;
   organization_id: string;
@@ -113,42 +100,6 @@ function serializeDateOnly(value: Date | string | null) {
 export class WagesRepository {
   constructor(private readonly database: DatabaseService) {}
 
-  async previewRows(
-    organizationId: string,
-    projectId: string,
-    periodStart: string,
-    periodEnd: string,
-  ) {
-    return this.database.query<PreviewRow & any>(
-      `SELECT
-        wpa.id AS worker_assignment_id,
-        w.id AS worker_id,
-        w.worker_code,
-        w.name AS worker_name,
-        w.trade,
-        wpa.daily_rate,
-        SUM(CASE WHEN ar.status = 'PRESENT' THEN 1 ELSE 0 END) AS present_days,
-        SUM(CASE WHEN ar.status = 'HALF_DAY' THEN 1 ELSE 0 END) AS half_days,
-        SUM(CASE WHEN ar.status = 'HOLIDAY' THEN 1 ELSE 0 END) AS holiday_days,
-        SUM(CASE WHEN ar.status = 'ABSENT' THEN 1 ELSE 0 END) AS absent_days
-       FROM attendance_records ar
-       INNER JOIN worker_project_assignments wpa
-         ON wpa.id = ar.worker_assignment_id
-        AND wpa.organization_id = ar.organization_id
-        AND wpa.project_id = ar.project_id
-       INNER JOIN workers w
-         ON w.id = wpa.worker_id
-        AND w.organization_id = ar.organization_id
-       WHERE ar.organization_id = ?
-         AND ar.project_id = ?
-         AND ar.work_date BETWEEN ? AND ?
-         AND ar.deleted_at IS NULL
-       GROUP BY wpa.id, w.id, w.worker_code, w.name, w.trade, wpa.daily_rate
-       ORDER BY w.name ASC, w.worker_code ASC`,
-      [organizationId, projectId, periodStart, periodEnd],
-    );
-  }
-
   async findBatches(organizationId: string, projectId: string): Promise<WageBatch[]> {
     const rows = await this.database.query<BatchRow & any>(
       `${this.batchSelectSql()}
@@ -206,11 +157,11 @@ export class WagesRepository {
        FROM wage_batches
        WHERE organization_id = ?
          AND project_id = ?
-         AND period_start = ?
-         AND period_end = ?
+         AND period_start <= ?
+         AND period_end >= ?
          AND status <> 'CANCELLED'
        LIMIT 1`,
-      [organizationId, projectId, periodStart, periodEnd],
+      [organizationId, projectId, periodEnd, periodStart],
     );
     return rows[0]?.id ?? null;
   }

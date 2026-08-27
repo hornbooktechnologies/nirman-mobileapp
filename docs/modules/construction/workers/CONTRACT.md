@@ -36,6 +36,7 @@ Included MVP scope:
 - System-generated organization-scoped worker code.
 - Daily-rate capture on the Worker master, copied automatically into each new assignment as an interim Workers MVP snapshot.
 - Worker activation/deactivation.
+- Organization-owner permanent deletion with explicit destructive confirmation.
 - Assignment start/end dates.
 - Duplicate warning by similar name/mobile.
 - Project-filtered worker list.
@@ -109,6 +110,7 @@ Permission keys:
 - `workers:create`
 - `workers:update`
 - `workers:deactivate`
+- `workers:delete`
 - `workers:assign-project`
 - `workers:update-rate`
 - `workers:export`
@@ -120,6 +122,7 @@ Builder Owner:
 - Can update assignment rates before attendance exists.
 - Can update assignment rates after attendance exists only when role grants `workers:update-rate`.
 - Can deactivate workers if no blocking rule prevents it.
+- Can permanently delete a worker and all directly related records when granted organization-wide `workers:delete`.
 - Can export worker list if granted `workers:export`.
 
 Independent Contractor Owner:
@@ -162,7 +165,7 @@ Default role grants:
 
 | Role/profile                                                      | Default permissions                                                                                                                                                                     | Scope                                                                                                            |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization, subject to project-access rules where project-specific data is requested                       |
+| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:delete`, `workers:export` where granted by organization role template | Own organization; permanent deletion requires organization-wide access                                          |
 | Supervisor                                                        | `workers:read`, `workers:create`, `workers:update`                                                                                                                                      | Assigned projects only; no default export, deactivation, or elevated rate changes                                |
 | Contractor                                                        | `workers:read`                                                                                                                                                                          | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role grants |
 | Sales User                                                        | none                                                                                                                                                                                    | No Workers access by default                                                                                     |
@@ -402,6 +405,31 @@ Audit event:
 
 - `workers.deactivated`
 
+### Permanently Delete Worker
+
+Starting condition:
+
+- Actor has organization-wide `workers:delete`.
+- Worker belongs to the actor's active organization.
+
+Action:
+
+- Actor selects **Delete Permanently** on the Web Worker detail page.
+- System displays an irreversible-action warning naming the Worker and every category of related data that will be erased.
+- Actor explicitly confirms deletion.
+
+Result:
+
+- One transaction deletes Wage payments, Wage items, now-empty Wage batches, Attendance exceptions, legacy Attendance records, primary-Project periods, Project assignments, and the Worker.
+- A shared Wage batch remains when it still contains another Worker's Wage item.
+- The deleted Worker and history cannot be restored.
+
+Failure paths:
+
+- Forbidden without organization-wide `workers:delete`.
+- Not found for a cross-organization or missing Worker identifier.
+- Any database failure rolls back the entire deletion.
+
 ## E. Domain Model
 
 ### Entity: Worker
@@ -440,8 +468,8 @@ Uniqueness:
 
 Retention:
 
-- No hard delete in MVP.
-- Inactive workers remain for attendance, wage, and Kharchi history.
+- Deactivation retains Attendance and Wage history.
+- Explicit owner-confirmed permanent deletion removes the Worker and every current directly related record transactionally.
 
 ### Entity: Worker Project Assignment
 
@@ -485,8 +513,8 @@ Indexes:
 
 Retention:
 
-- No hard delete in MVP.
-- End assignment to preserve history.
+- End assignment to preserve history during normal operation.
+- Organization-owner permanent Worker deletion removes related assignments as part of the same transaction.
 
 ### Entity: Worker Primary Project Period
 
@@ -623,6 +651,14 @@ All routes are under `/api/v1`.
 - Response: updated worker detail.
 - Audit: `workers.deactivated`.
 
+### Permanently Delete Worker
+
+- Method: `DELETE`
+- Route: `/organizations/:organizationId/workers/:workerId`
+- Permission: organization-wide `workers:delete`
+- Response: deleted Worker identity plus per-table deletion counts.
+- Transaction order protects foreign-key dependencies and rolls back on any failure.
+
 ### List Project Workers
 
 - Method: `GET`
@@ -713,7 +749,7 @@ List screen:
 - Filter by organization, project, status, trade.
 - Sort by name, trade, status, created date.
 - Paginated table using established web table patterns.
-- Actions: view, edit, deactivate, assign to project, export where permitted.
+- Actions: view, edit, deactivate, permanently delete, assign to project, and export where permitted.
 
 Detail screen:
 
@@ -721,6 +757,7 @@ Detail screen:
 - Active and historical project assignments.
 - Future placeholders for attendance, wages, Kharchi history.
 - Deactivate action with confirmation.
+- Organization-owner **Delete Permanently** action with a destructive warning listing all related records that will be erased.
 
 Create/edit:
 
@@ -895,7 +932,7 @@ Current repository gap:
 - Inactive workers cannot receive new project assignments.
 - End date cannot be before start date.
 - Ended assignments remain visible in history.
-- Workers with downstream attendance, wage, or Kharchi history must not be hard deleted.
+- Permanent deletion requires organization-wide `workers:delete`, explicit confirmation, and transactional removal of all current downstream Worker records.
 - System should warn for similar name/mobile combinations.
 - Client-supplied organization/project/creator fields must not be trusted.
 
@@ -928,7 +965,7 @@ Exports:
 - Mobile number is personal data and must be visible only to users with `workers:read` within scope.
 - No mass assignment of `organization_id`, `created_by`, `updated_by`, status, or audit fields from client body.
 - No mass assignment of `worker_code`; it is server-generated and immutable.
-- No hard delete endpoint in MVP.
+- Permanent deletion is isolated to the organization-scoped `DELETE` endpoint and cannot be delegated as a Project permission.
 
 ## P. Acceptance Criteria
 
@@ -936,7 +973,7 @@ Database:
 
 - `workers` and `worker_project_assignments` migrations use plural snake_case names.
 - Tables include organization/project scope, `worker_code`, lifecycle, audit columns, and useful indexes.
-- No hard delete path is introduced.
+- Permanent delete transaction covers the Worker, assignments, primary periods, Attendance, Wage items/payments, and only Wage batches left empty by that deletion.
 
 API:
 
@@ -945,6 +982,7 @@ API:
 - Duplicate mobile/name handling is warning-only after normalization/similarity checks.
 - Worker code is generated, organization-scoped unique, immutable, searchable, and not accepted from client body.
 - Worker deactivation preserves history.
+- Permanent deletion removes all current directly related history and returns deletion counts.
 
 Permissions:
 
@@ -958,7 +996,7 @@ Tenant isolation:
 
 Web:
 
-- Admin can list, create, update, deactivate, assign, and end assignments when permitted.
+- Admin can list, create, update, deactivate, permanently delete, assign, and end assignments when permitted.
 - Admin can search by worker code.
 - Permission-restricted state appears when required.
 
@@ -1086,7 +1124,7 @@ Confirmed requirements:
 - Worker code is system-generated, organization-scoped unique, immutable, and not client supplied.
 - Worker list is filtered by current project.
 - Inactive workers remain in history.
-- Workers with financial history must not be hard deleted.
+- Organization Owners may permanently delete Workers with financial history after the irreversible warning is confirmed.
 - Daily rate is required before wage generation, not necessarily at initial creation.
 - Duplicate warnings should be shown for normalized mobile and similar name combinations, but are not hard validation failures.
 - Mobile number is optional.
@@ -1106,7 +1144,7 @@ Safe technical decisions:
 
 - Model workers separately from users.
 - Model assignment as a separate project-scoped entity.
-- Use soft deactivation/end assignment instead of hard delete.
+- Use soft deactivation/end assignment when history should remain; reserve permanent deletion for the explicit organization-owner destructive workflow.
 - Keep daily rate on assignment for Workers MVP only.
 - Keep worker documents and agency ownership deferred.
 

@@ -19,7 +19,11 @@
     "ATTENDANCE_WORKER_NOT_ASSIGNED": "इस तारीख पर कामगार इस प्रोजेक्ट में आवंटित नहीं है।",
     "WORK_CALENDAR_NOT_CONFIGURED": "यह तारीख उपयोग करने से पहले संगठन का कार्य सप्ताह सेट करें।",
     "WORK_CALENDAR_DATE_RANGE_INVALID": "शुरू और समाप्ति की तारीख जाँचें।",
+    "WORK_CALENDAR_PERIOD_TOO_LARGE": "366 दिन या उससे कम की तारीख सीमा चुनें।",
+    "WORK_CALENDAR_OVERRIDE_TYPE_INVALID": "गैर-कार्य दिवस या विशेष कार्य दिवस चुनें।",
     "WORK_CALENDAR_OVERRIDE_CONFLICT": "यह तारीख सीमा इसी स्तर के दूसरे सक्रिय अपवाद से टकराती है।",
-    "WORK_CALENDAR_TIMEZONE_INVALID": "Asia/Kolkata जैसा मान्य IANA समय क्षेत्र दर्ज करें।"
+    "WORK_CALENDAR_OVERRIDE_NOT_FOUND": "यह कैलेंडर अपवाद अब मौजूद नहीं है। कैलेंडर रीफ़्रेश करके फिर प्रयास करें।",
+    "WORK_CALENDAR_TIMEZONE_INVALID": "भारतीय मानक समय लागू नहीं हो सका। फिर प्रयास करें।",
+    "LEAD_NOT_FOUND": "यह लीड अब उपलब्ध नहीं है। सेल्स रीफ़्रेश करें।", "LEAD_ACCESS_DENIED": "आप इस लीड को नहीं देख सकते।", "LEAD_ASSIGNMENT_DENIED": "आप इस लीड का असाइनमेंट नहीं बदल सकते।", "LEAD_ASSIGNEE_INVALID": "इस प्रोजेक्ट का सक्रिय सदस्य चुनें।", "LEAD_BUDGET_RANGE_INVALID": "अधिकतम बजट न्यूनतम बजट से कम नहीं हो सकता।", "LEAD_STAGE_REQUIRES_BOOKING": "लीड को Booked करने के लिए बुकिंग पक्की करें।", "LEAD_ALREADY_BOOKED": "इस लीड की बुकिंग पहले से पक्की है।", "FOLLOW_UP_DUPLICATE": "यही फ़ॉलो-अप पहले से तय है।", "FOLLOW_UP_NOT_FOUND": "यह फ़ॉलो-अप अब उपलब्ध नहीं है।", "FOLLOW_UP_ACCESS_DENIED": "आप यह फ़ॉलो-अप नहीं बदल सकते।", "SITE_VISIT_NOT_FOUND": "यह साइट विज़िट अब उपलब्ध नहीं है।", "UNIT_NOT_FOUND": "यह यूनिट अब उपलब्ध नहीं है।", "UNIT_NUMBER_DUPLICATE": "यह यूनिट नंबर प्रोजेक्ट में पहले से है।", "UNIT_NOT_AVAILABLE": "यह यूनिट उपलब्ध नहीं है।", "UNIT_BLOCKED_FOR_ANOTHER_LEAD": "यह यूनिट दूसरी लीड के लिए ब्लॉक है।", "UNIT_BLOCK_NOT_ACTIVE": "यह यूनिट ब्लॉक अब सक्रिय नहीं है।", "UNIT_BLOCK_EXPIRY_INVALID": "यूनिट ब्लॉक के लिए भविष्य का समय चुनें।", "UNIT_STATUS_MANAGED_BY_WORKFLOW": "यूनिट स्थिति बदलने के लिए ब्लॉक या बुकिंग कार्य इस्तेमाल करें।", "BOOKING_NOT_FOUND": "यह बुकिंग अब उपलब्ध नहीं है।", "BOOKING_NOT_ACTIVE": "यह बुकिंग सक्रिय नहीं है।", "BOOKING_RESTORE_STAGE_INVALID": "बहाल करने के लिए सही लीड अवस्था चुनें।", "BOOKING_RESTORE_UNIT_STATUS_REQUIRED": "रद्द करने के बाद यूनिट स्थिति चुनें।", "SALES_CONFLICT": "सेल्स जानकारी बदल गई है। रीफ़्रेश करके फिर प्रयास करें।", "IDEMPOTENCY_CONFLICT": "यह बुकिंग पुनः प्रयास मूल अनुरोध से मेल नहीं खाता। पहले रीफ़्रेश करें।"
   }
 }

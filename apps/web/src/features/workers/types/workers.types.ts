@@ -8,6 +8,7 @@ export type {
   UpdateWorkerInput,
   UpdateWorkerProjectAssignmentInput,
   WorkerDetail,
+  WorkerDeletionResult,
   WorkerDuplicateCandidate,
   WorkerListFilter,
   WorkerListResponse,

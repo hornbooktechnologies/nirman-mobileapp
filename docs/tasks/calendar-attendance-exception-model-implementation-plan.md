@@ -41,7 +41,7 @@ The current source implements the canonical exception model:
 - canonical Web routes are `/attendance`, `/attendance/mark`, `/work-calendar`, and the Worker detail Attendance tab;
 - protected Mobile routes include `/(app)/attendance`, `/(app)/attendance-mark`, `/(app)/worker-attendance`, and `/(app)/work-calendar`, with canonical summary/exception/worker-period APIs and en/hi/gu resources;
 - Mobile Attendance separates period summary, selected-date exception marking, and exact Worker history;
-- Wages generation remains safety-gated until its redesign is separately approved;
+- the original Wages safety gate was retained through Attendance completion; a separately authorized 2026-08-25 Wages slice now consumes the derived Calendar/Attendance model;
 - migrations `000` through `008` remain immutable, and migration `009` execution status must be reported from a fresh guarded status check rather than inferred from this document.
 
 Remaining gaps that must be surfaced:

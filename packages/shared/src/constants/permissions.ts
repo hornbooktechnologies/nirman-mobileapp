@@ -16,6 +16,11 @@ export const PERMISSION_RESOURCES = [
   "work-calendar",
   "attendance",
   "wages",
+  "leads",
+  "followups",
+  "site-visits",
+  "inventory",
+  "sales-reports",
   "settings",
   "files",
   "audit-logs",
@@ -42,6 +47,13 @@ export const PERMISSION_ACTIONS = [
   "switch",
   "view-all",
   "view-own",
+  "read-own",
+  "read-team",
+  "read-all",
+  "reassign",
+  "convert",
+  "block",
+  "book",
   "archive",
   "restore",
   "export",
@@ -75,6 +87,11 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   "work-calendar": "Work Calendar",
   attendance: "Attendance",
   wages: "Wages",
+  leads: "Leads",
+  followups: "Follow-ups",
+  "site-visits": "Site Visits",
+  inventory: "Unit Inventory",
+  "sales-reports": "Sales Reports",
   settings: "Settings",
   files: "Files",
   "audit-logs": "Audit Logs",
@@ -210,6 +227,14 @@ export const WORKER_PERMISSIONS = [
 
 export type WorkerPermissionKey = (typeof WORKER_PERMISSIONS)[number];
 
+/** Organization-wide destructive Workers administration; never Project-delegatable. */
+export const WORKER_ORGANIZATION_PERMISSIONS = [
+  "workers:delete",
+] as const satisfies readonly PermissionKey[];
+
+export type WorkerOrganizationPermissionKey =
+  (typeof WORKER_ORGANIZATION_PERMISSIONS)[number];
+
 export const WORK_CALENDAR_PERMISSIONS = [
   "work-calendar:read",
   "work-calendar:update-organization",
@@ -239,6 +264,27 @@ export const WAGE_PERMISSIONS = [
 
 export type WagePermissionKey = (typeof WAGE_PERMISSIONS)[number];
 
+/** Sales CRM is a customer operational module, never a platform permission group. */
+export const SALES_PERMISSIONS = [
+  "leads:read-own",
+  "leads:read-team",
+  "leads:read-all",
+  "leads:create",
+  "leads:assign",
+  "leads:reassign",
+  "leads:update",
+  "leads:convert",
+  "followups:manage",
+  "site-visits:manage",
+  "inventory:read",
+  "inventory:manage",
+  "inventory:block",
+  "inventory:book",
+  "sales-reports:read",
+] as const satisfies readonly PermissionKey[];
+
+export type SalesPermissionKey = (typeof SALES_PERMISSIONS)[number];
+
 /**
  * Permission keys an Organization Owner may narrow for one Project assignment.
  * The member's Organization Role remains the ceiling; storing a key here never
@@ -257,6 +303,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type ProjectDelegatablePermissionKey =
@@ -303,6 +350,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     label: "Wages",
     permissions: WAGE_PERMISSIONS,
   },
+  {
+    key: "SALES",
+    label: "Sales",
+    permissions: SALES_PERMISSIONS,
+  },
 ] as const;
 
 export function isProjectDelegatablePermission(
@@ -318,9 +370,11 @@ export const ALL_PERMISSIONS = [
   ...FOUNDATION_PERMISSIONS,
   ...LEGACY_USER_MANAGEMENT_PERMISSIONS,
   ...WORKER_PERMISSIONS,
+  ...WORKER_ORGANIZATION_PERMISSIONS,
   ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type KnownPermissionKey = (typeof ALL_PERMISSIONS)[number];
@@ -402,6 +456,8 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "workers:update-rate":
     "Change worker assignment rates after attendance exists.",
   "workers:deactivate": "Deactivate workers.",
+  "workers:delete":
+    "Permanently delete workers and every directly related operational record.",
   "workers:export": "Export worker lists.",
 
   "work-calendar:read": "Read Organization and effective Project calendars.",
@@ -420,6 +476,22 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "wages:update": "Update wage batches and wage item adjustments.",
   "wages:mark-paid": "Record wage payments.",
   "wages:export": "Export wage summaries and payment history.",
+
+  "leads:read-own": "Read assigned and self-created leads.",
+  "leads:read-team": "Read leads assigned to the actor's sales team.",
+  "leads:read-all": "Read all leads in accessible Projects.",
+  "leads:create": "Create leads in accessible Projects.",
+  "leads:assign": "Assign an unassigned lead.",
+  "leads:reassign": "Reassign a lead while preserving assignment history.",
+  "leads:update": "Update accessible leads and their sales stage.",
+  "leads:convert": "Confirm a booking and convert a lead.",
+  "followups:manage": "Schedule and complete lead follow-ups.",
+  "site-visits:manage": "Schedule and complete lead site visits.",
+  "inventory:read": "Read Project unit inventory.",
+  "inventory:manage": "Create and update Project unit inventory.",
+  "inventory:block": "Block and release available units.",
+  "inventory:book": "Confirm and cancel unit-linked bookings.",
+  "sales-reports:read": "Read sales summaries and performance reports.",
 
   "settings:read": "Read settings.",
   "settings:update": "Update settings.",

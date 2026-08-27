@@ -65,6 +65,7 @@ Run the full authenticated physical-device and fluent-language review matrix acr
 | 39 | Mobile Localization Home/dashboard namespace | implementation_complete_native_review_pending | localized welcome/workspace copy, Project context switcher, access/status/scope/count labels, metric cards, empty state, and accessibility labels | Locale parity, mobile/shared type-checks, Expo web export with bundled Noto fonts, scoped literal review, and diff check passed; physical-device layout, screen-reader, and fluent review pending |
 | 40 | Mobile Localization Projects namespace | implementation_complete_native_review_pending | localized Project Detail, Add/Edit Project form, validation/recovery copy, enum display mappings, shared modal/card typography, and responsive field/chip wrapping | Six-namespace locale parity, mobile/shared type-checks, Expo web export with eight Noto fonts, scoped literal review, and diff check passed; physical-device layout, screen-reader, and fluent review pending |
 | 41 | Mobile Localization current customer surface completion | implementation_complete_native_review_pending | localized Members/invite/access/Project assignments, Team/Assign/permission editor, Workers/Add-Edit-Assign-End, shared sync/progress/form/card/header UI, errors/statuses, and accessibility copy | Nine-namespace locale parity, mobile/shared type-checks, full mobile literal audit, Expo web export with eight Noto fonts, and diff check passed; authenticated device, screen-reader, large-text, and fluent review pending |
+| 42 | Organization-owner permanent Worker deletion | implementation_complete_seed_runtime_pending | organization-wide `workers:delete`, dependency-ordered API transaction, Web danger action/confirmation/success state, Workers contract and decision update | Shared/API/web type-checks, 18 API suites with 98 tests, API and isolated web production builds, focused web lint, and diff check passed; no seed, database deletion, or authenticated browser flow was run |
 
 ## 4. Verification Commands Recorded
 
@@ -236,4 +237,41 @@ Verification passed: shared build; API/web/mobile type-checks; 12 API suites wit
 API and web production builds; migration status current with 6 local and 6 applied migrations;
 live read-only rate-backfill verification; restarted API/database health; and `git diff --check`.
 The in-app browser reported no available backend, so authenticated visual verification did not
+run.
+
+## 2026-08-26: Sales CRM API Vertical Slice
+
+The Sales API contract and source implementation now cover Project-scoped Leads, own/team/all
+visibility, assignment history, timeline activities, follow-ups, site visits, unit inventory,
+transactional unit blocking, and idempotent booking conversion/cancellation. Shared canonical
+statuses, permission keys, stable errors, and Project-delegatable Sales permissions were added.
+
+Migration `011_sales_crm.sql` defines the eight Sales tables, composite Organization/Project
+foreign keys, one-active-block and one-confirmed-booking constraints, booking idempotency, and
+default customer-role grants while excluding platform roles. Mobile/Web Sales clients,
+notifications, background expiry jobs, commission calculation, and Audit integration remain
+outside this API slice.
+
+Verification recorded for the source slice: shared build, API type-check, focused Sales lint,
+seven focused Sales service tests, all 19 API suites/105 tests, and API production build passed.
+The source slice initially ran no database or runtime verification. On 2026-08-27, migrations
+`010` and `011` and the updated guarded seed were explicitly approved and completed against
+`md-in-30.webhostbox.net/vishwlt9_nirmansite`; see the runtime addendum below.
+
+## 2026-08-27: Worker Permission And Sales Server Rollout
+
+Read-only status first confirmed the configured remote target, 12 local/10 applied migrations,
+and exactly `010` and `011` pending. A read-only preflight confirmed MySQL `5.7.23-23`, zero
+Sales tables, both required Project indexes, and zero existing Sales grants for the checked
+roles. After explicit approval, the guarded migration runner applied both files in order and
+reported 12 applied, zero pending, zero drafts, and current state. The updated seed committed
+with `SEED_ROLE_USERS=false`, so no demo-user generation or password-output flow ran.
+
+Post-write verification confirmed all eight Sales tables, two stored generated columns, three
+required unique workflow indexes, zero duplicate role permissions, 15 Sales grants each for
+Organization Owner/Builder Admin/Independent Contractor Owner, nine for Sales User, and zero
+for Site Supervisor/Platform Super Admin. Migration `010` left exactly one `workers:delete`
+grant on each owner/admin role. All Sales tables contain zero rows. API health reports
+app/database `ok`; the registered Sales Leads route returns `401` without authentication.
+Authenticated Sales behavior, live block concurrency, browser, and device acceptance were not
 run.

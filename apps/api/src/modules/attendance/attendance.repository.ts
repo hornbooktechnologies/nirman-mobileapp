@@ -16,6 +16,7 @@ export type AttendanceRosterPeriodRow = {
   workerStatus: string;
   deactivatedAt: string | null;
   workerAssignmentId: string;
+  dailyRate: string | null;
   assignmentStartsOn: string;
   assignmentEndsOn: string | null;
   primaryStartsOn: string;
@@ -49,6 +50,7 @@ export class AttendanceRepository {
          w.id AS worker_id, w.worker_code, w.name AS worker_name, w.trade,
          w.status AS worker_status, w.deactivated_at,
          wpa.id AS worker_assignment_id,
+         wpa.daily_rate,
          wpa.starts_on AS assignment_starts_on, wpa.ends_on AS assignment_ends_on,
          wpp.starts_on AS primary_starts_on, wpp.ends_on AS primary_ends_on
        FROM worker_primary_project_periods wpp
@@ -90,6 +92,7 @@ export class AttendanceRepository {
         ? new Date(row.deactivated_at).toISOString()
         : null,
       workerAssignmentId: row.worker_assignment_id,
+      dailyRate: row.daily_rate === null ? null : String(row.daily_rate),
       assignmentStartsOn: dateOnly(row.assignment_starts_on),
       assignmentEndsOn: nullableDateOnly(row.assignment_ends_on),
       primaryStartsOn: dateOnly(row.primary_starts_on),

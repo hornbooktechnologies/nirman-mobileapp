@@ -4,5 +4,6 @@ export * from "./calendar";
 export * from "./errors";
 export * from "./permissions";
 export * from "./roles";
+export * from "./sales";
 export * from "./statuses";
 export * from "./wages";

@@ -1,10 +1,31 @@
 # Current Task
 
+## Sales CRM API Status
+
+On 2026-08-26, the Sales vertical API was implemented from `MVP_REQUIREMENTS.md` sections
+19-23. The source slice includes shared Sales statuses/permissions/errors, the proposed
+`011_sales_crm.sql` migration, NestJS routes/services/repositories, own/team/all Lead access,
+assignment/timeline history, follow-ups, site visits, unit inventory and locking, and
+idempotent transactional booking conversion/cancellation. See
+`docs/modules/sales/CONTRACT.md`.
+
+On 2026-08-27, explicit target-specific approval was used to apply pending migrations `010`
+and `011` to `md-in-30.webhostbox.net/vishwlt9_nirmansite`, followed by the guarded updated
+seed with demo-user generation disabled. Read-only verification reports 12/12 migrations
+applied, all eight Sales tables present, both stored generated columns and all three required
+unique workflow indexes present, zero duplicate role permissions, 15 Sales grants for each
+owner/admin template, nine for Sales User, and zero for Site Supervisor and Platform Super
+Admin. All Sales tables remain empty. API health reports app/database `ok`, and the Sales route
+is registered and returns `401` without authentication. Authenticated Sales workflow,
+concurrency, browser, and physical-device acceptance remain pending.
+
 ## Calendar And Attendance Implementation Status
+
+On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation now consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. Kharchi remains `0.00`, and effective-dated wage-rate history remains an explicit completion gap.
 
 The sequential Calendar and Attendance exception-model redesign is documented in `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`.
 
-Slices A0, A1, B, C, and C2 are complete. Mobile Attendance now separates period summary at `/(app)/attendance`, daily exception marking at `/(app)/attendance-mark`, and exact Worker history at `/(app)/worker-attendance`; Mobile Work Calendar remains a separate protected route. Derived Present, Full-day/Half-day exception-only writes, selected-Project context, `FlatList`, failed-input retention, permission states, and en/hi/gu remain intact. Slice D compatibility cleanup remains optional after client acceptance and requires separate authorization. Do not start Wages, migration/seed execution, offline sync, or compatibility cleanup from this status.
+Slices A0, A1, B, C, and C2 are complete. Mobile Attendance now separates period summary at `/(app)/attendance`, daily exception marking at `/(app)/attendance-mark`, and exact Worker history at `/(app)/worker-attendance`; Mobile Work Calendar remains a separate protected route. Derived Present, Full-day/Half-day exception-only writes, selected-Project context, `FlatList`, failed-input retention, permission states, and en/hi/gu remain intact. Slice D compatibility cleanup remains optional after client acceptance and requires separate authorization. Migration/seed execution, offline sync, and compatibility cleanup remain outside the Wages authorization.
 
 Slice C2 passed 11-namespace en/hi/gu locale parity, shared build, Mobile type-check, Android Expo export, and `git diff --check`. The export produced one 3.89 MB Hermes bundle with the bundled Manrope, Noto Sans Devanagari, and Noto Sans Gujarati assets. Authenticated API mutation, emulator/physical-device behavior, screen reader, largest text, keyboard avoidance, touch-target measurement, rotation/tablet, and fluent Hindi/Gujarati acceptance remain unrun and must not be inferred from static evidence. Slice C2 changed no API, shared-contract source, database, migration, seed, dependency, Web, Work Calendar, Wages, offline-sync, or compatibility-cleanup behavior.
 

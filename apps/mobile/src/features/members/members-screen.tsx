@@ -27,7 +27,7 @@ import {
 } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
-import { isValidEmail, isValidPhone } from '../../lib/validation';
+import { isValidEmail, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { MemberProjectAssignmentsSheet } from './member-project-assignments-sheet';
@@ -465,7 +465,7 @@ function InviteMemberSheet({ roles, saving, onClose, onInvite }: {
       <FormError message={error} />
       <FormField label={t('invite.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('invite.nameA11y')} invalid={Boolean(fieldErrors.name)} maxLength={100} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
       <FormField label={t('invite.email')} required error={fieldErrors.email}><Input accessibilityLabel={t('invite.emailA11y')} invalid={Boolean(fieldErrors.email)} keyboardType="email-address" autoCapitalize="none" autoComplete="email" value={form.email} onChangeText={(email) => { setForm({ ...form, email }); if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined })); }} /></FormField>
-      <FormField label={t('invite.mobile')} optional error={fieldErrors.phone}><Input accessibilityLabel={t('invite.mobileA11y')} invalid={Boolean(fieldErrors.phone)} keyboardType="phone-pad" maxLength={20} value={form.phone} onChangeText={(phone) => { setForm({ ...form, phone }); if (fieldErrors.phone) setFieldErrors((current) => ({ ...current, phone: undefined })); }} /></FormField>
+      <FormField label={t('invite.mobile')} optional error={fieldErrors.phone}><Input accessibilityLabel={t('invite.mobileA11y')} invalid={Boolean(fieldErrors.phone)} keyboardType="phone-pad" maxLength={10} value={form.phone} onBlur={() => setFieldErrors((current) => ({ ...current, phone: form.phone && !isValidPhone(form.phone) ? tCommon('validation.phone') : undefined }))} onChangeText={(value) => { const phone = sanitizePhoneInput(value); setForm({ ...form, phone }); setFieldErrors((current) => ({ ...current, phone: phone.length === 10 && !isValidPhone(phone) ? tCommon('validation.phone') : undefined })); }} /></FormField>
       <FormField label={t('invite.role')} required error={fieldErrors.roleId} helperText={t('invite.roleHelp')}><RolePicker roles={roles} selectedRoleId={form.roleId} onSelect={(roleId) => { setForm({ ...form, roleId }); if (fieldErrors.roleId) setFieldErrors((current) => ({ ...current, roleId: undefined })); }} /></FormField>
       <FormField label={t('invite.designation')} optional helperText={t('invite.designationHelp')}><Input accessibilityLabel={t('invite.designation')} maxLength={120} value={form.designation} onChangeText={(designation) => setForm({ ...form, designation })} /></FormField>
       <Toggle label={t('invite.allProjects')} value={form.organizationWideProjectAccess} onValueChange={(organizationWideProjectAccess) => setForm({ ...form, organizationWideProjectAccess })} />

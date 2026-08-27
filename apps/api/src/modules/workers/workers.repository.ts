@@ -5,6 +5,7 @@ import type {
   WorkerAssignmentStatus,
   WorkerDetail,
   WorkerDuplicateCandidate,
+  WorkerDeletionResult,
   WorkerListResponse,
   WorkerProjectAssignmentSummary,
   WorkerPrimaryProjectPeriod,
@@ -13,6 +14,7 @@ import type {
 import { DatabaseService } from "../../database/database.service";
 import type {
   DatabaseConnection,
+  DbRow,
   QueryParam,
 } from "../../database/database.types";
 import type { AssignWorkerDto } from "./dto/assign-worker.dto";
@@ -45,6 +47,16 @@ type AssignmentInsertInput = {
   startsOn?: string | null;
   endsOn?: string | null;
 };
+
+interface WorkerDeletionRow extends DbRow {
+  id: string;
+  worker_code: string;
+  name: string;
+}
+
+interface WageBatchIdRow extends DbRow {
+  id: string;
+}
 
 function normalizeMobile(mobile?: string | null) {
   const digits = mobile?.replace(/\D/g, "") ?? "";
@@ -669,6 +681,121 @@ export class WorkersRepository {
       [actorId, actorId, organizationId, workerId],
     );
     return this.findById(organizationId, workerId);
+  }
+
+  async deletePermanently(
+    organizationId: string,
+    workerId: string,
+  ): Promise<WorkerDeletionResult | null> {
+    return this.database.transaction(async (connection) => {
+      const workers = await this.database.query<WorkerDeletionRow>(
+        `SELECT id, worker_code, name
+         FROM workers
+         WHERE organization_id = ? AND id = ?
+         FOR UPDATE`,
+        [organizationId, workerId],
+        connection,
+      );
+      const worker = workers[0];
+      if (!worker) return null;
+
+      const wageBatches = await this.database.query<WageBatchIdRow>(
+        `SELECT DISTINCT wage_batch_id AS id
+         FROM wage_items
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      const wagePayments = await this.database.execute(
+        `DELETE wp
+         FROM wage_payments wp
+         INNER JOIN wage_items wi
+           ON wi.id = wp.wage_item_id
+          AND wi.organization_id = wp.organization_id
+         WHERE wi.organization_id = ? AND wi.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const wageItems = await this.database.execute(
+        `DELETE FROM wage_items
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      let emptyWageBatchCount = 0;
+      if (wageBatches.length > 0) {
+        const batchIds = wageBatches.map((batch) => batch.id);
+        const placeholders = batchIds.map(() => "?").join(", ");
+        const emptyWageBatches = await this.database.execute(
+          `DELETE wb
+           FROM wage_batches wb
+           LEFT JOIN wage_items wi ON wi.wage_batch_id = wb.id
+           WHERE wb.organization_id = ?
+             AND wb.id IN (${placeholders})
+             AND wi.id IS NULL`,
+          [organizationId, ...batchIds],
+          connection,
+        );
+        emptyWageBatchCount = emptyWageBatches.affectedRows;
+      }
+
+      const attendanceExceptions = await this.database.execute(
+        `DELETE ae
+         FROM attendance_exceptions ae
+         INNER JOIN worker_project_assignments wpa
+           ON wpa.id = ae.worker_assignment_id
+          AND wpa.organization_id = ae.organization_id
+         WHERE wpa.organization_id = ? AND wpa.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const attendanceRecords = await this.database.execute(
+        `DELETE ar
+         FROM attendance_records ar
+         INNER JOIN worker_project_assignments wpa
+           ON wpa.id = ar.worker_assignment_id
+          AND wpa.organization_id = ar.organization_id
+         WHERE wpa.organization_id = ? AND wpa.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const primaryProjectPeriods = await this.database.execute(
+        `DELETE FROM worker_primary_project_periods
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const projectAssignments = await this.database.execute(
+        `DELETE FROM worker_project_assignments
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      await this.database.execute(
+        `DELETE FROM workers
+         WHERE organization_id = ? AND id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      return {
+        workerId: worker.id,
+        workerCode: worker.worker_code,
+        workerName: worker.name,
+        deleted: true,
+        deletedRecords: {
+          wagePayments: wagePayments.affectedRows,
+          wageItems: wageItems.affectedRows,
+          emptyWageBatches: emptyWageBatchCount,
+          attendanceExceptions: attendanceExceptions.affectedRows,
+          attendanceRecords: attendanceRecords.affectedRows,
+          primaryProjectPeriods: primaryProjectPeriods.affectedRows,
+          projectAssignments: projectAssignments.affectedRows,
+        },
+      };
+    });
   }
 
   async assignWorker(

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Alert, findNodeHandle, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AppIcon, AppText, Badge, BottomSheet, Button, Card, Chip, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, NirmanScreenBackground } from '../../components/ui';
+import { AppIcon, AppText, Badge, BottomSheet, Button, Card, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, NirmanScreenBackground } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { ApiRequestError } from '../../lib/api';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
@@ -19,6 +19,7 @@ type ScopeView = 'PROJECT' | 'ORGANIZATION';
 type WeekPreset = 'SUNDAY_OFF' | 'NO_FIXED_OFF' | 'CUSTOM' | null;
 type OverrideDraft = { startDate: string; endDate: string; dayType: WorkCalendarDayType; name: string; reason: string };
 
+const INDIA_TIMEZONE = 'Asia/Kolkata';
 const emptyWeek = Object.fromEntries(WEEKDAYS.map((day) => [day, null])) as Record<Weekday, boolean | null>;
 
 function inferPreset(week: WorkingWeek | null): WeekPreset {
@@ -58,10 +59,8 @@ export function WorkCalendarScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [preset, setPreset] = useState<WeekPreset>(null);
-  const [timezone, setTimezone] = useState('');
   const [week, setWeek] = useState<Record<Weekday, boolean | null>>(emptyWeek);
   const [weekError, setWeekError] = useState('');
-  const [timezoneError, setTimezoneError] = useState('');
   const [weekApiError, setWeekApiError] = useState('');
   const [isSavingWeek, setIsSavingWeek] = useState(false);
   const [overrideSheet, setOverrideSheet] = useState<{ scope: CalendarScope; item: WorkCalendarOverride | null } | null>(null);
@@ -77,7 +76,6 @@ export function WorkCalendarScreen() {
 
   const applyOrganizationCalendar = useCallback((calendar: OrganizationWorkCalendar) => {
     setOrganizationCalendar(calendar);
-    setTimezone(calendar.timezone);
     setWeek(calendar.workingWeek ? { ...calendar.workingWeek } : { ...emptyWeek });
     setPreset(inferPreset(calendar.workingWeek));
   }, []);
@@ -150,16 +148,14 @@ export function WorkCalendarScreen() {
 
   async function saveWorkingWeek() {
     if (!organizationId || !session?.accessToken || isSavingWeek) return;
-    const normalizedTimezone = timezone.trim();
     const missingDays = WEEKDAYS.filter((day) => typeof week[day] !== 'boolean');
-    setTimezoneError(normalizedTimezone ? '' : t('weekly.timezoneRequired'));
     setWeekError(missingDays.length ? t('weekly.daysRequired') : '');
     setWeekApiError('');
-    if (!normalizedTimezone || missingDays.length) return;
+    if (missingDays.length) return;
     setIsSavingWeek(true);
     try {
       const response = await updateOrganizationCalendar(organizationId, {
-        timezone: normalizedTimezone,
+        timezone: INDIA_TIMEZONE,
         workingWeek: week as WorkingWeek,
       }, session.accessToken);
       applyOrganizationCalendar(response);
@@ -333,23 +329,73 @@ export function WorkCalendarScreen() {
                       {!projectCalendar?.configured ? <EmptyState title={t('empty.notConfiguredTitle')} description={t('empty.notConfiguredDescription')} /> : projectCalendar ? <>
                         <Card style={styles.inheritanceCard}><AppIcon color={mobileTheme.color.text.brand} name="information-outline" size={mobileTheme.icon.md} /><View style={styles.flexCopy}><AppText style={styles.cardTitle} weight={700}>{selectedDay?.source === 'PROJECT_OVERRIDE' ? t('inheritance.projectOverride') : t('inheritance.organization')}</AppText><AppText style={styles.muted} weight={500}>{selectedDay?.source === 'PROJECT_OVERRIDE' ? t('inheritance.projectDescription') : t('inheritance.organizationDescription')}</AppText></View></Card>
                         <MonthCalendar calendar={projectCalendar} month={month} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-                        {selectedDay ? <Card style={styles.selectedDetail}><View style={styles.detailHeader}><View><AppText style={styles.cardTitle} weight={700}>{new Intl.DateTimeFormat(locale, { dateStyle: 'full' }).format(new Date(`${selectedDay.date}T12:00:00`))}</AppText><AppText style={styles.muted} weight={500}>{t(`sources.${selectedDay.source}`)}</AppText></View><Badge label={t(`dayTypes.${selectedDay.dayType}`)} tone={selectedDay.isWorking ? 'success' : 'warning'} /></View>{selectedDay.override ? <><AppText style={styles.overrideName} weight={600}>{selectedDay.override.name}</AppText>{selectedDay.override.reason ? <AppText style={styles.muted}>{selectedDay.override.reason}</AppText> : null}</> : <AppText style={styles.muted}>{t('month.noDateOverride')}</AppText>}</Card> : null}
+                        {selectedDay ? <Card style={styles.selectedDetail}><View style={styles.detailHeader}><View><AppText style={styles.cardTitle} weight={700}>{new Intl.DateTimeFormat(locale, { dateStyle: 'full' }).format(new Date(`${selectedDay.date}T12:00:00`))}</AppText><AppText style={styles.muted} weight={500}>{t(`sources.${selectedDay.source}`)}</AppText></View><Badge label={t(`dayTypes.${selectedDay.dayType}`)} style={styles.contrastBadge} tone={selectedDay.isWorking ? 'success' : 'warning'} /></View>{selectedDay.override ? <><AppText style={styles.overrideName} weight={600}>{selectedDay.override.name}</AppText>{selectedDay.override.reason ? <AppText style={styles.muted}>{selectedDay.override.reason}</AppText> : null}</> : <AppText style={styles.muted}>{t('month.noDateOverride')}</AppText>}</Card> : null}
                       </> : null}
                       <OverrideSection title={t('override.projectTitle')} description={t('override.projectDescription')} items={currentOverrides} canUpdate={canUpdateScope} locale={locale} onAdd={() => openOverride('PROJECT')} onEdit={(item) => openOverride('PROJECT', item)} />
                     </>
                   ) : (
                     <>
                       <Card style={styles.weeklyCard}>
-                        <View style={styles.sectionHeading}><View style={styles.flexCopy}><AppText style={styles.cardTitle} weight={700}>{t('weekly.title')}</AppText><AppText style={styles.muted} weight={500}>{organizationCalendar?.configured ? t('weekly.configuredDescription') : t('weekly.unconfiguredDescription')}</AppText></View><Badge label={t(organizationCalendar?.configured ? 'weekly.configured' : 'weekly.setupNeeded')} tone={organizationCalendar?.configured ? 'success' : 'warning'} /></View>
+                        <View style={styles.sectionHeading}><View style={styles.flexCopy}><AppText style={styles.cardTitle} weight={700}>{t('weekly.title')}</AppText><AppText style={styles.muted} weight={500}>{organizationCalendar?.configured ? t('weekly.configuredDescription') : t('weekly.unconfiguredDescription')}</AppText></View><Badge label={t(organizationCalendar?.configured ? 'weekly.configured' : 'weekly.setupNeeded')} style={styles.contrastBadge} tone={organizationCalendar?.configured ? 'success' : 'warning'} /></View>
+                        <View style={styles.timezoneRow}>
+                          <View style={styles.timezoneIcon}><AppIcon color={mobileTheme.color.text.inverse} name="clock-outline" size={mobileTheme.icon.md} /></View>
+                          <View style={styles.flexCopy}>
+                            <AppText style={styles.eyebrow} weight={700}>{t('weekly.timezone')}</AppText>
+                            <AppText style={styles.timezoneName} weight={700}>{t('weekly.timezoneName')}</AppText>
+                            <AppText style={styles.muted} weight={500}>{t('weekly.timezoneDescription')}</AppText>
+                          </View>
+                        </View>
                         {canUpdateOrganization ? <>
                           <FormError message={weekApiError} />
-                          <FormField label={t('weekly.timezone')} required error={timezoneError}><Input autoCapitalize="none" accessibilityLabel={t('weekly.timezone')} invalid={Boolean(timezoneError)} value={timezone} onChangeText={setTimezone} /></FormField>
-                          <FormField label={t('weekly.quickChoice')} required error={weekError}>
-                            <View style={styles.choiceWrap}>{(['SUNDAY_OFF', 'NO_FIXED_OFF', 'CUSTOM'] as const).map((value) => <Chip key={value} label={t(`weekly.presets.${value}`)} selected={preset === value} style={styles.presetChip} onPress={() => choosePreset(value)} />)}</View>
-                          </FormField>
-                          {(preset === 'CUSTOM' || organizationCalendar?.configured) ? <View style={styles.weekdayChoices}>{WEEKDAYS.map((day) => <FormField key={day} label={t(`weekdays.${day}`)} required error={weekError && week[day] === null ? t('weekly.chooseDay') : undefined}><View style={styles.dayChoiceRow}><Chip label={t('weekly.working')} selected={week[day] === true} style={styles.dayChoice} onPress={() => { setWeek((current) => ({ ...current, [day]: true })); setPreset('CUSTOM'); setWeekError(''); }} /><Chip label={t('weekly.nonWorking')} selected={week[day] === false} style={styles.dayChoice} onPress={() => { setWeek((current) => ({ ...current, [day]: false })); setPreset('CUSTOM'); setWeekError(''); }} /></View></FormField>)}</View> : null}
+                          <View style={styles.choiceSection}>
+                            <AppText style={styles.fieldLabel} weight={700}>{t('weekly.quickChoice')} <AppText style={styles.requiredMark}>*</AppText></AppText>
+                            <View accessibilityRole="radiogroup" style={styles.presetList}>
+                              {(['SUNDAY_OFF', 'NO_FIXED_OFF', 'CUSTOM'] as const).map((value) => {
+                                const selected = preset === value;
+                                return <Pressable
+                                  key={value}
+                                  accessibilityLabel={`${t(`weekly.presets.${value}`)}. ${t(`weekly.presetDescriptions.${value}`)}`}
+                                  accessibilityRole="radio"
+                                  accessibilityState={{ selected }}
+                                  onPress={() => choosePreset(value)}
+                                  style={({ pressed }) => [styles.presetOption, selected && styles.presetOptionSelected, pressed && styles.pressed]}
+                                >
+                                  <View style={[styles.presetIcon, selected && styles.presetIconSelected]}>
+                                    <AppIcon color={mobileTheme.color.text.primary} name={value === 'SUNDAY_OFF' ? 'calendar-remove' : value === 'NO_FIXED_OFF' ? 'calendar-check' : 'tune-variant'} size={mobileTheme.icon.md} />
+                                  </View>
+                                  <View style={styles.flexCopy}>
+                                    <AppText style={[styles.optionTitle, selected && styles.selectedOptionText]} weight={700}>{t(`weekly.presets.${value}`)}</AppText>
+                                    <AppText style={[styles.optionDescription, selected && styles.selectedOptionText]} weight={500}>{t(`weekly.presetDescriptions.${value}`)}</AppText>
+                                  </View>
+                                  <AppIcon color={selected ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={mobileTheme.icon.md} />
+                                </Pressable>;
+                              })}
+                            </View>
+                            {weekError ? <AppText accessibilityRole="alert" style={styles.fieldError} weight={600}>{weekError}</AppText> : null}
+                          </View>
+                          {preset === 'CUSTOM' ? <View style={styles.customWeek}>
+                            <View style={styles.customWeekHeader}>
+                              <View style={styles.flexCopy}><AppText style={styles.optionTitle} weight={700}>{t('weekly.customTitle')}</AppText><AppText style={styles.muted} weight={500}>{t('weekly.customHelp')}</AppText></View>
+                            </View>
+                            <View style={styles.weekdayChoices}>{WEEKDAYS.map((day) => {
+                              const isWorking = week[day] === true;
+                              const isUnset = week[day] === null;
+                              return <Pressable
+                                key={day}
+                                accessibilityLabel={`${t(`weekdays.${day}`)}, ${isUnset ? t('weekly.chooseDay') : t(isWorking ? 'weekly.working' : 'weekly.nonWorking')}`}
+                                accessibilityRole="switch"
+                                accessibilityState={{ checked: isWorking }}
+                                onPress={() => { setWeek((current) => ({ ...current, [day]: !isWorking })); setWeekError(''); }}
+                                style={({ pressed }) => [styles.weekdayRow, isWorking ? styles.weekdayWorking : styles.weekdayOff, pressed && styles.pressed]}
+                              >
+                                <View style={[styles.dayIndicator, isWorking ? styles.dayIndicatorWorking : styles.dayIndicatorOff]}><AppIcon color={mobileTheme.color.text.primary} name={isWorking ? 'briefcase-outline' : 'calendar-remove-outline'} size={mobileTheme.icon.sm} /></View>
+                                <AppText style={styles.flexCopy} weight={700}>{t(`weekdays.${day}`)}</AppText>
+                                <View style={styles.dayStateCopy}><AppText style={styles.tintedStateText} weight={700}>{isUnset ? t('weekly.choose') : t(isWorking ? 'weekly.working' : 'weekly.nonWorking')}</AppText><AppIcon color={mobileTheme.color.text.primary} name="chevron-right" size={mobileTheme.icon.sm} /></View>
+                              </Pressable>;
+                            })}</View>
+                          </View> : null}
                           <Button disabled={isSavingWeek} label={isSavingWeek ? t('weekly.saving') : t('weekly.save')} onPress={() => void saveWorkingWeek()} />
-                        </> : organizationCalendar?.workingWeek ? <View style={styles.weekReadOnly}>{WEEKDAYS.map((day) => <View key={day} style={styles.weekReadOnlyRow}><AppText style={styles.flexCopy} weight={600}>{t(`weekdays.${day}`)}</AppText><Badge label={t(organizationCalendar.workingWeek![day] ? 'weekly.working' : 'weekly.nonWorking')} tone={organizationCalendar.workingWeek![day] ? 'success' : 'neutral'} /></View>)}</View> : <AppText style={styles.muted}>{t('weekly.noAssumption')}</AppText>}
+                        </> : organizationCalendar?.workingWeek ? <View style={styles.weekReadOnly}>{WEEKDAYS.map((day) => { const working = organizationCalendar.workingWeek![day]; return <View key={day} style={styles.weekReadOnlyRow}><View style={[styles.readOnlyDot, { backgroundColor: working ? mobileTheme.color.status.success.foreground : mobileTheme.color.status.warning.foreground }]} /><AppText style={styles.flexCopy} weight={600}>{t(`weekdays.${day}`)}</AppText><AppText style={working ? styles.workingText : styles.offText} weight={700}>{t(working ? 'weekly.working' : 'weekly.nonWorking')}</AppText></View>; })}</View> : <AppText style={styles.muted}>{t('weekly.noAssumption')}</AppText>}
                         {!canUpdateOrganization ? <AppText style={styles.readOnly} weight={500}>{t('weekly.readOnly')}</AppText> : null}
                       </Card>
                       <OverrideSection title={t('override.organizationTitle')} description={t('override.organizationDescription')} items={currentOverrides} canUpdate={canUpdateScope} locale={locale} onAdd={() => openOverride('ORGANIZATION')} onEdit={(item) => openOverride('ORGANIZATION', item)} />
@@ -361,7 +407,7 @@ export function WorkCalendarScreen() {
         <FormError message={overrideApiError} />
         <FormField label={t('override.startDate')} required error={overrideErrors.startDate}><DateInput allowClear={false} accessibilityLabel={t('override.startDate')} invalid={Boolean(overrideErrors.startDate)} value={overrideDraft.startDate} onChangeText={(startDate) => setOverrideDraft((current) => ({ ...current, startDate }))} /></FormField>
         <FormField label={t('override.endDate')} required error={overrideErrors.endDate}><DateInput allowClear={false} accessibilityLabel={t('override.endDate')} invalid={Boolean(overrideErrors.endDate)} minimumDate={overrideDraft.startDate ? new Date(`${overrideDraft.startDate}T12:00:00`) : undefined} value={overrideDraft.endDate} onChangeText={(endDate) => setOverrideDraft((current) => ({ ...current, endDate }))} /></FormField>
-        <FormField label={t('override.dayType')} required><View style={styles.choiceWrap}>{(['NON_WORKING', 'SPECIAL_WORKING'] as const).map((type) => <Chip key={type} accessibilityRole="radio" accessibilityState={{ selected: overrideDraft.dayType === type }} label={t(`dayTypes.${type}`)} selected={overrideDraft.dayType === type} style={styles.presetChip} onPress={() => setOverrideDraft((current) => ({ ...current, dayType: type }))} />)}</View></FormField>
+        <FormField label={t('override.dayType')} required><View accessibilityRole="radiogroup" style={styles.dayTypeList}>{(['NON_WORKING', 'SPECIAL_WORKING'] as const).map((type) => { const selected = overrideDraft.dayType === type; return <Pressable key={type} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setOverrideDraft((current) => ({ ...current, dayType: type }))} style={({ pressed }) => [styles.dayTypeOption, selected && styles.dayTypeOptionSelected, pressed && styles.pressed]}><View style={[styles.dayTypeIcon, type === 'NON_WORKING' ? styles.dayTypeIconOff : styles.dayTypeIconWorking]}><AppIcon color={mobileTheme.color.text.primary} name={type === 'NON_WORKING' ? 'calendar-remove-outline' : 'calendar-plus'} size={mobileTheme.icon.md} /></View><View style={styles.flexCopy}><AppText style={[styles.optionTitle, selected && styles.selectedOptionText]} weight={700}>{t(`dayTypes.${type}`)}</AppText><AppText style={[styles.optionDescription, selected && styles.selectedOptionText]} weight={500}>{t(`override.typeDescriptions.${type}`)}</AppText></View><AppIcon color={selected ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={mobileTheme.icon.md} /></Pressable>; })}</View></FormField>
         <FormField label={t('override.name')} required error={overrideErrors.name}><Input accessibilityLabel={t('override.name')} invalid={Boolean(overrideErrors.name)} maxLength={160} value={overrideDraft.name} onChangeText={(name) => setOverrideDraft((current) => ({ ...current, name }))} /></FormField>
         <FormField label={t('override.reason')} optional><Input accessibilityLabel={t('override.reason')} maxLength={2000} multiline numberOfLines={4} style={styles.notesInput} textAlignVertical="top" value={overrideDraft.reason} onChangeText={(reason) => setOverrideDraft((current) => ({ ...current, reason }))} /></FormField>
       </BottomSheet> : null}
@@ -372,18 +418,19 @@ export function WorkCalendarScreen() {
 function OverrideSection({ title, description, items, canUpdate, locale, onAdd, onEdit }: { title: string; description: string; items: WorkCalendarOverride[]; canUpdate: boolean; locale: string; onAdd: () => void; onEdit: (item: WorkCalendarOverride) => void }) {
   const { t } = useTranslation('calendar');
   const date = (value: string) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
-  return <Card style={styles.overrideSection}><View style={styles.sectionHeading}><View style={styles.flexCopy}><AppText style={styles.cardTitle} weight={700}>{title}</AppText><AppText style={styles.muted} weight={500}>{description}</AppText></View>{canUpdate ? <Button fullWidth={false} label={t('override.add')} leadingIcon="plus" size="sm" variant="secondary" onPress={onAdd} /> : null}</View>{items.length ? <View style={styles.overrideList}>{items.map((item) => <View key={item.id} style={styles.overrideRow}><View style={styles.flexCopy}><View style={styles.overrideMeta}><Badge label={t(`scope.${item.scope}`)} tone="info" /><Badge label={t(`dayTypes.${item.dayType}`)} tone={item.dayType === 'NON_WORKING' ? 'warning' : 'success'} /></View><AppText style={styles.overrideName} weight={700}>{item.name}</AppText><AppText style={styles.muted} weight={500}>{t('override.range', { start: date(item.startDate), end: date(item.endDate) })}</AppText>{item.reason ? <AppText style={styles.muted}>{item.reason}</AppText> : null}</View>{canUpdate ? <Button fullWidth={false} label={t('actions.edit')} size="sm" variant="ghost" onPress={() => onEdit(item)} /> : null}</View>)}</View> : <AppText style={styles.emptyCopy} weight={500}>{t('override.empty')}</AppText>}{!canUpdate ? <AppText style={styles.readOnly} weight={500}>{t('override.readOnly')}</AppText> : null}</Card>;
+  return <Card style={styles.overrideSection}><View style={styles.sectionHeading}><View style={styles.flexCopy}><AppText style={styles.cardTitle} weight={700}>{title}</AppText><AppText style={styles.muted} weight={500}>{description}</AppText></View>{canUpdate ? <Button fullWidth={false} label={t('override.add')} leadingIcon="plus" size="sm" variant="secondary" onPress={onAdd} /> : null}</View>{items.length ? <View style={styles.overrideList}>{items.map((item) => <View key={item.id} style={styles.overrideRow}><View style={[styles.overrideIcon, item.dayType === 'NON_WORKING' ? styles.overrideIconOff : styles.overrideIconWorking]}><AppIcon color={mobileTheme.color.text.primary} name={item.dayType === 'NON_WORKING' ? 'calendar-remove-outline' : 'calendar-plus'} size={mobileTheme.icon.md} /></View><View style={styles.flexCopy}><AppText style={styles.overrideName} weight={700}>{item.name}</AppText><AppText style={item.dayType === 'NON_WORKING' ? styles.offText : styles.workingText} weight={700}>{t(`dayTypes.${item.dayType}`)}</AppText><AppText style={styles.muted} weight={500}>{t('override.range', { start: date(item.startDate), end: date(item.endDate) })}</AppText>{item.reason ? <AppText style={styles.overrideReason}>{item.reason}</AppText> : null}</View>{canUpdate ? <IconButton accessibilityLabel={`${t('actions.edit')}: ${item.name}`} icon="pencil-outline" variant="ghost" onPress={() => onEdit(item)} /> : null}</View>)}</View> : <View style={styles.emptyOverride}><View style={styles.emptyOverrideIcon}><AppIcon color={mobileTheme.color.text.primary} name="calendar-blank-outline" size={mobileTheme.icon.lg} /></View><AppText style={styles.emptyTitle} weight={700}>{t('override.emptyTitle')}</AppText><AppText style={styles.muted} weight={500}>{t('override.empty')}</AppText></View>}{!canUpdate ? <AppText style={styles.readOnly} weight={500}>{t('override.readOnly')}</AppText> : null}</Card>;
 }
 
 const styles = StyleSheet.create({
   scopeTabs: { backgroundColor: mobileTheme.color.surface.raised, borderColor: mobileTheme.color.border.subtle, borderRadius: mobileTheme.component.field.radius, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[1], padding: mobileTheme.spacing[1] },
   scopeTab: { alignItems: 'center', borderRadius: mobileTheme.radius.md, flex: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: mobileTheme.spacing[2] },
-  scopeTabSelected: { backgroundColor: mobileTheme.color.action.active },
+  scopeTabSelected: { backgroundColor: mobileTheme.color.action.primaryHover },
   scopeTabLabel: { ...mobileText.label, color: mobileTheme.color.text.secondary, textAlign: 'center' },
   scopeTabLabelSelected: { color: mobileTheme.color.text.inverse },
   pressed: { opacity: 0.78 },
   successCard: { alignItems: 'center', borderColor: mobileTheme.color.status.success.border, flexDirection: 'row', gap: mobileTheme.spacing[2], justifyContent: 'space-between' },
   successText: { ...mobileText.body, color: mobileTheme.color.status.success.foreground, flex: 1 },
+  contrastBadge: { color: mobileTheme.color.text.primary },
   refreshing: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
   loading: { alignItems: 'center', gap: mobileTheme.spacing[3], justifyContent: 'center', minHeight: 180 },
   monthControls: { gap: mobileTheme.spacing[2] },
@@ -395,24 +442,60 @@ const styles = StyleSheet.create({
   flexCopy: { flex: 1 },
   cardTitle: { ...mobileText.sectionTitle, fontSize: 18, lineHeight: 24 },
   muted: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
+  eyebrow: { ...mobileText.caption, color: mobileTheme.color.text.brand, letterSpacing: 0.8 },
   selectedDetail: { gap: mobileTheme.spacing[3] },
   detailHeader: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3], justifyContent: 'space-between' },
   overrideName: { ...mobileText.body, color: mobileTheme.color.text.primary },
   weeklyCard: { gap: mobileTheme.spacing[4] },
   sectionHeading: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3], justifyContent: 'space-between' },
-  choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  presetChip: { minHeight: 48 },
-  weekdayChoices: { gap: mobileTheme.spacing[4] },
-  dayChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
-  dayChoice: { flexGrow: 1, minHeight: 48 },
+  timezoneRow: { alignItems: 'center', backgroundColor: mobileTheme.color.background.mist, borderColor: mobileTheme.color.border.subtle, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], padding: mobileTheme.spacing[3] },
+  timezoneIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.action.primaryHover, borderRadius: mobileTheme.radius.md, height: 48, justifyContent: 'center', width: 48 },
+  timezoneName: { ...mobileText.body, color: mobileTheme.color.text.primary, marginBottom: 2 },
+  choiceSection: { gap: mobileTheme.spacing[2] },
+  fieldLabel: { ...mobileText.label, color: mobileTheme.color.text.primary },
+  requiredMark: { color: mobileTheme.color.status.danger.foreground },
+  fieldError: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
+  presetList: { gap: mobileTheme.spacing[2] },
+  presetOption: { alignItems: 'center', backgroundColor: mobileTheme.color.surface.raised, borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 76, padding: mobileTheme.spacing[3] },
+  presetOptionSelected: { backgroundColor: mobileTheme.color.action.primaryHover, borderColor: mobileTheme.color.action.primaryHover, borderWidth: 2 },
+  presetIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.background.mist, borderRadius: mobileTheme.radius.md, height: 44, justifyContent: 'center', width: 44 },
+  presetIconSelected: { backgroundColor: mobileTheme.color.surface.raised },
+  optionTitle: { ...mobileText.body, color: mobileTheme.color.text.primary },
+  optionDescription: { ...mobileText.caption, color: mobileTheme.color.text.secondary, marginTop: 2 },
+  selectedOptionText: { color: mobileTheme.color.text.inverse },
+  customWeek: { backgroundColor: mobileTheme.color.background.mist, borderColor: mobileTheme.color.border.subtle, borderRadius: mobileTheme.radius.lg, borderWidth: 1, gap: mobileTheme.spacing[3], padding: mobileTheme.spacing[3] },
+  customWeekHeader: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
+  weekdayChoices: { gap: mobileTheme.spacing[2] },
+  weekdayRow: { alignItems: 'center', borderRadius: mobileTheme.radius.md, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 56, paddingHorizontal: mobileTheme.spacing[3], paddingVertical: mobileTheme.spacing[2] },
+  weekdayWorking: { backgroundColor: mobileTheme.color.status.success.background, borderColor: mobileTheme.color.status.success.border },
+  weekdayOff: { backgroundColor: mobileTheme.color.status.warning.background, borderColor: mobileTheme.color.status.warning.border },
+  dayIndicator: { alignItems: 'center', borderRadius: mobileTheme.radius.full, height: 36, justifyContent: 'center', width: 36 },
+  dayIndicatorWorking: { backgroundColor: mobileTheme.color.surface.raised },
+  dayIndicatorOff: { backgroundColor: mobileTheme.color.surface.raised },
+  dayStateCopy: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[1] },
+  tintedStateText: { ...mobileText.caption, color: mobileTheme.color.text.primary },
+  workingText: { ...mobileText.caption, color: mobileTheme.color.status.success.foreground },
+  offText: { ...mobileText.caption, color: mobileTheme.color.status.warning.foreground },
   weekReadOnly: { gap: mobileTheme.spacing[2] },
   weekReadOnlyRow: { alignItems: 'center', borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 48 },
-  readOnly: { ...mobileText.caption, backgroundColor: mobileTheme.color.status.info.background, borderRadius: mobileTheme.radius.md, color: mobileTheme.color.status.info.foreground, padding: mobileTheme.spacing[3] },
+  readOnlyDot: { borderRadius: mobileTheme.radius.full, height: 8, width: 8 },
+  readOnly: { ...mobileText.caption, backgroundColor: mobileTheme.color.status.info.background, borderRadius: mobileTheme.radius.md, color: mobileTheme.color.text.primary, padding: mobileTheme.spacing[3] },
   overrideSection: { gap: mobileTheme.spacing[4] },
-  overrideList: { gap: mobileTheme.spacing[3] },
-  overrideRow: { alignItems: 'flex-start', borderTopColor: mobileTheme.color.border.subtle, borderTopWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[2], paddingTop: mobileTheme.spacing[3] },
-  overrideMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2], marginBottom: mobileTheme.spacing[2] },
-  emptyCopy: { ...mobileText.body, borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.md, borderStyle: 'dashed', borderWidth: 1, color: mobileTheme.color.text.secondary, padding: mobileTheme.spacing[4], textAlign: 'center' },
+  overrideList: { borderColor: mobileTheme.color.border.subtle, borderRadius: mobileTheme.radius.lg, borderWidth: 1, overflow: 'hidden' },
+  overrideRow: { alignItems: 'flex-start', backgroundColor: mobileTheme.color.surface.raised, borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 88, padding: mobileTheme.spacing[3] },
+  overrideIcon: { alignItems: 'center', borderRadius: mobileTheme.radius.md, height: 44, justifyContent: 'center', width: 44 },
+  overrideIconOff: { backgroundColor: mobileTheme.color.status.warning.background },
+  overrideIconWorking: { backgroundColor: mobileTheme.color.status.success.background },
+  overrideReason: { ...mobileText.caption, color: mobileTheme.color.text.primary, marginTop: mobileTheme.spacing[1] },
+  emptyOverride: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderStyle: 'dashed', borderWidth: 1, gap: mobileTheme.spacing[2], padding: mobileTheme.spacing[5] },
+  emptyOverrideIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.background.mist, borderRadius: mobileTheme.radius.full, height: 52, justifyContent: 'center', width: 52 },
+  emptyTitle: { ...mobileText.body, color: mobileTheme.color.text.primary, textAlign: 'center' },
+  dayTypeList: { gap: mobileTheme.spacing[2] },
+  dayTypeOption: { alignItems: 'center', borderColor: mobileTheme.color.border.default, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 72, padding: mobileTheme.spacing[3] },
+  dayTypeOptionSelected: { backgroundColor: mobileTheme.color.action.primaryHover, borderColor: mobileTheme.color.action.primaryHover, borderWidth: 2 },
+  dayTypeIcon: { alignItems: 'center', borderRadius: mobileTheme.radius.md, height: 44, justifyContent: 'center', width: 44 },
+  dayTypeIconOff: { backgroundColor: mobileTheme.color.status.warning.background },
+  dayTypeIconWorking: { backgroundColor: mobileTheme.color.status.success.background },
   sheetActions: { flex: 1, gap: mobileTheme.spacing[2] },
   notesInput: { minHeight: 104, paddingTop: mobileTheme.spacing[3] },
 });

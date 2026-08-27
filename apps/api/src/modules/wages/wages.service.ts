@@ -3,7 +3,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
 } from "@nestjs/common";
 import type {
   ErrorCode,
@@ -11,6 +10,7 @@ import type {
   WagePreviewItem,
 } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { AttendanceService } from "../attendance/attendance.service";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type { CreateWageBatchDto } from "./dto/create-wage-batch.dto";
 import type { RecordWagePaymentDto } from "./dto/record-wage-payment.dto";
@@ -25,6 +25,7 @@ export class WagesService {
   constructor(
     private readonly wagesRepo: WagesRepository,
     private readonly projectAccess: ProjectAccessService,
+    private readonly attendanceService: AttendanceService,
   ) {}
 
   async preview(
@@ -39,7 +40,6 @@ export class WagesService {
       projectId,
       "wages:read",
     );
-    this.assertCalculationModelAvailable();
     this.validatePeriod(query.start, query.end);
     return this.buildPreview(organizationId, projectId, query.start, query.end);
   }
@@ -124,7 +124,6 @@ export class WagesService {
       projectId,
       "wages:generate",
     );
-    this.assertCalculationModelAvailable();
     this.validatePeriod(dto.periodStart, dto.periodEnd);
     const existing = await this.wagesRepo.findActiveBatchForPeriod(
       organizationId,
@@ -136,7 +135,7 @@ export class WagesService {
       throw new ConflictException(
         this.error(
           "WAGE_BATCH_DUPLICATE",
-          "A wage batch already exists for this project period",
+          "An active wage batch already overlaps this project period",
         ),
       );
     }
@@ -320,19 +319,19 @@ export class WagesService {
     periodStart: string,
     periodEnd: string,
   ): Promise<WagePreview> {
-    const rows = await this.wagesRepo.previewRows(
+    const rows = await this.attendanceService.calculateWagePeriod(
       organizationId,
       projectId,
       periodStart,
       periodEnd,
     );
     const items = rows.map((row) => {
-      const dailyRate = row.daily_rate === null ? null : String(row.daily_rate);
+      const dailyRate = row.dailyRate;
       const rateCents = dailyRate === null ? null : this.toCents(dailyRate);
-      const presentDays = Number(row.present_days ?? 0);
-      const halfDays = Number(row.half_days ?? 0);
-      const holidayDays = Number(row.holiday_days ?? 0);
-      const absentDays = Number(row.absent_days ?? 0);
+      const presentDays = row.presentDays;
+      const halfDays = row.halfDays;
+      const holidayDays = 0;
+      const absentDays = row.absentDays;
       const grossCents =
         rateCents === null
           ? 0
@@ -341,10 +340,10 @@ export class WagesService {
       const adjustmentCents = 0;
       const netCents = grossCents - kharchiDeductionCents + adjustmentCents;
       return {
-        workerAssignmentId: row.worker_assignment_id,
-        workerId: row.worker_id,
-        workerCode: row.worker_code,
-        workerName: row.worker_name,
+        workerAssignmentId: row.workerAssignmentId,
+        workerId: row.workerId,
+        workerCode: row.workerCode,
+        workerName: row.workerName,
         trade: row.trade,
         dailyRate,
         presentDays,
@@ -490,14 +489,5 @@ export class WagesService {
 
   private error(code: ErrorCode, message: string) {
     return { code, message };
-  }
-
-  private assertCalculationModelAvailable(): void {
-    throw new ServiceUnavailableException(
-      this.error(
-        "WAGE_CALCULATION_MODEL_UNAVAILABLE",
-        "New wage preview and generation are unavailable until Wages consumes the Calendar and Attendance exception model",
-      ),
-    );
   }
 }

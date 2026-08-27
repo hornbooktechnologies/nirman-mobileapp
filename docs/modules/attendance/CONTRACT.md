@@ -269,7 +269,7 @@ Web implements these as `/attendance`, `/attendance/mark`, and the existing Work
 
 ## I. Wages Safety And Acceptance
 
-Existing wage batches, items, payments, and exports remain readable. New wage preview and batch generation must fail with `WAGE_CALCULATION_MODEL_UNAVAILABLE` until Wages is redesigned to consume Calendar, primary periods, and Attendance exceptions.
+Existing wage batches, items, payments, and exports remain readable. Wages preview and batch generation now consume Calendar, primary periods, and derived Attendance exceptions through the internal Attendance calculation read. They must not query legacy explicit Attendance records.
 
 Acceptance requires:
 

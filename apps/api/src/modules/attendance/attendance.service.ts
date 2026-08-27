@@ -40,6 +40,18 @@ type DerivedDailyRow = {
   exception: AttendanceException | null;
 };
 
+export type WageAttendanceCalculationRow = {
+  workerAssignmentId: string;
+  workerId: string;
+  workerCode: string;
+  workerName: string;
+  trade: string;
+  dailyRate: string | null;
+  presentDays: number;
+  halfDays: number;
+  absentDays: number;
+};
+
 function parseDateOnly(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [year, month, day] = value.split("-").map(Number);
@@ -347,6 +359,66 @@ export class AttendanceService {
         .flatMap((row) => (row.exception ? [row.exception] : []))
         .sort((left, right) => right.workDate.localeCompare(left.workDate)),
     };
+  }
+
+  /** Internal derived read for Wages. The calling module owns authorization. */
+  async calculateWagePeriod(
+    organizationId: string,
+    projectId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<WageAttendanceCalculationRow[]> {
+    this.validatePeriod(startDate, endDate);
+    const [roster, exceptions, days] = await Promise.all([
+      this.attendanceRepo.findPrimaryRosterPeriods(
+        organizationId,
+        projectId,
+        startDate,
+        endDate,
+      ),
+      this.attendanceRepo.findExceptions(
+        organizationId,
+        projectId,
+        startDate,
+        endDate,
+      ),
+      this.calendarService.resolveDaysForAttendance(
+        organizationId,
+        projectId,
+        startDate,
+        endDate,
+      ),
+    ]);
+    this.assertConfigured(days);
+
+    const grouped = new Map<string, DerivedDailyRow[]>();
+    for (const row of deriveAttendanceDailyRows(roster, days, exceptions)) {
+      if (!row.expectedWorking) continue;
+      const values = grouped.get(row.roster.workerAssignmentId) ?? [];
+      values.push(row);
+      grouped.set(row.roster.workerAssignmentId, values);
+    }
+
+    return [...grouped.values()]
+      .map((values) => {
+        const rosterRow = values[0].roster;
+        return {
+          workerAssignmentId: rosterRow.workerAssignmentId,
+          workerId: rosterRow.workerId,
+          workerCode: rosterRow.workerCode,
+          workerName: rosterRow.workerName,
+          trade: rosterRow.trade,
+          dailyRate: rosterRow.dailyRate,
+          presentDays: values.filter((row) => row.state === "PRESENT").length,
+          halfDays: values.filter((row) => row.state === "HALF_DAY").length,
+          absentDays: values.filter((row) => row.state === "ABSENT").length,
+        };
+      })
+      .sort(
+        (left, right) =>
+          left.workerName.localeCompare(right.workerName) ||
+          left.workerCode.localeCompare(right.workerCode),
+      );
   }
 
   async createException(

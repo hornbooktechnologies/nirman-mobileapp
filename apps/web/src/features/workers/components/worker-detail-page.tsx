@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban } from "lucide-react";
+import { Ban, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   ConfirmDialogActions,
   Dialog,
   Input,
+  NotificationBanner,
   PageHeader,
   StatusBadge,
   TabButton,
@@ -30,6 +31,7 @@ import {
 import { WorkerAttendancePanel } from "@/features/workers/components/worker-attendance-panel";
 import {
   useDeactivateWorker,
+  useDeleteWorker,
   useUpdateWorker,
   useWorker,
 } from "@/features/workers/hooks/use-workers";
@@ -54,7 +56,9 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
   const worker = useWorker(organizationId, workerId);
   const updateWorker = useUpdateWorker(organizationId, workerId);
   const deactivateWorker = useDeactivateWorker(organizationId, workerId);
+  const deleteWorker = useDeleteWorker(organizationId, workerId);
   const [showDeactivate, setShowDeactivate] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [deactivateReason, setDeactivateReason] = useState("");
   const [actionError, setActionError] = useState("");
   async function submit(input: WorkerFormState) {
@@ -78,6 +82,23 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
       setActionError(
         error instanceof Error ? error.message : "Unable to deactivate worker",
       );
+    }
+  }
+
+  async function confirmDelete() {
+    setActionError("");
+    try {
+      const deleted = await deleteWorker.mutateAsync();
+      router.push(
+        `/workers?deletedWorker=${encodeURIComponent(deleted.workerName)}`,
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to permanently delete worker",
+      );
+      setShowDelete(false);
     }
   }
 
@@ -112,6 +133,16 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
                   >
                     <Ban size={16} />
                     Deactivate
+                  </Button>
+                ) : null}
+                {hasPermission("workers:delete") ? (
+                  <Button
+                    variant="danger"
+                    onClick={() => setShowDelete(true)}
+                    disabled={deleteWorker.isPending}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                    Delete Permanently
                   </Button>
                 ) : null}
               </div>
@@ -244,6 +275,46 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
           value={deactivateReason}
           onChange={(event) => setDeactivateReason(event.target.value)}
         />
+      </Dialog>
+
+      <Dialog
+        open={showDelete}
+        title={`Permanently delete ${worker.data?.name ?? "worker"}?`}
+        description="This action cannot be undone."
+        onOpenChange={(open) => {
+          if (!deleteWorker.isPending) setShowDelete(open);
+        }}
+        footer={
+          <ConfirmDialogActions
+            cancelLabel="Keep Worker"
+            confirmLabel={
+              deleteWorker.isPending ? "Deleting Permanently" : "Delete Permanently"
+            }
+            onCancel={() => setShowDelete(false)}
+            confirmProps={{
+              disabled: deleteWorker.isPending,
+              onClick: () => void confirmDelete(),
+            }}
+          />
+        }
+      >
+        <div className="space-y-4">
+          <NotificationBanner
+            variant="danger"
+            title="Warning: all worker records will be erased"
+            description="Confirming will permanently delete this worker and every related record from NirmanSite. This data cannot be restored."
+          />
+          <div className="space-y-2 text-body">
+            <p>
+              This includes project assignments, primary-project periods,
+              attendance records and exceptions, wage items, and wage payments.
+            </p>
+            <p>
+              Worker: <strong>{worker.data?.name}</strong>
+              {worker.data?.workerCode ? ` · ${worker.data.workerCode}` : ""}
+            </p>
+          </div>
+        </div>
       </Dialog>
     </PermissionGuard>
   );

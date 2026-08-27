@@ -9,8 +9,8 @@
 | Slice | Result |
 | --- | --- |
 | 1. Shared contracts and permissions | Implemented; shared type-check/build passed |
-| 2. Database migration | Existing migration reconciled; not executed or mutated in this task |
-| 3. Permission seed | Existing approved source/runtime state reconciled; seed not run in this task |
+| 2. Database migration | `010_backfill_worker_delete_owner_permission.sql` applied to the approved remote target on 2026-08-27; grants verified |
+| 3. Permission seed | Owner/admin role templates include `workers:delete`; updated guarded seed completed on 2026-08-27 |
 | 4-5. API repository, service, endpoints | Implemented and corrected; service/repository/filter tests pass |
 | 6-7. Web data layer and screens | Implemented; focused lint, type-check, and production build pass |
 | 8-9. Mobile data layer and screen | Approved current-project roster/quick-create flow implemented; type-check passes |
@@ -41,7 +41,7 @@ Dependencies:
 Implementation details:
 
 - Add `workers` to permission resources.
-- Add actions: `read`, `create`, `update`, `deactivate`, `assign-project`, `update-rate`, `export`.
+- Add Project-delegatable actions: `read`, `create`, `update`, `deactivate`, `assign-project`, `update-rate`, `export`; add organization-wide `workers:delete` separately.
 - Add worker and assignment status constants.
 - Add worker-code response fields, search filters, and server-owned field exclusions from create/update inputs.
 - Add framework-neutral TypeScript types and validation schemas.
@@ -88,7 +88,7 @@ Implementation details:
 - Add indexes for organization/status, project/status, worker/status, search fields.
 - Add search indexes for worker code, name, and mobile number.
 - Do not add a unique index on mobile number.
-- Do not add hard-delete support.
+- No schema cascade is required; the approved organization-owner permanent delete uses an explicit dependency-ordered application transaction.
 - Implement duplicate active assignment protection through service transaction unless safe DB generated-column uniqueness is approved.
 
 Tests:
@@ -136,7 +136,7 @@ Implementation details:
 - Builder/Admin: grant full worker management in own organization according to existing role/tenant model.
 - Organization Owner and Independent Contractor Owner: grant full worker management in own organization according to the organization role template.
 - Supervisor: grant `workers:read`, `workers:create`, and `workers:update` for assigned-project workflows only.
-- Contractor: grant `workers:read` by default for assigned projects; do not grant create/update/assign/update-rate/deactivate/export automatically.
+- Contractor: grant `workers:read` by default for assigned projects; do not grant create/update/assign/update-rate/deactivate/delete/export automatically.
 - Platform Super Admin: do not grant `workers:*` as normal operational permissions. Support access, if later approved, must use separate platform support permissions and audited support flow.
 - Do not grant worker permissions to Sales by default.
 
@@ -194,6 +194,7 @@ Implementation details:
 - Never silently change historical attendance or financial meaning.
 - Document rate-history handoff to Wages in service comments or module docs, not as a Workers-owned final model.
 - Preserve history on deactivate/end assignment.
+- Permanently delete all current Worker dependencies only through organization-wide `workers:delete` and one rollback-safe transaction.
 
 Tests:
 
@@ -309,7 +310,7 @@ Dependencies:
 Implementation details:
 
 - Add permission-gated Workers navigation.
-- Add list, create, detail/edit, deactivate, assign/end assignment UI.
+- Add list, create, detail/edit, deactivate, permanent-delete confirmation, and assign/end assignment UI.
 - Display read-only worker code after creation.
 - Support worker-code search.
 - Show warning-only duplicate mobile/name panel with explicit acknowledgement before continuing.

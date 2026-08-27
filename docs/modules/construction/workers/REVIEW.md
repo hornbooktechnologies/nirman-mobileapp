@@ -27,7 +27,7 @@ The starting checkout already contained a substantial Workers vertical slice, wh
 | Contract area | Status | Evidence | Notes |
 | --- | --- | --- | --- |
 | Shared contracts | Implemented | `packages/shared/src`, shared build/type-check | No new runtime-schema framework introduced |
-| SQL/database | Existing source | `002_workers.sql` | No migration/status/seed/database command was run |
+| SQL/database | Existing Worker schema plus applied RBAC backfill | `002_workers.sql`, `010_backfill_worker_delete_owner_permission.sql`, migration status | Remote target reports migration `010` applied on 2026-08-27; grants verified read-only |
 | API | Implemented | `apps/api/src/modules/workers`, filter/controller changes | Live DB concurrency and role matrix remain unrun |
 | Web | Implemented | `apps/web/src/features/workers` | Authenticated browser workflow remains unrun |
 | Mobile | Implemented for approved quick flow | `apps/mobile/src/features/workers` | No persisted offline cache or write queue exists |
@@ -64,7 +64,7 @@ Package-wide lint was also run honestly: API reports 883 inherited Prettier erro
 
 ## 7. Runtime Smoke
 
-No migration, seed, database status, database mutation, authenticated browser workflow, or physical-device flow was run. The web production build generated the Workers routes successfully, but a build is not a substitute for authenticated UI or device confirmation.
+Migration `010_backfill_worker_delete_owner_permission.sql` was applied to the configured remote target on 2026-08-27. Read-only verification confirmed one `workers:delete` grant for each approved owner/admin role. No actual worker deletion, authenticated browser workflow, or physical-device flow was run. The web production build generated the Workers routes successfully, but a build is not a substitute for authenticated UI or device confirmation.
 
 ## 8. Open Risks
 
@@ -79,3 +79,14 @@ Approve and implement exactly one active-assignment deactivation policy: block, 
 ## 10. Recommendation
 
 Pause Workers acceptance at `PARTIAL — REQUIRES OWNER DECISION`. After the lifecycle decision, rerun the automated gates and use approved disposable data for the live organization/project permission matrix and representative web/mobile flows.
+
+## 11. 2026-08-25 Permanent Delete Addendum
+
+- Added non-Project-delegatable `workers:delete`, granted in seed source to Organization Owner/Builder Admin/Independent Contractor Owner templates.
+- Added and applied idempotent migration `010_backfill_worker_delete_owner_permission.sql` so the configured remote instance receives the same owner/admin grant.
+- Added `DELETE /organizations/:organizationId/workers/:workerId` with organization-wide access enforcement.
+- Added one transaction that locks the organization-scoped Worker and deletes Wage payments, Wage items, newly empty Wage batches, Attendance exceptions, legacy Attendance records, primary-Project periods, Project assignments, then the Worker.
+- Added a Web **Delete Permanently** action and confirmation dialog that warns the user that all related records will be erased and cannot be restored.
+- Added repository/service tests for transaction coverage, organization scope, missing Worker behavior, and rollback-oriented ordering.
+- Verification passed: shared type-check/build, API type-check/build, web type-check, focused Workers web lint, isolated web production build, and the full API unit run with 18 suites/98 tests.
+- The implementation addendum initially executed no mutation. On 2026-08-27, migration `010` and the updated guarded seed were separately approved and completed; no worker deletion or authenticated browser deletion was run.

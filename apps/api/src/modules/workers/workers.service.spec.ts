@@ -22,6 +22,7 @@ describe("WorkersService", () => {
     findById: jest.fn(),
     update: jest.fn(),
     deactivate: jest.fn(),
+    deletePermanently: jest.fn(),
     duplicateCandidates: jest.fn(),
     isWorkerVisibleToMember: jest.fn(),
     hasActiveAssignment: jest.fn(),
@@ -221,6 +222,56 @@ describe("WorkersService", () => {
     ).resolves.toEqual(expect.objectContaining({ status: "INACTIVE" }));
   });
 
+  it("permanently deletes a worker only with organization-wide delete access", async () => {
+    workersRepo.deletePermanently.mockResolvedValueOnce({
+      workerId,
+      workerCode: "WRK-00002",
+      workerName: "Ravi Worker",
+      deleted: true,
+      deletedRecords: {
+        wagePayments: 1,
+        wageItems: 1,
+        emptyWageBatches: 1,
+        attendanceExceptions: 2,
+        attendanceRecords: 3,
+        primaryProjectPeriods: 1,
+        projectAssignments: 1,
+      },
+    });
+
+    await expect(
+      service.deletePermanently(organizationId, workerId, actor),
+    ).resolves.toEqual(expect.objectContaining({ deleted: true, workerId }));
+    expect(projectAccess.resolveOrganizationAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      "workers:delete",
+    );
+    expect(workersRepo.deletePermanently).toHaveBeenCalledWith(
+      organizationId,
+      workerId,
+    );
+  });
+
+  it("rejects permanent deletion without organization-wide access", async () => {
+    projectAccess.resolveOrganizationAccess.mockResolvedValueOnce(
+      organizationAccess(false),
+    );
+
+    await expect(
+      service.deletePermanently(organizationId, workerId, actor),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(workersRepo.deletePermanently).not.toHaveBeenCalled();
+  });
+
+  it("returns not found when the worker cannot be locked for deletion", async () => {
+    workersRepo.deletePermanently.mockResolvedValueOnce(null);
+
+    await expect(
+      service.deletePermanently(organizationId, workerId, actor),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it("validates and updates the Worker-level daily rate", async () => {
     workersRepo.update.mockResolvedValue(
       worker({ baseDailyRate: "825.00" }),
@@ -416,6 +467,7 @@ function organizationAccess(organizationWideProjectAccess: boolean) {
       "workers:update",
       "workers:assign-project",
       "workers:deactivate",
+      "workers:delete",
     ],
     organizationWideProjectAccess,
   } as Awaited<ReturnType<ProjectAccessService["resolveOrganizationAccess"]>>;
