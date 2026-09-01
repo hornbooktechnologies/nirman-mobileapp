@@ -32,6 +32,7 @@
     "workers": { "title": "कामगार", "description": "श्रम दल और आवंटन" },
     "attendance": { "title": "हाज़िरी", "description": "कामगारों की उपस्थिति और अनुपस्थिति" },
     "wages": { "title": "मज़दूरी", "description": "कामगारों का भुगतान" },
+    "kharchi": { "title": "खर्ची", "description": "कामगार अग्रिम और कटौती" },
     "sales": { "title": "सेल्स", "description": "लीड, फ़ॉलो-अप और इन्वेंटरी" },
     "calendar": { "title": "कार्य कैलेंडर", "description": "कार्य दिवस और साइट बंदी" },
     "menu": {

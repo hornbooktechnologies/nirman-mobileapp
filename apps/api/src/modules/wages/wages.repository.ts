@@ -12,6 +12,7 @@ import type {
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
+import { KharchiRepository } from "../kharchi/kharchi.repository";
 
 type BatchRow = {
   id: string;
@@ -89,7 +90,9 @@ export type UpdateWageItemInput = {
 
 function serializeDate(value: Date | string | null) {
   if (!value) return null;
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).toISOString();
 }
 
 function serializeDateOnly(value: Date | string | null) {
@@ -98,9 +101,15 @@ function serializeDateOnly(value: Date | string | null) {
 
 @Injectable()
 export class WagesRepository {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly kharchiRepository: KharchiRepository,
+  ) {}
 
-  async findBatches(organizationId: string, projectId: string): Promise<WageBatch[]> {
+  async findBatches(
+    organizationId: string,
+    projectId: string,
+  ): Promise<WageBatch[]> {
     const rows = await this.database.query<BatchRow & any>(
       `${this.batchSelectSql()}
        WHERE wb.organization_id = ? AND wb.project_id = ?
@@ -180,11 +189,20 @@ export class WagesRepository {
         `INSERT INTO wage_batches
           (id, organization_id, project_id, period_start, period_end, status, generated_by, confirmed_by, confirmed_at)
          VALUES (?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, CURRENT_TIMESTAMP(3))`,
-        [batchId, organizationId, projectId, periodStart, periodEnd, actorId, actorId],
+        [
+          batchId,
+          organizationId,
+          projectId,
+          periodStart,
+          periodEnd,
+          actorId,
+          actorId,
+        ],
         connection,
       );
 
       for (const item of items) {
+        const wageItemId = randomUUID();
         await this.database.execute(
           `INSERT INTO wage_items (
             id, wage_batch_id, organization_id, project_id, worker_assignment_id, worker_id,
@@ -192,7 +210,7 @@ export class WagesRepository {
             gross_amount, kharchi_deduction, adjustment_amount, net_amount, paid_amount, payment_status, notes
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'UNPAID', ?)`,
           [
-            randomUUID(),
+            wageItemId,
             batchId,
             organizationId,
             projectId,
@@ -211,6 +229,28 @@ export class WagesRepository {
           ],
           connection,
         );
+        const kharchiDeduction =
+          await this.kharchiRepository.allocateForWageItem(
+            {
+              organizationId,
+              projectId,
+              workerId: item.workerId,
+              wageItemId,
+              wageBatchId: batchId,
+              maximumDeduction: item.netAmount,
+              actorId,
+            },
+            connection,
+          );
+        await this.database.execute(
+          `UPDATE wage_items
+           SET kharchi_deduction = ?,
+               net_amount = gross_amount - ? + adjustment_amount,
+               updated_at = CURRENT_TIMESTAMP(3)
+           WHERE id = ?`,
+          [kharchiDeduction, kharchiDeduction, wageItemId],
+          connection,
+        );
       }
     });
     return this.findBatchDetail(organizationId, projectId, batchId);
@@ -224,7 +264,9 @@ export class WagesRepository {
     let batchId = "";
     await this.database.transaction(async (connection) => {
       if (input.idempotencyKey) {
-        const existing = await this.database.query<{ id: string; wage_batch_id: string } & any>(
+        const existing = await this.database.query<
+          { id: string; wage_batch_id: string } & any
+        >(
           `SELECT id, wage_batch_id FROM wage_payments
            WHERE organization_id = ? AND idempotency_key = ?
            LIMIT 1`,
@@ -238,7 +280,13 @@ export class WagesRepository {
       }
 
       const itemRows = await this.database.query<
-        { id: string; wage_batch_id: string; net_amount: string; paid_amount: string; batch_status: WageBatchStatus } & any
+        {
+          id: string;
+          wage_batch_id: string;
+          net_amount: string;
+          paid_amount: string;
+          batch_status: WageBatchStatus;
+        } & any
       >(
         `SELECT wi.id, wi.wage_batch_id, wi.net_amount, wi.paid_amount, wb.status AS batch_status
          FROM wage_items wi
@@ -353,7 +401,10 @@ export class WagesRepository {
     return this.findBatchDetail(organizationId, projectId, batchId);
   }
 
-  private async recalculateItemPaymentStatus(itemId: string, connection: DatabaseConnection) {
+  private async recalculateItemPaymentStatus(
+    itemId: string,
+    connection: DatabaseConnection,
+  ) {
     await this.database.execute(
       `UPDATE wage_items wi
        LEFT JOIN (
@@ -375,7 +426,10 @@ export class WagesRepository {
     );
   }
 
-  private async recalculateBatchStatus(batchId: string, connection: DatabaseConnection) {
+  private async recalculateBatchStatus(
+    batchId: string,
+    connection: DatabaseConnection,
+  ) {
     const rows = await this.database.query<
       { total: number; paid: number; partial: number } & any
     >(

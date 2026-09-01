@@ -17,7 +17,11 @@ import type {
   CreateFollowUpDto,
   CreateLeadDto,
   CreateSiteVisitDto,
+  CreateUnitHoldRequestDto,
+  CreateUnitInterestDto,
   CreateUnitDto,
+  DecideUnitHoldRequestDto,
+  ImportUnitsDto,
   QuerySalesDto,
   QueryScheduledSalesDto,
   QueryUnitsDto,
@@ -437,10 +441,65 @@ export class SalesService {
       projectId,
       "inventory:manage",
     );
+    if (["BLOCKED", "BOOKED"].includes(dto.status ?? "")) {
+      throw new BadRequestException({
+        code: "UNIT_STATUS_MANAGED_BY_WORKFLOW",
+        message: "Use block or booking actions for this unit status",
+      });
+    }
+    const normalized = this.normalizeUnitPricing(dto);
     return this.translateConflict(
-      () => this.repo.createUnit(organizationId, projectId, dto, actor.id),
+      () =>
+        this.repo.createUnit(organizationId, projectId, normalized, actor.id),
       "UNIT_NUMBER_DUPLICATE",
     );
+  }
+
+  async previewUnitImport(
+    organizationId: string,
+    projectId: string,
+    dto: ImportUnitsDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:manage",
+    );
+    return this.buildUnitImportPreview(organizationId, projectId, dto.units);
+  }
+
+  async importUnits(
+    organizationId: string,
+    projectId: string,
+    dto: ImportUnitsDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:manage",
+    );
+    const preview = await this.buildUnitImportPreview(
+      organizationId,
+      projectId,
+      dto.units,
+    );
+    if (preview.invalidCount) {
+      throw new BadRequestException({
+        code: "UNIT_IMPORT_INVALID",
+        message: "Correct every invalid Unit row before importing",
+        details: preview,
+      });
+    }
+    const units = preview.rows.map((row) => row.unit);
+    const created = await this.translateConflict(
+      () => this.repo.createUnits(organizationId, projectId, units, actor.id),
+      "UNIT_NUMBER_DUPLICATE",
+    );
+    return { importedCount: created.length, units: created };
   }
 
   async updateUnit(
@@ -462,6 +521,7 @@ export class SalesService {
         message: "Use block or booking actions for this unit status",
       });
     }
+    const normalized = this.normalizeUnitPricing(dto);
     return this.translateDomain(() =>
       this.translateConflict(
         () =>
@@ -469,7 +529,7 @@ export class SalesService {
             organizationId,
             projectId,
             unitId,
-            dto,
+            normalized,
             actor.id,
           ),
         "UNIT_NUMBER_DUPLICATE",
@@ -505,6 +565,134 @@ export class SalesService {
     }
     return this.translateDomain(() =>
       this.repo.blockUnit(organizationId, projectId, unitId, dto, actor.id),
+    );
+  }
+
+  async listUnitInterests(
+    organizationId: string,
+    projectId: string,
+    unitId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const access = await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:read",
+    );
+    return this.repo.listUnitInterests(
+      organizationId,
+      projectId,
+      unitId,
+      access.permissions.includes("inventory:block") ? undefined : actor.id,
+    );
+  }
+
+  async listLeadInterests(
+    organizationId: string,
+    projectId: string,
+    leadId: string,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:read",
+    );
+    await this.getLead(organizationId, projectId, leadId, actor);
+    return this.repo.listLeadInterests(organizationId, projectId, leadId);
+  }
+
+  async saveUnitInterest(
+    organizationId: string,
+    projectId: string,
+    unitId: string,
+    dto: CreateUnitInterestDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:interest",
+    );
+    await this.assertWritableLead(
+      organizationId,
+      projectId,
+      dto.leadId,
+      actor,
+      "leads:update",
+    );
+    return this.translateDomain(() =>
+      this.repo.saveUnitInterest(
+        organizationId,
+        projectId,
+        unitId,
+        dto,
+        actor.id,
+      ),
+    );
+  }
+
+  async requestUnitHold(
+    organizationId: string,
+    projectId: string,
+    unitId: string,
+    dto: CreateUnitHoldRequestDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:request-block",
+    );
+    await this.assertWritableLead(
+      organizationId,
+      projectId,
+      dto.leadId,
+      actor,
+      "leads:update",
+    );
+    return this.translateDomain(() =>
+      this.repo.requestUnitHold(
+        organizationId,
+        projectId,
+        unitId,
+        dto,
+        actor.id,
+      ),
+    );
+  }
+
+  async decideUnitHoldRequest(
+    organizationId: string,
+    projectId: string,
+    requestId: string,
+    dto: DecideUnitHoldRequestDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:block",
+    );
+    if (dto.expiresAt && new Date(dto.expiresAt).getTime() <= Date.now()) {
+      throw new BadRequestException({
+        code: "UNIT_BLOCK_EXPIRY_INVALID",
+        message: "Block expiry must be in the future",
+      });
+    }
+    return this.translateDomain(() =>
+      this.repo.decideUnitHoldRequest(
+        organizationId,
+        projectId,
+        requestId,
+        dto,
+        actor.id,
+      ),
     );
   }
 
@@ -622,6 +810,97 @@ export class SalesService {
         actor.id,
       ),
     );
+  }
+
+  private normalizeUnitPricing(dto: CreateUnitDto): CreateUnitDto {
+    const priceBasis = dto.priceBasis ?? "TOTAL";
+    if (priceBasis === "PER_SQFT") {
+      if (
+        dto.areaSqft == null ||
+        dto.areaSqft <= 0 ||
+        dto.ratePerSqft == null ||
+        dto.ratePerSqft <= 0
+      ) {
+        throw new BadRequestException({
+          code: "UNIT_PRICE_INVALID",
+          message: "Area and rate per square foot must be greater than zero",
+        });
+      }
+      return {
+        ...dto,
+        priceBasis,
+        ratePerSqft: dto.ratePerSqft,
+        basePrice: Math.round(dto.areaSqft * dto.ratePerSqft * 100) / 100,
+      };
+    }
+    if (dto.ratePerSqft != null) {
+      throw new BadRequestException({
+        code: "UNIT_PRICE_INVALID",
+        message:
+          "Rate per square foot is only valid for per-square-foot pricing",
+      });
+    }
+    if (dto.basePrice == null || dto.basePrice <= 0) {
+      throw new BadRequestException({
+        code: "UNIT_PRICE_INVALID",
+        message: "Total Unit price must be greater than zero",
+      });
+    }
+    return { ...dto, priceBasis, ratePerSqft: undefined };
+  }
+
+  private async buildUnitImportPreview(
+    organizationId: string,
+    projectId: string,
+    units: readonly CreateUnitDto[],
+  ) {
+    const normalizedNumbers = units.map((unit) =>
+      unit.unitNumber.trim().toLocaleLowerCase(),
+    );
+    const occurrences = new Map<string, number>();
+    normalizedNumbers.forEach((unitNumber) =>
+      occurrences.set(unitNumber, (occurrences.get(unitNumber) ?? 0) + 1),
+    );
+    const existing = new Set(
+      (
+        await this.repo.findExistingUnitNumbers(
+          organizationId,
+          projectId,
+          units.map((unit) => unit.unitNumber.trim()),
+        )
+      ).map((unitNumber) => unitNumber.toLocaleLowerCase()),
+    );
+
+    const rows = units.map((unit, index) => {
+      const errors: string[] = [];
+      const key = normalizedNumbers[index];
+      if ((occurrences.get(key) ?? 0) > 1) {
+        errors.push("UNIT_IMPORT_DUPLICATE_IN_FILE");
+      }
+      if (existing.has(key)) errors.push("UNIT_NUMBER_DUPLICATE");
+      if (["BLOCKED", "BOOKED"].includes(unit.status ?? "")) {
+        errors.push("UNIT_STATUS_MANAGED_BY_WORKFLOW");
+      }
+      let normalized = unit;
+      try {
+        normalized = this.normalizeUnitPricing(unit);
+      } catch {
+        errors.push("UNIT_PRICE_INVALID");
+      }
+      return {
+        rowNumber: index + 2,
+        unit: normalized,
+        valid: errors.length === 0,
+        errors,
+      };
+    });
+    const invalidCount = rows.filter((row) => !row.valid).length;
+    return {
+      totalCount: rows.length,
+      validCount: rows.length - invalidCount,
+      invalidCount,
+      rows,
+    };
   }
 
   private async resolveLeadRead(
@@ -767,23 +1046,24 @@ export class SalesService {
         });
       }
       if (
+        code === "LEAD_NOT_FOUND" ||
+        code === "FOLLOW_UP_NOT_FOUND" ||
+        code === "SITE_VISIT_NOT_FOUND" ||
+        code === "UNIT_NOT_FOUND" ||
+        code === "UNIT_INTEREST_NOT_FOUND" ||
+        code === "UNIT_HOLD_REQUEST_NOT_FOUND"
+      ) {
+        throw new NotFoundException({
+          code,
+          message: code.replaceAll("_", " ").toLowerCase(),
+        });
+      }
+      if (
         code?.startsWith("UNIT_") ||
         code?.startsWith("LEAD_ALREADY") ||
         code?.startsWith("BOOKING_")
       ) {
         throw new ConflictException({
-          code,
-          message: code.replaceAll("_", " ").toLowerCase(),
-        });
-      }
-      if (code === "LEAD_NOT_FOUND")
-        throw new NotFoundException({ code, message: "Lead not found" });
-      if (
-        code === "FOLLOW_UP_NOT_FOUND" ||
-        code === "SITE_VISIT_NOT_FOUND" ||
-        code === "UNIT_NOT_FOUND"
-      ) {
-        throw new NotFoundException({
           code,
           message: code.replaceAll("_", " ").toLowerCase(),
         });

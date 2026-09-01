@@ -74,6 +74,12 @@ export const UNIT_STATUSES = [
 ] as const;
 export type UnitStatus = (typeof UNIT_STATUSES)[number];
 
+export const UNIT_PRICE_BASES = ["TOTAL", "PER_SQFT"] as const;
+export type UnitPriceBasis = (typeof UNIT_PRICE_BASES)[number];
+
+export const UNIT_PRICE_INPUT_UNITS = ["RUPEE", "LAKH", "CRORE"] as const;
+export type UnitPriceInputUnit = (typeof UNIT_PRICE_INPUT_UNITS)[number];
+
 export const UNIT_BLOCK_STATUSES = [
   "ACTIVE",
   "EXPIRED",
@@ -81,6 +87,24 @@ export const UNIT_BLOCK_STATUSES = [
   "CONVERTED",
 ] as const;
 export type UnitBlockStatus = (typeof UNIT_BLOCK_STATUSES)[number];
+
+export const UNIT_INTEREST_STATUSES = [
+  "INTERESTED",
+  "HIGH_INTENT",
+  "WAITLISTED",
+  "SELECTED",
+  "WITHDRAWN",
+] as const;
+export type UnitInterestStatus = (typeof UNIT_INTEREST_STATUSES)[number];
+
+export const UNIT_HOLD_REQUEST_STATUSES = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+] as const;
+export type UnitHoldRequestStatus =
+  (typeof UNIT_HOLD_REQUEST_STATUSES)[number];
 
 export const BOOKING_STATUSES = ["CONFIRMED", "CANCELLED"] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
@@ -101,6 +125,11 @@ export const SALES_ACTIVITY_TYPES = [
   "SITE_VISIT_NO_SHOW",
   "STAGE_CHANGED",
   "UNIT_SELECTED",
+  "UNIT_INTEREST_RECORDED",
+  "UNIT_INTEREST_UPDATED",
+  "UNIT_HOLD_REQUESTED",
+  "UNIT_HOLD_APPROVED",
+  "UNIT_HOLD_REJECTED",
   "UNIT_BLOCKED",
   "UNIT_BLOCK_RELEASED",
   "LEAD_BOOKED",

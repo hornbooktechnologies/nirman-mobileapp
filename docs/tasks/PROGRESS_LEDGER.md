@@ -11,13 +11,13 @@ AI agents must update this file after every approved contract, implementation sl
 Current gate:
 
 ```text
-The complete current Expo customer surface is implemented for English, Hindi, and Gujarati: common/auth/navigation, Home, Projects, Members, Team/Assign, Workers/forms, shared states, and accessibility copy. Hindi/Gujarati human review plus authenticated physical-device font shaping, persistence, layout, large-text, and accessibility verification remain open.
+Kharchi / Worker Advances API source is implemented using a direct-paid workflow, immutable positive/negative adjustments, financial idempotency, automatic oldest-first Wage deductions, and reusable audit persistence. Migration and seed execution remain unauthorized.
 ```
 
 Next recommended task:
 
 ```text
-Run the full authenticated physical-device and fluent-language review matrix across every role-visible mobile route before production acceptance.
+After an explicit database target confirmation and separate approval, review and apply the Audit and Kharchi migrations, synchronize guarded role grants, and run authenticated API/concurrency verification.
 ```
 
 ## 3. Completed Path
@@ -66,6 +66,8 @@ Run the full authenticated physical-device and fluent-language review matrix acr
 | 40 | Mobile Localization Projects namespace | implementation_complete_native_review_pending | localized Project Detail, Add/Edit Project form, validation/recovery copy, enum display mappings, shared modal/card typography, and responsive field/chip wrapping | Six-namespace locale parity, mobile/shared type-checks, Expo web export with eight Noto fonts, scoped literal review, and diff check passed; physical-device layout, screen-reader, and fluent review pending |
 | 41 | Mobile Localization current customer surface completion | implementation_complete_native_review_pending | localized Members/invite/access/Project assignments, Team/Assign/permission editor, Workers/Add-Edit-Assign-End, shared sync/progress/form/card/header UI, errors/statuses, and accessibility copy | Nine-namespace locale parity, mobile/shared type-checks, full mobile literal audit, Expo web export with eight Noto fonts, and diff check passed; authenticated device, screen-reader, large-text, and fluent review pending |
 | 42 | Organization-owner permanent Worker deletion | implementation_complete_seed_runtime_pending | organization-wide `workers:delete`, dependency-ordered API transaction, Web danger action/confirmation/success state, Workers contract and decision update | Shared/API/web type-checks, 18 API suites with 98 tests, API and isolated web production builds, focused web lint, and diff check passed; no seed, database deletion, or authenticated browser flow was run |
+| 43 | Kharchi / Worker Advances API source | implementation_complete_migration_pending | direct-paid endpoints, immutable signed adjustments, idempotency fingerprints, reusable transactional audit events, automatic oldest-first Wage allocations, Worker deletion integration, SQL drafts, and approved role defaults | Shared type-check/build, API type-check/build, 21 API suites with 114 tests, focused Kharchi/Audit lint, and diff check passed; no database or seed command ran |
+| 44 | Kharchi Mobile integration contract | contract_complete_implementation_pending | `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md` defines routes, API envelopes, services, assignment selection, idempotency lifecycle, operational screens, permission states, en/hi/gu, accessibility, and verification | Documentation/API/source reconciliation and diff check; no Mobile, API, database, migration, seed, or dependency change |
 
 ## 4. Verification Commands Recorded
 

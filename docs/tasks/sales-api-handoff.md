@@ -294,14 +294,21 @@ Update payload:
 
 Scheduling advances a non-terminal Lead to `SITE_VISIT_SCHEDULED`. Completion advances it to `SITE_VISIT_COMPLETED`. Timeline entries distinguish completed, cancelled, rescheduled, and no-show outcomes.
 
-### 7.4 Unit Inventory And Blocking
+### 7.4 Unit Inventory, Interest, And Holds
 
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/units` | List Project inventory and active-block context. |
 | `POST` | `/units` | Create a unit. |
+| `POST` | `/units/import/preview` | Validate 1–500 normalized Unit rows without writing. |
+| `POST` | `/units/import` | Insert a fully valid preview set in one transaction. |
 | `PUT` | `/units/:unitId` | Replace editable unit information. |
-| `POST` | `/units/:unitId/blocks` | Block an available unit for a Lead. |
+| `GET` | `/units/:unitId/interests` | List the Unit's interest queue. |
+| `GET` | `/leads/:leadId/unit-interests` | List Units in which a visible Lead has interest. |
+| `POST` | `/units/:unitId/interests` | Record or update non-exclusive Lead interest. |
+| `POST` | `/units/:unitId/hold-requests` | Request approval for an exclusive hold. |
+| `POST` | `/unit-hold-requests/:requestId/decision` | Approve or reject a pending hold request. |
+| `POST` | `/units/:unitId/blocks` | Manager-only direct block operation. |
 | `POST` | `/unit-blocks/:blockId/release` | Release an active unit block. |
 
 Inventory list parameters:
@@ -331,6 +338,39 @@ Rules:
 - Unit number is unique within a Project.
 - `BLOCKED` and `BOOKED` are workflow-owned and cannot be set using ordinary inventory update.
 - Sales Users do not receive `inventory:manage` by default.
+- Multiple Leads and Sales Users may record interest or submit pending hold requests for the same Unit.
+- Interest and pending requests do not reserve inventory. Only an approved request creates the exclusive active block.
+
+Interest payload:
+
+```json
+{
+  "leadId": "lead-uuid",
+  "status": "HIGH_INTENT",
+  "notes": "Customer prefers this floor plan"
+}
+```
+
+Hold request payload:
+
+```json
+{
+  "leadId": "lead-uuid",
+  "notes": "Customer is ready for internal approval"
+}
+```
+
+Decision payload:
+
+```json
+{
+  "decision": "APPROVED",
+  "expiresAt": "optional-future-ISO-date-time",
+  "notes": "Approved after sales review"
+}
+```
+
+Approval locks the request, Unit, and Lead in one transaction. It creates the only active block, marks the selected interest `SELECTED`, marks competing active interests `WAITLISTED`, and advances the selected Lead to `UNIT_BLOCKED`. Rejection preserves Unit availability. Release/expiry restores the selected Lead's saved previous stage and returns its interest to `INTERESTED`.
 
 Block payload:
 
@@ -462,6 +502,12 @@ SCHEDULED | COMPLETED | CANCELLED | RESCHEDULED | NO_SHOW
 UnitStatus:
 AVAILABLE | BLOCKED | BOOKED | SOLD | UNAVAILABLE
 
+UnitInterestStatus:
+INTERESTED | HIGH_INTENT | WAITLISTED | SELECTED | WITHDRAWN
+
+UnitHoldRequestStatus:
+PENDING | APPROVED | REJECTED | CANCELLED
+
 UnitBlockStatus:
 ACTIVE | EXPIRED | RELEASED | CONVERTED
 
@@ -488,6 +534,8 @@ followups:manage
 site-visits:manage
 inventory:read
 inventory:manage
+inventory:interest
+inventory:request-block
 inventory:block
 inventory:book
 sales-reports:read
@@ -513,14 +561,14 @@ Lead visibility:
 Default role direction in the migration and seed source:
 
 - Organization Owner, Builder Admin, and Independent Contractor Owner: all Sales permissions.
-- Sales User: `leads:read-own`, `leads:create`, `leads:update`, `leads:convert`, `followups:manage`, `site-visits:manage`, `inventory:read`, `inventory:block`, and `inventory:book`.
+- Sales User after migration `014`: `leads:read-own`, `leads:create`, `leads:update`, `leads:convert`, `followups:manage`, `site-visits:manage`, `inventory:read`, `inventory:interest`, `inventory:request-block`, and `inventory:book`. Sales User does not approve/reject/release exclusive holds.
 - Platform roles: no Sales permissions.
 
 Sales permissions are Project-delegatable, but a Project grant cannot exceed the Organization Role ceiling.
 
 ## 10. Database Migration
 
-Proposed migration:
+Applied baseline migration:
 
 ```text
 apps/api/src/database/sql/migrations/011_sales_crm.sql
@@ -539,6 +587,17 @@ It creates:
 | `sales_unit_blocks` | Expiring, one-active-per-Unit holds. |
 | `sales_bookings` | Confirmed/cancelled Lead bookings and idempotency. |
 
+Approved follow-on migration, applied to `md-in-30.webhostbox.net/vishwlt9_nirmansite` on 2026-08-31:
+
+```text
+apps/api/src/database/sql/migrations/014_sales_unit_interest_hold_workflow.sql
+apps/api/src/database/sql/migrations/015_sales_unit_pricing.sql
+```
+
+Migration `014` creates `sales_unit_interests` and `sales_unit_hold_requests`, adds `sales_unit_blocks.previous_lead_stage`, grants the two new permissions, and removes `inventory:block` from the Sales User role.
+
+Migration `015` was applied to the approved hosted target on 2026-08-31. It adds explicit total/per-square-foot pricing columns. The one pre-existing Unit was retained and received the `TOTAL` default; the migration inserted no business records.
+
 Important constraints:
 
 - All records carry Organization and Project scope.
@@ -554,11 +613,12 @@ Database state after the approved 2026-08-27 server rollout:
 
 - Target: `md-in-30.webhostbox.net/vishwlt9_nirmansite`.
 - Server: MySQL `5.7.23-23`.
-- Migrations: 12 local, 12 applied, zero pending, zero drafts, current.
+- The guarded runner reports 16 local migrations, 16 applied, zero pending, zero drafts, and current after applying `015` on 2026-08-31.
 - Migration `010` and migration `011` were applied in order through the guarded runner.
 - The updated guarded seed committed with `SEED_ROLE_USERS=false`.
 - All eight Sales tables, both stored generated columns, and all three workflow uniqueness indexes are present.
-- Sales grants: 15 each for Organization Owner, Builder Admin, and Independent Contractor Owner; nine for Sales User; zero for Site Supervisor and Platform Super Admin.
+- Verified Sales grants are 17 each for Organization Owner, Builder Admin, and Independent Contractor Owner and 10 for Sales User. Sales User has `inventory:interest` and `inventory:request-block` but not `inventory:block`; existing sessions must re-login to refresh JWT permissions.
+- `sales_unit_interests` and `sales_unit_hold_requests` exist, `sales_unit_blocks.previous_lead_stage` exists, and both new business tables contain zero rows immediately after rollout.
 - Duplicate role permissions: zero.
 - Every Sales table remains empty.
 - API health reports app/database `ok`; the Sales Leads route is registered and returns `401` without authentication.
@@ -693,7 +753,11 @@ After explicit database approval and migration/seed execution, verify at minimum
 
 ### Inventory concurrency
 
-- Two concurrent users cannot block the same Unit.
+- Two Sales Users can record interest and submit pending hold requests for the same Unit.
+- Two concurrent approvals cannot create two active blocks for the same Unit; one succeeds and the other receives a conflict after refresh.
+- A Sales User cannot approve, reject, or release a hold without `inventory:block`.
+- Approval selects one interest and waitlists the competing active interests.
+- Rejection leaves the Unit available; release/expiry restores the saved Lead stage and selected interest.
 - Expired active block returns the Unit to available during reconciliation.
 - A Lead cannot book a Unit blocked for another Lead.
 - Cross-Project Unit/Lead IDs are rejected.
@@ -746,7 +810,7 @@ First read these files in order:
 
 Then inspect the current Git status and the Sales shared/API/migration/seed files listed in the handoff. Preserve all unrelated user changes.
 
-The Sales API source is implemented for Leads, timeline, follow-ups, site visits, unit inventory/blocking, and booking conversion. Shared build, API type-check, focused Sales lint, 19 API suites/105 tests, API build, and git diff check passed. On 2026-08-27, migrations 010/011 and the guarded updated seed were applied to the approved remote target; schema, grants, API health, and route registration passed. Authenticated workflow/concurrency acceptance is still pending.
+The Sales API and mobile source include Leads, timeline, follow-ups, site visits, manual and CSV Unit inventory, explicit total/per-square-foot pricing, multi-customer interest, approval-based exclusive holds, and booking conversion. Migrations through `015_sales_unit_pricing.sql` are applied on the approved remote target as of 2026-08-31; pricing columns and the existing Unit backfill were verified read-only. Authenticated role/concurrency and physical-device acceptance remain pending.
 
 Do not run a migration or seed until you have identified the exact database target and received explicit target-specific approval. Do not infer runtime, browser, or physical-device acceptance from static checks.
 

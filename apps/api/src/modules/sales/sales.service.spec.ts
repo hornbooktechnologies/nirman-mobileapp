@@ -22,7 +22,14 @@ describe("SalesService", () => {
     updateSiteVisit: jest.fn(),
     listUnits: jest.fn(),
     createUnit: jest.fn(),
+    createUnits: jest.fn(),
+    findExistingUnitNumbers: jest.fn(),
     updateUnit: jest.fn(),
+    saveUnitInterest: jest.fn(),
+    listUnitInterests: jest.fn(),
+    listLeadInterests: jest.fn(),
+    requestUnitHold: jest.fn(),
+    decideUnitHoldRequest: jest.fn(),
     blockUnit: jest.fn(),
     releaseBlock: jest.fn(),
     listBookings: jest.fn(),
@@ -55,6 +62,7 @@ describe("SalesService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     repo.isEligibleAssignee.mockResolvedValue(true);
+    repo.findExistingUnitNumbers.mockResolvedValue([]);
     projectAccess.resolveOrganizationAccess.mockResolvedValue({
       permissions: ["leads:read-own"],
     } as any);
@@ -67,6 +75,8 @@ describe("SalesService", () => {
         "followups:manage",
         "site-visits:manage",
         "inventory:read",
+        "inventory:interest",
+        "inventory:request-block",
         "inventory:block",
         "inventory:book",
       ],
@@ -223,6 +233,106 @@ describe("SalesService", () => {
     );
   });
 
+  it("records interest without creating an exclusive Unit block", async () => {
+    const unitId = "00000000-0000-4000-8000-000000000040";
+    repo.findLead.mockResolvedValue({
+      id: leadId,
+      assignedTo: actor.id,
+      createdBy: actor.id,
+    } as any);
+    repo.saveUnitInterest.mockResolvedValue({
+      id: "interest-id",
+      status: "HIGH_INTENT",
+    } as any);
+
+    await service.saveUnitInterest(
+      organizationId,
+      projectId,
+      unitId,
+      { leadId, status: "HIGH_INTENT", notes: "Ready for discussion" },
+      actor,
+    );
+
+    expect(projectAccess.resolveProjectAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:interest",
+    );
+    expect(repo.saveUnitInterest).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      unitId,
+      expect.objectContaining({ leadId, status: "HIGH_INTENT" }),
+      actor.id,
+    );
+    expect(repo.blockUnit).not.toHaveBeenCalled();
+  });
+
+  it("submits a Unit hold request for an owned Lead", async () => {
+    const unitId = "00000000-0000-4000-8000-000000000040";
+    repo.findLead.mockResolvedValue({
+      id: leadId,
+      assignedTo: actor.id,
+      createdBy: actor.id,
+    } as any);
+    repo.requestUnitHold.mockResolvedValue({
+      id: "request-id",
+      status: "PENDING",
+    } as any);
+
+    await service.requestUnitHold(
+      organizationId,
+      projectId,
+      unitId,
+      { leadId, notes: "Customer requested a short hold" },
+      actor,
+    );
+
+    expect(projectAccess.resolveProjectAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:request-block",
+    );
+    expect(repo.requestUnitHold).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      unitId,
+      expect.objectContaining({ leadId }),
+      actor.id,
+    );
+  });
+
+  it("requires block authority to decide a pending Unit hold request", async () => {
+    repo.decideUnitHoldRequest.mockResolvedValue({
+      id: "request-id",
+      status: "APPROVED",
+    } as any);
+
+    await service.decideUnitHoldRequest(
+      organizationId,
+      projectId,
+      "request-id",
+      { decision: "APPROVED" },
+      actor,
+    );
+
+    expect(projectAccess.resolveProjectAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      projectId,
+      "inventory:block",
+    );
+    expect(repo.decideUnitHoldRequest).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      "request-id",
+      { decision: "APPROVED" },
+      actor.id,
+    );
+  });
+
   it("requires an explicit non-BOOKED restoration state when cancelling", async () => {
     await expect(
       service.cancelBooking(
@@ -238,5 +348,81 @@ describe("SalesService", () => {
     ).rejects.toMatchObject({
       response: { code: "BOOKING_RESTORE_STAGE_INVALID" },
     });
+  });
+
+  it("normalizes per-square-foot pricing when creating a Unit", async () => {
+    repo.createUnit.mockResolvedValue({ id: "unit-id" } as any);
+    await service.createUnit(
+      organizationId,
+      projectId,
+      {
+        unitNumber: "A-101",
+        unitType: "2 BHK",
+        areaSqft: 1120,
+        priceBasis: "PER_SQFT",
+        ratePerSqft: 6250,
+      },
+      actor,
+    );
+    expect(repo.createUnit).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      expect.objectContaining({ basePrice: 7000000, priceBasis: "PER_SQFT" }),
+      actor.id,
+    );
+  });
+
+  it("previews duplicate Unit numbers without writing inventory", async () => {
+    const preview = await service.previewUnitImport(
+      organizationId,
+      projectId,
+      {
+        units: [
+          {
+            unitNumber: "A-101",
+            unitType: "2 BHK",
+            basePrice: 70,
+            priceBasis: "TOTAL",
+          },
+          {
+            unitNumber: "a-101",
+            unitType: "2 BHK",
+            basePrice: 75,
+            priceBasis: "TOTAL",
+          },
+        ],
+      },
+      actor,
+    );
+    expect(preview.invalidCount).toBe(2);
+    expect(preview.rows[0].errors).toContain("UNIT_IMPORT_DUPLICATE_IN_FILE");
+    expect(repo.createUnits).not.toHaveBeenCalled();
+  });
+
+  it("imports a fully valid Unit file in one repository operation", async () => {
+    repo.createUnits.mockResolvedValue([{ id: "unit-id" }] as any);
+    const result = await service.importUnits(
+      organizationId,
+      projectId,
+      {
+        units: [
+          {
+            unitNumber: "A-101",
+            unitType: "2 BHK",
+            areaSqft: 1120,
+            priceBasis: "PER_SQFT",
+            ratePerSqft: 6250,
+          },
+        ],
+      },
+      actor,
+    );
+    expect(result.importedCount).toBe(1);
+    expect(repo.createUnits).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      [expect.objectContaining({ basePrice: 7000000 })],
+      actor.id,
+    );
   });
 });

@@ -1,8 +1,11 @@
 import {
   LEAD_PRIORITIES,
   LEAD_SOURCES,
+  UNIT_PRICE_BASES,
+  UNIT_PRICE_INPUT_UNITS,
   type LeadPriority,
   type LeadSource,
+  type UnitPriceInputUnit,
 } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -13,6 +16,8 @@ import {
   AppIcon,
   BottomSheet,
   Button,
+  Card,
+  Chip,
   CompactScreenHeader,
   EmptyState,
   FormError,
@@ -24,7 +29,7 @@ import {
   OperationalEntityCard,
   SearchField,
 } from '../../components/ui';
-import { formatDate, formatInr } from '../../i18n/formatters';
+import { formatDate, formatInr, formatNumber } from '../../i18n/formatters';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { isValidEmail, isValidNonNegativeNumber, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
@@ -51,10 +56,19 @@ import type { LeadInput, SalesBooking, SalesFollowUp, SalesLead, SalesSiteVisit,
 type ViewKey = 'leads' | 'followUps' | 'visits' | 'units' | 'bookings';
 type ListItem = SalesLead | SalesFollowUp | SalesSiteVisit | SalesUnit | SalesBooking;
 type LeadFieldErrors = Partial<Record<'customerName' | 'primaryMobile' | 'email' | 'budgetMin' | 'budgetMax', string>>;
-type UnitFieldErrors = Partial<Record<'unitNumber' | 'unitType' | 'areaSqft' | 'basePrice', string>>;
+type UnitFieldErrors = Partial<Record<'unitNumber' | 'unitType' | 'areaSqft' | 'totalPrice' | 'ratePerSqft', string>>;
 
 const emptyLead: LeadInput = { customerName: '', primaryMobile: '', source: 'WALK_IN', priority: 'MEDIUM' };
-const emptyUnit: UnitInput = { unitNumber: '', unitType: '', status: 'AVAILABLE' };
+const emptyUnit: UnitInput = { unitNumber: '', unitType: '', priceBasis: 'TOTAL', status: 'AVAILABLE' };
+
+const priceMultipliers: Record<UnitPriceInputUnit, number> = { RUPEE: 1, LAKH: 100_000, CRORE: 10_000_000 };
+
+function editablePrice(value: number | null) {
+  if (value == null) return { amount: '', unit: 'LAKH' as UnitPriceInputUnit };
+  if (value >= 10_000_000) return { amount: String(value / 10_000_000), unit: 'CRORE' as UnitPriceInputUnit };
+  if (value >= 100_000) return { amount: String(value / 100_000), unit: 'LAKH' as UnitPriceInputUnit };
+  return { amount: String(value), unit: 'RUPEE' as UnitPriceInputUnit };
+}
 
 function isLead(item: ListItem): item is SalesLead { return 'currentStage' in item; }
 function isFollowUp(item: ListItem): item is SalesFollowUp { return 'type' in item && 'scheduledAt' in item && 'assignedUserId' in item; }
@@ -82,6 +96,8 @@ export function SalesScreen() {
   const [unitDraft, setUnitDraft] = useState<(UnitInput & { id?: string }) | null>(null);
   const [unitFormError, setUnitFormError] = useState('');
   const [unitFieldErrors, setUnitFieldErrors] = useState<UnitFieldErrors>({});
+  const [unitPriceAmount, setUnitPriceAmount] = useState('');
+  const [unitPriceInputUnit, setUnitPriceInputUnit] = useState<UnitPriceInputUnit>('LAKH');
   const [working, setWorking] = useState(false);
   const [selectedFollowUp, setSelectedFollowUp] = useState<SalesFollowUp | null>(null);
   const [selectedVisit, setSelectedVisit] = useState<SalesSiteVisit | null>(null);
@@ -90,6 +106,11 @@ export function SalesScreen() {
   const [restoredLeadStage, setRestoredLeadStage] = useState<'NEGOTIATION' | 'FOLLOW_UP_LATER' | 'NOT_INTERESTED'>('NEGOTIATION');
   const [restoredUnitStatus, setRestoredUnitStatus] = useState<'AVAILABLE' | 'UNAVAILABLE'>('AVAILABLE');
   const deferredSearch = useDeferredValue(search);
+  const displayPrice = (value: number) => value >= 10_000_000
+    ? t('pricing.croreValue', { value: formatNumber(value / 10_000_000, language, { maximumFractionDigits: 2 }) })
+    : value >= 100_000
+      ? t('pricing.lakhValue', { value: formatNumber(value / 100_000, language, { maximumFractionDigits: 2 }) })
+      : formatInr(value, language, { maximumFractionDigits: 0 });
 
   const canReadLeads = permissions.some((permission) => permission === 'leads:read-own' || permission === 'leads:read-team' || permission === 'leads:read-all');
   const availableViews = useMemo(() => [
@@ -121,6 +142,9 @@ export function SalesScreen() {
   }, [availableViews, deferredSearch, project, session, t, view]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    setItems([]);
+  }, [project?.id, view]);
   useEffect(() => {
     if (!availableViews.includes(view) && availableViews[0]) setView(availableViews[0]);
   }, [availableViews, view]);
@@ -160,13 +184,19 @@ export function SalesScreen() {
     const nextFieldErrors: UnitFieldErrors = {};
     if (!unitDraft.unitNumber.trim()) nextFieldErrors.unitNumber = tCommon('validation.required', { field: t('fields.unitNumber') });
     if (!unitDraft.unitType.trim()) nextFieldErrors.unitType = tCommon('validation.required', { field: t('fields.unitType') });
-    if (unitDraft.areaSqft !== undefined && !isValidNonNegativeNumber(String(unitDraft.areaSqft))) nextFieldErrors.areaSqft = tCommon('validation.number');
-    if (unitDraft.basePrice !== undefined && !isValidNonNegativeNumber(String(unitDraft.basePrice))) nextFieldErrors.basePrice = tCommon('validation.number');
+    const priceBasis = unitDraft.priceBasis ?? 'TOTAL';
+    if (unitDraft.areaSqft !== undefined && (!isValidNonNegativeNumber(String(unitDraft.areaSqft)) || unitDraft.areaSqft <= 0)) nextFieldErrors.areaSqft = t('unitImport.errorCodes.POSITIVE_NUMBER');
+    if (priceBasis === 'TOTAL' && (!Number.isFinite(Number(unitPriceAmount)) || Number(unitPriceAmount) <= 0)) nextFieldErrors.totalPrice = t('unitImport.errorCodes.POSITIVE_NUMBER');
+    if (priceBasis === 'PER_SQFT' && (!unitDraft.areaSqft || unitDraft.areaSqft <= 0)) nextFieldErrors.areaSqft = t('unitImport.errorCodes.POSITIVE_NUMBER');
+    if (priceBasis === 'PER_SQFT' && (!Number.isFinite(unitDraft.ratePerSqft) || !unitDraft.ratePerSqft || unitDraft.ratePerSqft <= 0)) nextFieldErrors.ratePerSqft = t('unitImport.errorCodes.POSITIVE_NUMBER');
     setUnitFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) return;
     setWorking(true);
     try {
-      const { id, ...input } = unitDraft;
+      const { id, ...draft } = unitDraft;
+      const input: UnitInput = priceBasis === 'TOTAL'
+        ? { ...draft, priceBasis, basePrice: Number(unitPriceAmount) * priceMultipliers[unitPriceInputUnit], ratePerSqft: undefined }
+        : { ...draft, priceBasis, basePrice: unitDraft.areaSqft! * unitDraft.ratePerSqft! };
       if (id) await updateUnit(session.activeOrganization.id, project.id, id, session.accessToken, input);
       else await createUnit(session.activeOrganization.id, project.id, session.accessToken, input);
       setUnitDraft(null);
@@ -186,6 +216,8 @@ export function SalesScreen() {
     setUnitDraft(null);
     setUnitFormError('');
     setUnitFieldErrors({});
+    setUnitPriceAmount('');
+    setUnitPriceInputUnit('LAKH');
   }
 
   async function completeFollowUp() {
@@ -233,7 +265,7 @@ export function SalesScreen() {
     if (isLead(item)) return <OperationalEntityCard compact accessibilityLabel={t('leads.openA11y', { name: item.customerName, stage: t(`stage.${item.currentStage}`) })} contextLeading={t(`priority.${item.priority}`)} contextTrailing={t(`stage.${item.currentStage}`)} title={item.customerName} supporting={item.primaryMobile} value={item.interestedUnitNumber ?? undefined} valueLabel={item.interestedUnitNumber ? t('leads.unit') : undefined} footerLeading={item.assignedToName ?? t('leads.unassigned')} footerTrailing={<AppIcon color={mobileTheme.color.text.muted} name="chevron-right" size={20} />} tone={item.priority === 'URGENT' ? 'danger' : item.priority === 'HIGH' ? 'warning' : 'info'} onPress={() => router.push({ pathname: '/(app)/sales-lead', params: { leadId: item.id } })} />;
     if (isFollowUp(item)) return <OperationalEntityCard compact contextLeading={t(`followUpType.${item.type}`)} contextTrailing={t(`followUpStatus.${item.status}`)} title={item.customerName} supporting={formatDate(item.scheduledAt, language, { dateStyle: 'medium', timeStyle: 'short' })} footerLeading={item.notes ?? t('followUps.noNotes')} footerTrailing={item.status === 'SCHEDULED' ? <Button fullWidth={false} label={t('followUps.complete')} size="sm" variant="success" onPress={() => { setOutcome(''); setSelectedFollowUp(item); }} /> : undefined} tone={item.status === 'COMPLETED' ? 'success' : new Date(item.scheduledAt) < new Date() && item.status === 'SCHEDULED' ? 'danger' : 'warning'} />;
     if (isVisit(item)) return <OperationalEntityCard compact contextLeading={t('visits.siteVisit')} contextTrailing={t(`visitStatus.${item.status}`)} title={item.customerName} supporting={formatDate(item.scheduledAt, language, { dateStyle: 'medium', timeStyle: 'short' })} footerLeading={item.attendeeCount ? t('visits.attendees', { count: item.attendeeCount }) : t('visits.noAttendeeCount')} footerTrailing={item.status === 'SCHEDULED' ? <Button fullWidth={false} label={t('visits.complete')} size="sm" variant="success" onPress={() => { setOutcome(''); setSelectedVisit(item); }} /> : undefined} tone={item.status === 'COMPLETED' ? 'success' : item.status === 'CANCELLED' || item.status === 'NO_SHOW' ? 'danger' : 'warning'} />;
-    if (isUnit(item)) return <OperationalEntityCard compact contextLeading={[item.wingTower, item.floor].filter(Boolean).join(' · ') || t('units.inventory')} contextTrailing={t(`unitStatus.${item.status}`)} title={item.unitNumber} supporting={[item.unitType, item.areaSqft ? t('units.area', { value: item.areaSqft }) : null].filter(Boolean).join(' · ')} value={item.basePrice == null ? undefined : formatInr(item.basePrice, language, { maximumFractionDigits: 0 })} valueLabel={item.basePrice == null ? undefined : t('units.basePrice')} footerLeading={item.blockExpiresAt ? t('units.expires', { date: formatDate(item.blockExpiresAt, language, { dateStyle: 'medium', timeStyle: 'short' }) }) : t('units.openForSale')} footerTrailing={item.status === 'BLOCKED' && item.activeBlockId && permissions.includes('inventory:block') ? <Button fullWidth={false} label={t('units.release')} size="sm" variant="danger" onPress={() => releaseBlock(item)} /> : permissions.includes('inventory:manage') ? <Button fullWidth={false} label={t('units.edit')} size="sm" variant="secondary" onPress={() => { setUnitFormError(''); setUnitFieldErrors({}); setUnitDraft({ id: item.id, unitNumber: item.unitNumber, unitType: item.unitType, wingTower: item.wingTower ?? undefined, floor: item.floor ?? undefined, areaSqft: item.areaSqft ?? undefined, facing: item.facing ?? undefined, basePrice: item.basePrice ?? undefined, status: item.status === 'AVAILABLE' || item.status === 'UNAVAILABLE' || item.status === 'SOLD' ? item.status : 'AVAILABLE' }); }} /> : undefined} tone={item.status === 'AVAILABLE' ? 'success' : item.status === 'BLOCKED' ? 'warning' : item.status === 'BOOKED' || item.status === 'SOLD' ? 'info' : 'neutral'} />;
+    if (isUnit(item)) return <OperationalEntityCard compact accessibilityLabel={t('units.openInterestQueueA11y', { unit: item.unitNumber, count: Number(item.interestCount ?? 0) })} contextLeading={[item.wingTower, item.floor].filter(Boolean).join(' · ') || t('units.inventory')} contextTrailing={t(`unitStatus.${item.status}`)} title={item.unitNumber} supporting={[item.unitType, item.areaSqft ? t('units.area', { value: item.areaSqft }) : null, item.priceBasis === 'PER_SQFT' && item.ratePerSqft ? t('pricing.rateValue', { value: formatNumber(item.ratePerSqft, language) }) : null].filter(Boolean).join(' · ')} value={item.basePrice == null ? undefined : displayPrice(item.basePrice)} valueLabel={item.basePrice == null ? undefined : item.priceBasis === 'PER_SQFT' ? t('pricing.estimatedTotal') : t('pricing.totalPrice')} footerLeading={[item.blockExpiresAt ? t('units.expires', { date: formatDate(item.blockExpiresAt, language, { dateStyle: 'medium', timeStyle: 'short' }) }) : t('units.openForSale'), t('units.interestCount', { count: Number(item.interestCount ?? 0) })].join(' · ')} footerTrailing={item.status === 'BLOCKED' && item.activeBlockId && permissions.includes('inventory:block') ? <Button fullWidth={false} label={t('units.release')} size="sm" variant="danger" onPress={() => releaseBlock(item)} /> : permissions.includes('inventory:manage') ? <Button fullWidth={false} label={t('units.edit')} size="sm" variant="secondary" onPress={() => { const price = editablePrice(item.basePrice); setUnitPriceAmount(price.amount); setUnitPriceInputUnit(price.unit); setUnitFormError(''); setUnitFieldErrors({}); setUnitDraft({ id: item.id, unitNumber: item.unitNumber, unitType: item.unitType, wingTower: item.wingTower ?? undefined, floor: item.floor ?? undefined, areaSqft: item.areaSqft ?? undefined, facing: item.facing ?? undefined, basePrice: item.basePrice ?? undefined, priceBasis: item.priceBasis ?? 'TOTAL', ratePerSqft: item.ratePerSqft ?? undefined, status: item.status === 'AVAILABLE' || item.status === 'UNAVAILABLE' || item.status === 'SOLD' ? item.status : 'AVAILABLE' }); }} /> : undefined} tone={item.status === 'AVAILABLE' ? 'success' : item.status === 'BLOCKED' ? 'warning' : item.status === 'BOOKED' || item.status === 'SOLD' ? 'info' : 'neutral'} onPress={() => router.push({ pathname: '/(app)/sales-unit', params: { unitId: item.id } })} />;
     return <OperationalEntityCard compact contextLeading={t('bookings.booking')} contextTrailing={t(`bookingStatus.${item.status}`)} title={item.customerName} supporting={[item.unitNumber, item.bookingReference].filter(Boolean).join(' · ') || item.customerMobile} value={item.bookingAmount == null ? undefined : formatInr(item.bookingAmount, language, { maximumFractionDigits: 0 })} valueLabel={t('bookings.amount')} footerLeading={formatDate(item.bookingDate, language)} footerTrailing={item.status === 'CONFIRMED' && permissions.includes('leads:convert') && (!item.unitId || permissions.includes('inventory:book')) ? <Button fullWidth={false} label={t('bookings.cancel')} size="sm" variant="danger" onPress={() => { setOutcome(''); setRestoredLeadStage('NEGOTIATION'); setRestoredUnitStatus('AVAILABLE'); setSelectedBooking(item); }} /> : undefined} tone={item.status === 'CONFIRMED' ? 'success' : 'danger'} />;
   }
 
@@ -241,12 +273,16 @@ export function SalesScreen() {
 
   const viewTitle = t(`views.${view}.title`);
   const canCreate = view === 'leads' ? permissions.includes('leads:create') : view === 'units' ? permissions.includes('inventory:manage') : false;
+  const createAction = canCreate ? view === 'units' ? <View style={styles.headingActions}>
+    <IconButton icon="file-upload-outline" accessibilityLabel={t('units.import')} variant="default" onPress={() => router.push('/(app)/sales-unit-import')} />
+    <IconButton icon="plus" accessibilityLabel={t('units.add')} variant="primary" onPress={() => { setUnitPriceAmount(''); setUnitPriceInputUnit('LAKH'); setUnitFormError(''); setUnitFieldErrors({}); setUnitDraft({ ...emptyUnit }); }} />
+  </View> : <IconButton icon="plus" accessibilityLabel={t('leads.add')} variant="primary" onPress={() => { setLeadFormError(''); setLeadFieldErrors({}); setLeadDraft({ ...emptyLead }); }} /> : undefined;
 
   return <NirmanScreenBackground scroll={false}>
     <FlatList
       style={styles.flatList}
       contentContainerStyle={styles.list}
-      data={visibleItems}
+      data={loading ? [] : visibleItems}
       keyExtractor={(item) => item.id}
       keyboardShouldPersistTaps="handled"
       refreshing={refreshing}
@@ -255,12 +291,12 @@ export function SalesScreen() {
       ListHeaderComponent={<View style={styles.headerContent}>
         <CompactScreenHeader leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />} title={t('title')} subtitle={project.name} action={<IconButton icon="view-grid-outline" accessibilityLabel={t('navigation.open')} variant="glass" onPress={() => setShowNavigation(true)} />} />
         <ProjectContextCard compact showSwitchAction />
-        <SalesSectionHeading title={viewTitle} description={t(`views.${view}.description`)} action={canCreate ? <IconButton icon="plus" accessibilityLabel={view === 'leads' ? t('leads.add') : t('units.add')} variant="primary" onPress={() => { if (view === 'leads') { setLeadFormError(''); setLeadFieldErrors({}); setLeadDraft({ ...emptyLead }); } else { setUnitFormError(''); setUnitFieldErrors({}); setUnitDraft({ ...emptyUnit }); } }} /> : undefined} />
+        <SalesSectionHeading title={viewTitle} description={t(`views.${view}.description`)} action={createAction} />
         <SearchField accessibilityLabel={t('search.a11y')} placeholder={t('search.placeholder')} value={search} onChangeText={setSearch} onSubmitEditing={() => void load()} />
         <FormError message={error} />
         {loading ? <LoadingState label={t('loading')} /> : null}
       </View>}
-      ListEmptyComponent={!loading ? <EmptyState title={t(`views.${view}.emptyTitle`)} description={t(`views.${view}.emptyDescription`)} /> : null}
+      ListEmptyComponent={!loading && !error ? <EmptyState title={t(`views.${view}.emptyTitle`)} description={t(`views.${view}.emptyDescription`)} /> : null}
     />
 
     <BottomSheet visible={showNavigation} title={t('navigation.title')} description={t('navigation.description')} scroll onClose={() => setShowNavigation(false)}>{availableViews.map((key) => <SalesChoice key={key} label={t(`views.${key}.title`)} description={t(`views.${key}.description`)} selected={view === key} onPress={() => { setView(key); setSearch(''); setShowNavigation(false); }} />)}</BottomSheet>
@@ -281,11 +317,21 @@ export function SalesScreen() {
       <FormError message={unitFormError} />
       <FormField label={t('fields.unitNumber')} required error={unitFieldErrors.unitNumber}><Input invalid={Boolean(unitFieldErrors.unitNumber)} value={unitDraft.unitNumber} onChangeText={(unitNumber) => { setUnitDraft({ ...unitDraft, unitNumber }); if (unitFieldErrors.unitNumber) setUnitFieldErrors((current) => ({ ...current, unitNumber: undefined })); }} /></FormField>
       <FormField label={t('fields.unitType')} required error={unitFieldErrors.unitType}><Input invalid={Boolean(unitFieldErrors.unitType)} value={unitDraft.unitType} onChangeText={(unitType) => { setUnitDraft({ ...unitDraft, unitType }); if (unitFieldErrors.unitType) setUnitFieldErrors((current) => ({ ...current, unitType: undefined })); }} /></FormField>
-      <FormField label={t('fields.wingTower')} optional><Input value={unitDraft.wingTower ?? ''} onChangeText={(wingTower) => setUnitDraft({ ...unitDraft, wingTower })} /></FormField>
-      <FormField label={t('fields.floor')} optional><Input value={unitDraft.floor ?? ''} onChangeText={(floor) => setUnitDraft({ ...unitDraft, floor })} /></FormField>
-      <FormField label={t('fields.areaSqft')} optional error={unitFieldErrors.areaSqft}><Input invalid={Boolean(unitFieldErrors.areaSqft)} keyboardType="decimal-pad" value={unitDraft.areaSqft?.toString() ?? ''} onChangeText={(value) => { setUnitDraft({ ...unitDraft, areaSqft: value ? Number(value) : undefined }); if (unitFieldErrors.areaSqft) setUnitFieldErrors((current) => ({ ...current, areaSqft: undefined })); }} /></FormField>
-      <FormField label={t('fields.basePrice')} optional error={unitFieldErrors.basePrice}><Input invalid={Boolean(unitFieldErrors.basePrice)} keyboardType="decimal-pad" value={unitDraft.basePrice?.toString() ?? ''} onChangeText={(value) => { setUnitDraft({ ...unitDraft, basePrice: value ? Number(value) : undefined }); if (unitFieldErrors.basePrice) setUnitFieldErrors((current) => ({ ...current, basePrice: undefined })); }} /></FormField>
-      <FormField label={t('fields.status')} required>{(['AVAILABLE', 'UNAVAILABLE', 'SOLD'] as const).map((status) => <SalesChoice key={status} label={t(`unitStatus.${status}`)} selected={unitDraft.status === status} onPress={() => setUnitDraft({ ...unitDraft, status })} />)}</FormField>
+      <View style={styles.fieldRow}>
+        <View style={styles.fieldColumn}><FormField label={t('fields.wingTower')} optional><Input value={unitDraft.wingTower ?? ''} onChangeText={(wingTower) => setUnitDraft({ ...unitDraft, wingTower })} /></FormField></View>
+        <View style={styles.fieldColumn}><FormField label={t('fields.floor')} optional><Input value={unitDraft.floor ?? ''} onChangeText={(floor) => setUnitDraft({ ...unitDraft, floor })} /></FormField></View>
+      </View>
+      <View style={styles.fieldRow}>
+        <View style={styles.fieldColumn}><FormField label={t('fields.areaSqft')} required={unitDraft.priceBasis === 'PER_SQFT'} optional={unitDraft.priceBasis !== 'PER_SQFT'} error={unitFieldErrors.areaSqft}><Input invalid={Boolean(unitFieldErrors.areaSqft)} keyboardType="decimal-pad" value={unitDraft.areaSqft?.toString() ?? ''} onChangeText={(value) => { setUnitDraft({ ...unitDraft, areaSqft: value ? Number(value) : undefined }); if (unitFieldErrors.areaSqft) setUnitFieldErrors((current) => ({ ...current, areaSqft: undefined })); }} /></FormField></View>
+        <View style={styles.fieldColumn}><FormField label={t('fields.facing')} optional><Input value={unitDraft.facing ?? ''} onChangeText={(facing) => setUnitDraft({ ...unitDraft, facing })} /></FormField></View>
+      </View>
+      <FormField label={t('fields.priceBasis')} required><View accessibilityRole="radiogroup" style={styles.chipRow}>{UNIT_PRICE_BASES.map((priceBasis) => <Chip key={priceBasis} label={t(`pricing.${priceBasis}`)} selected={(unitDraft.priceBasis ?? 'TOTAL') === priceBasis} style={styles.choiceChip} onPress={() => { setUnitDraft({ ...unitDraft, priceBasis, ratePerSqft: priceBasis === 'TOTAL' ? undefined : unitDraft.ratePerSqft }); setUnitFieldErrors((current) => ({ ...current, totalPrice: undefined, ratePerSqft: undefined })); }} />)}</View></FormField>
+      {(unitDraft.priceBasis ?? 'TOTAL') === 'TOTAL' ? <>
+        <FormField label={t('fields.totalPrice')} required error={unitFieldErrors.totalPrice}><Input invalid={Boolean(unitFieldErrors.totalPrice)} keyboardType="decimal-pad" value={unitPriceAmount} onChangeText={(value) => { setUnitPriceAmount(value.replace(/[^0-9.]/g, '')); if (unitFieldErrors.totalPrice) setUnitFieldErrors((current) => ({ ...current, totalPrice: undefined })); }} /></FormField>
+        <FormField label={t('fields.priceUnit')} required><View accessibilityRole="radiogroup" style={styles.chipRow}>{UNIT_PRICE_INPUT_UNITS.map((unit) => <Chip key={unit} label={t(`pricing.${unit}`)} selected={unitPriceInputUnit === unit} style={styles.choiceChip} onPress={() => setUnitPriceInputUnit(unit)} />)}</View></FormField>
+      </> : <FormField label={t('fields.ratePerSqft')} required error={unitFieldErrors.ratePerSqft}><Input invalid={Boolean(unitFieldErrors.ratePerSqft)} keyboardType="decimal-pad" value={unitDraft.ratePerSqft?.toString() ?? ''} onChangeText={(value) => { setUnitDraft({ ...unitDraft, ratePerSqft: value ? Number(value) : undefined }); if (unitFieldErrors.ratePerSqft) setUnitFieldErrors((current) => ({ ...current, ratePerSqft: undefined })); }} /></FormField>}
+      {((unitDraft.priceBasis ?? 'TOTAL') === 'TOTAL' ? Number(unitPriceAmount) * priceMultipliers[unitPriceInputUnit] : (unitDraft.areaSqft ?? 0) * (unitDraft.ratePerSqft ?? 0)) > 0 ? <Card variant="blueprint" padding="sm"><SalesDetailRows rows={[{ label: (unitDraft.priceBasis ?? 'TOTAL') === 'PER_SQFT' ? t('pricing.estimatedTotal') : t('pricing.totalPrice'), value: formatInr((unitDraft.priceBasis ?? 'TOTAL') === 'TOTAL' ? Number(unitPriceAmount) * priceMultipliers[unitPriceInputUnit] : (unitDraft.areaSqft ?? 0) * (unitDraft.ratePerSqft ?? 0), language, { maximumFractionDigits: 0 }) }]} /></Card> : null}
+      <FormField label={t('fields.status')} required><View accessibilityRole="radiogroup" style={styles.chipRow}>{(['AVAILABLE', 'UNAVAILABLE', 'SOLD'] as const).map((status) => <Chip key={status} label={t(`unitStatus.${status}`)} selected={unitDraft.status === status} style={styles.choiceChip} onPress={() => setUnitDraft({ ...unitDraft, status })} />)}</View></FormField>
     </BottomSheet> : null}
 
     {selectedFollowUp ? <BottomSheet visible title={t('followUps.completeTitle')} showCloseButton={false} onClose={() => setSelectedFollowUp(null)} footer={<View style={styles.footer}><Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={() => setSelectedFollowUp(null)} /><Button style={styles.footerButton} disabled={working} label={t('followUps.complete')} variant="success" onPress={() => void completeFollowUp()} /></View>}><FormField label={t('fields.outcome')} optional><Input multiline numberOfLines={3} value={outcome} onChangeText={setOutcome} style={styles.multiline} /></FormField></BottomSheet> : null}
@@ -298,6 +344,11 @@ const styles = StyleSheet.create({
   flatList: { flex: 1 },
   list: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[8] },
   headerContent: { gap: mobileTheme.spacing[5], marginBottom: mobileTheme.spacing[3] },
+  headingActions: { flexDirection: 'row', gap: mobileTheme.spacing[2] },
+  fieldRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
+  fieldColumn: { flex: 1, minWidth: 140 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
+  choiceChip: { minHeight: 48 },
   footer: { flex: 1, flexDirection: 'row', gap: mobileTheme.spacing[3] },
   footerButton: { flex: 1 },
   multiline: { minHeight: 96, paddingTop: mobileTheme.spacing[3], textAlignVertical: 'top' },

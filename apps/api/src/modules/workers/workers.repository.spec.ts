@@ -196,15 +196,18 @@ describe("WorkersRepository", () => {
       }),
     );
     const deleteSql = database.execute.mock.calls.map(([sql]) => sql);
-    expect(deleteSql).toHaveLength(8);
-    expect(deleteSql[0]).toContain("FROM wage_payments");
-    expect(deleteSql[1]).toContain("FROM wage_items");
-    expect(deleteSql[2]).toContain("FROM wage_batches");
-    expect(deleteSql[3]).toContain("FROM attendance_exceptions");
-    expect(deleteSql[4]).toContain("FROM attendance_records");
-    expect(deleteSql[5]).toContain("FROM worker_primary_project_periods");
-    expect(deleteSql[6]).toContain("FROM worker_project_assignments");
-    expect(deleteSql[7]).toContain("FROM workers");
+    expect(deleteSql).toHaveLength(11);
+    expect(deleteSql[0]).toContain("FROM kharchi_deduction_allocations");
+    expect(deleteSql[1]).toContain("FROM wage_payments");
+    expect(deleteSql[2]).toContain("FROM wage_items");
+    expect(deleteSql[3]).toContain("FROM wage_batches");
+    expect(deleteSql[4]).toContain("FROM attendance_exceptions");
+    expect(deleteSql[5]).toContain("FROM attendance_records");
+    expect(deleteSql[6]).toContain("FROM kharchi_adjustments");
+    expect(deleteSql[7]).toContain("FROM kharchi_advances");
+    expect(deleteSql[8]).toContain("FROM worker_primary_project_periods");
+    expect(deleteSql[9]).toContain("FROM worker_project_assignments");
+    expect(deleteSql[10]).toContain("FROM workers");
     for (const [, params] of database.execute.mock.calls) {
       expect(params?.[0]).toBe("organization-id");
     }

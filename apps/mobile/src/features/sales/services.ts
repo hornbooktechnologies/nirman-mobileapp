@@ -4,6 +4,7 @@ import type {
   LeadStage,
   SiteVisitStatus,
   UnitStatus,
+  UnitInterestStatus,
 } from '@nirman-app/shared';
 
 import { apiRequest } from '../../lib/api';
@@ -16,7 +17,10 @@ import type {
   SalesPage,
   SalesSiteVisit,
   SalesUnit,
+  SalesUnitInterest,
   UnitInput,
+  UnitImportPreview,
+  UnitImportResult,
 } from './types';
 
 type ApiEnvelope<TData> = { success: boolean; data: TData };
@@ -63,8 +67,15 @@ export async function fetchUnits(o: string, p: string, token: string, query: { s
 }
 export const createUnit = (o: string, p: string, token: string, input: UnitInput) => data<SalesUnit>(`${base(o, p)}/units`, token, { method: 'POST', body: JSON.stringify(input) });
 export const updateUnit = (o: string, p: string, unitId: string, token: string, input: UnitInput) => data<SalesUnit>(`${base(o, p)}/units/${unitId}`, token, { method: 'PUT', body: JSON.stringify(input) });
+export const previewUnitImport = (o: string, p: string, token: string, units: UnitInput[]) => data<UnitImportPreview>(`${base(o, p)}/units/import/preview`, token, { method: 'POST', body: JSON.stringify({ units }) });
+export const importUnits = (o: string, p: string, token: string, units: UnitInput[]) => data<UnitImportResult>(`${base(o, p)}/units/import`, token, { method: 'POST', body: JSON.stringify({ units }) });
 export const blockUnit = (o: string, p: string, unitId: string, token: string, input: { leadId: string; expiresAt?: string; notes?: string }) => data<SalesUnit>(`${base(o, p)}/units/${unitId}/blocks`, token, { method: 'POST', body: JSON.stringify(input) });
 export const releaseUnitBlock = (o: string, p: string, blockId: string, token: string) => data<null>(`${base(o, p)}/unit-blocks/${blockId}/release`, token, { method: 'POST' });
+export const fetchUnitInterests = (o: string, p: string, unitId: string, token: string) => data<SalesUnitInterest[]>(`${base(o, p)}/units/${unitId}/interests`, token);
+export const fetchLeadUnitInterests = (o: string, p: string, leadId: string, token: string) => data<SalesUnitInterest[]>(`${base(o, p)}/leads/${leadId}/unit-interests`, token);
+export const saveUnitInterest = (o: string, p: string, unitId: string, token: string, input: { leadId: string; status?: UnitInterestStatus; notes?: string }) => data<SalesUnitInterest[]>(`${base(o, p)}/units/${unitId}/interests`, token, { method: 'POST', body: JSON.stringify(input) });
+export const requestUnitHold = (o: string, p: string, unitId: string, token: string, input: { leadId: string; notes?: string }) => data<SalesUnitInterest[]>(`${base(o, p)}/units/${unitId}/hold-requests`, token, { method: 'POST', body: JSON.stringify(input) });
+export const decideUnitHoldRequest = (o: string, p: string, requestId: string, token: string, input: { decision: 'APPROVED' | 'REJECTED'; expiresAt?: string; notes?: string }) => data<SalesUnitInterest[]>(`${base(o, p)}/unit-hold-requests/${requestId}/decision`, token, { method: 'POST', body: JSON.stringify(input) });
 
 export const fetchBookings = (o: string, p: string, token: string) => data<SalesBooking[]>(`${base(o, p)}/bookings`, token);
 export const createBooking = (o: string, p: string, token: string, input: { idempotencyKey: string; leadId: string; unitId?: string; bookingDate: string; customerName: string; customerMobile: string; bookingAmount?: number; bookingReference?: string }) => data<SalesBooking>(`${base(o, p)}/bookings`, token, { method: 'POST', body: JSON.stringify(input) });

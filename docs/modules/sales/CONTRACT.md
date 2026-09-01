@@ -2,9 +2,9 @@
 
 ## A. Status And Authority
 
-- Status: source complete; migration `011` and role seed applied on 2026-08-27; authenticated workflow/concurrency acceptance pending.
+- Status: migrations through `015` are applied on the approved remote target as of 2026-08-31; authenticated workflow/concurrency acceptance is pending.
 - Authority: `MVP_REQUIREMENTS.md` sections 19-23.
-- Scope: one project-scoped Sales vertical slice covering Leads, timeline, follow-ups, site visits, unit inventory/blocking, and booking conversion.
+- Scope: one project-scoped Sales vertical slice covering Leads, timeline, follow-ups, site visits, unit inventory, non-exclusive customer interest, approval-based exclusive holds, and booking conversion.
 
 ## B. Boundaries
 
@@ -12,7 +12,7 @@ Sales owns lead/customer prospect data, assignment history, sales activities, fo
 
 Explicitly excluded from this slice:
 
-- mobile and web Sales UI;
+- web Sales UI;
 - notification delivery and reminder jobs;
 - automated background block-expiry scheduling (expired blocks are reconciled on inventory/block/booking access);
 - round-robin assignment;
@@ -30,10 +30,10 @@ All routes require an active Organization membership, Project access, the requir
 - `leads:read-all`: all leads in the accessible Project.
 - `leads:create`, `leads:update`, `leads:assign`, `leads:reassign`, `leads:convert` control mutations.
 - `followups:manage` and `site-visits:manage` remain subject to lead visibility.
-- `inventory:read`, `inventory:manage`, `inventory:block`, and `inventory:book` separate inventory capabilities.
+- `inventory:read`, `inventory:manage`, `inventory:interest`, `inventory:request-block`, `inventory:block`, and `inventory:book` separate inventory capabilities. `inventory:block` is the approval/rejection/release authority for exclusive holds.
 - `sales-reports:read` is reserved for a later reporting endpoint.
 
-Platform roles receive no Sales permissions by default. A Sales User receives own-lead operations and inventory read/block/book, but no team/all visibility, reassignment, inventory administration, or sales-report access by default.
+Platform roles receive no Sales permissions by default. After migration `014`, a Sales User receives own-lead operations plus inventory read, interest, hold-request, and booking permissions. Sales Users do not receive exclusive hold approval/release, team/all visibility, reassignment, inventory administration, or sales-report access by default.
 
 ## D. Shared Values
 
@@ -43,7 +43,7 @@ Canonical values live in `packages/shared/src/constants/sales.ts`:
 - Lead priority: `LOW`, `MEDIUM`, `HIGH`, `URGENT`.
 - Follow-up types/statuses.
 - Site-visit statuses.
-- Unit, unit-block, and booking statuses.
+- Unit-interest, hold-request, unit-block, and booking statuses.
 - Timeline activity types.
 
 Clients must not invent alternate values.
@@ -90,17 +90,24 @@ PATCH /leads/:leadId/site-visits/:visitId
 
 Scheduling derives `SITE_VISIT_SCHEDULED` unless the lead is already terminal. Completion derives `SITE_VISIT_COMPLETED` and records timeline evidence.
 
-### Unit Inventory And Blocking
+### Unit Inventory, Interest, And Holds
 
 ```text
 GET  /units
 POST /units
+POST /units/import/preview
+POST /units/import
 PUT  /units/:unitId
+GET  /units/:unitId/interests
+GET  /leads/:leadId/unit-interests
+POST /units/:unitId/interests
+POST /units/:unitId/hold-requests
+POST /unit-hold-requests/:requestId/decision
 POST /units/:unitId/blocks
 POST /unit-blocks/:blockId/release
 ```
 
-Unit numbers are unique per Project. Blocking uses a database transaction and row lock. Only one active block may exist for a unit. Default expiry is 24 hours when omitted. Expired blocks return a blocked unit to `AVAILABLE` during reconciliation. `BLOCKED` and `BOOKED` cannot be set through ordinary inventory updates.
+Unit numbers are unique per Project. Multiple Leads may record interest in the same available or blocked Unit, and multiple pending hold requests may coexist. Interest does not reserve inventory. An actor with `inventory:block` decides a request; approval uses a database transaction and row locks to create the sole active exclusive block, mark the approved interest `SELECTED`, and mark competing active interests `WAITLISTED`. Rejection does not change Unit availability. Default block expiry is 24 hours when omitted. Release/expiry returns the Unit to `AVAILABLE`, restores the selected Lead's previous stage, and returns its interest to `INTERESTED`. `BLOCKED` and `BOOKED` cannot be set through ordinary inventory updates. The direct block endpoint remains an authorized manager operation, not the Sales User mobile flow.
 
 ### Bookings
 
@@ -136,11 +143,22 @@ Migration `011_sales_crm.sql`, applied to the approved remote database on 2026-0
 - `sales_unit_blocks`;
 - `sales_bookings`.
 
+Migration `014_sales_unit_interest_hold_workflow.sql`, applied to the approved remote database on 2026-08-31, adds:
+
+- `sales_unit_interests` for one current Lead/Unit interest record with `INTERESTED`, `HIGH_INTENT`, `WAITLISTED`, `SELECTED`, or `WITHDRAWN` state;
+- `sales_unit_hold_requests` for auditable `PENDING`, `APPROVED`, `REJECTED`, or `CANCELLED` decisions;
+- `sales_unit_blocks.previous_lead_stage` so release/expiry can restore workflow state;
+- the `inventory:interest` and `inventory:request-block` grants and removal of `inventory:block` from the Sales User role.
+
+Migration `015_sales_unit_pricing.sql`, applied to the approved remote database on 2026-08-31, adds `sales_units.price_basis` (`TOTAL` or `PER_SQFT`) and nullable `rate_per_sqft`. The API always stores `base_price` in rupees. For `PER_SQFT`, the server calculates `base_price = area_sqft × rate_per_sqft`; both inputs must be greater than zero.
+
+Unit inventory CSV import accepts 1–500 rows. The mobile columns are `unitNumber,unitType,tower,floor,areaSqft,facing,pricingMethod,totalPrice,priceUnit,ratePerSqft,status`. `TOTAL` rows require `totalPrice` and `priceUnit` (`RUPEE`, `LAKH`, or `CRORE`); `PER_SQFT` rows require `areaSqft` and `ratePerSqft`. The preview checks duplicate Unit numbers in the file and Project. Confirmation is all-or-nothing and inserts every row in one database transaction.
+
 Every operational record carries Organization and Project scope. Composite foreign keys prevent cross-Project Lead/Unit/Booking relationships. User-provided SQL values remain parameterized.
 
 ## G. Stable Errors
 
-Sales errors are registered in `packages/shared/src/constants/errors.ts`, including missing/forbidden leads, invalid assignees, duplicate follow-ups or units, unavailable/concurrently blocked units, and invalid booking restoration state.
+Sales errors are registered in `packages/shared/src/constants/errors.ts`, including missing/forbidden leads, invalid assignees, duplicate follow-ups or units, invalid pricing/import rows, missing interest, decided/missing hold requests, unavailable/concurrently blocked units, and invalid booking restoration state.
 
 ## H. Acceptance And Verification
 
@@ -149,6 +167,6 @@ Sales errors are registered in `packages/shared/src/constants/errors.ts`, includ
 - Created-by and current assignment remain separately visible.
 - Reassignment preserves history.
 - Timeline records material Sales actions.
-- Concurrent unit blocks cannot both succeed.
+- Multiple users may record interest and request holds for the same Unit, but concurrent approvals cannot create two active blocks.
 - Booking keeps Lead, Unit, Block, and Booking state consistent in one transaction.
 - No migration/seed is executed without separate approval for the exact database target.

@@ -10,6 +10,7 @@ import {
 import {
   DEFAULT_APP_NAME,
   ATTENDANCE_PERMISSIONS,
+  KHARCHI_PERMISSIONS,
   PLATFORM_ADMIN_PERMISSIONS,
   PROJECT_PERMISSIONS,
   SALES_PERMISSIONS,
@@ -95,6 +96,7 @@ const ORGANIZATION_ADMIN_PERMISSIONS = [
   ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  ...KHARCHI_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -113,6 +115,10 @@ const PROJECT_MANAGER_PERMISSIONS = [
   "wages:read",
   "wages:generate",
   "wages:mark-paid",
+  "kharchi:read",
+  "kharchi:create",
+  "kharchi:adjust",
+  "kharchi:export",
 ] as const satisfies readonly PermissionKey[];
 
 const CONTRACTOR_MEMBER_PERMISSIONS = [
@@ -129,6 +135,8 @@ const CONTRACTOR_MEMBER_PERMISSIONS = [
   "work-calendar:read",
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  "kharchi:read",
+  "kharchi:create",
 ] as const satisfies readonly PermissionKey[];
 
 const BUILDER_SUPERVISOR_PERMISSIONS = [
@@ -142,6 +150,8 @@ const BUILDER_SUPERVISOR_PERMISSIONS = [
   "attendance:read",
   "attendance:mark",
   "wages:read",
+  "kharchi:read",
+  "kharchi:create",
 ] as const satisfies readonly PermissionKey[];
 
 const SITE_SUPERVISOR_PERMISSIONS = [
@@ -157,6 +167,8 @@ const SITE_SUPERVISOR_PERMISSIONS = [
   "work-calendar:read",
   "attendance:read",
   "attendance:mark",
+  "kharchi:read",
+  "kharchi:create",
 ] as const satisfies readonly PermissionKey[];
 
 const SALES_USER_PERMISSIONS = [
@@ -170,7 +182,8 @@ const SALES_USER_PERMISSIONS = [
   "followups:manage",
   "site-visits:manage",
   "inventory:read",
-  "inventory:block",
+  "inventory:interest",
+  "inventory:request-block",
   "inventory:book",
 ] as const satisfies readonly PermissionKey[];
 

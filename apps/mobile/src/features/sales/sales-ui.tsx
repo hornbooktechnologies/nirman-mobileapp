@@ -1,8 +1,18 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
-import { AppIcon, AppText, type AppIconName } from '../../components/ui';
+import { AppIcon, AppText, OperationalEntityCard, type AppIconName } from '../../components/ui';
+import { formatDate } from '../../i18n/formatters';
 import { mobileText, mobileTheme } from '../../theme';
+import type { SalesActivity } from './types';
+
+export function SalesActivityCard({ activity }: { activity: SalesActivity }) {
+  const { t, i18n } = useTranslation('sales');
+  const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
+
+  return <OperationalEntityCard compact contextLeading={t(`activity.${activity.activityType}`)} contextTrailing={formatDate(activity.occurredAt, language, { dateStyle: 'medium', timeStyle: 'short' })} title={activity.summary} supporting={activity.actorName ?? t('leadDetail.system')} tone={activity.activityType === 'LEAD_BOOKED' ? 'success' : activity.activityType === 'LEAD_LOST' || activity.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />;
+}
 
 export function SalesSectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return <View style={styles.heading}><View style={styles.headingCopy}><AppText style={styles.title} weight={700}>{title}</AppText>{description ? <AppText style={styles.description} weight={500}>{description}</AppText> : null}</View>{action}</View>;

@@ -32,6 +32,10 @@ export type {
   WagePaymentMethod,
   WagePaymentStatus,
   WagePermissionKey,
+  KharchiPermissionKey,
+  KharchiPaymentMethod,
+  KharchiBalanceStatus,
+  KharchiAuditAction,
   SalesPermissionKey,
   WorkCalendarPermissionKey,
   WorkCalendarDayType,
@@ -56,6 +60,7 @@ export type {
 
 export * from "./attendance";
 export * from "./calendar";
+export * from "./kharchi";
 export * from "./workers";
 export * from "./onboarding";
 export * from "./wages";

@@ -31,4 +31,5 @@ export * from './search-field';
 export * from './screen';
 export * from './states';
 export * from './sync-status';
+export * from './time-input';
 export * from './toggle';

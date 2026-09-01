@@ -229,6 +229,9 @@ describe("WorkersService", () => {
       workerName: "Ravi Worker",
       deleted: true,
       deletedRecords: {
+        kharchiDeductionAllocations: 1,
+        kharchiAdjustments: 1,
+        kharchiAdvances: 1,
         wagePayments: 1,
         wageItems: 1,
         emptyWageBatches: 1,
@@ -273,26 +276,14 @@ describe("WorkersService", () => {
   });
 
   it("validates and updates the Worker-level daily rate", async () => {
-    workersRepo.update.mockResolvedValue(
-      worker({ baseDailyRate: "825.00" }),
-    );
+    workersRepo.update.mockResolvedValue(worker({ baseDailyRate: "825.00" }));
 
     await expect(
-      service.update(
-        organizationId,
-        workerId,
-        { dailyRate: 825 },
-        actor,
-      ),
+      service.update(organizationId, workerId, { dailyRate: 825 }, actor),
     ).resolves.toEqual(expect.objectContaining({ baseDailyRate: "825.00" }));
 
     await expect(
-      service.update(
-        organizationId,
-        workerId,
-        { dailyRate: -1 },
-        actor,
-      ),
+      service.update(organizationId, workerId, { dailyRate: -1 }, actor),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 

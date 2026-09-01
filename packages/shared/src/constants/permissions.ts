@@ -16,6 +16,7 @@ export const PERMISSION_RESOURCES = [
   "work-calendar",
   "attendance",
   "wages",
+  "kharchi",
   "leads",
   "followups",
   "site-visits",
@@ -52,6 +53,8 @@ export const PERMISSION_ACTIONS = [
   "read-all",
   "reassign",
   "convert",
+  "interest",
+  "request-block",
   "block",
   "book",
   "archive",
@@ -59,6 +62,7 @@ export const PERMISSION_ACTIONS = [
   "export",
   "update-rate",
   "correct-locked",
+  "adjust",
   "update-organization",
   "update-project",
   "access",
@@ -87,6 +91,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   "work-calendar": "Work Calendar",
   attendance: "Attendance",
   wages: "Wages",
+  kharchi: "Kharchi",
   leads: "Leads",
   followups: "Follow-ups",
   "site-visits": "Site Visits",
@@ -264,6 +269,15 @@ export const WAGE_PERMISSIONS = [
 
 export type WagePermissionKey = (typeof WAGE_PERMISSIONS)[number];
 
+export const KHARCHI_PERMISSIONS = [
+  "kharchi:read",
+  "kharchi:create",
+  "kharchi:adjust",
+  "kharchi:export",
+] as const satisfies readonly PermissionKey[];
+
+export type KharchiPermissionKey = (typeof KHARCHI_PERMISSIONS)[number];
+
 /** Sales CRM is a customer operational module, never a platform permission group. */
 export const SALES_PERMISSIONS = [
   "leads:read-own",
@@ -278,6 +292,8 @@ export const SALES_PERMISSIONS = [
   "site-visits:manage",
   "inventory:read",
   "inventory:manage",
+  "inventory:interest",
+  "inventory:request-block",
   "inventory:block",
   "inventory:book",
   "sales-reports:read",
@@ -303,6 +319,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  ...KHARCHI_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -351,6 +368,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     permissions: WAGE_PERMISSIONS,
   },
   {
+    key: "KHARCHI",
+    label: "Kharchi",
+    permissions: KHARCHI_PERMISSIONS,
+  },
+  {
     key: "SALES",
     label: "Sales",
     permissions: SALES_PERMISSIONS,
@@ -374,6 +396,7 @@ export const ALL_PERMISSIONS = [
   ...WORK_CALENDAR_PERMISSIONS,
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
+  ...KHARCHI_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -477,6 +500,11 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "wages:mark-paid": "Record wage payments.",
   "wages:export": "Export wage summaries and payment history.",
 
+  "kharchi:read": "Read Project Worker advances and balances.",
+  "kharchi:create": "Record a paid Worker advance.",
+  "kharchi:adjust": "Record an immutable Worker-advance adjustment.",
+  "kharchi:export": "Export Worker advances and balances.",
+
   "leads:read-own": "Read assigned and self-created leads.",
   "leads:read-team": "Read leads assigned to the actor's sales team.",
   "leads:read-all": "Read all leads in accessible Projects.",
@@ -489,7 +517,9 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "site-visits:manage": "Schedule and complete lead site visits.",
   "inventory:read": "Read Project unit inventory.",
   "inventory:manage": "Create and update Project unit inventory.",
-  "inventory:block": "Block and release available units.",
+  "inventory:interest": "Record and update customer interest in units.",
+  "inventory:request-block": "Request an exclusive unit hold for an accessible lead.",
+  "inventory:block": "Approve, block, reject, and release exclusive unit holds.",
   "inventory:book": "Confirm and cancel unit-linked bookings.",
   "sales-reports:read": "Read sales summaries and performance reports.",
 

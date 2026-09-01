@@ -35,7 +35,7 @@ The preview reports full Present-day count, Half-day count, and Full-absence cou
 
 ## Money And Deductions
 
-Money is calculated in paise and exposed with two decimal places. Kharchi deduction remains `0.00` until the separate Kharchi contract and traceable deduction-allocation ledger are implemented. Manual wage-item adjustments remain separately permission-controlled.
+Money is calculated in paise and exposed with two decimal places. Wage confirmation allocates the Worker's Project Kharchi oldest-first, records each source-to-Wage-Item allocation, and caps the deduction so net wages cannot become negative. This source behavior requires the separately gated Audit and Kharchi migrations before runtime use. Manual wage-item adjustments remain separately permission-controlled.
 
 ## Current Boundary
 

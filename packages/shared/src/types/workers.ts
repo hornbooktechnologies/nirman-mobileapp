@@ -167,6 +167,9 @@ export type WorkerDeletionResult = {
   workerName: string;
   deleted: true;
   deletedRecords: {
+    kharchiDeductionAllocations: number;
+    kharchiAdjustments: number;
+    kharchiAdvances: number;
     wagePayments: number;
     wageItems: number;
     emptyWageBatches: number;

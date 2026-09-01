@@ -22,7 +22,11 @@ import {
   CreateFollowUpDto,
   CreateLeadDto,
   CreateSiteVisitDto,
+  CreateUnitHoldRequestDto,
+  CreateUnitInterestDto,
   CreateUnitDto,
+  DecideUnitHoldRequestDto,
+  ImportUnitsDto,
   QuerySalesDto,
   QueryScheduledSalesDto,
   QueryUnitsDto,
@@ -312,6 +316,39 @@ export class SalesController {
     };
   }
 
+  @Post("units/import/preview")
+  async previewUnitImport(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Body() dto: ImportUnitsDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Unit import preview ready",
+      data: await this.sales.previewUnitImport(
+        organizationId,
+        projectId,
+        dto,
+        actor,
+      ),
+    };
+  }
+
+  @Post("units/import")
+  async importUnits(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Body() dto: ImportUnitsDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Units imported",
+      data: await this.sales.importUnits(organizationId, projectId, dto, actor),
+    };
+  }
+
   @Put("units/:unitId")
   async updateUnit(
     @Param("organizationId", ParseUUIDPipe) organizationId: string,
@@ -348,6 +385,107 @@ export class SalesController {
         organizationId,
         projectId,
         unitId,
+        dto,
+        actor,
+      ),
+    };
+  }
+
+  @Get("units/:unitId/interests")
+  async unitInterests(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("unitId", ParseUUIDPipe) unitId: string,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Unit interests retrieved",
+      data: await this.sales.listUnitInterests(
+        organizationId,
+        projectId,
+        unitId,
+        actor,
+      ),
+    };
+  }
+
+  @Get("leads/:leadId/unit-interests")
+  async leadUnitInterests(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("leadId", ParseUUIDPipe) leadId: string,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Lead unit interests retrieved",
+      data: await this.sales.listLeadInterests(
+        organizationId,
+        projectId,
+        leadId,
+        actor,
+      ),
+    };
+  }
+
+  @Post("units/:unitId/interests")
+  async saveUnitInterest(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("unitId", ParseUUIDPipe) unitId: string,
+    @Body() dto: CreateUnitInterestDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Unit interest saved",
+      data: await this.sales.saveUnitInterest(
+        organizationId,
+        projectId,
+        unitId,
+        dto,
+        actor,
+      ),
+    };
+  }
+
+  @Post("units/:unitId/hold-requests")
+  async requestUnitHold(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("unitId", ParseUUIDPipe) unitId: string,
+    @Body() dto: CreateUnitHoldRequestDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Unit hold requested",
+      data: await this.sales.requestUnitHold(
+        organizationId,
+        projectId,
+        unitId,
+        dto,
+        actor,
+      ),
+    };
+  }
+
+  @Post("unit-hold-requests/:requestId/decision")
+  async decideUnitHoldRequest(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("requestId", ParseUUIDPipe) requestId: string,
+    @Body() dto: DecideUnitHoldRequestDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Unit hold request decided",
+      data: await this.sales.decideUnitHoldRequest(
+        organizationId,
+        projectId,
+        requestId,
         dto,
         actor,
       ),

@@ -1,5 +1,8 @@
 import { Transform, Type } from "class-transformer";
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsEmail,
   IsIn,
@@ -13,6 +16,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 import {
   FOLLOW_UP_STATUSES,
@@ -21,6 +25,7 @@ import {
   LEAD_SOURCES,
   LEAD_STAGES,
   SITE_VISIT_STATUSES,
+  UNIT_PRICE_BASES,
   UNIT_STATUSES,
   type FollowUpStatus,
   type FollowUpType,
@@ -28,6 +33,8 @@ import {
   type LeadSource,
   type LeadStage,
   type SiteVisitStatus,
+  type UnitInterestStatus,
+  type UnitPriceBasis,
   type UnitStatus,
 } from "@nirman-app/shared";
 
@@ -197,15 +204,50 @@ export class CreateUnitDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) areaSqft?: number;
   @IsOptional() @Transform(trim) @IsString() @MaxLength(80) facing?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) basePrice?: number;
+  @IsOptional() @IsIn(UNIT_PRICE_BASES) priceBasis?: UnitPriceBasis;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ratePerSqft?: number;
   @IsOptional() @IsIn(UNIT_STATUSES) status?: UnitStatus;
 }
 
 export class UpdateUnitDto extends CreateUnitDto {}
 
+export class ImportUnitsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @ValidateNested({ each: true })
+  @Type(() => CreateUnitDto)
+  units!: CreateUnitDto[];
+}
+
 export class BlockUnitDto {
   @IsUUID() leadId!: string;
   @IsOptional() @IsDateString() expiresAt?: string;
   @IsOptional() @IsString() @MaxLength(2000) notes?: string;
+}
+
+export class CreateUnitInterestDto {
+  @IsUUID() leadId!: string;
+  @IsOptional()
+  @IsIn([
+    "INTERESTED",
+    "HIGH_INTENT",
+    "WITHDRAWN",
+  ] satisfies readonly UnitInterestStatus[])
+  status?: UnitInterestStatus;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(2000) notes?: string;
+}
+
+export class CreateUnitHoldRequestDto {
+  @IsUUID() leadId!: string;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(2000) notes?: string;
+}
+
+export class DecideUnitHoldRequestDto {
+  @IsIn(["APPROVED", "REJECTED"])
+  decision!: "APPROVED" | "REJECTED";
+  @IsOptional() @IsDateString() expiresAt?: string;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(2000) notes?: string;
 }
 
 export class CreateBookingDto {

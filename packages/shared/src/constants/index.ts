@@ -2,6 +2,7 @@ export * from "./app";
 export * from "./attendance";
 export * from "./calendar";
 export * from "./errors";
+export * from "./kharchi";
 export * from "./permissions";
 export * from "./roles";
 export * from "./sales";

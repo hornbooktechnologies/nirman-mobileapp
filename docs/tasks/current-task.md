@@ -1,5 +1,35 @@
 # Current Task
 
+## Kharchi / Worker Advances API Implementation
+
+On 2026-08-31, the Product Owner started the API-first Kharchi module and confirmed a
+direct-paid workflow with no request, draft, approval, rejection, or separate mark-paid
+stage. Every authorized create records money already given to the Worker. Payment method is
+required (`CASH`, `UPI`, `BANK_TRANSFER`, or `OTHER`), payment reference is optional, and
+financial writes require duplicate-retry protection.
+
+The approved contract is `docs/modules/construction/kharchi/CONTRACTS.md`. It specifies immutable
+positive/negative adjustments, automatic oldest-first deduction during Wage confirmation,
+active Worker and assignment-date validation, approved role defaults, CSV export, and a
+reusable Audit Foundation prerequisite. Actual Mobile offline storage/sync is deferred, while
+API idempotency is required now.
+
+The Product Owner confirmed that incorrect paid records remain immutable and are corrected only
+by signed adjustments, with no Kharchi cancel/delete action. The API-first source implementation
+under `docs/tasks/kharchi-api-technical-plan.md` is complete: shared contracts, guarded role
+defaults, Audit and Kharchi SQL drafts, list/summary/detail/create/adjust/export endpoints,
+transactional audit writes, automatic oldest-first Wage allocation, Worker deletion integration,
+and focused tests are present. Shared and API static checks passed, including all 21 API suites
+and 114 tests. Migration-status, migration, seed, remote database, authenticated runtime, Web,
+Mobile, and offline-sync work remain outside this authorization.
+
+The Mobile integration contract is now documented at
+`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`. It defines the existing API
+envelopes and shared types, date-valid Worker assignment selection, retry-key lifecycle, list and
+summary UI, paid-advance form, immutable detail/adjustment history, permission states, en/hi/gu,
+accessibility, refresh rules, and acceptance gates. No Mobile source or dependency was changed by
+this documentation slice.
+
 ## Sales CRM API Status
 
 On 2026-08-26, the Sales vertical API was implemented from `MVP_REQUIREMENTS.md` sections
@@ -21,7 +51,7 @@ concurrency, browser, and physical-device acceptance remain pending.
 
 ## Calendar And Attendance Implementation Status
 
-On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation now consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. Kharchi remains `0.00`, and effective-dated wage-rate history remains an explicit completion gap.
+On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. The later Kharchi API source now allocates traceable deductions during confirmation, while runtime use awaits its migrations. Effective-dated wage-rate history remains an explicit completion gap.
 
 The sequential Calendar and Attendance exception-model redesign is documented in `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`.
 

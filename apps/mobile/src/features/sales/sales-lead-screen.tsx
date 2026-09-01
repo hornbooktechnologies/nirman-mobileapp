@@ -13,6 +13,7 @@ import {
   AppText,
   BottomSheet,
   Button,
+  Chip,
   CompactScreenHeader,
   DateInput,
   EmptyState,
@@ -23,8 +24,9 @@ import {
   LoadingState,
   NirmanScreenBackground,
   OperationalEntityCard,
+  TimeInput,
 } from '../../components/ui';
-import { formatDate, formatInr } from '../../i18n/formatters';
+import { formatInr } from '../../i18n/formatters';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { formatDateOnly, isValidEmail, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
@@ -36,19 +38,21 @@ import { ProjectContextCard } from '../projects';
 import {
   addActivity,
   assignLead,
-  blockUnit,
   createBooking,
   createFollowUp,
   createSiteVisit,
   fetchActivities,
   fetchLead,
+  fetchLeadUnitInterests,
   fetchUnits,
+  requestUnitHold,
+  saveUnitInterest,
   updateLead,
 } from './services';
-import { SalesChoice, SalesDetailRows, SalesSectionHeading } from './sales-ui';
-import type { SalesActivity, SalesLead, SalesUnit } from './types';
+import { SalesActivityCard, SalesChoice, SalesDetailRows, SalesSectionHeading } from './sales-ui';
+import type { SalesActivity, SalesLead, SalesUnit, SalesUnitInterest } from './types';
 
-type SheetKey = 'stage' | 'activity' | 'followUp' | 'visit' | 'assign' | 'block' | 'booking' | 'edit' | null;
+type SheetKey = 'stage' | 'activity' | 'followUp' | 'visit' | 'assign' | 'interest' | 'holdRequest' | 'booking' | 'edit' | null;
 type EditFieldErrors = Partial<Record<'customerName' | 'primaryMobile' | 'email', string>>;
 
 function toIso(date: string, time: string) {
@@ -67,6 +71,7 @@ export function SalesLeadScreen() {
   const [lead, setLead] = useState<SalesLead | null>(null);
   const [activities, setActivities] = useState<SalesActivity[]>([]);
   const [units, setUnits] = useState<SalesUnit[]>([]);
+  const [interests, setInterests] = useState<SalesUnitInterest[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -82,6 +87,8 @@ export function SalesLeadScreen() {
   const [scheduleTime, setScheduleTime] = useState('10:00');
   const [followUpType, setFollowUpType] = useState<FollowUpType>('PHONE');
   const [selectedUnit, setSelectedUnit] = useState<SalesUnit | null>(null);
+  const [selectedInterest, setSelectedInterest] = useState<SalesUnitInterest | null>(null);
+  const [interestStatus, setInterestStatus] = useState<'INTERESTED' | 'HIGH_INTENT'>('INTERESTED');
   const [amount, setAmount] = useState('');
   const [reference, setReference] = useState('');
   const [draftName, setDraftName] = useState('');
@@ -115,18 +122,28 @@ export function SalesLeadScreen() {
     finally { setWorking(false); }
   }
 
-  async function openUnits(nextSheet: 'block' | 'booking') {
+  async function openUnits(nextSheet: 'interest' | 'booking') {
     if (!session?.activeOrganization || !project) return;
     if (nextSheet === 'booking' && !permissions.includes('inventory:read')) {
       setUnits([]); setSelectedUnit(null); setSheet(nextSheet); return;
     }
     setWorking(true); setError(null);
     try {
-      const nextUnits = await fetchUnits(session.activeOrganization.id, project.id, session.accessToken, nextSheet === 'block' ? { status: 'AVAILABLE' } : {});
-      setUnits(nextSheet === 'booking' ? nextUnits.filter((unit) => unit.status === 'AVAILABLE' || (unit.status === 'BLOCKED' && unit.blockedForLeadId === leadId)) : nextUnits);
+      const nextUnits = await fetchUnits(session.activeOrganization.id, project.id, session.accessToken);
+      setUnits(nextSheet === 'booking' ? nextUnits.filter((unit) => unit.status === 'AVAILABLE' || (unit.status === 'BLOCKED' && unit.blockedForLeadId === leadId)) : nextUnits.filter((unit) => unit.status === 'AVAILABLE' || unit.status === 'BLOCKED'));
       setSelectedUnit(null); setSheet(nextSheet);
     }
     catch (cause) { Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.load'))); }
+    finally { setWorking(false); }
+  }
+
+  async function openHoldRequests() {
+    if (!session?.activeOrganization || !project || !leadId) return;
+    setWorking(true); setError(null);
+    try {
+      setInterests((await fetchLeadUnitInterests(session.activeOrganization.id, project.id, leadId, session.accessToken)).filter((interest) => interest.status !== 'WITHDRAWN'));
+      setSelectedInterest(null); setDetails(''); setSheet('holdRequest');
+    } catch (cause) { Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.load'))); }
     finally { setWorking(false); }
   }
 
@@ -144,6 +161,7 @@ export function SalesLeadScreen() {
   const projectId = project.id;
   const token = session.accessToken;
   const scheduledAt = toIso(scheduleDate, scheduleTime);
+  const recentActivities = activities.slice(0, 3);
 
   async function saveCustomerDetails() {
     setEditFormError('');
@@ -174,12 +192,12 @@ export function SalesLeadScreen() {
   return <NirmanScreenBackground scroll={false}>
     <FlatList
       contentContainerStyle={styles.list}
-      data={activities}
+      data={loading ? [] : recentActivities}
       style={styles.flatList}
       keyExtractor={(item) => item.id}
       refreshing={refreshing}
       onRefresh={() => void load(true)}
-      renderItem={({ item }) => <OperationalEntityCard compact contextLeading={t(`activity.${item.activityType}`)} contextTrailing={formatDate(item.occurredAt, language, { dateStyle: 'medium', timeStyle: 'short' })} title={item.summary} supporting={item.actorName ?? t('leadDetail.system')} tone={item.activityType === 'LEAD_BOOKED' ? 'success' : item.activityType === 'LEAD_LOST' || item.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />}
+      renderItem={({ item }) => <SalesActivityCard activity={item} />}
       ListHeaderComponent={<View style={styles.headerContent}>
         <CompactScreenHeader leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />} title={lead?.customerName ?? t('leadDetail.title')} subtitle={project.name} action={<IconButton icon="refresh" accessibilityLabel={t('refresh')} variant="glass" onPress={() => void load(true)} />} />
         <ProjectContextCard compact />
@@ -198,13 +216,15 @@ export function SalesLeadScreen() {
             {permissions.includes('leads:update') ? <SalesChoice label={t('leadDetail.addActivity')} description={t('leadDetail.addActivityDescription')} icon="text-box-plus-outline" onPress={() => { setSummary(''); setDetails(''); setSheet('activity'); }} /> : null}
             {permissions.includes('followups:manage') ? <SalesChoice label={t('leadDetail.scheduleFollowUp')} description={t('leadDetail.scheduleFollowUpDescription')} icon="calendar-clock-outline" onPress={() => { setDetails(''); setSheet('followUp'); }} /> : null}
             {permissions.includes('site-visits:manage') ? <SalesChoice label={t('leadDetail.scheduleVisit')} description={t('leadDetail.scheduleVisitDescription')} icon="map-marker-plus-outline" onPress={() => { setDetails(''); setSheet('visit'); }} /> : null}
-            {permissions.includes('inventory:block') && lead.currentStage !== 'BOOKED' ? <SalesChoice label={t('leadDetail.blockUnit')} description={t('leadDetail.blockUnitDescription')} icon="lock-outline" onPress={() => { setDetails(''); void openUnits('block'); }} /> : null}
+            {permissions.includes('inventory:interest') && lead.currentStage !== 'BOOKED' ? <SalesChoice label={t('leadDetail.recordInterest')} description={t('leadDetail.recordInterestDescription')} icon="home-heart" onPress={() => { setDetails(''); setInterestStatus('INTERESTED'); void openUnits('interest'); }} /> : null}
+            {permissions.includes('inventory:request-block') && lead.currentStage !== 'BOOKED' ? <SalesChoice label={t('leadDetail.requestHold')} description={t('leadDetail.requestHoldDescription')} icon="lock-clock" onPress={() => void openHoldRequests()} /> : null}
             {permissions.includes('leads:convert') && lead.currentStage !== 'BOOKED' ? <SalesChoice label={t('leadDetail.confirmBooking')} description={t('leadDetail.confirmBookingDescription')} icon="check-decagram-outline" onPress={() => { setAmount(''); setReference(''); void openUnits('booking'); }} /> : null}
           </View>
-          <SalesSectionHeading title={t('leadDetail.timeline')} description={t('leadDetail.timelineDescription')} />
+          <SalesSectionHeading title={t('leadDetail.recentActivity')} description={t('leadDetail.recentActivityDescription')} />
         </> : null}
       </View>}
       ListEmptyComponent={!loading && lead ? <EmptyState title={t('leadDetail.emptyTimeline')} description={t('leadDetail.emptyTimelineDescription')} /> : null}
+      ListFooterComponent={activities.length > 3 ? <Button label={t('leadDetail.viewAllActivity', { count: activities.length })} leadingIcon="format-list-bulleted" variant="secondary" onPress={() => router.push({ pathname: '/(app)/sales-activity', params: { leadId } })} /> : null}
     />
 
     {sheet === 'edit' ? <BottomSheet visible title={t('leadDetail.editTitle')} scroll showCloseButton={false} onClose={closeEditForm} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('save')} working={working} onCancel={closeEditForm} onSave={() => void saveCustomerDetails()} />}><FormError message={editFormError} /><FormField label={t('fields.customerName')} required error={editFieldErrors.customerName}><Input invalid={Boolean(editFieldErrors.customerName)} value={draftName} onChangeText={(value) => { setDraftName(value); if (editFieldErrors.customerName) setEditFieldErrors((current) => ({ ...current, customerName: undefined })); }} /></FormField><FormField label={t('fields.primaryMobile')} required error={editFieldErrors.primaryMobile}><Input autoComplete="tel" invalid={Boolean(editFieldErrors.primaryMobile)} keyboardType="phone-pad" maxLength={10} placeholder="9876543210" textContentType="telephoneNumber" value={draftMobile} onBlur={() => setEditFieldErrors((current) => ({ ...current, primaryMobile: !draftMobile ? tCommon('validation.required', { field: t('fields.primaryMobile') }) : !isValidPhone(draftMobile) ? tCommon('validation.phone') : undefined }))} onChangeText={(value) => { const primaryMobile = sanitizePhoneInput(value); setDraftMobile(primaryMobile); setEditFieldErrors((current) => ({ ...current, primaryMobile: primaryMobile.length === 10 && !isValidPhone(primaryMobile) ? tCommon('validation.phone') : undefined })); }} /></FormField><FormField label={t('fields.email')} optional error={editFieldErrors.email}><Input autoCapitalize="none" invalid={Boolean(editFieldErrors.email)} keyboardType="email-address" value={draftEmail} onChangeText={(value) => { setDraftEmail(value); if (editFieldErrors.email) setEditFieldErrors((current) => ({ ...current, email: undefined })); }} /></FormField></BottomSheet> : null}
@@ -213,13 +233,15 @@ export function SalesLeadScreen() {
 
     {sheet === 'activity' ? <BottomSheet visible title={t('leadDetail.activityTitle')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('save')} working={working || !summary.trim()} onCancel={() => setSheet(null)} onSave={() => void run(() => addActivity(organizationId, projectId, leadId, token, { activityType, summary: summary.trim(), details: details.trim() || undefined }))} />}><FormError message={error} />{(['CALL_OUTCOME', 'NOTE_ADDED', 'BROCHURE_SHARED'] as const).map((value) => <SalesChoice key={value} label={t(`activity.${value}`)} selected={activityType === value} onPress={() => setActivityType(value)} />)}<FormField label={t('fields.summary')} required><Input value={summary} onChangeText={setSummary} /></FormField><FormField label={t('fields.details')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
 
-    {sheet === 'followUp' ? <BottomSheet visible title={t('leadDetail.followUpTitle')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.schedule')} working={working || !scheduledAt} onCancel={() => setSheet(null)} onSave={() => scheduledAt && void run(() => createFollowUp(organizationId, projectId, leadId, token, { scheduledAt, type: followUpType, notes: details.trim() || undefined }))} />}><FormError message={error} /><ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} />{FOLLOW_UP_TYPES.map((value) => <SalesChoice key={value} label={t(`followUpType.${value}`)} selected={followUpType === value} onPress={() => setFollowUpType(value)} />)}<FormField label={t('fields.notes')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
+    {sheet === 'followUp' ? <BottomSheet visible title={t('leadDetail.followUpTitle')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.schedule')} working={working || !scheduledAt} onCancel={() => setSheet(null)} onSave={() => scheduledAt && void run(() => createFollowUp(organizationId, projectId, leadId, token, { scheduledAt, type: followUpType, notes: details.trim() || undefined }))} />}><FormError message={error} /><ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} /><FormField label={t('fields.followUpType')} required><View accessibilityRole="radiogroup" style={styles.followUpTypes}>{FOLLOW_UP_TYPES.map((value) => <Chip key={value} accessibilityRole="radio" accessibilityState={{ selected: followUpType === value }} label={t(`followUpType.${value}`)} selected={followUpType === value} style={styles.followUpTypeChip} onPress={() => setFollowUpType(value)} />)}</View></FormField><FormField label={t('fields.notes')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
 
     {sheet === 'visit' ? <BottomSheet visible title={t('leadDetail.visitTitle')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.schedule')} working={working || !scheduledAt} onCancel={() => setSheet(null)} onSave={() => scheduledAt && void run(() => createSiteVisit(organizationId, projectId, leadId, token, { scheduledAt }))} />}><FormError message={error} /><ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} /></BottomSheet> : null}
 
     {sheet === 'assign' ? <BottomSheet visible title={t('leadDetail.assignTitle')} description={t('leadDetail.assignDescription')} scroll onClose={() => setSheet(null)}><FormError message={error} />{members.filter((member) => member.status === 'ACTIVE').map((member) => <SalesChoice key={member.user.id} label={member.user.name} description={member.role.name} selected={lead?.assignedTo === member.user.id} onPress={() => void run(() => assignLead(organizationId, projectId, leadId, token, member.user.id))} />)}</BottomSheet> : null}
 
-    {sheet === 'block' ? <BottomSheet visible title={t('leadDetail.blockTitle')} description={t('leadDetail.blockDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.block')} working={working || !selectedUnit} onCancel={() => setSheet(null)} onSave={() => selectedUnit && void run(() => blockUnit(organizationId, projectId, selectedUnit.id, token, { leadId, notes: details.trim() || undefined }))} />}><FormError message={error} />{units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />) : <EmptyState title={t('units.noAvailable')} description={t('units.noAvailableDescription')} />}<FormField label={t('fields.notes')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
+    {sheet === 'interest' ? <BottomSheet visible title={t('leadDetail.interestTitle')} description={t('leadDetail.interestDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.saveInterest')} working={working || !selectedUnit} onCancel={() => setSheet(null)} onSave={() => selectedUnit && void run(() => saveUnitInterest(organizationId, projectId, selectedUnit.id, token, { leadId, status: interestStatus, notes: details.trim() || undefined }))} />}><FormError message={error} />{units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor, t(`unitStatus.${unit.status}`)].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />) : <EmptyState title={t('units.noInterestUnits')} description={t('units.noInterestUnitsDescription')} />}<FormField label={t('fields.interestLevel')} required><View accessibilityRole="radiogroup" style={styles.followUpTypes}>{(['INTERESTED', 'HIGH_INTENT'] as const).map((status) => <Chip key={status} accessibilityRole="radio" accessibilityState={{ selected: interestStatus === status }} label={t(`unitInterestStatus.${status}`)} selected={interestStatus === status} style={styles.followUpTypeChip} onPress={() => setInterestStatus(status)} />)}</View></FormField><FormField label={t('fields.notes')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
+
+    {sheet === 'holdRequest' ? <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.submitHoldRequest')} working={working || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}><FormError message={error} />{interests.filter((interest) => !interest.holdRequestId).length ? interests.filter((interest) => !interest.holdRequestId).map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} />}<FormField label={t('fields.requestNotes')} optional><Input multiline value={details} onChangeText={setDetails} style={styles.multiline} /></FormField></BottomSheet> : null}
 
     {sheet === 'booking' && lead ? <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.confirm')} working={working} onCancel={() => setSheet(null)} onSave={() => void run(() => createBooking(organizationId, projectId, token, { idempotencyKey: `${leadId}-${Date.now()}-mobile`, leadId, ...(selectedUnit ? { unitId: selectedUnit.id } : {}), bookingDate: scheduleDate, customerName: lead.customerName, customerMobile: lead.primaryMobile, ...(amount ? { bookingAmount: Number(amount) } : {}), ...(reference.trim() ? { bookingReference: reference.trim() } : {}) }))} />}><FormError message={error} /><AppText style={styles.helper} weight={600}>{t('leadDetail.inventoryOptional')}</AppText><SalesChoice label={t('leadDetail.noUnit')} description={t('leadDetail.noUnitDescription')} selected={!selectedUnit} onPress={() => setSelectedUnit(null)} />{units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />)}<FormField label={t('fields.bookingDate')} required><DateInput allowClear={false} accessibilityLabel={t('fields.bookingDate')} value={scheduleDate} onChangeText={setScheduleDate} /></FormField><FormField label={t('fields.bookingAmount')} optional><Input keyboardType="decimal-pad" value={amount} onChangeText={setAmount} /></FormField><FormField label={t('fields.bookingReference')} optional><Input value={reference} onChangeText={setReference} /></FormField></BottomSheet> : null}
   </NirmanScreenBackground>;
@@ -231,7 +253,7 @@ function SheetFooter({ cancel, save, working, onCancel, onSave }: { cancel: stri
 
 function ScheduleFields({ date, time, setDate, setTime }: { date: string; time: string; setDate: (value: string) => void; setTime: (value: string) => void }) {
   const { t } = useTranslation('sales');
-  return <><FormField label={t('fields.date')} required><DateInput allowClear={false} accessibilityLabel={t('fields.date')} value={date} onChangeText={setDate} /></FormField><FormField label={t('fields.time')} required helperText={t('fields.timeHint')}><Input keyboardType="numbers-and-punctuation" maxLength={5} placeholder="10:00" value={time} onChangeText={setTime} /></FormField></>;
+  return <><FormField label={t('fields.date')} required><DateInput allowClear={false} accessibilityLabel={t('fields.date')} value={date} onChangeText={setDate} /></FormField><FormField label={t('fields.time')} required><TimeInput accessibilityLabel={t('fields.time')} value={time} onChangeText={setTime} /></FormField></>;
 }
 
 const styles = StyleSheet.create({
@@ -240,6 +262,8 @@ const styles = StyleSheet.create({
   headerContent: { gap: mobileTheme.spacing[5], marginBottom: mobileTheme.spacing[3] },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
   actionList: { gap: mobileTheme.spacing[3] },
+  followUpTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
+  followUpTypeChip: { minHeight: 48 },
   footer: { flex: 1, flexDirection: 'row', gap: mobileTheme.spacing[3] },
   footerButton: { flex: 1 },
   multiline: { minHeight: 96, paddingTop: mobileTheme.spacing[3], textAlignVertical: 'top' },

@@ -108,7 +108,8 @@
     "WORK_CALENDAR": "કાર્ય કૅલેન્ડર",
     "ATTENDANCE": "હાજરી",
     "WAGES": "મજૂરી",
-    "SALES": "સેલ્સ"
+    "SALES": "સેલ્સ",
+    "KHARCHI": "ખર્ચી"
   },
   "permissionAction": {
     "read": "જુઓ",
@@ -127,7 +128,16 @@
     "mark-paid": "ચૂકવેલું નોંધો",
     "update-organization": "ઓર્ગેનાઇઝેશન કૅલેન્ડર અપડેટ કરો",
     "update-project": "પ્રોજેક્ટ કૅલેન્ડર અપડેટ કરો",
-    "read-own": "પોતાનું જુઓ", "read-team": "ટીમનું જુઓ", "read-all": "બધું જુઓ", "reassign": "ફરી સોંપો", "convert": "રૂપાંતરિત કરો", "manage": "સંચાલિત કરો", "block": "બ્લોક કરો", "book": "બુક કરો"
+    "read-own": "પોતાનું જુઓ",
+    "read-team": "ટીમનું જુઓ",
+    "read-all": "બધું જુઓ",
+    "reassign": "ફરી સોંપો",
+    "convert": "રૂપાંતરિત કરો",
+    "manage": "સંચાલિત કરો",
+    "interest": "રસ નોંધો",
+    "request-block": "હોલ્ડની વિનંતી કરો",
+    "block": "હોલ્ડ મંજૂર અથવા રિલીઝ કરો",
+    "book": "બુક કરો"
   },
   "errors": {
     "load": "પ્રોજેક્ટ ટીમ લોડ થઈ શકી નથી",
