@@ -8,6 +8,7 @@ import type {
   UpdateWorkerInput,
   UpdateWorkerProjectAssignmentInput,
   WorkerDetail,
+  WorkerDeletionResult,
   WorkerDuplicateCandidate,
   WorkerListFilter,
   WorkerListResponse,
@@ -107,6 +108,11 @@ export const workersService = {
     return api.post<WorkerDetail, { reason?: string | null }>(
       `/organizations/${organizationId}/workers/${workerId}/deactivate`,
       { reason },
+    );
+  },
+  deleteWorker(organizationId: string, workerId: string) {
+    return api.delete<WorkerDeletionResult>(
+      `/organizations/${organizationId}/workers/${workerId}`,
     );
   },
   async projectRoster(organizationId: string, projectId: string, query?: WorkerListFilter) {

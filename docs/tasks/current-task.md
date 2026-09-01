@@ -1,10 +1,61 @@
 # Current Task
 
+## Kharchi / Worker Advances API Implementation
+
+On 2026-08-31, the Product Owner started the API-first Kharchi module and confirmed a
+direct-paid workflow with no request, draft, approval, rejection, or separate mark-paid
+stage. Every authorized create records money already given to the Worker. Payment method is
+required (`CASH`, `UPI`, `BANK_TRANSFER`, or `OTHER`), payment reference is optional, and
+financial writes require duplicate-retry protection.
+
+The approved contract is `docs/modules/construction/kharchi/CONTRACTS.md`. It specifies immutable
+positive/negative adjustments, automatic oldest-first deduction during Wage confirmation,
+active Worker and assignment-date validation, approved role defaults, CSV export, and a
+reusable Audit Foundation prerequisite. Actual Mobile offline storage/sync is deferred, while
+API idempotency is required now.
+
+The Product Owner confirmed that incorrect paid records remain immutable and are corrected only
+by signed adjustments, with no Kharchi cancel/delete action. The API-first source implementation
+under `docs/tasks/kharchi-api-technical-plan.md` is complete: shared contracts, guarded role
+defaults, Audit and Kharchi SQL drafts, list/summary/detail/create/adjust/export endpoints,
+transactional audit writes, automatic oldest-first Wage allocation, Worker deletion integration,
+and focused tests are present. Shared and API static checks passed, including all 21 API suites
+and 114 tests. Migration-status, migration, seed, remote database, authenticated runtime, Web,
+Mobile, and offline-sync work remain outside this authorization.
+
+The Mobile integration contract is now documented at
+`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`. It defines the existing API
+envelopes and shared types, date-valid Worker assignment selection, retry-key lifecycle, list and
+summary UI, paid-advance form, immutable detail/adjustment history, permission states, en/hi/gu,
+accessibility, refresh rules, and acceptance gates. No Mobile source or dependency was changed by
+this documentation slice.
+
+## Sales CRM API Status
+
+On 2026-08-26, the Sales vertical API was implemented from `MVP_REQUIREMENTS.md` sections
+19-23. The source slice includes shared Sales statuses/permissions/errors, the proposed
+`011_sales_crm.sql` migration, NestJS routes/services/repositories, own/team/all Lead access,
+assignment/timeline history, follow-ups, site visits, unit inventory and locking, and
+idempotent transactional booking conversion/cancellation. See
+`docs/modules/sales/CONTRACT.md`.
+
+On 2026-08-27, explicit target-specific approval was used to apply pending migrations `010`
+and `011` to `md-in-30.webhostbox.net/vishwlt9_nirmansite`, followed by the guarded updated
+seed with demo-user generation disabled. Read-only verification reports 12/12 migrations
+applied, all eight Sales tables present, both stored generated columns and all three required
+unique workflow indexes present, zero duplicate role permissions, 15 Sales grants for each
+owner/admin template, nine for Sales User, and zero for Site Supervisor and Platform Super
+Admin. All Sales tables remain empty. API health reports app/database `ok`, and the Sales route
+is registered and returns `401` without authentication. Authenticated Sales workflow,
+concurrency, browser, and physical-device acceptance remain pending.
+
 ## Calendar And Attendance Implementation Status
+
+On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. The later Kharchi API source now allocates traceable deductions during confirmation, while runtime use awaits its migrations. Effective-dated wage-rate history remains an explicit completion gap.
 
 The sequential Calendar and Attendance exception-model redesign is documented in `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`.
 
-Slices A0, A1, B, C, and C2 are complete. Mobile Attendance now separates period summary at `/(app)/attendance`, daily exception marking at `/(app)/attendance-mark`, and exact Worker history at `/(app)/worker-attendance`; Mobile Work Calendar remains a separate protected route. Derived Present, Full-day/Half-day exception-only writes, selected-Project context, `FlatList`, failed-input retention, permission states, and en/hi/gu remain intact. Slice D compatibility cleanup remains optional after client acceptance and requires separate authorization. Do not start Wages, migration/seed execution, offline sync, or compatibility cleanup from this status.
+Slices A0, A1, B, C, and C2 are complete. Mobile Attendance now separates period summary at `/(app)/attendance`, daily exception marking at `/(app)/attendance-mark`, and exact Worker history at `/(app)/worker-attendance`; Mobile Work Calendar remains a separate protected route. Derived Present, Full-day/Half-day exception-only writes, selected-Project context, `FlatList`, failed-input retention, permission states, and en/hi/gu remain intact. Slice D compatibility cleanup remains optional after client acceptance and requires separate authorization. Migration/seed execution, offline sync, and compatibility cleanup remain outside the Wages authorization.
 
 Slice C2 passed 11-namespace en/hi/gu locale parity, shared build, Mobile type-check, Android Expo export, and `git diff --check`. The export produced one 3.89 MB Hermes bundle with the bundled Manrope, Noto Sans Devanagari, and Noto Sans Gujarati assets. Authenticated API mutation, emulator/physical-device behavior, screen reader, largest text, keyboard avoidance, touch-target measurement, rotation/tablet, and fluent Hindi/Gujarati acceptance remain unrun and must not be inferred from static evidence. Slice C2 changed no API, shared-contract source, database, migration, seed, dependency, Web, Work Calendar, Wages, offline-sync, or compatibility-cleanup behavior.
 

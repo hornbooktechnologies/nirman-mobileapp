@@ -35,19 +35,19 @@ const CalendarDay = memo(function CalendarDay({ day, selected, onSelect }: {
       onPress={() => onSelect(day.date)}
       style={({ pressed }) => [
         styles.day,
-        { backgroundColor: selected ? mobileTheme.color.surface.selected : tokens.background },
+        { backgroundColor: selected ? mobileTheme.color.action.primaryHover : tokens.background },
         selected && styles.selectedDay,
         isToday && styles.today,
         pressed && styles.pressed,
       ]}
     >
-      <AppText style={[styles.dayNumber, { color: selected ? mobileTheme.color.text.primary : tokens.foreground }]} weight={700}>
+      <AppText style={[styles.dayNumber, { color: selected ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary }]} weight={700}>
         {new Intl.NumberFormat(locale).format(Number(day.date.slice(-2)))}
       </AppText>
-      <AppText numberOfLines={1} style={[styles.dayState, { color: tokens.foreground }]} weight={700}>
+      <AppText numberOfLines={1} style={[styles.dayState, { color: selected ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary }]} weight={700}>
         {t(`dayShort.${day.dayType}`)}
       </AppText>
-      {selected ? <AppIcon color={mobileTheme.color.text.brand} name="check" size={14} /> : isToday ? <View style={styles.todayDot} /> : null}
+      {selected ? <AppIcon color={mobileTheme.color.text.inverse} name="check" size={14} /> : isToday ? <View style={styles.todayDot} /> : null}
     </Pressable>
   );
 });

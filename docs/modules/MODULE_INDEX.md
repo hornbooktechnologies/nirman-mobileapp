@@ -38,8 +38,8 @@ AI agents must read this file before starting new module work.
 | 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation contract approved as a Workers extension | Implement and verify primary-project-period API in Slice A1; deactivation policy remains separately blocked |
 | 8A | Work Calendar | `docs/modules/calendar/CONTRACT.md` | in_progress | Project Access | Formal contract reconciled; implement and verify Slice A1 API foundation |
 | 9 | Attendance | `docs/modules/attendance/CONTRACT.md` | in_progress | Workers primary periods + Work Calendar + Project Access | Formal exception-model contract reconciled; implement and verify Slice A1 API foundation |
-| 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md` | candidate | Workers + Attendance + Audit | Contract |
-| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | candidate | Workers + Attendance + Kharchi | Separate redesign required; Slice A1 adds only the incompatible-calculation safety gate |
+| 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md` | implementation_complete_migration_pending | Workers + Wages + reusable Audit Foundation | API source/tests and Mobile integration contract complete; migrations, guarded grants, authenticated runtime, and Mobile implementation remain |
+| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi | Derived Calendar/Attendance generation and transactional Kharchi allocation implemented; effective-dated rate history remains |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md` | candidate | Project Access + Files/Media | Contract |
@@ -49,12 +49,7 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 16 | Leads | `docs/modules/sales/leads/CONTRACTS.md` | candidate | Project Access | Contract |
-| 17 | Follow-ups | `docs/modules/sales/followups/CONTRACTS.md` | candidate | Leads + Notifications | Contract |
-| 18 | Site Visits | `docs/modules/sales/site-visits/CONTRACTS.md` | candidate | Leads + Follow-ups | Contract |
-| 19 | Unit Inventory | `docs/modules/sales/unit-inventory/CONTRACTS.md` | candidate | Project Access | Contract |
-| 20 | Unit Blocking | `docs/modules/sales/unit-blocking/CONTRACTS.md` | candidate | Unit Inventory + Idempotency | Contract |
-| 21 | Booking / Conversion | `docs/modules/sales/bookings/CONTRACTS.md` | candidate | Leads + Unit Inventory + Audit | Contract |
+| 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | in_progress | Project Access; Notifications/Audit integration remain downstream | Remote migration and role seed applied; complete authenticated role/workflow and concurrency acceptance |
 
 ## 6. Oversight Modules
 
@@ -66,7 +61,7 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Calendar/Attendance Slices A0 and A1 are complete. The next module task is Slice B Web only: canonical `/attendance`, compatibility redirect from the Project route, and `/work-calendar` against the approved APIs. Do not begin Mobile, Wages redesign, migration/seed execution, or compatibility cleanup in that task.
+Calendar/Attendance Slices A0 through C2 are complete. Wages consumes derived Calendar/Attendance results and now creates traceable oldest-first Kharchi allocations during confirmation. Kharchi runtime enablement still requires separately approved migrations and guarded role-grant synchronization; effective-dated Wage rate history also remains.
 
 Next document:
 

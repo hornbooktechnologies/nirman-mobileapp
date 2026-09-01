@@ -5,6 +5,7 @@ import type {
   WorkerAssignmentStatus,
   WorkerDetail,
   WorkerDuplicateCandidate,
+  WorkerDeletionResult,
   WorkerListResponse,
   WorkerProjectAssignmentSummary,
   WorkerPrimaryProjectPeriod,
@@ -13,6 +14,7 @@ import type {
 import { DatabaseService } from "../../database/database.service";
 import type {
   DatabaseConnection,
+  DbRow,
   QueryParam,
 } from "../../database/database.types";
 import type { AssignWorkerDto } from "./dto/assign-worker.dto";
@@ -45,6 +47,16 @@ type AssignmentInsertInput = {
   startsOn?: string | null;
   endsOn?: string | null;
 };
+
+interface WorkerDeletionRow extends DbRow {
+  id: string;
+  worker_code: string;
+  name: string;
+}
+
+interface WageBatchIdRow extends DbRow {
+  id: string;
+}
 
 function normalizeMobile(mobile?: string | null) {
   const digits = mobile?.replace(/\D/g, "") ?? "";
@@ -398,11 +410,15 @@ export class WorkersRepository {
         AND wpa.worker_id = wpp.worker_id
        INNER JOIN projects p
          ON p.id = wpa.project_id AND p.organization_id = wpa.organization_id
-       ${memberId ? `INNER JOIN project_members pm
+       ${
+         memberId
+           ? `INNER JOIN project_members pm
          ON pm.organization_id = wpa.organization_id
         AND pm.project_id = wpa.project_id
         AND pm.member_id = ?
-        AND pm.status = 'ACTIVE'` : ""}
+        AND pm.status = 'ACTIVE'`
+           : ""
+       }
        WHERE wpp.organization_id = ? AND wpp.worker_id = ?
        ORDER BY wpp.starts_on DESC`,
       [...(memberId ? [memberId] : []), organizationId, workerId],
@@ -430,19 +446,46 @@ export class WorkersRepository {
   async createPrimaryProjectPeriod(
     organizationId: string,
     workerId: string,
-    input: { workerAssignmentId: string; startsOn: string; endsOn?: string | null },
+    input: {
+      workerAssignmentId: string;
+      startsOn: string;
+      endsOn?: string | null;
+    },
     actorId: string,
   ) {
     const id = randomUUID();
     await this.database.transaction(async (connection) => {
       await this.lockWorker(organizationId, workerId, connection);
-      await this.assertPrimaryAssignmentWindow(organizationId, workerId, input.workerAssignmentId, input.startsOn, input.endsOn ?? null, connection);
-      await this.assertNoPrimaryOverlap(organizationId, workerId, input.startsOn, input.endsOn ?? null, null, connection);
+      await this.assertPrimaryAssignmentWindow(
+        organizationId,
+        workerId,
+        input.workerAssignmentId,
+        input.startsOn,
+        input.endsOn ?? null,
+        connection,
+      );
+      await this.assertNoPrimaryOverlap(
+        organizationId,
+        workerId,
+        input.startsOn,
+        input.endsOn ?? null,
+        null,
+        connection,
+      );
       await this.database.execute(
         `INSERT INTO worker_primary_project_periods
           (id, organization_id, worker_id, worker_assignment_id, starts_on, ends_on, created_by, updated_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, organizationId, workerId, input.workerAssignmentId, input.startsOn, input.endsOn ?? null, actorId, actorId],
+        [
+          id,
+          organizationId,
+          workerId,
+          input.workerAssignmentId,
+          input.startsOn,
+          input.endsOn ?? null,
+          actorId,
+          actorId,
+        ],
         connection,
       );
     });
@@ -453,7 +496,11 @@ export class WorkersRepository {
     organizationId: string,
     workerId: string,
     periodId: string,
-    input: { workerAssignmentId?: string; startsOn?: string; endsOn?: string | null },
+    input: {
+      workerAssignmentId?: string;
+      startsOn?: string;
+      endsOn?: string | null;
+    },
     actorId: string,
   ) {
     await this.database.transaction(async (connection) => {
@@ -466,11 +513,29 @@ export class WorkersRepository {
       );
       const current = rows[0];
       if (!current) throw new Error("WORKER_PRIMARY_PERIOD_NOT_FOUND");
-      const assignmentId = input.workerAssignmentId ?? current.worker_assignment_id;
+      const assignmentId =
+        input.workerAssignmentId ?? current.worker_assignment_id;
       const startsOn = input.startsOn ?? dateOnlyValue(current.starts_on);
-      const endsOn = input.endsOn === undefined ? nullableDateOnly(current.ends_on) : input.endsOn;
-      await this.assertPrimaryAssignmentWindow(organizationId, workerId, assignmentId, startsOn, endsOn, connection);
-      await this.assertNoPrimaryOverlap(organizationId, workerId, startsOn, endsOn, periodId, connection);
+      const endsOn =
+        input.endsOn === undefined
+          ? nullableDateOnly(current.ends_on)
+          : input.endsOn;
+      await this.assertPrimaryAssignmentWindow(
+        organizationId,
+        workerId,
+        assignmentId,
+        startsOn,
+        endsOn,
+        connection,
+      );
+      await this.assertNoPrimaryOverlap(
+        organizationId,
+        workerId,
+        startsOn,
+        endsOn,
+        periodId,
+        connection,
+      );
       await this.database.execute(
         `UPDATE worker_primary_project_periods
          SET worker_assignment_id = ?, starts_on = ?, ends_on = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
@@ -479,7 +544,11 @@ export class WorkersRepository {
         connection,
       );
     });
-    return this.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    return this.findPrimaryProjectPeriodById(
+      organizationId,
+      workerId,
+      periodId,
+    );
   }
 
   async endPrimaryProjectPeriod(
@@ -500,8 +569,22 @@ export class WorkersRepository {
       const current = rows[0];
       if (!current) throw new Error("WORKER_PRIMARY_PERIOD_NOT_FOUND");
       const startsOn = dateOnlyValue(current.starts_on);
-      await this.assertPrimaryAssignmentWindow(organizationId, workerId, current.worker_assignment_id, startsOn, endsOn, connection);
-      await this.assertNoPrimaryOverlap(organizationId, workerId, startsOn, endsOn, periodId, connection);
+      await this.assertPrimaryAssignmentWindow(
+        organizationId,
+        workerId,
+        current.worker_assignment_id,
+        startsOn,
+        endsOn,
+        connection,
+      );
+      await this.assertNoPrimaryOverlap(
+        organizationId,
+        workerId,
+        startsOn,
+        endsOn,
+        periodId,
+        connection,
+      );
       await this.database.execute(
         `UPDATE worker_primary_project_periods
          SET ends_on = ?, ended_by = ?, ended_at = CURRENT_TIMESTAMP(3), updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
@@ -510,7 +593,11 @@ export class WorkersRepository {
         connection,
       );
     });
-    return this.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    return this.findPrimaryProjectPeriodById(
+      organizationId,
+      workerId,
+      periodId,
+    );
   }
 
   async hasActiveAssignment(
@@ -669,6 +756,147 @@ export class WorkersRepository {
       [actorId, actorId, organizationId, workerId],
     );
     return this.findById(organizationId, workerId);
+  }
+
+  async deletePermanently(
+    organizationId: string,
+    workerId: string,
+  ): Promise<WorkerDeletionResult | null> {
+    return this.database.transaction(async (connection) => {
+      const workers = await this.database.query<WorkerDeletionRow>(
+        `SELECT id, worker_code, name
+         FROM workers
+         WHERE organization_id = ? AND id = ?
+         FOR UPDATE`,
+        [organizationId, workerId],
+        connection,
+      );
+      const worker = workers[0];
+      if (!worker) return null;
+
+      const wageBatches = await this.database.query<WageBatchIdRow>(
+        `SELECT DISTINCT wage_batch_id AS id
+         FROM wage_items
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      const kharchiDeductionAllocations = await this.database.execute(
+        `DELETE FROM kharchi_deduction_allocations
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      const wagePayments = await this.database.execute(
+        `DELETE wp
+         FROM wage_payments wp
+         INNER JOIN wage_items wi
+           ON wi.id = wp.wage_item_id
+          AND wi.organization_id = wp.organization_id
+         WHERE wi.organization_id = ? AND wi.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const wageItems = await this.database.execute(
+        `DELETE FROM wage_items
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      let emptyWageBatchCount = 0;
+      if (wageBatches.length > 0) {
+        const batchIds = wageBatches.map((batch) => batch.id);
+        const placeholders = batchIds.map(() => "?").join(", ");
+        const emptyWageBatches = await this.database.execute(
+          `DELETE wb
+           FROM wage_batches wb
+           LEFT JOIN wage_items wi ON wi.wage_batch_id = wb.id
+           WHERE wb.organization_id = ?
+             AND wb.id IN (${placeholders})
+             AND wi.id IS NULL`,
+          [organizationId, ...batchIds],
+          connection,
+        );
+        emptyWageBatchCount = emptyWageBatches.affectedRows;
+      }
+
+      const attendanceExceptions = await this.database.execute(
+        `DELETE ae
+         FROM attendance_exceptions ae
+         INNER JOIN worker_project_assignments wpa
+           ON wpa.id = ae.worker_assignment_id
+          AND wpa.organization_id = ae.organization_id
+         WHERE wpa.organization_id = ? AND wpa.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const attendanceRecords = await this.database.execute(
+        `DELETE ar
+         FROM attendance_records ar
+         INNER JOIN worker_project_assignments wpa
+           ON wpa.id = ar.worker_assignment_id
+          AND wpa.organization_id = ar.organization_id
+         WHERE wpa.organization_id = ? AND wpa.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const kharchiAdjustments = await this.database.execute(
+        `DELETE kaja
+         FROM kharchi_adjustments kaja
+         INNER JOIN kharchi_advances ka
+           ON ka.id = kaja.kharchi_advance_id
+          AND ka.organization_id = kaja.organization_id
+         WHERE ka.organization_id = ? AND ka.worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const kharchiAdvances = await this.database.execute(
+        `DELETE FROM kharchi_advances
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const primaryProjectPeriods = await this.database.execute(
+        `DELETE FROM worker_primary_project_periods
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      const projectAssignments = await this.database.execute(
+        `DELETE FROM worker_project_assignments
+         WHERE organization_id = ? AND worker_id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+      await this.database.execute(
+        `DELETE FROM workers
+         WHERE organization_id = ? AND id = ?`,
+        [organizationId, workerId],
+        connection,
+      );
+
+      return {
+        workerId: worker.id,
+        workerCode: worker.worker_code,
+        workerName: worker.name,
+        deleted: true,
+        deletedRecords: {
+          kharchiDeductionAllocations: kharchiDeductionAllocations.affectedRows,
+          kharchiAdjustments: kharchiAdjustments.affectedRows,
+          kharchiAdvances: kharchiAdvances.affectedRows,
+          wagePayments: wagePayments.affectedRows,
+          wageItems: wageItems.affectedRows,
+          emptyWageBatches: emptyWageBatchCount,
+          attendanceExceptions: attendanceExceptions.affectedRows,
+          attendanceRecords: attendanceRecords.affectedRows,
+          primaryProjectPeriods: primaryProjectPeriods.affectedRows,
+          projectAssignments: projectAssignments.affectedRows,
+        },
+      };
+    });
   }
 
   async assignWorker(
@@ -870,7 +1098,11 @@ export class WorkersRepository {
     );
   }
 
-  private async lockWorker(organizationId: string, workerId: string, connection: DatabaseConnection) {
+  private async lockWorker(
+    organizationId: string,
+    workerId: string,
+    connection: DatabaseConnection,
+  ) {
     const rows = await this.database.query<any>(
       "SELECT id FROM workers WHERE organization_id = ? AND id = ? FOR UPDATE",
       [organizationId, workerId],
@@ -902,7 +1134,8 @@ export class WorkersRepository {
       startsOn < assignmentStart ||
       (endsOn !== null && endsOn < startsOn) ||
       (assignmentEnd !== null && (endsOn === null || endsOn > assignmentEnd))
-    ) throw new Error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT");
+    )
+      throw new Error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT");
   }
 
   private async assertNoPrimaryOverlap(
@@ -920,7 +1153,13 @@ export class WorkersRepository {
          AND COALESCE(ends_on, '9999-12-31') >= ?
          ${excludeId ? "AND id <> ?" : ""}
        LIMIT 1 FOR UPDATE`,
-      [organizationId, workerId, endsOn, startsOn, ...(excludeId ? [excludeId] : [])],
+      [
+        organizationId,
+        workerId,
+        endsOn,
+        startsOn,
+        ...(excludeId ? [excludeId] : []),
+      ],
       connection,
     );
     if (rows[0]) throw new Error("WORKER_PRIMARY_PERIOD_OVERLAP");

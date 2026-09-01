@@ -228,6 +228,37 @@ export class WorkersService {
     return worker;
   }
 
+  async deletePermanently(
+    organizationId: string,
+    workerId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const access = await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "workers:delete",
+    );
+    if (!access.organizationWideProjectAccess) {
+      throw new ForbiddenException(
+        this.error(
+          "WORKER_FORBIDDEN",
+          "Permanent worker deletion requires organization-wide access",
+        ),
+      );
+    }
+
+    const result = await this.workersRepo.deletePermanently(
+      organizationId,
+      workerId,
+    );
+    if (!result) {
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
+    }
+    return result;
+  }
+
   async assignWorker(
     organizationId: string,
     projectId: string,

@@ -28,6 +28,7 @@ Desired behavior is governed by `MVP_REQUIREMENTS.md`, approved decisions, and t
 | Web loading, empty, error, forbidden, read-only, and action states | Implemented for list, detail, assignment, rate, end, and deactivate workflows | Focused lint, type-check, and production build passed | Authenticated browser interaction was not run |
 | Mobile roster and quick create | Implemented with 401/403 handling, validation, duplicate acknowledgement, stale in-memory roster, and online-only writes | Mobile type-check passed | No persisted cache, connectivity library, queue, idempotency, or sync foundation exists |
 | Audit events | Explicit no-op integration boundary only | Source reviewed | Deferred to Audit Foundation; no persistence is claimed |
+| Organization-owner permanent deletion | Organization-scoped `workers:delete`, transactional API removal, Web destructive confirmation, and existing-role RBAC backfill migration implemented | Shared/API/web checks passed; migration `010` applied and owner/admin grants verified on 2026-08-27 | Refresh the owner session, then run the authenticated Web confirmation flow |
 | Automated API verification | Jest aligned with ts-jest; Workers service/repository/filter tests added; health E2E isolates the database | 5 unit suites / 32 tests and 1 E2E test passed | No disposable-DB integration suite exists |
 
 ## Owner Decision Required
@@ -40,6 +41,8 @@ Choose one rule for deactivating a worker who still has active project assignmen
 
 The current implementation follows option 3 only as existing source behavior: it deactivates the worker, preserves assignment rows unchanged, and excludes the inactive worker from the default active roster. This is not promoted to an approved rule.
 
+Permanent deletion is a separate approved 2026-08-25 workflow. It intentionally removes the Worker and all current directly related assignment, allocation, Attendance, Wage item, and Wage payment records after an explicit irreversible warning. It does not resolve the separate soft-deactivation assignment policy above.
+
 ## Deferred Foundation Boundaries
 
 - Audit persistence and audit review UI: Audit Foundation.
@@ -51,11 +54,11 @@ The current implementation follows option 3 only as existing source behavior: it
 ## Verification Evidence
 
 - Shared: type-check and build passed.
-- API: type-check/build passed; 5 suites and 32 unit tests passed; health E2E passed with a mocked database; focused changed-file lint passed with one E2E warning. Package-wide lint remains at the inherited 883 Prettier errors plus that warning.
-- Web: Workers/API-client focused lint, type-check, and isolated production build passed; all routes, including Workers routes, were generated. Package-wide lint remains at six unrelated `set-state-in-effect` errors and one login-image warning.
+- API: type-check/build passed; the current full unit run passed 18 suites and 98 tests, including permanent-delete scope and dependency-order coverage. The DB-isolated health E2E evidence remains recorded from the earlier Workers verification.
+- Web: permanent-delete Workers files passed focused lint, type-check, and an isolated production build; all routes, including Workers routes, were generated.
 - Mobile: type-check passed.
-- No migration, seed, database status command, database mutation, authenticated browser workflow, or physical-device flow was run.
+- Migration `010_backfill_worker_delete_owner_permission.sql` was applied to the configured remote database on 2026-08-27. Read-only verification found exactly one `workers:delete` grant for Organization Owner, Builder Admin, and Independent Contractor Owner. No actual worker deletion, authenticated browser workflow, or physical-device flow was run.
 
 ## Next Action
 
-Obtain the owner deactivation decision, implement that single lifecycle rule, rerun the Workers gates, and perform an approved disposable-database role/scope smoke before marking the module verified.
+Refresh the owner session and verify the Web confirmation flow. Separately, obtain the owner deactivation decision before marking the wider Workers module verified.

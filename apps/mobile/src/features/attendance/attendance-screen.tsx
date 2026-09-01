@@ -55,7 +55,8 @@ const WorkerSummaryCard = memo(function WorkerSummaryCard({ locale, row, onView 
       contextTrailing={row.worker.trade}
       details={<AttendanceTotalsTable embedded locale={locale} totals={row} />}
       footerLeading={t('actions.viewAttendance')}
-      footerTrailing={<AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} />}
+      footerTone="info"
+      footerTrailing={<AppIcon name="chevron-right" size={20} color={mobileTheme.color.status.info.foreground} />}
       onPress={() => onView(row)}
       title={row.worker.name}
     />

@@ -79,6 +79,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private defaultCodeForStatus(status: number): ErrorCode {
     if (status === 400) return "VALIDATION_FAILED";
+    if (status === 401) return "AUTH_SESSION_REQUIRED";
     if (status === 403) return "PERMISSION_DENIED";
     if (status === 409) return "CONFLICT";
     return "SERVER_ERROR";

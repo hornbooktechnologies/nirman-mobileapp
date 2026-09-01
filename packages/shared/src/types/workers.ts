@@ -161,6 +161,25 @@ export type DeactivateWorkerInput = {
   reason?: string | null;
 };
 
+export type WorkerDeletionResult = {
+  workerId: string;
+  workerCode: string;
+  workerName: string;
+  deleted: true;
+  deletedRecords: {
+    kharchiDeductionAllocations: number;
+    kharchiAdjustments: number;
+    kharchiAdvances: number;
+    wagePayments: number;
+    wageItems: number;
+    emptyWageBatches: number;
+    attendanceExceptions: number;
+    attendanceRecords: number;
+    primaryProjectPeriods: number;
+    projectAssignments: number;
+  };
+};
+
 export type EndWorkerProjectAssignmentInput = {
   endsOn: string;
   reason?: string | null;

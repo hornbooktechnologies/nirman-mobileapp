@@ -168,6 +168,59 @@ describe("WorkersRepository", () => {
 
     expect(database.query.mock.calls[0]?.[1]).toContain("9999999999");
   });
+
+  it("permanently deletes every current worker dependency in one transaction", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "worker-id",
+          worker_code: "WRK-00001",
+          name: "Ravi",
+        },
+      ] as never)
+      .mockResolvedValueOnce([{ id: "wage-batch-id" }] as never);
+    database.execute.mockResolvedValue(result(1));
+
+    const deleted = await repository.deletePermanently(
+      "organization-id",
+      "worker-id",
+    );
+
+    expect(database.transaction).toHaveBeenCalledTimes(1);
+    expect(deleted).toEqual(
+      expect.objectContaining({
+        workerId: "worker-id",
+        workerCode: "WRK-00001",
+        workerName: "Ravi",
+        deleted: true,
+      }),
+    );
+    const deleteSql = database.execute.mock.calls.map(([sql]) => sql);
+    expect(deleteSql).toHaveLength(11);
+    expect(deleteSql[0]).toContain("FROM kharchi_deduction_allocations");
+    expect(deleteSql[1]).toContain("FROM wage_payments");
+    expect(deleteSql[2]).toContain("FROM wage_items");
+    expect(deleteSql[3]).toContain("FROM wage_batches");
+    expect(deleteSql[4]).toContain("FROM attendance_exceptions");
+    expect(deleteSql[5]).toContain("FROM attendance_records");
+    expect(deleteSql[6]).toContain("FROM kharchi_adjustments");
+    expect(deleteSql[7]).toContain("FROM kharchi_advances");
+    expect(deleteSql[8]).toContain("FROM worker_primary_project_periods");
+    expect(deleteSql[9]).toContain("FROM worker_project_assignments");
+    expect(deleteSql[10]).toContain("FROM workers");
+    for (const [, params] of database.execute.mock.calls) {
+      expect(params?.[0]).toBe("organization-id");
+    }
+  });
+
+  it("does not delete anything when the organization-scoped worker is absent", async () => {
+    database.query.mockResolvedValueOnce([]);
+
+    await expect(
+      repository.deletePermanently("organization-id", "missing-worker-id"),
+    ).resolves.toBeNull();
+    expect(database.execute).not.toHaveBeenCalled();
+  });
 });
 
 function result(affectedRows: number) {

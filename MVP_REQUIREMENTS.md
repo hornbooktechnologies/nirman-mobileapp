@@ -810,7 +810,7 @@ The system may match an existing organisation worker and create a new project as
 - Worker name is required.
 - Daily rate is required before wage generation, not necessarily at initial creation.
 - Inactive workers remain in history.
-- Workers with financial history must not be hard deleted.
+- An Organization Owner may permanently delete a worker after an explicit irreversible-action warning; the operation removes the worker and all directly related assignments, allocation periods, Attendance, Wage items, and Wage payments in one transaction.
 - Duplicate warnings should be shown for similar name/mobile combinations.
 
 ## 11.5 Acceptance criteria
@@ -818,6 +818,7 @@ The system may match an existing organisation worker and create a new project as
 - Builder Owner, Independent Contractor, Contractor, or Supervisor can add workers when permitted.
 - Worker list is filtered by current project.
 - Historical attendance and wages remain available after worker deactivation.
+- Permanent deletion is separate from deactivation and intentionally removes that worker's historical Attendance and Wage records.
 
 ---
 
@@ -905,9 +906,9 @@ Generate worker wages from attendance and track payment history.
 
 ## 13.2 Calculation
 
-The approved future calculation source is Calendar + Worker assignment and primary-project periods + Attendance exceptions. Existing wage and payment history remains readable, but new wage preview/generation must return the stable `WAGE_CALCULATION_MODEL_UNAVAILABLE` safety error until the separate Wages redesign is approved and implemented.
+Wage preview and generation consume Calendar + Worker assignment and primary-project periods + Attendance exceptions. They do not calculate from legacy explicit Attendance records. The initial implementation snapshots the assignment daily rate at confirmation; complete effective-dated wage-rate history remains a separate Wages completion requirement.
 
-Target rules for that later redesign:
+Calculation rules:
 
 - PRESENT = daily rate × 1.0
 - HALF_DAY = daily rate × 0.5
@@ -2125,7 +2126,7 @@ docs/
 - object-storage access control;
 - audit of critical actions;
 - no silent financial overwrite;
-- no hard deletion of paid/approved financial history;
+- paid/approved financial history is retained by default; the explicitly confirmed Organization Owner permanent-Worker deletion is the approved exception and removes that Worker's Wage items/payments with the Worker;
 - database transactions for state-coupled operations;
 - unit block/booking concurrency protection;
 - log redaction.

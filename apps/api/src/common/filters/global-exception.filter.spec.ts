@@ -1,4 +1,8 @@
-import { BadRequestException, type ArgumentsHost } from "@nestjs/common";
+import {
+  BadRequestException,
+  UnauthorizedException,
+  type ArgumentsHost,
+} from "@nestjs/common";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 
 describe("GlobalExceptionFilter", () => {
@@ -58,5 +62,38 @@ describe("GlobalExceptionFilter", () => {
         details: [{ message: "name must be a string" }],
       },
     });
+  });
+
+  it("preserves the invalid-credentials code for login failures", () => {
+    filter.catch(
+      new UnauthorizedException({
+        code: "AUTH_INVALID_CREDENTIALS",
+        message: "Invalid credentials",
+      }),
+      host,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(response.json).toHaveBeenCalledWith({
+      success: false,
+      message: "Invalid credentials",
+      errors: [],
+      error: {
+        code: "AUTH_INVALID_CREDENTIALS",
+        message: "Invalid credentials",
+        details: {},
+      },
+    });
+  });
+
+  it("maps unstructured unauthorized failures to a session error", () => {
+    filter.catch(new UnauthorizedException(), host);
+
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({ code: "AUTH_SESSION_REQUIRED" }),
+      }),
+    );
   });
 });

@@ -13,6 +13,8 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { WagesModule } from "./modules/wages/wages.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 import { CalendarModule } from "./modules/calendar/calendar.module";
+import { SalesModule } from "./modules/sales/sales.module";
+import { KharchiModule } from "./modules/kharchi/kharchi.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -35,6 +37,8 @@ import { AppService } from "./app.service";
     AttendanceModule,
     WagesModule,
     SubscriptionsModule,
+    SalesModule,
+    KharchiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

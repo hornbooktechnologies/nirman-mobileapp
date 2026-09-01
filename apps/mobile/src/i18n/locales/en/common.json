@@ -19,7 +19,7 @@
   "validation": {
     "required": "{{field}} is required.",
     "email": "Enter a valid email address.",
-    "phone": "Enter a valid mobile number with 10 to 15 digits.",
+    "phone": "Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.",
     "number": "Enter a valid non-negative amount with up to 2 decimal places.",
     "date": "Choose a valid date.",
     "endBeforeStart": "End date cannot be before start date."

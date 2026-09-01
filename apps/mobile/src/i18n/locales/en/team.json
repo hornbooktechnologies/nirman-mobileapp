@@ -107,7 +107,9 @@
     "WORKERS": "Workers",
     "WORK_CALENDAR": "Work Calendar",
     "ATTENDANCE": "Attendance",
-    "WAGES": "Wages"
+    "WAGES": "Wages",
+    "SALES": "Sales",
+    "KHARCHI": "Kharchi"
   },
   "permissionAction": {
     "read": "Read",
@@ -125,7 +127,17 @@
     "generate": "Generate",
     "mark-paid": "Mark paid",
     "update-organization": "Update Organization calendar",
-    "update-project": "Update Project calendar"
+    "update-project": "Update Project calendar",
+    "read-own": "Read own",
+    "read-team": "Read team",
+    "read-all": "Read all",
+    "reassign": "Reassign",
+    "convert": "Convert",
+    "manage": "Manage",
+    "interest": "Record interest",
+    "request-block": "Request hold",
+    "block": "Approve or release hold",
+    "book": "Book"
   },
   "errors": {
     "load": "Unable to load Project Team",

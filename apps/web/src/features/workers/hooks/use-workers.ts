@@ -80,6 +80,21 @@ export function useDeactivateWorker(organizationId: string | null, workerId: str
   });
 }
 
+export function useDeleteWorker(organizationId: string | null, workerId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => workersService.deleteWorker(organizationId!, workerId),
+    onSuccess: () => {
+      queryClient.removeQueries({
+        queryKey: workerKeys.detail(organizationId ?? "none", workerId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: workerKeys.all(organizationId ?? "none"),
+      });
+    },
+  });
+}
+
 export function useAssignWorker(organizationId: string | null, projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({

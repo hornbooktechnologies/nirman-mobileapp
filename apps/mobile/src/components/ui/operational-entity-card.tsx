@@ -19,8 +19,9 @@ type OperationalEntityCardProps = AccessibilityProps & {
   supporting?: string;
   value?: string;
   valueLabel?: string;
-  footerLeading?: string;
+  footerLeading?: ReactNode;
   footerTrailing?: ReactNode;
+  footerTone?: BadgeTone;
   details?: ReactNode;
   tone?: BadgeTone;
   compact?: boolean;
@@ -37,6 +38,7 @@ export function OperationalEntityCard({
   valueLabel,
   footerLeading,
   footerTrailing,
+  footerTone,
   details,
   tone = 'neutral',
   compact = false,
@@ -45,6 +47,7 @@ export function OperationalEntityCard({
   ...accessibilityProps
 }: OperationalEntityCardProps) {
   const toneTokens = badgeToneTokens[tone];
+  const footerToneTokens = footerTone ? badgeToneTokens[footerTone] : null;
   const content = (
     <>
       <View style={[styles.contextStrip, compact && styles.contextStripCompact, { backgroundColor: toneTokens.background, borderLeftColor: toneTokens.foreground }]}>
@@ -65,8 +68,27 @@ export function OperationalEntityCard({
       </View>
       {details ? <View style={styles.details}>{details}</View> : null}
       {(footerLeading || footerTrailing) ? (
-        <View style={[styles.footer, compact && styles.footerCompact]}>
-          {footerLeading ? <AppText numberOfLines={1} style={styles.footerLeading} weight={500}>{footerLeading}</AppText> : <View style={styles.footerSpacer} />}
+        <View
+          style={[
+            styles.footer,
+            compact && styles.footerCompact,
+            footerToneTokens && {
+              backgroundColor: footerToneTokens.background,
+              borderTopColor: footerToneTokens.border,
+            },
+          ]}
+        >
+          {typeof footerLeading === 'string' ? (
+            <AppText
+              numberOfLines={1}
+              style={[styles.footerLeading, footerToneTokens && { color: footerToneTokens.foreground }]}
+              weight={footerToneTokens ? 700 : 500}
+            >
+              {footerLeading}
+            </AppText>
+          ) : footerLeading ? (
+            <View style={styles.footerLeadingNode}>{footerLeading}</View>
+          ) : <View style={styles.footerSpacer} />}
           {footerTrailing}
         </View>
       ) : null}
@@ -192,6 +214,10 @@ const styles = StyleSheet.create({
   footerLeading: {
     ...mobileText.caption,
     color: mobileTheme.color.text.secondary,
+    flex: 1,
+  },
+  footerLeadingNode: {
+    alignItems: 'flex-start',
     flex: 1,
   },
   footerSpacer: {

@@ -29,6 +29,7 @@ describe("Attendance exception derivation", () => {
       workerStatus: "ACTIVE",
       deactivatedAt: null,
       workerAssignmentId: "assignment-id",
+      dailyRate: "800.00",
       assignmentStartsOn: "2026-08-01",
       assignmentEndsOn: null,
       primaryStartsOn: "2026-08-10",
@@ -205,6 +206,7 @@ describe("AttendanceService", () => {
         workerStatus: "ACTIVE",
         deactivatedAt: null,
         workerAssignmentId: "assignment-id",
+        dailyRate: "800.00",
         assignmentStartsOn: "2026-08-01",
         assignmentEndsOn: null,
         primaryStartsOn: "2026-08-01",
@@ -251,6 +253,46 @@ describe("AttendanceService", () => {
       undefined,
       "worker-id",
     );
+  });
+
+  it("provides derived full, half, and absent day counts for Wages", async () => {
+    attendanceRepo.findPrimaryRosterPeriods.mockResolvedValue([
+      {
+        workerId: "worker-id",
+        workerCode: "WRK-001",
+        workerName: "Ravi Worker",
+        trade: "Mason",
+        workerStatus: "ACTIVE",
+        deactivatedAt: null,
+        workerAssignmentId: "assignment-id",
+        dailyRate: "800.00",
+        assignmentStartsOn: "2026-08-01",
+        assignmentEndsOn: null,
+        primaryStartsOn: "2026-08-01",
+        primaryEndsOn: null,
+      },
+    ]);
+    attendanceRepo.findExceptions.mockResolvedValue([
+      exception("half", "2026-08-13", "HALF_DAY"),
+      exception("full", "2026-08-14", "FULL_DAY"),
+    ]);
+    calendarService.resolveDaysForAttendance.mockResolvedValue([
+      day("2026-08-12", true),
+      day("2026-08-13", true),
+      day("2026-08-14", true),
+      day("2026-08-15", false),
+    ]);
+
+    await expect(
+      service.calculateWagePeriod("org", "project", "2026-08-12", "2026-08-15"),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        dailyRate: "800.00",
+        presentDays: 1,
+        halfDays: 1,
+        absentDays: 1,
+      }),
+    ]);
   });
 
   it("translates legacy ABSENT/PRESENT and rejects HOLIDAY", async () => {

@@ -1,5 +1,17 @@
 # Workers Decisions
 
+## 2026-08-25: Organization Owner Permanent Deletion
+
+- Organization Owner, Builder Admin, and Independent Contractor Owner receive the organization-wide `workers:delete` permission through their role template.
+- `workers:delete` is not Project-delegatable and is not granted to Project Manager, Supervisor, Contractor Member, Sales, or platform roles by default.
+- Permanent deletion is distinct from soft deactivation and requires an explicit irreversible-action confirmation dialog.
+- Confirmed deletion removes the Worker and every current directly related record in one transaction: Project assignments, primary-Project periods, legacy Attendance records, Attendance exceptions, Wage items, and Wage payments.
+- A Wage batch is removed only if no Wage items remain after deleting the Worker's items; shared batches for other Workers remain.
+- The API must lock and scope the Worker by `organization_id` before deletion.
+- Mobile does not receive permanent deletion; this remains a Web organization-administration operation.
+
+> Status: explicitly approved by the product owner.
+
 ## 2026-08-21: Effective-Dated Primary Project Allocation
 
 - A Worker may have date-overlapping assignments to multiple Projects.
@@ -32,8 +44,8 @@
 - Project worker lists are filtered by current project.
 - Worker project assignment is required before Attendance, Wages, and Kharchi can work safely.
 - Inactive workers remain available in historical attendance and wage records.
-- Workers with financial history must not be hard deleted.
-- No hard deletion of workers or assignments is allowed in MVP.
+- Organization Owners may permanently delete a Worker and all directly related history after the destructive warning is confirmed.
+- Deactivation remains the non-destructive lifecycle action when history should be retained.
 - Daily rate stays on the worker-project assignment for the initial Workers MVP, but it is not the final wage-rate design.
 - Daily rate is required before wage generation, but not necessarily at initial worker creation.
 - Before attendance exists for an assignment, authorized users may update the rate.
@@ -84,7 +96,7 @@
 
 | Role/profile                                                      | Default access                                                                                                                                                                          | Restrictions                                                                                                          |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:export` where granted by organization role template | Own organization; project-specific operations still enforce project access                                            |
+| Organization Owner / Builder Admin / Independent Contractor Owner | `workers:read`, `workers:create`, `workers:update`, `workers:assign-project`, `workers:update-rate`, `workers:deactivate`, `workers:delete`, `workers:export` where granted by organization role template | Own organization; permanent deletion additionally requires organization-wide access                                  |
 | Supervisor                                                        | `workers:read`, `workers:create`, `workers:update`                                                                                                                                      | Assigned projects only; no default deactivation, export, organization-wide access, or elevated rate changes           |
 | Contractor                                                        | `workers:read`                                                                                                                                                                          | Assigned projects only; create, update, assign, update-rate, deactivate, and export require explicit role permissions |
 | Sales User                                                        | none                                                                                                                                                                                    | No Workers access by default                                                                                          |
@@ -98,6 +110,7 @@ Permission keys:
 - `workers:assign-project`
 - `workers:update-rate`
 - `workers:deactivate`
+- `workers:delete`
 - `workers:export`
 
 ## Remaining Product Questions

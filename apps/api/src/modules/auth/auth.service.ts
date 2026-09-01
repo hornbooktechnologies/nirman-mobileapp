@@ -22,11 +22,19 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthTokens & { user: AuthenticatedUser }> {
     const user = await this.authRepo.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Invalid credentials',
+      });
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      throw new UnauthorizedException({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Invalid credentials',
+      });
+    }
 
     const tokens = await this.issueTokens(user.id, user.email, user.roleId);
 

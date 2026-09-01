@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -166,6 +167,20 @@ export class WorkersController {
       user,
     );
     return { success: true, message: "Worker deactivated", data };
+  }
+
+  @Delete("workers/:workerId")
+  async deletePermanently(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("workerId", new ParseUUIDPipe()) workerId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.workersService.deletePermanently(
+      organizationId,
+      workerId,
+      user,
+    );
+    return { success: true, message: "Worker permanently deleted", data };
   }
 
   @Get("projects/:projectId/workers")
