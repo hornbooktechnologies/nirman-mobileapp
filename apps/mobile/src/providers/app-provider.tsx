@@ -7,6 +7,7 @@ import { AppFontProvider } from '../components/ui/app-text';
 import { LocalizationProvider } from './localization-provider';
 import { SessionProvider } from './session-provider';
 import { mobileTheme } from '../theme';
+import { NotificationsProvider } from '../features/notifications/notifications-provider';
 
 export function AppProvider({ children }: PropsWithChildren) {
   return (
@@ -43,7 +44,7 @@ function FontAndSessionProvider({ children }: PropsWithChildren) {
 
   return (
     <AppFontProvider fontsAvailable={fontsLoaded}>
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider><NotificationsProvider>{children}</NotificationsProvider></SessionProvider>
     </AppFontProvider>
   );
 }

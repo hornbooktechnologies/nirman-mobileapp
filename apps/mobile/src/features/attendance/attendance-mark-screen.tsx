@@ -14,6 +14,7 @@ import {
   EmptyState,
   FormField,
   IconButton,
+  ListControls,
   NirmanScreenBackground,
   SearchField,
 } from '../../components/ui';
@@ -324,7 +325,9 @@ export function AttendanceMarkScreen() {
           <Button fullWidth={false} label={tCommon('actions.close')} size="sm" variant="ghost" onPress={() => setSuccess('')} />
         </Card>
       ) : null}
-      <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
+      <ListControls>
+        <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
+      </ListControls>
       {!canCreate && !canUpdate && canRead ? <Card><AppText style={styles.cardNote} weight={500}>{t('markScreen.readOnly')}</AppText></Card> : null}
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>

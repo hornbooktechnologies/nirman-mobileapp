@@ -1,7 +1,7 @@
 {
   "screen": { "title": "Kharchi", "chooseProject": "Choose a Project", "readOnly": "This Project is not active. Kharchi history is read-only." },
   "summary": { "outstanding": "Outstanding", "advances": "Effective advances", "deducted": "Deducted", "adjustments": "Adjustments" },
-  "filters": { "search": "Search worker or code", "searchA11y": "Search Kharchi by worker name or code", "allStatuses": "All progress", "allMethods": "All methods" },
+  "filters": { "search": "Search worker or code", "searchA11y": "Search Kharchi by worker name or code", "sheetDescription": "Filter Kharchi by deduction progress and payment method.", "progressGroup": "Deduction progress", "methodGroup": "Payment method", "allStatuses": "All progress", "allMethods": "All methods" },
   "status": { "PAID": "Deduction pending", "PARTIALLY_DEDUCTED": "Partly deducted", "DEDUCTED": "Fully deducted" },
   "paymentMethod": { "CASH": "Cash", "UPI": "UPI", "BANK_TRANSFER": "Bank transfer", "OTHER": "Other" },
   "list": { "outstanding": "Outstanding", "openA11y": "Open Kharchi for {{worker}}, outstanding {{amount}}" },

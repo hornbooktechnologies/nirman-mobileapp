@@ -35,7 +35,7 @@
     "openA11y": "{{start}} થી {{end}} સુધીનો મજૂરી બેચ ખોલો, કુલ {{amount}}"
   },
   "batchStatus": { "DRAFT": "ડ્રાફ્ટ", "CONFIRMED": "પુષ્ટિ થયેલ", "PARTIALLY_PAID": "આંશિક ચૂકવેલ", "PAID": "ચૂકવેલ", "CANCELLED": "રદ" },
-  "paymentStatus": { "UNPAID": "ચૂકવવાનું બાકી", "PARTIALLY_PAID": "આંશિક ચૂકવેલ", "PAID": "ચૂકવેલ" },
+  "paymentStatus": { "UNPAID": "ચૂકવવાનું બાકી", "PARTIALLY_PAID": "આંશિક ચૂકવેલ", "PAID": "ચૂકવેલ", "KHARCHI_SETTLED": "ખર્ચી સામે સમાયોજિત" },
   "paymentMethod": { "CASH": "રોકડ", "UPI": "UPI", "BANK_TRANSFER": "બેંક", "CHEQUE": "ચેક", "OTHER": "અન્ય" },
   "detail": {
     "title": "બેચની વિગતો",
@@ -71,6 +71,8 @@
     "action": "ચુકવણી નોંધો",
     "recording": "ચુકવણી નોંધાઈ રહી છે",
     "alreadyPaid": "આ બેચ માટે આ મજૂરની સંપૂર્ણ ચુકવણી થઈ ગઈ છે.",
+    "settledByKharchi": "કોઈ મજૂરી ચુકવણી બાકી નથી. {{amount}} ખર્ચી સામે સમાયોજિત કરવામાં આવ્યા છે.",
+    "noPaymentDue": "આ બેચ માટે કોઈ મજૂરી ચુકવણી બાકી નથી.",
     "invalidAmount": "શૂન્યથી વધુ રકમ દાખલ કરો.",
     "exceedsDue": "રકમ {{amount}}ની બાકી રકમથી વધુ ન હોઈ શકે.",
     "successTitle": "ચુકવણી નોંધાઈ",

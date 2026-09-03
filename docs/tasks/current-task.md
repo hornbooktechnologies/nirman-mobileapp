@@ -1,5 +1,82 @@
 # Current Task
 
+## Role-Specific Dashboards Vertical Slice
+
+On 2026-09-03, the Product Owner authorized the full Dashboard vertical slice, including API,
+migration, guarded seed sync, Mobile integration, and a carefully layered premium redesign. The
+authoritative contract is `docs/modules/oversight/dashboards/CONTRACTS.md`.
+
+The shared `RoleDashboardResponse` now defines Owner, Contractor, Supervisor, Sales, and General
+profiles; nullable permission-filtered sections; and server-derived quick actions. The NestJS
+endpoint `GET /organizations/:organizationId/projects/:projectId/dashboard` validates active
+Organization membership, exact Project access, `dashboards:read`, and effective CUSTOM Project
+grants before running only authorized aggregates. Mobile now uses this one endpoint instead of six
+independent dashboard requests and preserves the existing Project context, Today at Site, Progress,
+Needs Attention, Financial Snapshot, and Quick Actions hierarchy.
+
+The dashboard-only UI adds a layered blueprint/glow background, a dark olive role command hero,
+role-priority live metrics, Sales pulse, and role-specific action ordering using existing semantic
+tokens/components. English, Hindi, and Gujarati copy and accessibility hints are synchronized.
+
+Migration `023_role_specific_dashboards.sql` and the guarded seed ran on the configured remote
+development target with role-user creation disabled. The database is 24/24 current; four dashboard
+indexes and nine operational customer role grants were verified. Shared/API/Mobile type-checks,
+API build, focused 2/2 service tests, locale validation, database health, and an authenticated Owner
+six-section runtime response passed. Supervisor/Sales authenticated response coverage and physical-
+device/accessibility/large-text/reduced-motion/landscape/fluent-language acceptance remain pending.
+
+## Project Progress API And Mobile Implementation
+
+On 2026-09-02, the Product Owner authorized a complete Project Progress vertical slice, including
+database rollout and seed synchronization. The approved contract documents nine canonical stages,
+immutable append-only history, regression notes, idempotent/concurrency-safe writes, and an
+equal-weight overall percentage where untouched stages contribute zero.
+
+Shared contracts, migration `019_project_progress.sql`, the NestJS module, guarded role grants,
+read-only verification scripts, and the Expo integration are implemented. The API provides Project
+summary/history/update/export plus an accessible Organization Project portfolio. Mobile provides
+permission-aware navigation and Home data, an overall progress card, selectable stage cards,
+paginated history, CSV sharing, and a localized update sheet with presets, exact percentage, date,
+notes, conflict handling, and success feedback in English/Hindi/Gujarati.
+
+The configured remote database is 20/20 current; the new table and intended eight role-template
+grant sets are verified. Shared/API/Mobile checks pass, including 27 API suites/149 tests, the API
+production build, 17-namespace locale parity, and Android Expo export. The current API listener was
+restarted; health/database are `ok`, unauthenticated Progress returns `401 AUTH_SESSION_REQUIRED`,
+and an authenticated read-only Progress summary returns `200` with nine stages. Authenticated write
+acceptance using deliberate business test data and physical-device/accessibility/fluent-language
+review remain pending. See `docs/modules/construction/progress/STATUS.md`.
+
+## Site Expenses API And Mobile Implementation
+
+On 2026-09-02, the Product Owner approved all decisions in
+`docs/modules/construction/expenses/CONTRACTS.md` and authorized the API-first slice. Shared expense
+contracts, eight permissions, guarded role defaults, migration draft `018_site_expenses.sql`, and a
+NestJS controller/service/repository module are implemented. The API supports Project workflow
+settings, list/summary/export, create/detail/update, submit/approve/reject/cancel, and immutable
+signed adjustments.
+
+The implementation uses active Organization membership and effective Project access, Direct versus
+Approval-required workflow snapshots, reviewer separation, server-derived actions, Project/entity-
+scoped idempotency, expected-version locking, immutable domain/audit history, transactional in-app
+notifications, and non-negative recognised cost. Shared/API static checks, focused lint, 10 focused
+tests, the full API suite, and production build passed.
+
+After exact-target approval, migration `018` and the full guarded seed ran on
+`md-in-30.webhostbox.net / vishwlt9_nirmansite` with `SEED_ROLE_USERS=false`. The migration ledger is
+19/19 current; all five Expense tables, expected role grants, zero duplicate grants, and zero Expense
+business rows were verified. The listening API was restarted from the current `dist` build;
+API/database health is `200`/`ok` and the unauthenticated Expenses route now returns
+`401 AUTH_SESSION_REQUIRED`, confirming runtime registration.
+
+The Mobile vertical slice is now implemented with permission-aware navigation, Project summary/list,
+search/filter/export, workflow configuration, create/draft/edit, detail, server-derived workflow
+actions, immutable adjustments/timeline, API error mapping, and complete en/hi/gu resources. Mobile
+locale parity, TypeScript, Expo web and Android production exports, and whitespace checks pass.
+Authenticated API/Mobile runtime, Web, offline, browser, accessibility, fluent-language,
+and physical-device acceptance remain pending. See
+`docs/modules/construction/expenses/STATUS.md`.
+
 ## Kharchi / Worker Advances API Implementation
 
 On 2026-08-31, the Product Owner started the API-first Kharchi module and confirmed a
@@ -17,18 +94,24 @@ API idempotency is required now.
 The Product Owner confirmed that incorrect paid records remain immutable and are corrected only
 by signed adjustments, with no Kharchi cancel/delete action. The API-first source implementation
 under `docs/tasks/kharchi-api-technical-plan.md` is complete: shared contracts, guarded role
-defaults, Audit and Kharchi SQL drafts, list/summary/detail/create/adjust/export endpoints,
+defaults, Audit and Kharchi migrations, list/summary/detail/create/adjust/export endpoints,
 transactional audit writes, automatic oldest-first Wage allocation, Worker deletion integration,
-and focused tests are present. Shared and API static checks passed, including all 21 API suites
-and 114 tests. Migration-status, migration, seed, remote database, authenticated runtime, Web,
-Mobile, and offline-sync work remain outside this authorization.
+and focused tests are present.
 
-The Mobile integration contract is now documented at
-`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`. It defines the existing API
-envelopes and shared types, date-valid Worker assignment selection, retry-key lifecycle, list and
-summary UI, paid-advance form, immutable detail/adjustment history, permission states, en/hi/gu,
-accessibility, refresh rules, and acceptance gates. No Mobile source or dependency was changed by
-this documentation slice.
+After separate exact-target approval, `012_audit_foundation.sql` and `013_kharchi.sql` were
+applied to `md-in-30.webhostbox.net / vishwlt9_nirmansite`, four expected Kharchi/Audit tables
+were verified, and 22 approved `kharchi:*` grants were synchronized. API/database health returned
+`200`/`ok`; after rebuilding the stale API process, the unauthenticated Kharchi route returned
+`401 AUTH_SESSION_REQUIRED`, proving route registration but not authenticated acceptance.
+
+The Mobile implementation now follows
+`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`: permission-aware navigation,
+server summary and paginated list, shared search/filter controls, record-paid flow, immutable
+detail/adjustment and Wage-allocation history, CSV integration, operational states, and en/hi/gu
+coverage are present. Mobile locale parity, type-check, Android Expo export, and diff checks
+passed. The reconciled source map, rollout evidence, and remaining authenticated, concurrency,
+device, accessibility, timeout, and fluent-language gates are recorded in
+`docs/modules/construction/kharchi/STATUS.md`.
 
 ## Sales CRM API Status
 
@@ -48,6 +131,36 @@ owner/admin template, nine for Sales User, and zero for Site Supervisor and Plat
 Admin. All Sales tables remain empty. API health reports app/database `ok`, and the Sales route
 is registered and returns `401` without authentication. Authenticated Sales workflow,
 concurrency, browser, and physical-device acceptance remain pending.
+
+On 2026-08-31, the Sales inventory workflow was extended with non-exclusive multi-customer
+interest, approval-based exclusive holds, manual and CSV Unit inventory, and explicit
+`TOTAL`/`PER_SQFT` pricing. Migrations `014_sales_unit_interest_hold_workflow.sql` and
+`015_sales_unit_pricing.sql` were separately approved and applied to the same exact target.
+The guarded runner now reports 16/16 migrations applied and current. Read-only verification
+confirmed `sales_units.price_basis`, nullable `rate_per_sqft`, and one pre-existing Unit retained
+with the `TOTAL` default; migration `015` inserted no business records. Mobile/API type-checks,
+en/hi/gu locale parity, focused Sales lint, all 21 API suites/120 tests, Android Expo export,
+and `git diff --check` passed. Authenticated role/workflow, concurrent-hold, and physical-device
+acceptance remain pending and must not be inferred from those checks.
+
+On 2026-09-03, the Unit Inventory and Unit Blocking slice was re-audited against current source
+instead of duplicated. Its migration/API/seed/mobile/localization implementation was confirmed
+present. The guarded migration runner reported 21/21 current, the guarded seed synchronized with
+demo-user generation disabled, and the new read-only verifier confirmed all four inventory/hold
+tables, both pricing columns, all four unique inventory/concurrency indexes, the expected Sales
+User grants without `inventory:block`, and no Platform Super Admin inventory grants. One existing
+Unit and zero active blocks were observed without changing business records. Focused Sales tests
+and shared/API/Mobile type checks pass; authenticated hold approval/race testing and physical-device
+accessibility/fluent-language acceptance remain pending.
+
+On 2026-09-03, the Lead conversion/booking linkage slice was completed in place rather than
+duplicated outside Sales CRM. Migration `021_sales_booking_linkage.sql` is applied on the approved
+remote target and preserves request fingerprints, Lead-source/pre-conversion snapshots, and explicit
+cancellation restoration. Booking confirmation/cancellation now write immutable audit events in the
+same transaction. The API adds filtered booking lists and visible booking detail; Mobile retains one
+idempotency key across retries and adds a multilingual booking detail/cancellation flow. Schema/RBAC
+verification and static tests passed; authenticated live booking/concurrency plus physical-device
+acceptance remain pending.
 
 ## Calendar And Attendance Implementation Status
 
@@ -259,3 +372,25 @@ Implemented:
 User-entered business values remain exactly as typed and may be English, Hindi, Gujarati, or mixed-script. System values remain stable in API/database contracts and are translated only for display. No API, shared contract, schema, migration, seed, database, web-localization, or business authorization behavior changed.
 
 All nine namespaces passed English/Hindi/Gujarati key and placeholder parity. Mobile and shared type-checks passed. The mobile literal audit found no remaining hard-coded user-facing English phrases outside locale resources; the remaining English literals are internal provider guards or the `NirmanSite` brand. Expo web export passed with one entry bundle and all eight Noto font files, and `git diff --check` passed. Authenticated physical-device, screen-reader, large-text, and fluent Hindi/Gujarati review remain pending.
+
+## 2026-09-03 — Site Gallery / Project Diary
+
+The Product Owner authorized the full contract, API, migration, seed synchronization, Mobile integration, and UI delivery without intermediate approval stops. Gallery now has tenant/Project-owned private file metadata, chronological entries, direct-versus-review workflow snapshots, role-scoped approval/rejection, audit/notifications, and safe idempotent upload retries.
+
+Migration `020` is applied to the configured remote target and the ledger is 21/21 current. The intended eight customer role templates are synchronized with demo-user creation disabled. The Expo app includes camera/library capture, app-owned persisted upload queue, retry states, category/stage/caption metadata, a two-column Project diary, reviewer actions, and complete English/Hindi/Gujarati copy.
+
+Static/database/runtime-route verification passes. Real upload and authenticated/device acceptance remain pending because the current environment has no S3 bucket/access credentials configured; this is an environment gate, not an unimplemented code path.
+
+## 2026-09-03 — Site Visits Completion
+
+The requested Site Visits module was already part of the Sales CRM vertical slice, so it was completed in place rather than recreated. API list filtering, own-user scope hardening, reschedule timing, terminal-state rules, focused tests, full outcome capture, attendee entry, salesperson labels, and en/hi/gu Mobile copy are now implemented.
+
+Migration `011` remains the canonical schema. A guarded migration run confirms the configured remote database is 21/21 current, the canonical seed/RBAC sync completed, and read-only verification confirms the 15-column table plus intended grants for Organization Owner, Builder Admin, Independent Contractor Owner, and Sales User. The unintended Viewer mutation grant was removed. Authenticated write and physical-device/accessibility acceptance remain pending.
+
+## 2026-09-03 — Notifications Vertical Slice
+
+The Product Owner authorized the complete Notifications contract, API, migration, guarded seed sync, API/Mobile integration, and UI without intermediate approval stops. The existing Materials-era in-app foundation was extended rather than duplicated.
+
+Notification rows and per-device outbox entries are now created transactionally. Recipient-only list/read/mark-all/unread-summary and device registration APIs are implemented. A bounded-retry worker delivers en/hi/gu Expo pushes and disables permanently invalid device tokens. Nine customer operational role templates now receive `notifications:read`; Platform Super Admin remains outside customer operations.
+
+Mobile now has automatic permission/token registration, an accurate Home badge, Menu entry, virtualized All/Unread inbox, pull-to-refresh/pagination, mark-all, localized system copy, and safe reference-based deep links whose destination APIs reauthorize access. Migration `022` and guarded seed sync completed on the configured remote target; status is 23/23 current and schema/grants are verified. Focused/full tests, shared/API/Mobile checks, API build, 18-namespace parity, Android export, and diff check passed. A real EAS Project ID, authenticated producer data, physical development build, and device/accessibility/fluent-language review are still required for push acceptance.

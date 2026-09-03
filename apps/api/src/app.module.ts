@@ -15,6 +15,12 @@ import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.modul
 import { CalendarModule } from "./modules/calendar/calendar.module";
 import { SalesModule } from "./modules/sales/sales.module";
 import { KharchiModule } from "./modules/kharchi/kharchi.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { MaterialsModule } from "./modules/materials/materials.module";
+import { ExpensesModule } from "./modules/expenses/expenses.module";
+import { ProgressModule } from "./modules/progress/progress.module";
+import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { GalleryModule } from "./modules/gallery/gallery.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -39,6 +45,12 @@ import { AppService } from "./app.service";
     SubscriptionsModule,
     SalesModule,
     KharchiModule,
+    NotificationsModule,
+    MaterialsModule,
+    ExpensesModule,
+    ProgressModule,
+    DashboardModule,
+    GalleryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

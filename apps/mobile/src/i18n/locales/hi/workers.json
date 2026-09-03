@@ -13,6 +13,8 @@
     "addA11y": "नया श्रमिक जोड़ें",
     "searchA11y": "संगठन श्रमिक खोजें",
     "searchPlaceholder": "कोड, नाम या काम खोजें",
+    "filterDescription": "इस प्रोजेक्ट की नियुक्ति के अनुसार श्रमिक फ़िल्टर करें।",
+    "filterGroup": "प्रोजेक्ट नियुक्ति",
     "allCount": "सभी {{count}}",
     "assignedFilter": "नियुक्त {{count}}",
     "unassignedFilter": "अनियुक्त {{count}}",

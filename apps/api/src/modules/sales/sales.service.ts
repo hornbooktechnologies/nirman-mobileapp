@@ -22,8 +22,10 @@ import type {
   CreateUnitDto,
   DecideUnitHoldRequestDto,
   ImportUnitsDto,
+  QueryBookingsDto,
   QuerySalesDto,
   QueryScheduledSalesDto,
+  QuerySiteVisitsDto,
   QueryUnitsDto,
   UpdateFollowUpDto,
   UpdateLeadDto,
@@ -347,6 +349,7 @@ export class SalesService {
   async listSiteVisits(
     organizationId: string,
     projectId: string,
+    query: QuerySiteVisitsDto,
     actor: AuthenticatedUser,
   ) {
     const visibility = await this.resolveLeadRead(
@@ -357,6 +360,7 @@ export class SalesService {
     return this.repo.listSiteVisits(
       organizationId,
       projectId,
+      query,
       visibility === "OWN" ? actor.id : undefined,
     );
   }
@@ -402,6 +406,33 @@ export class SalesService {
       actor,
       "site-visits:manage",
     );
+    const visit = await this.repo.findSiteVisit(
+      organizationId,
+      projectId,
+      leadId,
+      visitId,
+    );
+    if (!visit) {
+      throw new NotFoundException({
+        code: "SITE_VISIT_NOT_FOUND",
+        message: "Site visit not found",
+      });
+    }
+    if (
+      dto.status === "SCHEDULED" ||
+      ["COMPLETED", "CANCELLED", "NO_SHOW"].includes(String(visit.status))
+    ) {
+      throw new BadRequestException({
+        code: "SITE_VISIT_TRANSITION_INVALID",
+        message: "The requested site visit status transition is not allowed",
+      });
+    }
+    if (dto.status === "RESCHEDULED" && !dto.scheduledAt) {
+      throw new BadRequestException({
+        code: "SITE_VISIT_RESCHEDULE_DATE_REQUIRED",
+        message: "A new schedule is required when rescheduling a site visit",
+      });
+    }
     return this.translateDomain(() =>
       this.repo.updateSiteVisit(
         organizationId,
@@ -716,6 +747,7 @@ export class SalesService {
   async listBookings(
     organizationId: string,
     projectId: string,
+    query: QueryBookingsDto,
     actor: AuthenticatedUser,
   ) {
     const visibility = await this.resolveLeadRead(
@@ -726,8 +758,36 @@ export class SalesService {
     return this.repo.listBookings(
       organizationId,
       projectId,
+      query,
       visibility === "OWN" ? actor.id : undefined,
     );
+  }
+
+  async getBooking(
+    organizationId: string,
+    projectId: string,
+    bookingId: string,
+    actor: AuthenticatedUser,
+  ) {
+    const visibility = await this.resolveLeadRead(
+      organizationId,
+      projectId,
+      actor,
+    );
+    const booking = await this.repo.findBooking(
+      organizationId,
+      projectId,
+      bookingId,
+      visibility === "OWN" ? actor.id : undefined,
+    );
+    if (!booking) {
+      throw new NotFoundException({
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      });
+    }
+    await this.getLead(organizationId, projectId, booking.leadId, actor);
+    return booking;
   }
 
   async createBooking(
@@ -775,10 +835,16 @@ export class SalesService {
         message: "Cancelled bookings cannot leave the lead BOOKED",
       });
     }
+    const visibility = await this.resolveLeadRead(
+      organizationId,
+      projectId,
+      actor,
+    );
     const booking = await this.repo.findBooking(
       organizationId,
       projectId,
       bookingId,
+      visibility === "OWN" ? actor.id : undefined,
     );
     if (!booking) {
       throw new NotFoundException({
@@ -789,7 +855,7 @@ export class SalesService {
     await this.assertWritableLead(
       organizationId,
       projectId,
-      booking.leadId as string,
+      booking.leadId,
       actor,
       "leads:convert",
     );

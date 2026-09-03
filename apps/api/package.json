@@ -17,6 +17,15 @@
     "db:migrate": "ts-node scripts/migrate.ts",
     "db:migrate:status": "ts-node scripts/migration-status.ts",
     "db:seed": "ts-node scripts/seed.ts",
+    "db:verify:progress": "ts-node scripts/verify-project-progress.ts",
+    "verify:progress:runtime": "ts-node scripts/verify-project-progress-runtime.ts",
+    "db:verify:gallery": "ts-node scripts/verify-gallery.ts",
+    "db:verify:site-visits": "ts-node scripts/verify-site-visits.ts",
+    "db:verify:unit-inventory": "ts-node scripts/verify-unit-inventory.ts",
+    "db:verify:booking-linkage": "ts-node scripts/verify-booking-linkage.ts",
+    "db:verify:notifications": "ts-node scripts/verify-notifications.ts",
+    "db:verify:dashboards": "ts-node scripts/verify-role-dashboards.ts",
+    "verify:dashboards:runtime": "ts-node scripts/verify-role-dashboard-runtime.ts",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {

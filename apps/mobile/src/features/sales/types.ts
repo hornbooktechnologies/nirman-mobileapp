@@ -11,7 +11,7 @@ import type {
   UnitHoldRequestStatus,
   UnitInterestStatus,
   UnitPriceBasis,
-} from '@nirman-app/shared';
+} from "@nirman-app/shared";
 
 export type SalesLead = {
   id: string;
@@ -89,6 +89,7 @@ export type SalesSiteVisit = {
   leadId: string;
   scheduledAt: string;
   assignedSalesperson: string;
+  assignedSalespersonName: string;
   attendeeCount: number | null;
   status: SiteVisitStatus;
   customerFeedback: string | null;
@@ -175,20 +176,36 @@ export type UnitImportResult = {
 
 export type SalesBooking = {
   id: string;
+  organizationId: string;
+  projectId: string;
   leadId: string;
   unitId: string | null;
   bookedBy: string;
+  bookedByName: string | null;
   bookingDate: string;
   customerName: string;
   customerMobile: string;
   bookingAmount: number | null;
   bookingReference: string | null;
+  leadSource: LeadSource;
+  leadStageBeforeBooking: LeadStage | null;
+  unitStatusBeforeBooking: UnitStatus | null;
   status: BookingStatus;
   cancellationReason: string | null;
+  restoredLeadStage: LeadStage | null;
+  restoredUnitStatus: UnitStatus | null;
   cancelledBy: string | null;
+  cancelledByName: string | null;
   cancelledAt: string | null;
   createdAt: string;
+  updatedAt: string;
+  leadCurrentStage: LeadStage;
+  convertedAt: string | null;
+  convertedBy: string | null;
+  convertedByName: string | null;
   unitNumber: string | null;
+  unitType: string | null;
+  unitCurrentStatus: UnitStatus | null;
 };
 
 export type SalesPage<T> = {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -30,6 +30,8 @@ const projectStatusTranslationKeys = {
   ARCHIVED: 'projectStatus.ARCHIVED',
 } as const;
 
+const FEATURED_PROJECT_ART = require('../../../../assets/brand/ChatGPT Image Sep 2, 2026, 04_25_57 PM (1).png');
+
 type ProjectContextCardProps = {
   compact?: boolean;
   featured?: boolean;
@@ -41,6 +43,7 @@ export function ProjectContextCard({ compact = false, featured = false, showSwit
   const { t } = useTranslation('home');
   const { session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const { width } = useWindowDimensions();
   const activeProject = getActiveProject(session);
   const selectableProjects = useMemo(
     () =>
@@ -67,9 +70,12 @@ export function ProjectContextCard({ compact = false, featured = false, showSwit
     return (
       <>
         <GlassCard variant="strong" style={styles.featuredCard}>
-          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.watermark}>
-            <AppIcon color={mobileTheme.color.border.inverse} name="office-building-marker-outline" size={150} />
-          </View>
+          <Image
+            accessible={false}
+            resizeMode="contain"
+            source={FEATURED_PROJECT_ART}
+            style={[styles.featuredArtwork, width < 390 && styles.featuredArtworkSmall]}
+          />
           <View style={styles.featuredTopRow}>
             <View style={styles.featuredEyebrow}>
               <View style={styles.activeDot} />
@@ -91,7 +97,7 @@ export function ProjectContextCard({ compact = false, featured = false, showSwit
           </View>
 
           <View style={styles.featuredCopy}>
-            <AppText style={styles.featuredProject} numberOfLines={2} weight={700}>{projectName}</AppText>
+            <AppText style={styles.featuredProject} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.76} weight={700}>{projectName}</AppText>
             <AppText style={styles.featuredOrganization} numberOfLines={1} weight={500}>{organizationName}</AppText>
           </View>
 
@@ -237,17 +243,23 @@ const styles = StyleSheet.create({
   featuredCard: {
     backgroundColor: mobileTheme.color.navigation.floating,
     borderColor: mobileTheme.color.border.inverse,
-    gap: mobileTheme.spacing[6],
-    minHeight: 286,
+    gap: mobileTheme.spacing[4],
+    minHeight: 260,
     overflow: 'hidden',
-    padding: mobileTheme.spacing[6],
+    padding: mobileTheme.spacing[5],
   },
-  watermark: {
-    bottom: -28,
-    opacity: 0.5,
+  featuredArtwork: {
+    bottom: -18,
+    height: 228,
+    opacity: 0.82,
     position: 'absolute',
-    right: -26,
-    transform: [{ rotate: '-8deg' }],
+    right: -48,
+    width: 260,
+  },
+  featuredArtworkSmall: {
+    height: 196,
+    right: -54,
+    width: 224,
   },
   featuredTopRow: {
     alignItems: 'center',
@@ -288,7 +300,8 @@ const styles = StyleSheet.create({
   },
   featuredCopy: {
     gap: mobileTheme.spacing[2],
-    maxWidth: '86%',
+    maxWidth: '72%',
+    zIndex: 1,
   },
   featuredProject: {
     ...mobileText.display,
@@ -308,6 +321,7 @@ const styles = StyleSheet.create({
     gap: mobileTheme.spacing[4],
     justifyContent: 'space-between',
     marginTop: 'auto',
+    zIndex: 1,
   },
   featuredMeta: {
     flex: 1,

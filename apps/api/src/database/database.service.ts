@@ -35,7 +35,12 @@ export class DatabaseService implements OnModuleDestroy {
       waitForConnections: true,
       connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? DEFAULT_CONNECTION_LIMIT),
       decimalNumbers: false,
-      dateStrings: false,
+      // SQL DATE values are calendar dates, not instants. Returning them as
+      // Date objects lets a later toISOString() shift the day in positive UTC
+      // offsets (for example, 2026-08-15 became 2026-08-14 in Asia/Kolkata).
+      // Keep only DATE columns as YYYY-MM-DD strings; DATETIME/TIMESTAMP values
+      // remain Date objects for the existing timestamp mappings.
+      dateStrings: ["DATE"],
     });
   }
 

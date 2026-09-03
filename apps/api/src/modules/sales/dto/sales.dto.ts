@@ -19,6 +19,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import {
+  BOOKING_STATUSES,
   FOLLOW_UP_STATUSES,
   FOLLOW_UP_TYPES,
   LEAD_PRIORITIES,
@@ -27,6 +28,7 @@ import {
   SITE_VISIT_STATUSES,
   UNIT_PRICE_BASES,
   UNIT_STATUSES,
+  type BookingStatus,
   type FollowUpStatus,
   type FollowUpType,
   type LeadPriority,
@@ -184,8 +186,29 @@ export class CreateSiteVisitDto {
   attendeeCount?: number;
 }
 
+export class QuerySiteVisitsDto {
+  @IsOptional() @IsIn(SITE_VISIT_STATUSES) status?: SiteVisitStatus;
+  @IsOptional() @IsUUID() assignedSalesperson?: string;
+  @IsOptional() @IsDateString() scheduledFrom?: string;
+  @IsOptional() @IsDateString() scheduledTo?: string;
+}
+
+export class QueryBookingsDto {
+  @IsOptional() @IsIn(BOOKING_STATUSES) status?: BookingStatus;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(160) search?: string;
+  @IsOptional() @IsDateString() bookedFrom?: string;
+  @IsOptional() @IsDateString() bookedTo?: string;
+}
+
 export class UpdateSiteVisitDto {
   @IsIn(SITE_VISIT_STATUSES) status!: SiteVisitStatus;
+  @IsOptional() @IsDateString() scheduledAt?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  attendeeCount?: number;
   @IsOptional() @IsString() @MaxLength(4000) customerFeedback?: string;
   @IsOptional() @IsString() @MaxLength(4000) objectionsConcerns?: string;
   @IsOptional() @IsString() @MaxLength(4000) nextAction?: string;
@@ -260,12 +283,17 @@ export class CreateBookingDto {
   @IsUUID() leadId!: string;
   @IsOptional() @IsUUID() unitId?: string;
   @IsDateString() bookingDate!: string;
+  @IsOptional()
   @Transform(trim)
   @IsString()
   @MinLength(2)
   @MaxLength(160)
-  customerName!: string;
-  @Transform(trim) @IsString() @Length(7, 24) customerMobile!: string;
+  customerName?: string;
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @Length(7, 24)
+  customerMobile?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) bookingAmount?: number;
   @IsOptional()
   @Transform(trim)

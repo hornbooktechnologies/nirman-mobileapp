@@ -3,6 +3,7 @@
     "main": "मुख्य नेविगेशन",
     "open": "{{screen}} खोलें",
     "openMenu": "मेन्यू खोलें",
+    "openNotifications": "सूचनाएँ खोलें, {{count}} अपठित",
     "goBack": "वापस जाएँ"
   },
   "tabs": {
@@ -33,6 +34,11 @@
     "attendance": { "title": "हाज़िरी", "description": "कामगारों की उपस्थिति और अनुपस्थिति" },
     "wages": { "title": "मज़दूरी", "description": "कामगारों का भुगतान" },
     "kharchi": { "title": "खर्ची", "description": "कामगार अग्रिम और कटौती" },
+    "materials": { "title": "सामग्री", "description": "अनुरोध, अनुमोदन और डिलीवरी" },
+    "expenses": { "title": "साइट खर्च", "description": "खर्च, मंज़ूरी और समायोजन" },
+    "progress": { "title": "प्रोजेक्ट प्रगति", "description": "चरण पूर्णता और साइट अपडेट" },
+    "gallery": { "title": "साइट गैलरी", "description": "फोटो और तारीख के अनुसार प्रोजेक्ट डायरी" },
+    "notifications": { "title": "सूचनाएँ", "description": "महत्वपूर्ण अपडेट और अनुमोदन" },
     "sales": { "title": "सेल्स", "description": "लीड, फ़ॉलो-अप और इन्वेंटरी" },
     "calendar": { "title": "कार्य कैलेंडर", "description": "कार्य दिवस और साइट बंदी" },
     "menu": {

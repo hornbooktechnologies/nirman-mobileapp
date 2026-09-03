@@ -1,0 +1,19 @@
+{
+  "screen": { "title": "Site Gallery" },
+  "summary": { "title": "Project diary", "values": "{{published}} published · {{pending}} pending · {{today}} today" },
+  "filter": { "title": "Browse by category", "all": "All" },
+  "diary": { "title": "Photo diary", "count": "{{count}} shown" },
+  "category": { "PROGRESS": "Progress", "WORK": "Site work", "MATERIAL_DELIVERY": "Material delivery", "SAFETY": "Safety", "ISSUE": "Issue", "OTHER": "Other" },
+  "status": { "PENDING": "Pending", "APPROVED": "Published", "REJECTED": "Rejected" },
+  "stage": { "FOUNDATION": "Foundation", "PLINTH": "Plinth", "SLAB": "Slab", "BRICKWORK": "Brickwork", "PLASTERING": "Plastering", "ELECTRICAL": "Electrical", "PLUMBING": "Plumbing", "FINISHING": "Finishing", "HANDOVER": "Handover" },
+  "card": { "photoA11y": "Project diary photo, {{category}}", "noCaption": "Site update" },
+  "queue": { "title": "Upload queue", "count": "{{count}} waiting", "previewA11y": "Queued photo preview", "retry": "Retry", "uploading": "Uploading…", "state": { "QUEUED": "Ready to upload", "UPLOADING": "Uploading securely", "FAILED": "Upload needs attention" } },
+  "capture": { "title": "Add site photo", "description": "Capture a clear field update. It stays in your queue until the server confirms upload.", "action": "Add photo", "openA11y": "Take or select a site photo", "camera": "Take photo", "library": "Choose from gallery", "change": "Choose a different photo", "queue": "Save and upload", "saving": "Saving…", "previewA11y": "Selected site photo preview", "cameraPermission": "Camera access is needed to take a site photo.", "libraryPermission": "Photo access is needed to choose a site photo." },
+  "fields": { "category": "Category", "stage": "Construction stage", "noStage": "No stage", "caption": "Caption", "captionHelper": "Briefly describe what changed or needs attention." },
+  "review": { "approve": "Approve", "reject": "Reject", "approveTitle": "Publish this photo?", "approveDescription": "It will become visible in the Project diary.", "rejectTitle": "Reject this photo?", "rejectDescription": "Give the uploader a clear reason so they can correct it.", "reason": "Rejection reason", "working": "Saving…" },
+  "validation": { "photoRequired": "Take or choose a photo first.", "rejectionReason": "Enter at least 8 characters explaining the rejection." },
+  "loading": { "list": "Loading Project diary…", "more": "Loading more photos…", "summary": "Loading diary summary…" },
+  "empty": { "title": "No diary photos yet", "description": "Capture the first visual update for this Project.", "filteredTitle": "No photos in this category", "filteredDescription": "Choose another category or add a new photo.", "noProjectTitle": "Select a Project", "noProjectDescription": "Gallery opens in the currently selected Project.", "permissionTitle": "Gallery access unavailable", "permissionDescription": "Your Project role does not include Gallery access." },
+  "errors": { "title": "Gallery unavailable", "loadFailed": "Unable to load the Project diary.", "uploadFailed": "Upload failed. Your photo remains safely queued.", "queueFailed": "Unable to save this photo to the upload queue.", "reviewFailed": "Unable to complete the review." },
+  "success": { "uploaded": "Photo uploaded to the Project diary.", "approved": "Photo published.", "rejected": "Photo rejected with feedback." }
+}

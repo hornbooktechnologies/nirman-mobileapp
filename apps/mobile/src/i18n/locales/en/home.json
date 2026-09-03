@@ -6,12 +6,83 @@
     "noActiveOrganization": "No active organization",
     "organizationMember": "Organization member"
   },
+  "role": {
+    "badge": { "OWNER": "Owner command", "CONTRACTOR": "Contractor command", "SUPERVISOR": "Site command", "SALES": "Sales command", "GENERAL": "Project command" },
+    "title": { "OWNER": "Your projects, clearly in control", "CONTRACTOR": "Today’s execution at a glance", "SUPERVISOR": "Your site priorities for today", "SALES": "Move every opportunity forward", "GENERAL": "Your project at a glance" },
+    "subtitle": { "OWNER": "Live operational and commercial signals for {{project}}.", "CONTRACTOR": "Workforce, costs and progress for {{project}}.", "SUPERVISOR": "The next field actions that matter at {{project}}.", "SALES": "Follow-ups, visits and pipeline for {{project}}.", "GENERAL": "Only the information your access allows for {{project}}." },
+    "salesPulse": "Sales pulse",
+    "metrics": { "present": "Present today", "attention": "Needs attention", "progress": "Progress", "newLeads": "New leads", "followUps": "Follow-ups today", "siteVisits": "Visits today", "pipeline": "Active pipeline", "overdueFollowUps": "Overdue follow-ups", "expiringBlocks": "Blocks expiring", "bookedUnits": "Booked units" },
+    "actions": { "MARK_ATTENDANCE": "Attendance", "ADD_KHARCHI": "Add Kharchi", "REQUEST_MATERIAL": "Request material", "ADD_EXPENSE": "Add expense", "UPDATE_PROGRESS": "Update progress", "UPLOAD_PHOTO": "Upload photo", "ADD_LEAD": "Add lead", "VIEW_FOLLOWUPS": "Follow-ups", "VIEW_PROJECT": "Open project" },
+    "actionHints": { "MARK_ATTENDANCE": "Open today’s attendance", "ADD_KHARCHI": "Record a worker advance", "REQUEST_MATERIAL": "Create a material request", "ADD_EXPENSE": "Record a site expense", "UPDATE_PROGRESS": "Record stage progress", "UPLOAD_PHOTO": "Add a site diary photo", "ADD_LEAD": "Create a sales lead", "VIEW_FOLLOWUPS": "Review scheduled follow-ups", "VIEW_PROJECT": "Open the selected project" }
+  },
   "metrics": {
     "workingSites": "Working sites",
     "workingSitesA11y_one": "{{count}} working site",
     "workingSitesA11y_other": "{{count}} working sites",
     "projectScope": "Project access",
     "projectScopeA11y": "Project access: {{scope}}"
+  },
+  "overview": {
+    "eyebrow": "Project context",
+    "title": "Site overview"
+  },
+  "data": {
+    "loading": "Updating site information…",
+    "unavailable": "This information is temporarily unavailable.",
+    "retry": "Retry dashboard"
+  },
+  "today": {
+    "eyebrow": "Live attendance",
+    "title": "Today at site",
+    "workers": "Assigned workers",
+    "workersA11y": "{{count}} assigned workers",
+    "present": "Present today",
+    "presentA11y": "{{count}} present today",
+    "absent": "Absent today",
+    "absentA11y": "{{count}} absent today",
+    "spend": "Today's spend",
+    "spendA11y": "Today's recognized site spend: {{amount}}"
+  },
+  "progress": {
+    "title": "Project progress",
+    "dataPending": "Stage-level progress is awaiting project progress data."
+  },
+  "attention": {
+    "eyebrow": "Action queue",
+    "title": "Needs attention",
+    "clear": "No material or expense items need attention.",
+    "materialApprovals_one": "{{count}} material request",
+    "materialApprovals_other": "{{count}} material requests",
+    "materialApprovalsMeta": "Waiting in the approval workflow",
+    "materialApprovalsA11y_one": "Open {{count}} material request waiting for approval",
+    "materialApprovalsA11y_other": "Open {{count}} material requests waiting for approval",
+    "overdueMaterials_one": "{{count}} overdue material request",
+    "overdueMaterials_other": "{{count}} overdue material requests",
+    "overdueMaterialsMeta": "Required date has passed",
+    "overdueMaterialsA11y_one": "Open {{count}} overdue material request",
+    "overdueMaterialsA11y_other": "Open {{count}} overdue material requests",
+    "pendingExpenses_one": "{{count}} pending expense",
+    "pendingExpenses_other": "{{count}} pending expenses",
+    "pendingExpensesA11y_one": "Open {{count}} pending expense worth {{amount}}",
+    "pendingExpensesA11y_other": "Open {{count}} pending expenses worth {{amount}}"
+  },
+  "finance": {
+    "eyebrow": "This month",
+    "title": "Financial snapshot",
+    "expenses": "Recognized site expenses",
+    "expensesA11y": "Recognized site expenses this month: {{amount}}",
+    "kharchi": "Kharchi paid",
+    "kharchiA11y": "Kharchi balance: {{amount}}",
+    "outstandingKharchi": "Outstanding Kharchi",
+    "wageEstimate": "Wage estimate",
+    "wageEstimateA11y": "Current wage estimate: {{amount}}"
+  },
+  "quickActions": {
+    "eyebrow": "Tools",
+    "title": "Quick actions",
+    "more": "More",
+    "moreHint": "Open all available workspace tools",
+    "createProjectHint": "Create a new project"
   },
   "projectScope": {
     "ALL": "All projects",

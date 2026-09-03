@@ -3,6 +3,7 @@
     "main": "Main navigation",
     "open": "Open {{screen}}",
     "openMenu": "Open menu",
+    "openNotifications": "Open notifications, {{count}} unread",
     "goBack": "Go back"
   },
   "tabs": {
@@ -33,6 +34,11 @@
     "attendance": { "title": "Attendance", "description": "Worker presence and absences" },
     "wages": { "title": "Wages", "description": "Worker payments" },
     "kharchi": { "title": "Kharchi", "description": "Worker advances and deductions" },
+    "materials": { "title": "Materials", "description": "Requests, approvals and deliveries" },
+    "expenses": { "title": "Site Expenses", "description": "Spend, approvals and adjustments" },
+    "progress": { "title": "Project Progress", "description": "Stage completion and site updates" },
+    "gallery": { "title": "Site Gallery", "description": "Photos and chronological Project diary" },
+    "notifications": { "title": "Notifications", "description": "Important updates and approvals" },
     "sales": { "title": "Sales", "description": "Leads, follow-ups and inventory" },
     "calendar": { "title": "Work Calendar", "description": "Working days and site closures" },
     "menu": {

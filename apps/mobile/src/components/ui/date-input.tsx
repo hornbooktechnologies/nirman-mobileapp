@@ -18,6 +18,7 @@ type DateInputProps = {
   minimumDate?: Date;
   maximumDate?: Date;
   allowClear?: boolean;
+  showPickerIndicator?: boolean;
 };
 
 export function DateInput({
@@ -28,6 +29,7 @@ export function DateInput({
   minimumDate,
   maximumDate,
   allowClear = true,
+  showPickerIndicator = false,
 }: DateInputProps) {
   const { t, i18n } = useTranslation('common');
   const selectedDate = parseDateOnly(value) ?? new Date();
@@ -85,6 +87,15 @@ export function DateInput({
             <AppIcon name="chevron-down" size={20} color={mobileTheme.color.text.muted} />
           </Pressable>
         )}
+        {value && showPickerIndicator ? (
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={styles.pickerIndicator}
+          >
+            <AppIcon name="chevron-down" size={20} color={mobileTheme.color.text.muted} />
+          </View>
+        ) : null}
         {value && allowClear ? (
           <Pressable
             accessibilityLabel={t('date.clear')}
@@ -158,6 +169,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
     width: 48,
+  },
+  pickerIndicator: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingRight: mobileTheme.spacing[3],
   },
   invalid: {
     borderColor: mobileTheme.color.status.danger.foreground,
