@@ -3,6 +3,7 @@
     "main": "મુખ્ય નેવિગેશન",
     "open": "{{screen}} ખોલો",
     "openMenu": "મેનુ ખોલો",
+    "openNotifications": "સૂચનાઓ ખોલો, {{count}} ન વાંચેલી",
     "goBack": "પાછા જાઓ"
   },
   "tabs": {
@@ -36,6 +37,8 @@
     "materials": { "title": "સામગ્રી", "description": "વિનંતી, મંજૂરી અને ડિલિવરી" },
     "expenses": { "title": "સાઇટ ખર્ચ", "description": "ખર્ચ, મંજૂરી અને સમાયોજન" },
     "progress": { "title": "પ્રોજેક્ટ પ્રગતિ", "description": "તબક્કાની પૂર્ણતા અને સાઇટ અપડેટ" },
+    "gallery": { "title": "સાઇટ ગેલેરી", "description": "ફોટા અને સમયક્રમ મુજબ પ્રોજેક્ટ ડાયરી" },
+    "notifications": { "title": "સૂચનાઓ", "description": "મહત્વપૂર્ણ અપડેટ અને મંજૂરીઓ" },
     "sales": { "title": "સેલ્સ", "description": "લીડ, ફોલો-અપ અને ઇન્વેન્ટરી" },
     "calendar": { "title": "કાર્ય કૅલેન્ડર", "description": "કાર્ય દિવસો અને સાઇટ બંધ" },
     "menu": {

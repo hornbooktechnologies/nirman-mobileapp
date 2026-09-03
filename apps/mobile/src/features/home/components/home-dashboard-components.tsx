@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import type { RoleDashboardProfile } from '@nirman-app/shared';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppIcon, AppText, Card, IconContainer, type AppIconName } from '../../../components/ui';
@@ -24,6 +26,29 @@ export function HomeSectionHeader({ eyebrow, title, trailing }: HomeSectionHeade
       </View>
       {trailing}
     </View>
+  );
+}
+
+export function RoleDashboardHero({ profile, title, subtitle, badge, metrics }: { profile: RoleDashboardProfile; title: string; subtitle: string; badge: string; metrics: Array<{ label: string; value: string }> }) {
+  const icon = profile === 'SALES' ? 'account-tie-outline' : profile === 'SUPERVISOR' ? 'hard-hat' : profile === 'CONTRACTOR' ? 'tools' : 'view-dashboard-outline';
+  return (
+    <LinearGradient colors={mobileTheme.gradient.darkBrand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.roleHero}>
+      <View accessible={false} style={styles.roleHeroGlow} />
+      <View style={styles.roleHeroTop}>
+        <View style={styles.roleHeroIcon}><AppIcon color={mobileTheme.color.text.inverse} name={icon} size={mobileTheme.icon.md} /></View>
+        <AppText style={styles.roleHeroBadge} weight={700}>{badge}</AppText>
+      </View>
+      <AppText style={styles.roleHeroTitle} weight={700}>{title}</AppText>
+      <AppText style={styles.roleHeroSubtitle} weight={500}>{subtitle}</AppText>
+      <View style={styles.roleHeroMetrics}>
+        {metrics.slice(0, 3).map((metric, index) => (
+          <View key={metric.label} style={[styles.roleHeroMetric, index > 0 && styles.roleHeroMetricBorder]}>
+            <AppText style={styles.roleHeroMetricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} weight={700}>{metric.value}</AppText>
+            <AppText style={styles.roleHeroMetricLabel} numberOfLines={2} weight={500}>{metric.label}</AppText>
+          </View>
+        ))}
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -62,12 +87,12 @@ type SiteStat = {
   value: string | number;
 };
 
-export function TodayAtSiteCard({ loadingLabel, stats, title }: { loadingLabel?: string; stats: SiteStat[]; title: string }) {
+export function TodayAtSiteCard({ artwork = true, loadingLabel, stats, title }: { artwork?: boolean; loadingLabel?: string; stats: SiteStat[]; title: string }) {
   const statRows = [stats.slice(0, 2), stats.slice(2, 4)].filter((row) => row.length > 0);
 
   return (
     <Card style={styles.storyCard}>
-      <Image accessible={false} resizeMode="contain" source={WORKFORCE_ART} style={styles.workforceArtwork} />
+      {artwork ? <Image accessible={false} resizeMode="contain" source={WORKFORCE_ART} style={styles.workforceArtwork} /> : null}
       <View style={styles.cardHeading}>
         <AppIcon color={mobileTheme.color.action.primary} name="calendar-today" size={mobileTheme.icon.md} />
         <AppText style={styles.cardHeadingText} weight={700}>{title}</AppText>
@@ -239,6 +264,18 @@ export function ProjectProgressCard({ accessibilityLabel, emptyLabel, loadingLab
 }
 
 const styles = StyleSheet.create({
+  roleHero: { borderRadius: mobileTheme.radius.xxl, gap: mobileTheme.spacing[2], minHeight: 230, overflow: 'hidden', padding: mobileTheme.spacing[5], ...mobileShadows.floating },
+  roleHeroGlow: { backgroundColor: mobileTheme.color.brand.secondary, borderRadius: mobileTheme.radius.full, height: 190, opacity: 0.16, position: 'absolute', right: -70, top: -80, width: 190 },
+  roleHeroTop: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
+  roleHeroIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.border.inverse, borderRadius: mobileTheme.radius.full, height: 44, justifyContent: 'center', width: 44 },
+  roleHeroBadge: { ...mobileText.caption, color: mobileTheme.color.text.inverse, flex: 1, letterSpacing: 0.4, opacity: 0.82, textTransform: 'uppercase' },
+  roleHeroTitle: { ...mobileText.title, color: mobileTheme.color.text.inverse, fontSize: 26, lineHeight: 32, marginTop: mobileTheme.spacing[2], maxWidth: '86%' },
+  roleHeroSubtitle: { ...mobileText.body, color: mobileTheme.color.text.inverse, fontSize: 14, lineHeight: 20, maxWidth: '90%', opacity: 0.76 },
+  roleHeroMetrics: { backgroundColor: mobileTheme.color.border.inverse, borderColor: mobileTheme.color.border.inverse, borderRadius: mobileTheme.radius.lg, borderWidth: 1, flexDirection: 'row', marginTop: mobileTheme.spacing[3], overflow: 'hidden' },
+  roleHeroMetric: { flex: 1, gap: mobileTheme.spacing[1], minHeight: 70, paddingHorizontal: mobileTheme.spacing[2], paddingVertical: mobileTheme.spacing[3] },
+  roleHeroMetricBorder: { borderColor: mobileTheme.color.border.inverse, borderLeftWidth: 1 },
+  roleHeroMetricValue: { ...mobileText.sectionTitle, color: mobileTheme.color.text.inverse, fontSize: 19, lineHeight: 24 },
+  roleHeroMetricLabel: { ...mobileText.caption, color: mobileTheme.color.text.inverse, fontSize: 10, lineHeight: 14, opacity: 0.72 },
   sectionHeader: {
     alignItems: 'flex-end',
     flexDirection: 'row',

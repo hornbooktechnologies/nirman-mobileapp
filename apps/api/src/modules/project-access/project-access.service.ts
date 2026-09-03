@@ -2,17 +2,17 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import type { PermissionKey, ProjectAccessScope } from '@nirman-app/shared';
-import { OrganizationsRepository } from '../organizations/organizations.repository';
-import type { AuthenticatedUser } from '../auth/types/auth.types';
-import { isPlatformUser } from '../auth/platform-access';
-import { ProjectAccessRepository } from './project-access.repository';
+} from "@nestjs/common";
+import type { PermissionKey, ProjectAccessScope } from "@nirman-app/shared";
+import { OrganizationsRepository } from "../organizations/organizations.repository";
+import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { isPlatformUser } from "../auth/platform-access";
+import { ProjectAccessRepository } from "./project-access.repository";
 import {
   ProjectAccessSummary,
   ResolvedOrganizationAccess,
   ResolvedProjectAccess,
-} from './types/project-access.types';
+} from "./types/project-access.types";
 
 @Injectable()
 export class ProjectAccessService {
@@ -27,9 +27,9 @@ export class ProjectAccessService {
     requiredPermission?: PermissionKey,
   ): Promise<ResolvedOrganizationAccess> {
     const organization = await this.organizationsRepo.findById(organizationId);
-    if (!organization) throw new NotFoundException('Organization not found');
-    if (organization.status !== 'ACTIVE') {
-      throw new ForbiddenException('Organization is not active');
+    if (!organization) throw new NotFoundException("Organization not found");
+    if (organization.status !== "ACTIVE") {
+      throw new ForbiddenException("Organization is not active");
     }
 
     const membership = await this.organizationsRepo.findActiveMemberForUser(
@@ -38,14 +38,14 @@ export class ProjectAccessService {
     );
     if (!membership) {
       throw new ForbiddenException(
-        'Active organization membership is required',
+        "Active organization membership is required",
       );
     }
 
     const permissions = await this.getPermissionKeys(membership.roleId);
     if (requiredPermission && !permissions.includes(requiredPermission)) {
       throw new ForbiddenException(
-        'You do not have permission to perform this action',
+        "You do not have permission to perform this action",
       );
     }
 
@@ -66,7 +66,7 @@ export class ProjectAccessService {
     }
 
     let memberships: Awaited<
-      ReturnType<OrganizationsRepository['findMembershipsForUser']>
+      ReturnType<OrganizationsRepository["findMembershipsForUser"]>
     >;
     try {
       memberships = await this.organizationsRepo.findMembershipsForUser(
@@ -78,8 +78,8 @@ export class ProjectAccessService {
     }
     const activeMemberships = memberships.filter(
       (membership) =>
-        membership.status === 'ACTIVE' &&
-        membership.organization.status === 'ACTIVE',
+        membership.status === "ACTIVE" &&
+        membership.organization.status === "ACTIVE",
     );
     const activeMembership =
       activeMemberships.find(
@@ -96,7 +96,7 @@ export class ProjectAccessService {
         )
       : {
           organizationId: null,
-          projectScope: 'NONE' as ProjectAccessScope,
+          projectScope: "NONE" as ProjectAccessScope,
           activeProjectId: null,
           projects: [],
         };
@@ -108,7 +108,7 @@ export class ProjectAccessService {
         email: user.email,
         mobile: user.phone,
         avatarUrl: user.avatar,
-        status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+        status: user.isActive ? "ACTIVE" : "INACTIVE",
       },
       activeOrganization: activeMembership
         ? {
@@ -127,9 +127,9 @@ export class ProjectAccessService {
         ? {
             id: activeMembership.roleId,
             key:
-              activeMembership.role?.name?.toUpperCase().replace(/\s+/g, '_') ??
+              activeMembership.role?.name?.toUpperCase().replace(/\s+/g, "_") ??
               activeMembership.roleId,
-            name: activeMembership.role?.name ?? 'Role',
+            name: activeMembership.role?.name ?? "Role",
           }
         : null,
       memberships: memberships.map((membership) => ({
@@ -141,9 +141,9 @@ export class ProjectAccessService {
         role: {
           id: membership.roleId,
           key:
-            membership.role?.name?.toUpperCase().replace(/\s+/g, '_') ??
+            membership.role?.name?.toUpperCase().replace(/\s+/g, "_") ??
             membership.roleId,
-          name: membership.role?.name ?? 'Role',
+          name: membership.role?.name ?? "Role",
         },
         organizationWideProjectAccess: membership.organizationWideProjectAccess,
       })),
@@ -166,9 +166,9 @@ export class ProjectAccessService {
     );
     const projectsWithPermissions = await Promise.all(
       projects.map(async (project) => {
-        const permissionMode = project.permission_mode ?? 'ROLE_DEFAULT';
+        const permissionMode = project.permission_mode ?? "ROLE_DEFAULT";
         const grantedPermissions =
-          permissionMode === 'CUSTOM'
+          permissionMode === "CUSTOM"
             ? await this.accessRepo.findProjectMemberPermissionGrants(
                 organizationId,
                 project.id,
@@ -179,7 +179,7 @@ export class ProjectAccessService {
           ...project,
           permissionMode,
           permissions:
-            permissionMode === 'CUSTOM'
+            permissionMode === "CUSTOM"
               ? access.permissions.filter((permission) =>
                   grantedPermissions.includes(permission),
                 )
@@ -188,7 +188,7 @@ export class ProjectAccessService {
       }),
     );
     const activeProjects = projectsWithPermissions.filter(
-      (project) => project.status === 'ACTIVE',
+      (project) => project.status === "ACTIVE",
     );
     const activeProjectId =
       activeProjects.length === 1 ? activeProjects[0].id : null;
@@ -196,10 +196,10 @@ export class ProjectAccessService {
     return {
       organizationId,
       projectScope: access.organizationWideProjectAccess
-        ? 'ALL'
+        ? "ALL"
         : projectsWithPermissions.length > 0
-          ? 'ASSIGNED'
-          : 'NONE',
+          ? "ASSIGNED"
+          : "NONE",
       activeProjectId,
       projects: projectsWithPermissions.map((project) => ({
         id: project.id,
@@ -220,60 +220,68 @@ export class ProjectAccessService {
     projectId: string,
     requiredPermission: PermissionKey,
   ): Promise<ResolvedProjectAccess> {
+    const access = await this.resolveProjectContext(
+      user,
+      organizationId,
+      projectId,
+    );
+    if (!access.rolePermissions.includes(requiredPermission)) {
+      throw new ForbiddenException({
+        code: "PROJECT_PERMISSION_DENIED",
+        message: "Your Organization Role does not allow this action",
+      });
+    }
+    if (!access.permissions.includes(requiredPermission)) {
+      throw new ForbiddenException({
+        code: "MEMBER_MODULE_ACCESS_DENIED",
+        message: "This action is not granted for your Project assignment",
+      });
+    }
+
+    return access;
+  }
+
+  async resolveProjectContext(
+    user: AuthenticatedUser,
+    organizationId: string,
+    projectId: string,
+  ): Promise<ResolvedProjectAccess> {
     const organizationAccess = await this.resolveOrganizationAccess(
       user,
       organizationId,
     );
-    if (!organizationAccess.permissions.includes(requiredPermission)) {
-      throw new ForbiddenException(
-        {
-          code: 'PROJECT_PERMISSION_DENIED',
-          message: 'Your Organization Role does not allow this action',
-        },
-      );
-    }
     const project = await this.accessRepo.findProjectById(
       organizationId,
       projectId,
     );
-    if (!project) throw new NotFoundException('Project not found');
-
+    if (!project) throw new NotFoundException("Project not found");
     const projectMember = await this.accessRepo.findActiveProjectMember(
       organizationId,
       projectId,
       organizationAccess.membership.id,
     );
     if (!organizationAccess.organizationWideProjectAccess && !projectMember) {
-      throw new ForbiddenException('You do not have access to this project');
+      throw new ForbiddenException("You do not have access to this project");
     }
-
     const grantedPermissions =
-      projectMember?.permission_mode === 'CUSTOM'
+      projectMember?.permission_mode === "CUSTOM"
         ? ((await this.accessRepo.findProjectMemberPermissionGrants(
             organizationId,
             projectId,
             organizationAccess.membership.id,
           )) as PermissionKey[])
         : [];
-    const effectivePermissions =
-      projectMember?.permission_mode === 'CUSTOM'
+    const permissions =
+      projectMember?.permission_mode === "CUSTOM"
         ? organizationAccess.permissions.filter((permission) =>
             grantedPermissions.includes(permission),
           )
         : organizationAccess.permissions;
-    if (!effectivePermissions.includes(requiredPermission)) {
-      throw new ForbiddenException(
-        {
-          code: 'MEMBER_MODULE_ACCESS_DENIED',
-          message: 'This action is not granted for your Project assignment',
-        },
-      );
-    }
 
     return {
       ...organizationAccess,
       rolePermissions: organizationAccess.permissions,
-      permissions: effectivePermissions,
+      permissions,
       project: {
         id: project.id,
         organizationId: project.organization_id,
@@ -283,8 +291,8 @@ export class ProjectAccessService {
         status: project.status,
       },
       projectAccessScope: organizationAccess.organizationWideProjectAccess
-        ? 'ALL'
-        : 'ASSIGNED',
+        ? "ALL"
+        : "ASSIGNED",
       projectMember: projectMember
         ? {
             id: projectMember.id,
@@ -314,12 +322,12 @@ export class ProjectAccessService {
         email: user.email,
         mobile: user.phone,
         avatarUrl: user.avatar,
-        status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+        status: user.isActive ? "ACTIVE" : "INACTIVE",
       },
       activeOrganization: null,
       activeRole: {
         id: user.roleId,
-        key: user.roleName.toUpperCase().replace(/\s+/g, '_'),
+        key: user.roleName.toUpperCase().replace(/\s+/g, "_"),
         name: user.roleName,
       },
       memberships: [],
@@ -329,7 +337,7 @@ export class ProjectAccessService {
       ),
       projectAccess: {
         organizationId: null,
-        projectScope: 'NONE' as ProjectAccessScope,
+        projectScope: "NONE" as ProjectAccessScope,
         activeProjectId: null,
         projects: [],
       },
@@ -340,11 +348,10 @@ export class ProjectAccessService {
 
   private isMissingFoundationTableError(error: unknown) {
     return (
-      typeof error === 'object' &&
+      typeof error === "object" &&
       error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'ER_NO_SUCH_TABLE'
+      "code" in error &&
+      (error as { code?: string }).code === "ER_NO_SUCH_TABLE"
     );
   }
-
 }

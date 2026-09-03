@@ -27,8 +27,10 @@ import {
   CreateUnitDto,
   DecideUnitHoldRequestDto,
   ImportUnitsDto,
+  QueryBookingsDto,
   QuerySalesDto,
   QueryScheduledSalesDto,
+  QuerySiteVisitsDto,
   QueryUnitsDto,
   UpdateFollowUpDto,
   UpdateLeadDto,
@@ -235,12 +237,18 @@ export class SalesController {
   async siteVisits(
     @Param("organizationId", ParseUUIDPipe) organizationId: string,
     @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Query() query: QuerySiteVisitsDto,
     @CurrentUser() actor: AuthenticatedUser,
   ) {
     return {
       success: true,
       message: "Site visits retrieved",
-      data: await this.sales.listSiteVisits(organizationId, projectId, actor),
+      data: await this.sales.listSiteVisits(
+        organizationId,
+        projectId,
+        query,
+        actor,
+      ),
     };
   }
 
@@ -507,12 +515,37 @@ export class SalesController {
   async bookings(
     @Param("organizationId", ParseUUIDPipe) organizationId: string,
     @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Query() query: QueryBookingsDto,
     @CurrentUser() actor: AuthenticatedUser,
   ) {
     return {
       success: true,
       message: "Bookings retrieved",
-      data: await this.sales.listBookings(organizationId, projectId, actor),
+      data: await this.sales.listBookings(
+        organizationId,
+        projectId,
+        query,
+        actor,
+      ),
+    };
+  }
+
+  @Get("bookings/:bookingId")
+  async booking(
+    @Param("organizationId", ParseUUIDPipe) organizationId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("bookingId", ParseUUIDPipe) bookingId: string,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return {
+      success: true,
+      message: "Booking retrieved",
+      data: await this.sales.getBooking(
+        organizationId,
+        projectId,
+        bookingId,
+        actor,
+      ),
     };
   }
 

@@ -35,6 +35,8 @@
     "FOLLOW_UP_NOT_FOUND": "આ ફોલો-અપ હવે ઉપલબ્ધ નથી.",
     "FOLLOW_UP_ACCESS_DENIED": "તમે આ ફોલો-અપ બદલી શકતા નથી.",
     "SITE_VISIT_NOT_FOUND": "આ સાઇટ વિઝિટ હવે ઉપલબ્ધ નથી.",
+    "SITE_VISIT_TRANSITION_INVALID": "આ સાઇટ વિઝિટ હવે બદલી શકાતી નથી.",
+    "SITE_VISIT_RESCHEDULE_DATE_REQUIRED": "આ વિઝિટ ફરી નક્કી કરવા નવી તારીખ અને સમય પસંદ કરો.",
     "UNIT_NOT_FOUND": "આ યુનિટ હવે ઉપલબ્ધ નથી.",
     "UNIT_NUMBER_DUPLICATE": "આ યુનિટ નંબર પ્રોજેક્ટમાં પહેલેથી છે.",
     "UNIT_PRICE_INVALID": "યુનિટની કિંમત પદ્ધતિ, રકમ, વિસ્તાર અને દર ચકાસો.",
@@ -94,6 +96,18 @@
     "PROGRESS_REGRESSION_NOTE_REQUIRED": "આ તબક્કાની પ્રગતિ ઘટાડવાનું કારણ નોંધમાં લખો.",
     "PROGRESS_VERSION_CONFLICT": "આ તબક્કો બદલાયો છે. નવીનતમ પ્રગતિ લોડ થઈ છે; ફરી પ્રયાસ પહેલાં તપાસો.",
     "PROGRESS_IDEMPOTENCY_CONFLICT": "આ પુનઃપ્રયાસ કી અલગ પ્રગતિ અપડેટ માટે પહેલેથી વપરાઈ છે.",
+    "GALLERY_ENTRY_NOT_FOUND": "આ ગેલેરી ફોટો હવે ઉપલબ્ધ નથી. રિફ્રેશ કરીને ફરી પ્રયત્ન કરો.",
+    "GALLERY_MEDIA_REQUIRED": "પહેલાં ફોટો લો અથવા પસંદ કરો.",
+    "GALLERY_MEDIA_TYPE_UNSUPPORTED": "JPEG, PNG અથવા WebP ચિત્ર પસંદ કરો.",
+    "GALLERY_MEDIA_TOO_LARGE": "10 MiB કરતાં નાનો ફોટો પસંદ કરો.",
+    "GALLERY_CAPTURED_AT_IN_FUTURE": "ફોટો લીધાનો સમય ભવિષ્યનો હોઈ શકતો નથી.",
+    "GALLERY_STATUS_TRANSITION_INVALID": "આ ગેલેરી ફોટાની અત્યારે સમીક્ષા થઈ શકતી નથી.",
+    "GALLERY_SELF_REVIEW_FORBIDDEN": "તમે તમારું ગેલેરી અપલોડ મંજૂર અથવા નકારી શકતા નથી.",
+    "GALLERY_VERSION_CONFLICT": "આ ગેલેરી ફોટો બદલાયો છે. સમીક્ષા પહેલાં રિફ્રેશ કરો.",
+    "GALLERY_IDEMPOTENCY_CONFLICT": "આ પુનઃપ્રયાસ કી અલગ ગેલેરી અપલોડ માટે પહેલેથી વપરાઈ છે.",
+    "NOTIFICATION_NOT_FOUND": "આ સૂચના હવે ઉપલબ્ધ નથી.",
+    "NOTIFICATION_DEVICE_TOKEN_INVALID": "આ ડિવાઇસને પુશ સૂચનાઓ માટે નોંધાવી શકાયું નથી.",
+    "NOTIFICATION_DEVICE_NOT_FOUND": "આ સૂચના ડિવાઇસ હવે નોંધાયેલું નથી.",
     "PROJECT_STATUS_INVALID": "આ કાર્ય માટે સક્રિય પ્રોજેક્ટ જરૂરી છે."
   }
 }

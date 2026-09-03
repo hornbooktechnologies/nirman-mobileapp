@@ -8,10 +8,11 @@ type IconButtonProps = PressableProps & {
   label?: string;
   icon?: AppIconName;
   showDot?: boolean;
+  badgeCount?: number;
   variant?: 'default' | 'glass' | 'primary' | 'ghost' | 'dark' | 'danger';
 };
 
-export function IconButton({ label, icon: Icon, showDot = false, variant = 'default', style, ...props }: IconButtonProps) {
+export function IconButton({ label, icon: Icon, showDot = false, badgeCount = 0, variant = 'default', style, ...props }: IconButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -28,6 +29,7 @@ export function IconButton({ label, icon: Icon, showDot = false, variant = 'defa
         <AppText style={[styles.label, variant === 'primary' || variant === 'dark' || variant === 'danger' ? styles.inverseLabel : styles.defaultLabel]} weight={700}>{label}</AppText>
       )}
       {showDot ? <View style={styles.dot} /> : null}
+      {badgeCount > 0 ? <View style={styles.badge}><AppText style={styles.badgeText} weight={700}>{badgeCount > 99 ? '99+' : String(badgeCount)}</AppText></View> : null}
     </Pressable>
   );
 }
@@ -89,4 +91,6 @@ const styles = StyleSheet.create({
     top: 9,
     width: 11,
   },
+  badge: { alignItems: 'center', backgroundColor: mobileTheme.color.action.danger, borderColor: mobileTheme.color.text.inverse, borderRadius: mobileTheme.radius.full, borderWidth: 2, justifyContent: 'center', minHeight: 20, minWidth: 20, paddingHorizontal: 4, position: 'absolute', right: -4, top: -4 },
+  badgeText: { color: mobileTheme.color.text.inverse, fontSize: 10, lineHeight: 12 },
 });

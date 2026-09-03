@@ -6,6 +6,15 @@
     "noActiveOrganization": "કોઈ સક્રિય સંસ્થા નથી",
     "organizationMember": "સંસ્થાનો સભ્ય"
   },
+  "role": {
+    "badge": { "OWNER": "માલિક કમાન્ડ", "CONTRACTOR": "કોન્ટ્રાક્ટર કમાન્ડ", "SUPERVISOR": "સાઇટ કમાન્ડ", "SALES": "સેલ્સ કમાન્ડ", "GENERAL": "પ્રોજેક્ટ કમાન્ડ" },
+    "title": { "OWNER": "તમારા પ્રોજેક્ટ, સ્પષ્ટ નિયંત્રણમાં", "CONTRACTOR": "આજના અમલની સ્પષ્ટ ઝલક", "SUPERVISOR": "આજની સાઇટ પ્રાથમિકતાઓ", "SALES": "દરેક તકને આગળ વધારો", "GENERAL": "તમારા પ્રોજેક્ટની ઝલક" },
+    "subtitle": { "OWNER": "{{project}} માટે જીવંત કામગીરી અને વ્યાવસાયિક સંકેતો.", "CONTRACTOR": "{{project}}નું કાર્યબળ, ખર્ચ અને પ્રગતિ.", "SUPERVISOR": "{{project}} પર આજના જરૂરી ફિલ્ડ કાર્યો.", "SALES": "{{project}}ના ફોલો-અપ, મુલાકાત અને પાઇપલાઇન.", "GENERAL": "{{project}} માટે માત્ર તમારી પરવાનગી મુજબની માહિતી." },
+    "salesPulse": "સેલ્સ સ્થિતિ",
+    "metrics": { "present": "આજે હાજર", "attention": "ધ્યાન જરૂરી", "progress": "પ્રગતિ", "newLeads": "નવી લીડ", "followUps": "આજના ફોલો-અપ", "siteVisits": "આજની મુલાકાત", "pipeline": "સક્રિય પાઇપલાઇન", "overdueFollowUps": "મોડી પડેલી ફોલો-અપ", "expiringBlocks": "સમાપ્ત થતા બ્લોક", "bookedUnits": "બુક થયેલ યુનિટ" },
+    "actions": { "MARK_ATTENDANCE": "હાજરી", "ADD_KHARCHI": "ખર્ચી ઉમેરો", "REQUEST_MATERIAL": "સામગ્રી માંગો", "ADD_EXPENSE": "ખર્ચ ઉમેરો", "UPDATE_PROGRESS": "પ્રગતિ અપડેટ", "UPLOAD_PHOTO": "ફોટો અપલોડ", "ADD_LEAD": "લીડ ઉમેરો", "VIEW_FOLLOWUPS": "ફોલો-અપ", "VIEW_PROJECT": "પ્રોજેક્ટ ખોલો" },
+    "actionHints": { "MARK_ATTENDANCE": "આજની હાજરી ખોલો", "ADD_KHARCHI": "કામદાર એડવાન્સ નોંધો", "REQUEST_MATERIAL": "સામગ્રી વિનંતી બનાવો", "ADD_EXPENSE": "સાઇટ ખર્ચ નોંધો", "UPDATE_PROGRESS": "તબક્કાની પ્રગતિ નોંધો", "UPLOAD_PHOTO": "સાઇટ ડાયરી ફોટો ઉમેરો", "ADD_LEAD": "સેલ્સ લીડ બનાવો", "VIEW_FOLLOWUPS": "નિયત ફોલો-અપ જુઓ", "VIEW_PROJECT": "પસંદ કરેલ પ્રોજેક્ટ ખોલો" }
+  },
   "metrics": {
     "workingSites": "ચાલુ સાઇટ્સ",
     "workingSitesA11y_one": "{{count}} ચાલુ સાઇટ",
@@ -63,7 +72,10 @@
     "expenses": "માન્ય સાઇટ ખર્ચ",
     "expensesA11y": "આ મહિનાનો માન્ય સાઇટ ખર્ચ: {{amount}}",
     "kharchi": "ચૂકવેલી ખર્ચી",
-    "kharchiA11y": "આ મહિને ચૂકવેલી ખર્ચી: {{amount}}"
+    "kharchiA11y": "ખર્ચી બાકી: {{amount}}",
+    "outstandingKharchi": "બાકી ખર્ચી",
+    "wageEstimate": "મજૂરી અંદાજ",
+    "wageEstimateA11y": "વર્તમાન મજૂરી અંદાજ: {{amount}}"
   },
   "quickActions": {
     "eyebrow": "સાધનો",

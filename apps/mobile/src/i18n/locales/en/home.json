@@ -6,6 +6,15 @@
     "noActiveOrganization": "No active organization",
     "organizationMember": "Organization member"
   },
+  "role": {
+    "badge": { "OWNER": "Owner command", "CONTRACTOR": "Contractor command", "SUPERVISOR": "Site command", "SALES": "Sales command", "GENERAL": "Project command" },
+    "title": { "OWNER": "Your projects, clearly in control", "CONTRACTOR": "Today’s execution at a glance", "SUPERVISOR": "Your site priorities for today", "SALES": "Move every opportunity forward", "GENERAL": "Your project at a glance" },
+    "subtitle": { "OWNER": "Live operational and commercial signals for {{project}}.", "CONTRACTOR": "Workforce, costs and progress for {{project}}.", "SUPERVISOR": "The next field actions that matter at {{project}}.", "SALES": "Follow-ups, visits and pipeline for {{project}}.", "GENERAL": "Only the information your access allows for {{project}}." },
+    "salesPulse": "Sales pulse",
+    "metrics": { "present": "Present today", "attention": "Needs attention", "progress": "Progress", "newLeads": "New leads", "followUps": "Follow-ups today", "siteVisits": "Visits today", "pipeline": "Active pipeline", "overdueFollowUps": "Overdue follow-ups", "expiringBlocks": "Blocks expiring", "bookedUnits": "Booked units" },
+    "actions": { "MARK_ATTENDANCE": "Attendance", "ADD_KHARCHI": "Add Kharchi", "REQUEST_MATERIAL": "Request material", "ADD_EXPENSE": "Add expense", "UPDATE_PROGRESS": "Update progress", "UPLOAD_PHOTO": "Upload photo", "ADD_LEAD": "Add lead", "VIEW_FOLLOWUPS": "Follow-ups", "VIEW_PROJECT": "Open project" },
+    "actionHints": { "MARK_ATTENDANCE": "Open today’s attendance", "ADD_KHARCHI": "Record a worker advance", "REQUEST_MATERIAL": "Create a material request", "ADD_EXPENSE": "Record a site expense", "UPDATE_PROGRESS": "Record stage progress", "UPLOAD_PHOTO": "Add a site diary photo", "ADD_LEAD": "Create a sales lead", "VIEW_FOLLOWUPS": "Review scheduled follow-ups", "VIEW_PROJECT": "Open the selected project" }
+  },
   "metrics": {
     "workingSites": "Working sites",
     "workingSitesA11y_one": "{{count}} working site",
@@ -63,7 +72,10 @@
     "expenses": "Recognized site expenses",
     "expensesA11y": "Recognized site expenses this month: {{amount}}",
     "kharchi": "Kharchi paid",
-    "kharchiA11y": "Kharchi paid this month: {{amount}}"
+    "kharchiA11y": "Kharchi balance: {{amount}}",
+    "outstandingKharchi": "Outstanding Kharchi",
+    "wageEstimate": "Wage estimate",
+    "wageEstimateA11y": "Current wage estimate: {{amount}}"
   },
   "quickActions": {
     "eyebrow": "Tools",

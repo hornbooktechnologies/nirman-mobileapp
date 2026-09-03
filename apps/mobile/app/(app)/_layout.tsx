@@ -1,15 +1,15 @@
-import { Redirect, Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { Redirect, Stack } from "expo-router";
+import { useTranslation } from "react-i18next";
 
-import { LoadingScreen } from '../../src/components/common';
-import { useSession } from '../../src/providers';
+import { LoadingScreen } from "../../src/components/common";
+import { useSession } from "../../src/providers";
 
 export default function ProtectedLayout() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const { isLoading, session } = useSession();
 
   if (isLoading) {
-    return <LoadingScreen message={t('loading.checkingSession')} />;
+    return <LoadingScreen message={t("loading.checkingSession")} />;
   }
 
   if (!session) {
@@ -34,8 +34,11 @@ export default function ProtectedLayout() {
       <Stack.Screen name="expenses" />
       <Stack.Screen name="expense-detail" />
       <Stack.Screen name="progress" />
+      <Stack.Screen name="gallery" />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="sales" />
       <Stack.Screen name="sales-lead" />
+      <Stack.Screen name="sales-booking" />
       <Stack.Screen name="sales-activity" />
       <Stack.Screen name="sales-unit" />
       <Stack.Screen name="sales-unit-import" />

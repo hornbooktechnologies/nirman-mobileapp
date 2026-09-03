@@ -11,6 +11,7 @@ export const PERMISSION_RESOURCES = [
   "users",
   "roles",
   "projects",
+  "dashboards",
   "project-members",
   "workers",
   "work-calendar",
@@ -20,6 +21,7 @@ export const PERMISSION_RESOURCES = [
   "materials",
   "expenses",
   "progress",
+  "gallery",
   "leads",
   "followups",
   "site-visits",
@@ -63,6 +65,7 @@ export const PERMISSION_ACTIONS = [
   "archive",
   "restore",
   "export",
+  "upload",
   "update-rate",
   "correct-locked",
   "adjust",
@@ -96,6 +99,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   users: "Users",
   roles: "Roles",
   projects: "Projects",
+  dashboards: "Dashboards",
   "project-members": "Project Members",
   workers: "Workers",
   "work-calendar": "Work Calendar",
@@ -105,6 +109,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   materials: "Materials",
   expenses: "Site Expenses",
   progress: "Project Progress",
+  gallery: "Site Gallery",
   leads: "Leads",
   followups: "Follow-ups",
   "site-visits": "Site Visits",
@@ -208,6 +213,13 @@ export const PROJECT_PERMISSIONS = [
   "project-members:view-all",
 ] as const satisfies readonly PermissionKey[];
 
+/** Role- and permission-aware customer dashboard access. */
+export const DASHBOARD_PERMISSIONS = [
+  "dashboards:read",
+] as const satisfies readonly PermissionKey[];
+
+export type DashboardPermissionKey = (typeof DASHBOARD_PERMISSIONS)[number];
+
 export type ProjectPermissionKey = (typeof PROJECT_PERMISSIONS)[number];
 
 /**
@@ -217,6 +229,7 @@ export type ProjectPermissionKey = (typeof PROJECT_PERMISSIONS)[number];
 export const FOUNDATION_PERMISSIONS = [
   ...ORGANIZATION_PERMISSIONS,
   ...PROJECT_PERMISSIONS,
+  ...DASHBOARD_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type FoundationPermissionKey = (typeof FOUNDATION_PERMISSIONS)[number];
@@ -327,6 +340,15 @@ export const PROGRESS_PERMISSIONS = [
 
 export type ProgressPermissionKey = (typeof PROGRESS_PERMISSIONS)[number];
 
+export const GALLERY_PERMISSIONS = [
+  "gallery:read",
+  "gallery:upload",
+  "gallery:approve",
+  "gallery:reject",
+] as const satisfies readonly PermissionKey[];
+
+export type GalleryPermissionKey = (typeof GALLERY_PERMISSIONS)[number];
+
 /** Sales CRM is a customer operational module, never a platform permission group. */
 export const SALES_PERMISSIONS = [
   "leads:read-own",
@@ -372,6 +394,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...MATERIAL_PERMISSIONS,
   ...EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
+  ...GALLERY_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -440,6 +463,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     permissions: PROGRESS_PERMISSIONS,
   },
   {
+    key: "GALLERY",
+    label: "Site Gallery",
+    permissions: GALLERY_PERMISSIONS,
+  },
+  {
     key: "SALES",
     label: "Sales",
     permissions: SALES_PERMISSIONS,
@@ -467,7 +495,9 @@ export const ALL_PERMISSIONS = [
   ...MATERIAL_PERMISSIONS,
   ...EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
+  ...GALLERY_PERMISSIONS,
   ...SALES_PERMISSIONS,
+  ...DASHBOARD_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 export type KnownPermissionKey = (typeof ALL_PERMISSIONS)[number];
@@ -535,6 +565,9 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "projects:view-all": "View all organization projects.",
   "projects:switch": "Switch active project context.",
 
+  "dashboards:read":
+    "Read role- and permission-specific dashboards for accessible Projects.",
+
   "project-members:read": "Read project member assignments.",
   "project-members:assign": "Assign members to projects.",
   "project-members:update": "Update project member assignments.",
@@ -600,6 +633,11 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "progress:read": "Read Project progress summaries and immutable history.",
   "progress:update": "Record a new Project stage progress update.",
   "progress:export": "Export Project progress history.",
+
+  "gallery:read": "Read accessible Project diary entries and media.",
+  "gallery:upload": "Upload Project diary images.",
+  "gallery:approve": "Approve another Member's pending Gallery entry.",
+  "gallery:reject": "Reject another Member's pending Gallery entry.",
 
   "leads:read-own": "Read assigned and self-created leads.",
   "leads:read-team": "Read leads assigned to the actor's sales team.",

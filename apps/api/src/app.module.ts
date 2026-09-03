@@ -19,6 +19,8 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { MaterialsModule } from "./modules/materials/materials.module";
 import { ExpensesModule } from "./modules/expenses/expenses.module";
 import { ProgressModule } from "./modules/progress/progress.module";
+import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { GalleryModule } from "./modules/gallery/gallery.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -47,6 +49,8 @@ import { AppService } from "./app.service";
     MaterialsModule,
     ExpensesModule,
     ProgressModule,
+    DashboardModule,
+    GalleryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

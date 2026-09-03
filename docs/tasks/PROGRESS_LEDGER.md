@@ -11,13 +11,13 @@ AI agents must update this file after every approved contract, implementation sl
 Current gate:
 
 ```text
-Project Progress API, migration `019`, schema, guarded roles, authenticated read runtime, and the Mobile vertical slice are verified. Authenticated write workflow and Mobile device acceptance remain pending.
+Role-specific Dashboard contract/API, migration `023`, guarded role sync, aggregate Expo integration, and premium layered Mobile presentation are verified. Supervisor/Sales role matrix and physical-device acceptance remain pending.
 ```
 
 Next recommended task:
 
 ```text
-Run authenticated Project Progress write/idempotency/concurrency and Mobile physical-device acceptance using deliberate test data.
+Run authenticated Supervisor and Sales dashboard responses, then complete narrow/large-phone, accessibility, reduced-motion, landscape, and en/hi/gu device review.
 ```
 
 ## 3. Completed Path
@@ -72,6 +72,8 @@ Run authenticated Project Progress write/idempotency/concurrency and Mobile phys
 | 46 | Site Expenses Mobile integration | implementation_complete_device_acceptance_pending | permission-aware navigation, spend summary, list/search/filter/export, workflow settings, create/draft/edit, detail/actions, immutable adjustments/timeline, error mapping, and en/hi/gu | Locale parity, Mobile type-check, Expo web and Android production exports, and diff check passed; authenticated API/device, accessibility, largest-text, landscape, timeout, and fluent-language acceptance pending |
 | 47 | Project Progress API and database | runtime_verified_write_acceptance_pending | contract/plan, shared nine-stage contracts, migration `019`, immutable/idempotent/concurrency-safe API, Audit integration, guarded role sync, summary/history/export/portfolio | Remote 20/20 current, table/grants verified, 27 suites/149 tests and API build passed; health and authenticated read summary `200`; authenticated business-data writes pending |
 | 48 | Project Progress Mobile integration | implementation_complete_device_acceptance_pending | permission-aware route/Menu/Home data, overall/stage cards, stage-filtered history, export, update sheet, errors/success, and en/hi/gu | 17-namespace parity, Mobile type-check, Android Expo export, and diff check passed; physical-device/accessibility/large-text/landscape/fluent review pending |
+| 49 | Notifications vertical slice | implementation_complete_device_acceptance_pending | formal contract, shared contracts/errors, migration `022`, recipient-safe list/read/summary/device APIs, transactional Expo push outbox with retry, nine customer role grants, localized Mobile inbox/badge/deep links | Remote 23/23 current; schema/grants verified; focused 5/5 and full 31-suite/164-test API passes; shared/API/Mobile checks, 18-namespace locale parity, Android Expo export, and diff check passed; authenticated real-device push/accessibility acceptance pending |
+| 50 | Role-specific Dashboards vertical slice | implementation_complete_device_acceptance_pending | shared role/profile/action contract, aggregated permission-aware API, migration `023`, nine operational role grants, single-request Expo integration, layered blueprint background, role command hero/actions, en/hi/gu | Remote 24/24 current; grants/four indexes verified; focused 2/2 API test, API build/type-check, authenticated Owner six-section smoke, Mobile type-check and locale parity passed; Supervisor/Sales and physical-device acceptance pending |
 
 ## 4. Verification Commands Recorded
 
@@ -385,3 +387,67 @@ Hindi, and Gujarati navigation/screen/accessibility/error copy is complete. Shar
 checks, 27 API suites with 149 tests, API build, locale parity across 17 namespaces, Android export,
 and whitespace checks pass. Authenticated write testing against deliberate business fixtures and
 physical-device/accessibility/large-text/landscape/fluent-language acceptance remain pending.
+
+## 2026-09-03: Site Gallery / Project Diary Vertical Slice
+
+The full Gallery contract, Files/Media ownership subset, shared vocabulary/RBAC, migration 020,
+NestJS API, guarded role seed, and multilingual Expo capture/queue/diary/review experience are
+implemented. The remote target is 21/21 current; both new tables and the intended eight customer
+role grants are verified, with no demo users or Gallery business records created.
+
+Shared/API/Mobile type checks, API build, 28 suites/153 tests, 18-namespace locale parity, Android
+Expo export, API/database health, and the unauthenticated Gallery guard pass. Real S3 upload/media
+streaming, authenticated workflow, and physical-device/accessibility/fluent-language acceptance
+remain pending because the current environment does not contain a storage bucket or credentials.
+
+## 2026-09-03: Site Visits Completion
+
+An audit confirmed that Site Visits already existed inside the Sales CRM contract, migration `011`,
+NestJS API, seed, and Expo Sales screen. The existing slice was completed rather than duplicated:
+Project lists now filter by status, salesperson, and schedule range; own-salesperson scoping cannot be
+overridden; rescheduling requires a new time; terminal outcomes are immutable; and the mobile workflow
+captures all statuses, attendee count, feedback, objections, and next action in English, Hindi, and Gujarati.
+
+The configured remote target remains 21/21 current with no pending/draft migrations. The guarded role
+seed was synchronized, an unintended Viewer `site-visits:manage` grant was removed, and read-only
+verification confirmed all 15 table columns, the four intended operational role grants, and zero Site
+Visit business rows. Shared/API checks, focused lint, 28 API suites / 156 tests, Android export,
+locale parity, and whitespace checks pass. Mobile type-check passed for this slice, then a final rerun
+reported only two concurrently introduced Expenses style errors outside Site Visits. Authenticated write
+and physical-device/accessibility acceptance remain pending.
+
+## 2026-09-03: Unit Inventory And Unit Blocking Reconciliation
+
+The requested Unit Inventory and Unit Blocking module was found already implemented within the
+Sales CRM vertical slice and was completed in place rather than recreated. Current source includes
+Project-scoped manual and CSV inventory, total/per-square-foot pricing, non-exclusive Lead interest,
+approval-based exclusive holds, direct manager blocks, release/expiry reconciliation, booking
+conversion, transactional row locking, unique active-workflow indexes, audit/timeline evidence,
+permission-aware Expo workflows, and English/Hindi/Gujarati copy.
+
+The approved remote target remained 21/21 current after the guarded migration runner. The guarded
+seed synchronized successfully with demo-user generation disabled. A repeatable read-only verifier
+now confirms the four Unit inventory/hold tables, pricing columns, all four unique workflow indexes,
+admin and Sales User inventory grants, removal of `inventory:block` from Sales User, and exclusion
+of Platform Super Admin. The target contains one existing Unit and zero active blocks; verification
+did not mutate business data. Focused Sales tests (16/16) and shared/API/Mobile type checks pass.
+Authenticated approval/release/booking workflows, a live concurrent-hold race, and physical-device,
+screen-reader, large-text, landscape, dark-mode, and fluent-language acceptance remain pending.
+
+## 2026-09-03: Lead Conversion And Booking Linkage Completion
+
+The requested Lead conversion/booking module was found inside the Sales CRM vertical slice and was
+completed in place. The API now exposes filtered booking lists and visible booking detail, derives
+customer and Lead-source snapshots from locked server records, fingerprints logical booking requests,
+returns the existing row after identical concurrent retries, and records confirmation/cancellation in
+immutable `audit_events` within the same transaction as Lead, Unit, block, interest, and Booking state.
+
+Migration `021_sales_booking_linkage.sql` was the only pending migration and was applied to the
+approved remote target. The guarded seed synchronized with demo-user generation disabled. The target
+is 22/22 current; read-only verification confirms all six linkage/restoration columns, all three
+booking integrity/query indexes, `audit_events`, the intended Sales User booking grants, no Platform
+Super Admin booking grants, and zero existing Booking rows. Mobile now keeps one idempotency key across
+uncertain retries and adds a multilingual Booking detail/cancellation experience using existing
+NirmanSite operational primitives. API/Mobile type checks, locale parity, and focused Sales tests pass.
+Authenticated live booking/idempotency/cancellation workflows and physical-device, screen-reader,
+large-text, landscape, dark-mode, and fluent-language acceptance remain pending.

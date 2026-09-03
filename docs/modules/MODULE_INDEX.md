@@ -27,8 +27,8 @@ AI agents must read this file before starting new module work.
 | 3 | Role And Permission Model | `docs/modules/foundation/role-permission-model/PLAN.md` | in_progress | Platform Settings access/save restored; Gmail delivery reaches SMTP but awaits a valid same-account App Password | Replace/test SMTP credential, then run the remaining full platform/customer role matrix |
 | 3A | Mobile Localization Foundation | `docs/modules/foundation/localization/CONTRACTS.md` | in_progress | Current Expo customer surface localized across common/auth/navigation/Home/Projects/Members/Team/Workers; static checks passing | Run authenticated physical-device, accessibility, large-text, and fluent Hindi/Gujarati review |
 | 4 | Audit Foundation | `docs/modules/foundation/audit/CONTRACTS.md` | candidate | none | Contract after Phase 1 review |
-| 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | candidate | none | Contract before gallery/evidence |
-| 6 | Notifications Foundation | `docs/modules/foundation/notifications/CONTRACTS.md` | candidate | none | Contract before approval-heavy modules |
+| 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | implemented_gallery_slice | Object storage configuration | Configure storage and run authenticated Gallery media smoke |
+| 6 | Notifications Foundation | `docs/modules/foundation/notifications/CONTRACTS.md`, `docs/modules/foundation/notifications/STATUS.md` | implementation_complete_device_acceptance_pending | In-app API, migration 022, guarded grants, Expo push outbox, and localized Mobile inbox/badge verified | Configure the EAS Project ID and run authenticated producer-to-device push/deep-link acceptance |
 | 7 | Offline Sync Foundation | `docs/modules/foundation/offline-sync/CONTRACTS.md` | candidate | none | Contract before offline writes |
 
 ## 4. Construction Operations Modules
@@ -43,19 +43,19 @@ AI agents must read this file before starting new module work.
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Run authenticated API and Mobile physical-device acceptance |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md`, `docs/modules/construction/progress/STATUS.md` | implementation_complete_device_acceptance_pending | Project Access + Audit; Files/Media and Offline Sync deferred | API/database/Mobile verified; run authenticated write and physical-device acceptance |
-| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md` | candidate | Files/Media + Project Access | Contract |
+| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md`, `docs/modules/construction/gallery/STATUS.md` | implementation_complete_storage_acceptance_pending | Files/Media + Project Access + Audit + Notifications | Configure S3, then run authenticated/device acceptance |
 
 ## 5. Sales Modules
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | in_progress | Project Access; Notifications/Audit integration remain downstream | Migrations through `015` and role seed applied; complete authenticated role/workflow, concurrency, and physical-device acceptance |
+| 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | implementation_complete_acceptance_pending | Project Access; notification delivery remains downstream | Site Visits, Unit inventory, and Lead conversion/booking linkage schema/RBAC/audit verification passed; complete authenticated role/workflow, live concurrency, and physical-device acceptance |
 
 ## 6. Oversight Modules
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 22 | Dashboards | `docs/modules/oversight/dashboards/CONTRACTS.md` | candidate | Core operations and sales data | Contract later |
+| 22 | Role-Specific Dashboards | `docs/modules/oversight/dashboards/CONTRACTS.md` | implementation_complete_device_acceptance_pending | Core operations + Sales + Project Access/RBAC | API, migration/seed, aggregate Mobile integration, and authenticated Owner smoke passed; complete Supervisor/Sales and physical-device acceptance |
 | 23 | Reports And Exports | `docs/modules/oversight/reports/CONTRACTS.md` | candidate | Core operations and sales data | Contract later |
 | 24 | Super Admin And Subscriptions | `docs/modules/platform/subscriptions/CONTRACTS.md` | in_progress | Configurable capacity contract approved; no hard-coded commercial values | Implement persistence, APIs, and manual Platform administration |
 

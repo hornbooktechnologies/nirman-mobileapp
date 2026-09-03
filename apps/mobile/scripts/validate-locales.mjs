@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const localeRoot = join(appRoot, 'src', 'i18n', 'locales');
 const languages = ['en', 'hi', 'gu'];
-const namespaces = ['common', 'auth', 'navigation', 'errors', 'home', 'projects', 'team', 'members', 'workers', 'attendance', 'calendar', 'wages', 'sales', 'kharchi', 'materials', 'expenses', 'progress'];
+const namespaces = ['common', 'auth', 'navigation', 'errors', 'home', 'projects', 'team', 'members', 'workers', 'attendance', 'calendar', 'wages', 'sales', 'kharchi', 'materials', 'expenses', 'progress', 'gallery'];
 
 function flatten(value, prefix = '') {
   return Object.entries(value).flatMap(([key, child]) => {

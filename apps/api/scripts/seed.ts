@@ -10,8 +10,10 @@ import {
 import {
   DEFAULT_APP_NAME,
   ATTENDANCE_PERMISSIONS,
+  DASHBOARD_PERMISSIONS,
   KHARCHI_PERMISSIONS,
   EXPENSE_PERMISSIONS,
+  GALLERY_PERMISSIONS,
   MATERIAL_PERMISSIONS,
   PROGRESS_PERMISSIONS,
   PLATFORM_ADMIN_PERMISSIONS,
@@ -77,6 +79,7 @@ const PLATFORM_SUPER_ADMIN_PERMISSIONS = [
 ] as const satisfies readonly PermissionKey[];
 
 const ORGANIZATION_ADMIN_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
   "organizations:update",
   "members:read",
@@ -103,11 +106,14 @@ const ORGANIZATION_ADMIN_PERMISSIONS = [
   ...MATERIAL_PERMISSIONS,
   ...EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
+  ...GALLERY_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 const PROJECT_MANAGER_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
+  "notifications:read",
   "members:read",
   "projects:read",
   "projects:update",
@@ -141,10 +147,13 @@ const PROJECT_MANAGER_PERMISSIONS = [
   "expenses:adjust",
   "expenses:export",
   ...PROGRESS_PERMISSIONS,
+  ...GALLERY_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 const CONTRACTOR_MEMBER_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
+  "notifications:read",
   "members:read",
   "projects:read",
   "projects:assign",
@@ -167,10 +176,14 @@ const CONTRACTOR_MEMBER_PERMISSIONS = [
   "expenses:update",
   "progress:read",
   "progress:update",
+  "gallery:read",
+  "gallery:upload",
 ] as const satisfies readonly PermissionKey[];
 
 const BUILDER_SUPERVISOR_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
+  "notifications:read",
   "members:read",
   "projects:read",
   "projects:switch",
@@ -191,10 +204,16 @@ const BUILDER_SUPERVISOR_PERMISSIONS = [
   "expenses:reject",
   "progress:read",
   "progress:update",
+  "gallery:read",
+  "gallery:upload",
+  "gallery:approve",
+  "gallery:reject",
 ] as const satisfies readonly PermissionKey[];
 
 const SITE_SUPERVISOR_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
+  "notifications:read",
   "members:read",
   "projects:read",
   "projects:switch",
@@ -216,10 +235,14 @@ const SITE_SUPERVISOR_PERMISSIONS = [
   "expenses:update",
   "progress:read",
   "progress:update",
+  "gallery:read",
+  "gallery:upload",
 ] as const satisfies readonly PermissionKey[];
 
 const SALES_USER_PERMISSIONS = [
+  ...DASHBOARD_PERMISSIONS,
   "organizations:read",
+  "notifications:read",
   "projects:read",
   "projects:switch",
   "leads:read-own",
@@ -235,9 +258,12 @@ const SALES_USER_PERMISSIONS = [
 ] as const satisfies readonly PermissionKey[];
 
 const VIEWER_PERMISSIONS = [
-  ...SALES_USER_PERMISSIONS,
+  ...SALES_USER_PERMISSIONS.filter(
+    (permission) => permission !== "site-visits:manage",
+  ),
   "workers:read",
   "progress:read",
+  "gallery:read",
 ] as const satisfies readonly PermissionKey[];
 
 const USER_MANAGER_COMPATIBILITY_PERMISSIONS = [

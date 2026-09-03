@@ -4,6 +4,7 @@ import type { DatabaseConnection } from "../../database/database.types";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type { QueryNotificationsDto } from "./dto/query-notifications.dto";
+import type { RegisterPushDeviceDto } from "./dto/register-push-device.dto";
 import {
   type CreateNotificationInput,
   NotificationsRepository,
@@ -56,6 +57,56 @@ export class NotificationsService {
     );
   }
 
+  async summary(organizationId: string, actor: AuthenticatedUser) {
+    await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "notifications:read",
+    );
+    return this.repository.summary(organizationId, actor.id);
+  }
+
+  async registerDevice(
+    organizationId: string,
+    dto: RegisterPushDeviceDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "notifications:read",
+    );
+    return this.repository.registerDevice(
+      organizationId,
+      actor.id,
+      dto.expoPushToken,
+      dto.platform,
+      dto.locale,
+    );
+  }
+
+  async deactivateDevice(
+    organizationId: string,
+    deviceId: string,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "notifications:read",
+    );
+    if (
+      !(await this.repository.deactivateDevice(
+        organizationId,
+        actor.id,
+        deviceId,
+      ))
+    ) {
+      throw new NotFoundException("NOTIFICATION_DEVICE_NOT_FOUND");
+    }
+    return { id: deviceId, active: false };
+  }
+
   async markRead(
     organizationId: string,
     notificationId: string,
@@ -73,7 +124,7 @@ export class NotificationsService {
         notificationId,
       ))
     ) {
-      throw new NotFoundException("Notification not found");
+      throw new NotFoundException("NOTIFICATION_NOT_FOUND");
     }
     return { id: notificationId, read: true };
   }

@@ -1,5 +1,30 @@
 # Current Task
 
+## Role-Specific Dashboards Vertical Slice
+
+On 2026-09-03, the Product Owner authorized the full Dashboard vertical slice, including API,
+migration, guarded seed sync, Mobile integration, and a carefully layered premium redesign. The
+authoritative contract is `docs/modules/oversight/dashboards/CONTRACTS.md`.
+
+The shared `RoleDashboardResponse` now defines Owner, Contractor, Supervisor, Sales, and General
+profiles; nullable permission-filtered sections; and server-derived quick actions. The NestJS
+endpoint `GET /organizations/:organizationId/projects/:projectId/dashboard` validates active
+Organization membership, exact Project access, `dashboards:read`, and effective CUSTOM Project
+grants before running only authorized aggregates. Mobile now uses this one endpoint instead of six
+independent dashboard requests and preserves the existing Project context, Today at Site, Progress,
+Needs Attention, Financial Snapshot, and Quick Actions hierarchy.
+
+The dashboard-only UI adds a layered blueprint/glow background, a dark olive role command hero,
+role-priority live metrics, Sales pulse, and role-specific action ordering using existing semantic
+tokens/components. English, Hindi, and Gujarati copy and accessibility hints are synchronized.
+
+Migration `023_role_specific_dashboards.sql` and the guarded seed ran on the configured remote
+development target with role-user creation disabled. The database is 24/24 current; four dashboard
+indexes and nine operational customer role grants were verified. Shared/API/Mobile type-checks,
+API build, focused 2/2 service tests, locale validation, database health, and an authenticated Owner
+six-section runtime response passed. Supervisor/Sales authenticated response coverage and physical-
+device/accessibility/large-text/reduced-motion/landscape/fluent-language acceptance remain pending.
+
 ## Project Progress API And Mobile Implementation
 
 On 2026-09-02, the Product Owner authorized a complete Project Progress vertical slice, including
@@ -117,6 +142,25 @@ with the `TOTAL` default; migration `015` inserted no business records. Mobile/A
 en/hi/gu locale parity, focused Sales lint, all 21 API suites/120 tests, Android Expo export,
 and `git diff --check` passed. Authenticated role/workflow, concurrent-hold, and physical-device
 acceptance remain pending and must not be inferred from those checks.
+
+On 2026-09-03, the Unit Inventory and Unit Blocking slice was re-audited against current source
+instead of duplicated. Its migration/API/seed/mobile/localization implementation was confirmed
+present. The guarded migration runner reported 21/21 current, the guarded seed synchronized with
+demo-user generation disabled, and the new read-only verifier confirmed all four inventory/hold
+tables, both pricing columns, all four unique inventory/concurrency indexes, the expected Sales
+User grants without `inventory:block`, and no Platform Super Admin inventory grants. One existing
+Unit and zero active blocks were observed without changing business records. Focused Sales tests
+and shared/API/Mobile type checks pass; authenticated hold approval/race testing and physical-device
+accessibility/fluent-language acceptance remain pending.
+
+On 2026-09-03, the Lead conversion/booking linkage slice was completed in place rather than
+duplicated outside Sales CRM. Migration `021_sales_booking_linkage.sql` is applied on the approved
+remote target and preserves request fingerprints, Lead-source/pre-conversion snapshots, and explicit
+cancellation restoration. Booking confirmation/cancellation now write immutable audit events in the
+same transaction. The API adds filtered booking lists and visible booking detail; Mobile retains one
+idempotency key across retries and adds a multilingual booking detail/cancellation flow. Schema/RBAC
+verification and static tests passed; authenticated live booking/concurrency plus physical-device
+acceptance remain pending.
 
 ## Calendar And Attendance Implementation Status
 
@@ -328,3 +372,25 @@ Implemented:
 User-entered business values remain exactly as typed and may be English, Hindi, Gujarati, or mixed-script. System values remain stable in API/database contracts and are translated only for display. No API, shared contract, schema, migration, seed, database, web-localization, or business authorization behavior changed.
 
 All nine namespaces passed English/Hindi/Gujarati key and placeholder parity. Mobile and shared type-checks passed. The mobile literal audit found no remaining hard-coded user-facing English phrases outside locale resources; the remaining English literals are internal provider guards or the `NirmanSite` brand. Expo web export passed with one entry bundle and all eight Noto font files, and `git diff --check` passed. Authenticated physical-device, screen-reader, large-text, and fluent Hindi/Gujarati review remain pending.
+
+## 2026-09-03 — Site Gallery / Project Diary
+
+The Product Owner authorized the full contract, API, migration, seed synchronization, Mobile integration, and UI delivery without intermediate approval stops. Gallery now has tenant/Project-owned private file metadata, chronological entries, direct-versus-review workflow snapshots, role-scoped approval/rejection, audit/notifications, and safe idempotent upload retries.
+
+Migration `020` is applied to the configured remote target and the ledger is 21/21 current. The intended eight customer role templates are synchronized with demo-user creation disabled. The Expo app includes camera/library capture, app-owned persisted upload queue, retry states, category/stage/caption metadata, a two-column Project diary, reviewer actions, and complete English/Hindi/Gujarati copy.
+
+Static/database/runtime-route verification passes. Real upload and authenticated/device acceptance remain pending because the current environment has no S3 bucket/access credentials configured; this is an environment gate, not an unimplemented code path.
+
+## 2026-09-03 — Site Visits Completion
+
+The requested Site Visits module was already part of the Sales CRM vertical slice, so it was completed in place rather than recreated. API list filtering, own-user scope hardening, reschedule timing, terminal-state rules, focused tests, full outcome capture, attendee entry, salesperson labels, and en/hi/gu Mobile copy are now implemented.
+
+Migration `011` remains the canonical schema. A guarded migration run confirms the configured remote database is 21/21 current, the canonical seed/RBAC sync completed, and read-only verification confirms the 15-column table plus intended grants for Organization Owner, Builder Admin, Independent Contractor Owner, and Sales User. The unintended Viewer mutation grant was removed. Authenticated write and physical-device/accessibility acceptance remain pending.
+
+## 2026-09-03 — Notifications Vertical Slice
+
+The Product Owner authorized the complete Notifications contract, API, migration, guarded seed sync, API/Mobile integration, and UI without intermediate approval stops. The existing Materials-era in-app foundation was extended rather than duplicated.
+
+Notification rows and per-device outbox entries are now created transactionally. Recipient-only list/read/mark-all/unread-summary and device registration APIs are implemented. A bounded-retry worker delivers en/hi/gu Expo pushes and disables permanently invalid device tokens. Nine customer operational role templates now receive `notifications:read`; Platform Super Admin remains outside customer operations.
+
+Mobile now has automatic permission/token registration, an accurate Home badge, Menu entry, virtualized All/Unread inbox, pull-to-refresh/pagination, mark-all, localized system copy, and safe reference-based deep links whose destination APIs reauthorize access. Migration `022` and guarded seed sync completed on the configured remote target; status is 23/23 current and schema/grants are verified. Focused/full tests, shared/API/Mobile checks, API build, 18-namespace parity, Android export, and diff check passed. A real EAS Project ID, authenticated producer data, physical development build, and device/accessibility/fluent-language review are still required for push acceptance.

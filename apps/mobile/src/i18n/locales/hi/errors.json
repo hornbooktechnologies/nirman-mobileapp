@@ -35,6 +35,8 @@
     "FOLLOW_UP_NOT_FOUND": "यह फ़ॉलो-अप अब उपलब्ध नहीं है।",
     "FOLLOW_UP_ACCESS_DENIED": "आप यह फ़ॉलो-अप नहीं बदल सकते।",
     "SITE_VISIT_NOT_FOUND": "यह साइट विज़िट अब उपलब्ध नहीं है।",
+    "SITE_VISIT_TRANSITION_INVALID": "यह साइट विज़िट अब बदली नहीं जा सकती।",
+    "SITE_VISIT_RESCHEDULE_DATE_REQUIRED": "इस विज़िट को फिर तय करने के लिए नई तारीख और समय चुनें।",
     "UNIT_NOT_FOUND": "यह यूनिट अब उपलब्ध नहीं है।",
     "UNIT_NUMBER_DUPLICATE": "यह यूनिट नंबर प्रोजेक्ट में पहले से है।",
     "UNIT_PRICE_INVALID": "यूनिट की कीमत का तरीका, राशि, क्षेत्रफल और दर जाँचें।",
@@ -94,6 +96,18 @@
     "PROGRESS_REGRESSION_NOTE_REQUIRED": "इस चरण की प्रगति कम करने का कारण नोट में लिखें।",
     "PROGRESS_VERSION_CONFLICT": "यह चरण बदल चुका है। नवीनतम प्रगति लोड हो गई है; फिर प्रयास करने से पहले जाँचें।",
     "PROGRESS_IDEMPOTENCY_CONFLICT": "इस पुनः प्रयास कुंजी का उपयोग अलग प्रगति अपडेट के लिए हो चुका है।",
+    "GALLERY_ENTRY_NOT_FOUND": "यह गैलरी फोटो अब उपलब्ध नहीं है। रीफ्रेश करके फिर प्रयास करें।",
+    "GALLERY_MEDIA_REQUIRED": "पहले फोटो लें या चुनें।",
+    "GALLERY_MEDIA_TYPE_UNSUPPORTED": "JPEG, PNG या WebP चित्र चुनें।",
+    "GALLERY_MEDIA_TOO_LARGE": "10 MiB से छोटी फोटो चुनें।",
+    "GALLERY_CAPTURED_AT_IN_FUTURE": "फोटो लेने का समय भविष्य का नहीं हो सकता।",
+    "GALLERY_STATUS_TRANSITION_INVALID": "इस गैलरी फोटो की अभी समीक्षा नहीं हो सकती।",
+    "GALLERY_SELF_REVIEW_FORBIDDEN": "आप अपना गैलरी अपलोड स्वीकृत या अस्वीकृत नहीं कर सकते।",
+    "GALLERY_VERSION_CONFLICT": "यह गैलरी फोटो बदल गई है। समीक्षा से पहले रीफ्रेश करें।",
+    "GALLERY_IDEMPOTENCY_CONFLICT": "यह पुनः प्रयास कुंजी किसी अलग गैलरी अपलोड के लिए पहले उपयोग हो चुकी है।",
+    "NOTIFICATION_NOT_FOUND": "यह सूचना अब उपलब्ध नहीं है।",
+    "NOTIFICATION_DEVICE_TOKEN_INVALID": "इस डिवाइस को पुश सूचनाओं के लिए पंजीकृत नहीं किया जा सका।",
+    "NOTIFICATION_DEVICE_NOT_FOUND": "यह सूचना डिवाइस अब पंजीकृत नहीं है।",
     "PROJECT_STATUS_INVALID": "इस कार्रवाई के लिए सक्रिय प्रोजेक्ट चाहिए।"
   }
 }

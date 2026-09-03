@@ -18,6 +18,8 @@ export type CustomerRoute =
   | '/(app)/materials'
   | '/(app)/expenses'
   | '/(app)/progress'
+  | '/(app)/gallery'
+  | '/(app)/notifications'
   | '/(app)/sales'
   | '/(app)/team'
   | '/(app)/members'
@@ -41,6 +43,7 @@ type CustomerNavigationDefinition = Omit<CustomerNavigationItem, 'label' | 'titl
 };
 
 const organizationNavigation: readonly CustomerNavigationDefinition[] = [
+  { key: 'notifications', labelKey: 'items.notifications.title', titleKey: 'items.notifications.title', descriptionKey: 'items.notifications.description', icon: 'bell-outline', href: '/(app)/notifications', permission: 'notifications:read' },
   { key: 'members', labelKey: 'tabs.members', titleKey: 'items.members.title', descriptionKey: 'items.members.description', icon: 'account-multiple-outline', href: '/(app)/members', permission: 'members:read' },
   { key: 'work-calendar', labelKey: 'items.calendar.title', titleKey: 'items.calendar.title', descriptionKey: 'items.calendar.description', icon: 'calendar-month-outline', href: '/(app)/work-calendar', permission: 'work-calendar:read' },
 ];
@@ -56,6 +59,7 @@ const customerNavigation: readonly CustomerNavigationDefinition[] = [
   { key: 'materials', labelKey: 'items.materials.title', titleKey: 'items.materials.title', descriptionKey: 'items.materials.description', icon: 'package-variant-closed', href: '/(app)/materials', permission: 'materials:read' },
   { key: 'expenses', labelKey: 'items.expenses.title', titleKey: 'items.expenses.title', descriptionKey: 'items.expenses.description', icon: 'receipt-text-outline', href: '/(app)/expenses', permission: 'expenses:read' },
   { key: 'progress', labelKey: 'items.progress.title', titleKey: 'items.progress.title', descriptionKey: 'items.progress.description', icon: 'chart-timeline-variant-shimmer', href: '/(app)/progress', permission: 'progress:read' },
+  { key: 'gallery', labelKey: 'items.gallery.title', titleKey: 'items.gallery.title', descriptionKey: 'items.gallery.description', icon: 'image-multiple-outline', href: '/(app)/gallery', permission: 'gallery:read' },
   { key: 'sales', labelKey: 'items.sales.title', titleKey: 'items.sales.title', descriptionKey: 'items.sales.description', icon: 'account-tie-outline', href: '/(app)/sales', permissionsAny: ['leads:read-own', 'leads:read-team', 'leads:read-all', 'inventory:read'] },
   { key: 'menu', labelKey: 'tabs.menu', titleKey: 'items.menu.title', descriptionKey: 'items.menu.description', icon: 'menu', href: '/(app)/menu' },
 ];

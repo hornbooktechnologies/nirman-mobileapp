@@ -112,7 +112,8 @@
     "KHARCHI": "Kharchi",
     "MATERIALS": "Materials",
     "EXPENSES": "Site Expenses",
-    "PROGRESS": "Project Progress"
+    "PROGRESS": "Project Progress",
+    "GALLERY": "Site Gallery"
   },
   "permissionAction": {
     "read": "Read",
@@ -149,7 +150,8 @@
     "interest": "Record interest",
     "request-block": "Request hold",
     "block": "Approve or release hold",
-    "book": "Book"
+    "book": "Book",
+    "upload": "Upload"
   },
   "errors": {
     "load": "Unable to load Project Team",

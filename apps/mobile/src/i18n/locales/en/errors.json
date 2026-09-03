@@ -35,6 +35,8 @@
     "FOLLOW_UP_NOT_FOUND": "This follow-up is no longer available.",
     "FOLLOW_UP_ACCESS_DENIED": "You cannot update this follow-up.",
     "SITE_VISIT_NOT_FOUND": "This site visit is no longer available.",
+    "SITE_VISIT_TRANSITION_INVALID": "This site visit can no longer be changed.",
+    "SITE_VISIT_RESCHEDULE_DATE_REQUIRED": "Choose a new date and time to reschedule this visit.",
     "UNIT_NOT_FOUND": "This Unit is no longer available.",
     "UNIT_NUMBER_DUPLICATE": "This Unit number already exists in the Project.",
     "UNIT_PRICE_INVALID": "Check the Unit pricing method, amount, area and rate.",
@@ -94,6 +96,18 @@
     "PROGRESS_REGRESSION_NOTE_REQUIRED": "Add a note explaining why this stage progress was reduced.",
     "PROGRESS_VERSION_CONFLICT": "This stage changed. The latest progress has been loaded; review it before retrying.",
     "PROGRESS_IDEMPOTENCY_CONFLICT": "This retry key was already used for a different progress update.",
+    "GALLERY_ENTRY_NOT_FOUND": "This Gallery photo is no longer available. Refresh and try again.",
+    "GALLERY_MEDIA_REQUIRED": "Take or choose a photo first.",
+    "GALLERY_MEDIA_TYPE_UNSUPPORTED": "Choose a JPEG, PNG, or WebP image.",
+    "GALLERY_MEDIA_TOO_LARGE": "Choose a photo smaller than 10 MiB.",
+    "GALLERY_CAPTURED_AT_IN_FUTURE": "The photo capture time cannot be in the future.",
+    "GALLERY_STATUS_TRANSITION_INVALID": "This Gallery photo cannot be reviewed now.",
+    "GALLERY_SELF_REVIEW_FORBIDDEN": "You cannot approve or reject your own Gallery upload.",
+    "GALLERY_VERSION_CONFLICT": "This Gallery photo changed. Refresh before reviewing it.",
+    "GALLERY_IDEMPOTENCY_CONFLICT": "This retry key was already used for a different Gallery upload.",
+    "NOTIFICATION_NOT_FOUND": "This notification is no longer available.",
+    "NOTIFICATION_DEVICE_TOKEN_INVALID": "This device could not be registered for push notifications.",
+    "NOTIFICATION_DEVICE_NOT_FOUND": "This notification device is no longer registered.",
     "PROJECT_STATUS_INVALID": "This action requires an active Project."
   }
 }

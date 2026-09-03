@@ -1,4 +1,4 @@
-import type { AttendanceSummaryResponse, KharchiSummary, MaterialSummary, ProjectProgressSummary, SiteExpenseSummary } from '@nirman-app/shared';
+import type { DashboardActionKey, RoleDashboardResponse } from '@nirman-app/shared';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
@@ -20,7 +20,7 @@ import {
   QuickActionGrid,
   getStatusTone,
 } from '../../components/ui';
-import { getActiveProject, getActiveProjectPermissions, type MobileSession } from '../../lib/auth';
+import { getActiveProject, type MobileSession } from '../../lib/auth';
 import { formatInr, formatNumber, getLocalizedErrorMessage } from '../../i18n';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
@@ -31,16 +31,13 @@ import {
   NeedsAttentionCard,
   ProjectProgressCard,
   ProjectSummaryStrip,
+  RoleDashboardHero,
   TodayAtSiteCard,
   visibleNavigation,
   visibleOrganizationNavigation,
 } from './components';
-import { fetchAttendanceSummary } from '../attendance/services';
-import { monthValue, todayDateOnly } from '../attendance/date-utils';
-import { fetchExpenseSummary } from '../expenses';
-import { fetchKharchiSummary } from '../kharchi/services';
-import { fetchMaterialsSummary } from '../materials';
-import { fetchProgressSummary } from '../progress';
+import { fetchRoleDashboard } from './services';
+import { useNotifications } from '../notifications';
 import {
   createProject,
   fetchProject,
@@ -86,43 +83,20 @@ function activeRoleName(session: MobileSession | null, noOrganizationLabel: stri
   );
 }
 
-type DashboardSnapshot = {
-  attendance: AttendanceSummaryResponse | null;
-  expenses: SiteExpenseSummary | null;
-  expensesToday: SiteExpenseSummary | null;
-  failed: string[];
-  kharchi: KharchiSummary | null;
-  materials: MaterialSummary | null;
-  progress: ProjectProgressSummary | null;
-};
-
-async function settleDashboardRequest<T>(key: string, request: Promise<T> | null) {
-  if (!request) return { data: null as T | null, failed: false, key };
-  try {
-    return { data: await request, failed: false, key };
-  } catch {
-    return { data: null as T | null, failed: true, key };
-  }
-}
-
 export function DashboardScreen() {
   const { t: tHome } = useTranslation('home');
   const { t: tNavigation } = useTranslation('navigation');
   const { t: tProgress } = useTranslation('progress');
   const { refreshSession, session } = useSession();
+  const { unreadCount } = useNotifications();
   const { language } = useLocalization();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
-  const [dashboard, setDashboard] = useState<DashboardSnapshot>({ attendance: null, expenses: null, expensesToday: null, failed: [], kharchi: null, materials: null, progress: null });
+  const [dashboard, setDashboard] = useState<RoleDashboardResponse | null>(null);
+  const [dashboardFailed, setDashboardFailed] = useState(false);
   const requestSequence = useRef(0);
   const activeProject = getActiveProject(session);
-  const projectPermissions = getActiveProjectPermissions(session);
-  const canReadAttendance = projectPermissions.includes('attendance:read');
-  const canReadExpenses = projectPermissions.includes('expenses:read');
-  const canReadKharchi = projectPermissions.includes('kharchi:read');
-  const canReadMaterials = projectPermissions.includes('materials:read');
-  const canReadProgress = projectPermissions.includes('progress:read');
   const availableProjects =
     session?.projectAccess.projects.filter((project) => project.status !== 'ARCHIVED') ?? [];
   const workspaceNavigation = [
@@ -132,8 +106,6 @@ export function DashboardScreen() {
   const firstName = session?.user.name.trim().split(/\s+/)[0] || tHome('greeting.fallbackName');
   const projectScope = session?.projectAccess.projectScope ?? 'NONE';
   const projectScopeLabel = tHome(projectScopeTranslationKeys[projectScope]);
-  const today = todayDateOnly();
-  const monthStart = `${monthValue()}-01`;
 
   const loadDashboard = useCallback(async () => {
     const organizationId = session?.activeOrganization?.id;
@@ -141,34 +113,27 @@ export function DashboardScreen() {
     const accessToken = session?.accessToken;
     const sequence = ++requestSequence.current;
 
-    if (!organizationId || !projectId || !accessToken) {
-      setDashboard({ attendance: null, expenses: null, expensesToday: null, failed: [], kharchi: null, materials: null, progress: null });
+    if (!organizationId || !projectId || !accessToken || !session?.permissions.includes('dashboards:read')) {
+      setDashboard(null);
+      setDashboardFailed(false);
       setLoadingDashboard(false);
       return;
     }
 
     setLoadingDashboard(true);
-    const [attendance, expenses, expensesToday, kharchi, materials, progress] = await Promise.all([
-      settleDashboardRequest('attendance', canReadAttendance ? fetchAttendanceSummary(organizationId, projectId, { startDate: today, endDate: today, selectedDate: today, page: 1, pageSize: 1 }, accessToken) : null),
-      settleDashboardRequest('expenses', canReadExpenses ? fetchExpenseSummary(organizationId, projectId, accessToken, { expenseFrom: monthStart, expenseTo: today }) : null),
-      settleDashboardRequest('expensesToday', canReadExpenses ? fetchExpenseSummary(organizationId, projectId, accessToken, { expenseFrom: today, expenseTo: today }) : null),
-      settleDashboardRequest('kharchi', canReadKharchi ? fetchKharchiSummary(organizationId, projectId, accessToken, { startDate: monthStart, endDate: today }) : null),
-      settleDashboardRequest('materials', canReadMaterials ? fetchMaterialsSummary(organizationId, projectId, accessToken) : null),
-      settleDashboardRequest('progress', canReadProgress ? fetchProgressSummary(organizationId, projectId, accessToken) : null),
-    ]);
-
-    if (sequence !== requestSequence.current) return;
-    setDashboard({
-      attendance: attendance.data,
-      expenses: expenses.data,
-      expensesToday: expensesToday.data,
-      failed: [attendance, expenses, expensesToday, kharchi, materials, progress].filter((result) => result.failed).map((result) => result.key),
-      kharchi: kharchi.data,
-      materials: materials.data,
-      progress: progress.data,
-    });
-    setLoadingDashboard(false);
-  }, [activeProject?.id, canReadAttendance, canReadExpenses, canReadKharchi, canReadMaterials, canReadProgress, monthStart, session?.accessToken, session?.activeOrganization?.id, today]);
+    try {
+      const nextDashboard = await fetchRoleDashboard(organizationId, projectId, accessToken);
+      if (sequence !== requestSequence.current) return;
+      setDashboard(nextDashboard);
+      setDashboardFailed(false);
+    } catch {
+      if (sequence !== requestSequence.current) return;
+      setDashboard(null);
+      setDashboardFailed(true);
+    } finally {
+      if (sequence === requestSequence.current) setLoadingDashboard(false);
+    }
+  }, [activeProject?.id, session?.accessToken, session?.activeOrganization?.id, session?.permissions]);
 
   useEffect(() => {
     void loadDashboard();
@@ -179,7 +144,7 @@ export function DashboardScreen() {
 
   const number = (value: number) => formatNumber(value, language, { maximumFractionDigits: 1 });
   const money = (value: string) => formatInr(Number(value), language, { maximumFractionDigits: 0 });
-  const materialApprovalCount = Number(dashboard.materials?.countsByStatus.PENDING_VERIFICATION ?? 0) + Number(dashboard.materials?.countsByStatus.PENDING_FINAL ?? 0);
+  const materialApprovalCount = dashboard?.workflow?.pendingMaterialApprovals ?? 0;
   const attentionItems = [
     ...(materialApprovalCount > 0 ? [{
       accessibilityLabel: tHome('attention.materialApprovalsA11y', { count: materialApprovalCount }),
@@ -188,45 +153,46 @@ export function DashboardScreen() {
       meta: tHome('attention.materialApprovalsMeta'),
       onPress: () => router.push('/(app)/materials'),
     }] : []),
-    ...((dashboard.materials?.overdueRequests ?? 0) > 0 ? [{
-      accessibilityLabel: tHome('attention.overdueMaterialsA11y', { count: dashboard.materials!.overdueRequests }),
+    ...((dashboard?.workflow?.overdueMaterialRequests ?? 0) > 0 ? [{
+      accessibilityLabel: tHome('attention.overdueMaterialsA11y', { count: dashboard!.workflow!.overdueMaterialRequests }),
       icon: 'calendar-alert' as const,
-      label: tHome('attention.overdueMaterials', { count: dashboard.materials!.overdueRequests }),
+      label: tHome('attention.overdueMaterials', { count: dashboard!.workflow!.overdueMaterialRequests }),
       meta: tHome('attention.overdueMaterialsMeta'),
       onPress: () => router.push('/(app)/materials'),
       tone: 'danger' as const,
     }] : []),
-    ...((dashboard.expenses?.pendingCount ?? 0) > 0 ? [{
-      accessibilityLabel: tHome('attention.pendingExpensesA11y', { count: dashboard.expenses!.pendingCount, amount: money(dashboard.expenses!.pendingAmount) }),
+    ...((dashboard?.workflow?.pendingExpenses ?? 0) > 0 ? [{
+      accessibilityLabel: tHome('attention.pendingExpensesA11y', { count: dashboard!.workflow!.pendingExpenses, amount: money(dashboard!.workflow!.pendingExpenseAmount ?? '0') }),
       icon: 'receipt-text-outline' as const,
-      label: tHome('attention.pendingExpenses', { count: dashboard.expenses!.pendingCount }),
-      meta: money(dashboard.expenses!.pendingAmount),
+      label: tHome('attention.pendingExpenses', { count: dashboard!.workflow!.pendingExpenses }),
+      meta: money(dashboard!.workflow!.pendingExpenseAmount ?? '0'),
       onPress: () => router.push('/(app)/expenses'),
     }] : []),
   ];
-  const attentionUnavailable = attentionItems.length === 0 && (
-    (canReadMaterials && dashboard.failed.includes('materials')) ||
-    (canReadExpenses && dashboard.failed.includes('expenses'))
-  );
+  const attentionUnavailable = dashboardFailed;
   const financialMetrics = [
-    ...(dashboard.expenses ? [{ accessibilityLabel: tHome('finance.expensesA11y', { amount: money(dashboard.expenses.recognizedAmount) }), label: tHome('finance.expenses'), value: money(dashboard.expenses.recognizedAmount) }] : []),
-    ...(dashboard.kharchi ? [{ accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.kharchi.effectiveAmount) }), label: tHome('finance.kharchi'), value: money(dashboard.kharchi.effectiveAmount) }] : []),
+    ...(dashboard?.finance?.recognizedExpensesThisMonth ? [{ accessibilityLabel: tHome('finance.expensesA11y', { amount: money(dashboard.finance.recognizedExpensesThisMonth) }), label: tHome('finance.expenses'), value: money(dashboard.finance.recognizedExpensesThisMonth) }] : []),
+    ...(dashboard?.finance?.outstandingKharchi ? [{ accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.finance.outstandingKharchi) }), label: tHome('finance.outstandingKharchi'), value: money(dashboard.finance.outstandingKharchi) }] : []),
+    ...(dashboard?.finance?.wageEstimate ? [{ accessibilityLabel: tHome('finance.wageEstimateA11y', { amount: money(dashboard.finance.wageEstimate) }), label: tHome('finance.wageEstimate'), value: money(dashboard.finance.wageEstimate) }] : []),
   ];
-  const progressStages = dashboard.progress
-    ? (dashboard.progress.stages.some((stage) => stage.percentage > 0)
-      ? dashboard.progress.stages.filter((stage) => stage.percentage > 0)
-      : dashboard.progress.stages).slice(0, 3).map((stage) => ({ label: tProgress(`stage.${stage.stage}`), percentage: stage.percentage }))
-    : [];
+  const progressStages: Array<{ label: string; percentage: number }> = [];
   const canCreateProject = Boolean(session?.permissions.includes('projects:create'));
   const quickNavigation = workspaceNavigation.filter((item) => !['project', 'team', 'members'].includes(item.key)).slice(0, canCreateProject ? 2 : 3);
+  const actionRoutes: Record<DashboardActionKey, { href: Href; icon: 'calendar-check-outline' | 'cash-plus' | 'package-variant-closed-plus' | 'receipt-text-plus-outline' | 'chart-timeline-variant' | 'camera-plus-outline' | 'account-plus-outline' | 'calendar-clock-outline' | 'office-building-outline' }> = {
+    MARK_ATTENDANCE: { href: '/(app)/attendance', icon: 'calendar-check-outline' }, ADD_KHARCHI: { href: '/(app)/kharchi', icon: 'cash-plus' },
+    REQUEST_MATERIAL: { href: '/(app)/materials', icon: 'package-variant-closed-plus' }, ADD_EXPENSE: { href: '/(app)/expenses', icon: 'receipt-text-plus-outline' },
+    UPDATE_PROGRESS: { href: '/(app)/progress', icon: 'chart-timeline-variant' }, UPLOAD_PHOTO: { href: '/(app)/gallery', icon: 'camera-plus-outline' },
+    ADD_LEAD: { href: '/(app)/sales', icon: 'account-plus-outline' }, VIEW_FOLLOWUPS: { href: '/(app)/sales', icon: 'calendar-clock-outline' }, VIEW_PROJECT: { href: '/(app)/project-detail', icon: 'office-building-outline' },
+  };
+  const roleQuickActions = (dashboard?.quickActions ?? []).map((key) => ({ key, label: tHome(`role.actions.${key}`), accessibilityHint: tHome(`role.actionHints.${key}`), icon: actionRoutes[key].icon, onPress: () => router.push(actionRoutes[key].href) }));
   const quickActions = [
     ...(canCreateProject ? [{ key: 'create-project', label: tHome('workspace.createProject'), accessibilityHint: tHome('quickActions.createProjectHint'), icon: 'plus' as const, onPress: () => setShowCreateProject(true) }] : []),
-    ...quickNavigation.map((item) => ({ key: item.key, label: item.title, accessibilityHint: item.description, icon: item.icon, onPress: () => router.push(item.href as Href) })),
+    ...(roleQuickActions.length ? roleQuickActions.slice(0, canCreateProject ? 3 : 4) : quickNavigation.map((item) => ({ key: item.key, label: item.title, accessibilityHint: item.description, icon: item.icon, onPress: () => router.push(item.href as Href) }))),
     ...(workspaceNavigation.length ? [{ key: 'more', label: tHome('quickActions.more'), accessibilityHint: tHome('quickActions.moreHint'), icon: 'dots-horizontal' as const, onPress: () => router.push('/(app)/menu') }] : []),
   ];
 
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent} variant="dashboard">
       <View style={styles.homeHeader}>
         <View style={styles.headerCopy}>
           <View style={styles.eyebrowRow}>
@@ -240,13 +206,27 @@ export function DashboardScreen() {
             {activeRoleName(session, tHome('greeting.noActiveOrganization'), tHome('greeting.organizationMember'))} · {session?.activeOrganization?.name ?? 'NirmanSite'}
           </AppText>
         </View>
-        <IconButton
-          icon="menu"
-          accessibilityLabel={tNavigation('a11y.openMenu')}
-          variant="dark"
-          onPress={() => router.push('/(app)/menu')}
-        />
+        <View style={styles.homeHeaderActions}>
+          {session?.permissions.includes('notifications:read') ? <IconButton badgeCount={unreadCount} icon="bell-outline" accessibilityLabel={tNavigation('a11y.openNotifications', { count: unreadCount })} variant="glass" onPress={() => router.push('/(app)/notifications')} /> : null}
+          <IconButton icon="menu" accessibilityLabel={tNavigation('a11y.openMenu')} variant="dark" onPress={() => router.push('/(app)/menu')} />
+        </View>
       </View>
+
+      {dashboard ? <RoleDashboardHero
+        profile={dashboard.profile}
+        badge={tHome(`role.badge.${dashboard.profile}`)}
+        title={tHome(`role.title.${dashboard.profile}`, { name: firstName })}
+        subtitle={tHome(`role.subtitle.${dashboard.profile}`, { project: dashboard.project.name })}
+        metrics={dashboard.profile === 'SALES' ? [
+          { label: tHome('role.metrics.newLeads'), value: number(dashboard.sales?.newAssignedLeads ?? 0) },
+          { label: tHome('role.metrics.followUps'), value: number(dashboard.sales?.followUpsToday ?? 0) },
+          { label: tHome('role.metrics.siteVisits'), value: number(dashboard.sales?.siteVisitsToday ?? 0) },
+        ] : [
+          { label: tHome('role.metrics.present'), value: number(dashboard.site?.presentToday ?? 0) },
+          { label: tHome('role.metrics.attention'), value: number((dashboard.workflow?.pendingMaterialApprovals ?? 0) + (dashboard.workflow?.pendingExpenses ?? 0)) },
+          { label: tHome('role.metrics.progress'), value: `${number(dashboard.progress?.overallPercentage ?? 0)}%` },
+        ]}
+      /> : null}
 
       <ProjectContextCard
         featured
@@ -265,33 +245,40 @@ export function DashboardScreen() {
         />
       ) : null}
 
-      {activeProject && canReadAttendance ? (
+      {activeProject && dashboard?.site ? (
         <TodayAtSiteCard
           title={tHome('today.title')}
-          loadingLabel={loadingDashboard ? tHome('data.loading') : dashboard.failed.includes('attendance') ? tHome('data.unavailable') : undefined}
-          stats={dashboard.attendance ? [
-            { accessibilityLabel: tHome('today.workersA11y', { count: dashboard.attendance.totals.workers }), icon: 'account-hard-hat-outline', label: tHome('today.workers'), value: number(dashboard.attendance.totals.workers) },
-            { accessibilityLabel: tHome('today.presentA11y', { count: dashboard.attendance.totals.presentDays }), icon: 'account-check-outline', label: tHome('today.present'), value: number(dashboard.attendance.totals.presentDays) },
-            { accessibilityLabel: tHome('today.absentA11y', { count: dashboard.attendance.totals.absentDays }), icon: 'account-off-outline', label: tHome('today.absent'), value: number(dashboard.attendance.totals.absentDays) },
-            ...(dashboard.expensesToday ? [{ accessibilityLabel: tHome('today.spendA11y', { amount: money(dashboard.expensesToday.recognizedAmount) }), icon: 'cash' as const, label: tHome('today.spend'), value: money(dashboard.expensesToday.recognizedAmount) }] : []),
-          ] : []}
+          loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
+          stats={[
+            { accessibilityLabel: tHome('today.workersA11y', { count: dashboard.site.assignedWorkers ?? 0 }), icon: 'account-hard-hat-outline', label: tHome('today.workers'), value: number(dashboard.site.assignedWorkers ?? 0) },
+            { accessibilityLabel: tHome('today.presentA11y', { count: dashboard.site.presentToday ?? 0 }), icon: 'account-check-outline', label: tHome('today.present'), value: number(dashboard.site.presentToday ?? 0) },
+            { accessibilityLabel: tHome('today.absentA11y', { count: dashboard.site.absentToday ?? 0 }), icon: 'account-off-outline', label: tHome('today.absent'), value: number(dashboard.site.absentToday ?? 0) },
+            ...(dashboard.site.todaySpend ? [{ accessibilityLabel: tHome('today.spendA11y', { amount: money(dashboard.site.todaySpend) }), icon: 'cash' as const, label: tHome('today.spend'), value: money(dashboard.site.todaySpend) }] : []),
+          ]}
         />
       ) : null}
 
-      {activeProject && (canReadProgress || canReadMaterials || canReadExpenses) ? (
+      {dashboard?.sales ? <TodayAtSiteCard artwork={false} title={tHome('role.salesPulse')} stats={[
+        { accessibilityLabel: tHome('role.metrics.pipeline'), icon: 'chart-line-variant', label: tHome('role.metrics.pipeline'), value: number(dashboard.sales.activePipeline ?? 0) },
+        { accessibilityLabel: tHome('role.metrics.overdueFollowUps'), icon: 'calendar-alert', label: tHome('role.metrics.overdueFollowUps'), value: number(dashboard.sales.overdueFollowUps ?? 0) },
+        { accessibilityLabel: tHome('role.metrics.expiringBlocks'), icon: 'timer-alert-outline', label: tHome('role.metrics.expiringBlocks'), value: number(dashboard.sales.blocksNearingExpiry ?? 0) },
+        { accessibilityLabel: tHome('role.metrics.bookedUnits'), icon: 'home-outline', label: tHome('role.metrics.bookedUnits'), value: number(dashboard.sales.bookedUnits ?? 0) },
+      ]} /> : null}
+
+      {activeProject && (dashboard?.progress || dashboard?.workflow) ? (
         <View style={styles.bentoRow}>
-          {canReadProgress ? (
+          {dashboard?.progress ? (
           <ProjectProgressCard
-            accessibilityLabel={dashboard.progress ? tProgress('summary.a11y', { percentage: dashboard.progress.overallPercentage, updated: dashboard.progress.updatedStages, total: dashboard.progress.stages.length }) : tProgress('screen.title')}
+            accessibilityLabel={tProgress('summary.a11y', { percentage: dashboard.progress.overallPercentage, updated: dashboard.progress.updatedStages, total: 9 })}
             emptyLabel={tProgress('summary.notStarted')}
-            loadingLabel={loadingDashboard ? tHome('data.loading') : dashboard.failed.includes('progress') ? tHome('data.unavailable') : undefined}
-            percentage={dashboard.progress?.overallPercentage}
+            loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
+            percentage={dashboard.progress.overallPercentage}
             stages={progressStages}
             title={tProgress('screen.title')}
             onPress={() => router.push('/(app)/progress')}
           />
           ) : null}
-          {canReadMaterials || canReadExpenses ? (
+          {dashboard?.workflow ? (
           <NeedsAttentionCard
             title={tHome('attention.title')}
             emptyLabel={tHome('attention.clear')}
@@ -302,12 +289,12 @@ export function DashboardScreen() {
         </View>
       ) : null}
 
-      {activeProject && ((canReadExpenses || canReadKharchi) || quickActions.length) ? (
+      {activeProject && (dashboard?.finance || quickActions.length) ? (
         <View style={styles.bentoRow}>
-          {canReadExpenses || canReadKharchi ? (
+          {dashboard?.finance ? (
           <FinancialSnapshotCard
             title={tHome('finance.title')}
-            loadingLabel={loadingDashboard ? tHome('data.loading') : !financialMetrics.length && dashboard.failed.some((key) => key === 'expenses' || key === 'kharchi') ? tHome('data.unavailable') : undefined}
+            loadingLabel={loadingDashboard ? tHome('data.loading') : dashboardFailed ? tHome('data.unavailable') : undefined}
             metrics={financialMetrics}
           />
           ) : null}
@@ -315,7 +302,7 @@ export function DashboardScreen() {
         </View>
       ) : null}
 
-      {dashboard.failed.length ? (
+      {dashboardFailed ? (
         <Button fullWidth={false} label={tHome('data.retry')} leadingIcon="refresh" size="sm" variant="secondary" onPress={() => void loadDashboard()} />
       ) : null}
 
@@ -600,6 +587,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: mobileTheme.spacing[4],
   },
+  homeHeaderActions: { flexDirection: 'row', gap: mobileTheme.spacing[2] },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',

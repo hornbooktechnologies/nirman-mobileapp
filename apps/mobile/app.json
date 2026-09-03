@@ -12,6 +12,14 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow NirmanSite to select site photos for the Project diary.",
+          "cameraPermission": "Allow NirmanSite to take site photos for the Project diary."
+        }
+      ],
       [
         "expo-localization",
         {

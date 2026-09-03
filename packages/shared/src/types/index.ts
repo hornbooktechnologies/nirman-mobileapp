@@ -1,5 +1,6 @@
 export type {
   AttendanceStatus,
+  DashboardPermissionKey,
   ErrorCode,
   FoundationPermissionKey,
   InvitationStatus,
@@ -52,6 +53,10 @@ export type {
   MaterialEventType,
   MaterialAuditAction,
   MaterialNotificationType,
+  NotificationDeliveryStatus,
+  NotificationImportance,
+  NotificationLocale,
+  PushDevicePlatform,
   SalesPermissionKey,
   WorkCalendarPermissionKey,
   WorkCalendarDayType,
@@ -76,9 +81,12 @@ export type {
 
 export * from "./attendance";
 export * from "./calendar";
+export * from "./dashboard";
 export * from "./expenses";
+export * from "./gallery";
 export * from "./kharchi";
 export * from "./materials";
+export * from "./notifications";
 export * from "./progress";
 export * from "./workers";
 export * from "./onboarding";

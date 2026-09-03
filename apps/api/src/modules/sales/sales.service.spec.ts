@@ -18,6 +18,7 @@ describe("SalesService", () => {
     createFollowUp: jest.fn(),
     updateFollowUp: jest.fn(),
     listSiteVisits: jest.fn(),
+    findSiteVisit: jest.fn(),
     createSiteVisit: jest.fn(),
     updateSiteVisit: jest.fn(),
     listUnits: jest.fn(),
@@ -166,6 +167,75 @@ describe("SalesService", () => {
       projectId,
       "leads:reassign",
     );
+  });
+
+  it("keeps own-lead Site Visit lists scoped to the current salesperson", async () => {
+    repo.listSiteVisits.mockResolvedValue([]);
+    await service.listSiteVisits(
+      organizationId,
+      projectId,
+      {
+        status: "SCHEDULED",
+        assignedSalesperson: "00000000-0000-4000-8000-000000000099",
+      },
+      actor,
+    );
+    expect(repo.listSiteVisits).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      expect.objectContaining({ status: "SCHEDULED" }),
+      actor.id,
+    );
+  });
+
+  it("requires a new schedule when rescheduling a Site Visit", async () => {
+    repo.findLead.mockResolvedValue({
+      id: leadId,
+      assignedTo: actor.id,
+      createdBy: actor.id,
+    } as any);
+    repo.findSiteVisit.mockResolvedValue({
+      id: "visit-id",
+      status: "SCHEDULED",
+    } as any);
+    await expect(
+      service.updateSiteVisit(
+        organizationId,
+        projectId,
+        leadId,
+        "00000000-0000-4000-8000-000000000040",
+        { status: "RESCHEDULED" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "SITE_VISIT_RESCHEDULE_DATE_REQUIRED" },
+    });
+    expect(repo.updateSiteVisit).not.toHaveBeenCalled();
+  });
+
+  it("does not allow a completed Site Visit to be changed", async () => {
+    repo.findLead.mockResolvedValue({
+      id: leadId,
+      assignedTo: actor.id,
+      createdBy: actor.id,
+    } as any);
+    repo.findSiteVisit.mockResolvedValue({
+      id: "visit-id",
+      status: "COMPLETED",
+    } as any);
+    await expect(
+      service.updateSiteVisit(
+        organizationId,
+        projectId,
+        leadId,
+        "00000000-0000-4000-8000-000000000040",
+        { status: "NO_SHOW" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "SITE_VISIT_TRANSITION_INVALID" },
+    });
+    expect(repo.updateSiteVisit).not.toHaveBeenCalled();
   });
 
   it("allows an inventory-less booking with lead conversion permission", async () => {
