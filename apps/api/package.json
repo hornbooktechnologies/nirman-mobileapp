@@ -17,6 +17,8 @@
     "db:migrate": "ts-node scripts/migrate.ts",
     "db:migrate:status": "ts-node scripts/migration-status.ts",
     "db:seed": "ts-node scripts/seed.ts",
+    "db:verify:progress": "ts-node scripts/verify-project-progress.ts",
+    "verify:progress:runtime": "ts-node scripts/verify-project-progress-runtime.ts",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {

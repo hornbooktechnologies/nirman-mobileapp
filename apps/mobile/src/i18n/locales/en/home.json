@@ -13,6 +13,65 @@
     "projectScope": "Project access",
     "projectScopeA11y": "Project access: {{scope}}"
   },
+  "overview": {
+    "eyebrow": "Project context",
+    "title": "Site overview"
+  },
+  "data": {
+    "loading": "Updating site information…",
+    "unavailable": "This information is temporarily unavailable.",
+    "retry": "Retry dashboard"
+  },
+  "today": {
+    "eyebrow": "Live attendance",
+    "title": "Today at site",
+    "workers": "Assigned workers",
+    "workersA11y": "{{count}} assigned workers",
+    "present": "Present today",
+    "presentA11y": "{{count}} present today",
+    "absent": "Absent today",
+    "absentA11y": "{{count}} absent today",
+    "spend": "Today's spend",
+    "spendA11y": "Today's recognized site spend: {{amount}}"
+  },
+  "progress": {
+    "title": "Project progress",
+    "dataPending": "Stage-level progress is awaiting project progress data."
+  },
+  "attention": {
+    "eyebrow": "Action queue",
+    "title": "Needs attention",
+    "clear": "No material or expense items need attention.",
+    "materialApprovals_one": "{{count}} material request",
+    "materialApprovals_other": "{{count}} material requests",
+    "materialApprovalsMeta": "Waiting in the approval workflow",
+    "materialApprovalsA11y_one": "Open {{count}} material request waiting for approval",
+    "materialApprovalsA11y_other": "Open {{count}} material requests waiting for approval",
+    "overdueMaterials_one": "{{count}} overdue material request",
+    "overdueMaterials_other": "{{count}} overdue material requests",
+    "overdueMaterialsMeta": "Required date has passed",
+    "overdueMaterialsA11y_one": "Open {{count}} overdue material request",
+    "overdueMaterialsA11y_other": "Open {{count}} overdue material requests",
+    "pendingExpenses_one": "{{count}} pending expense",
+    "pendingExpenses_other": "{{count}} pending expenses",
+    "pendingExpensesA11y_one": "Open {{count}} pending expense worth {{amount}}",
+    "pendingExpensesA11y_other": "Open {{count}} pending expenses worth {{amount}}"
+  },
+  "finance": {
+    "eyebrow": "This month",
+    "title": "Financial snapshot",
+    "expenses": "Recognized site expenses",
+    "expensesA11y": "Recognized site expenses this month: {{amount}}",
+    "kharchi": "Kharchi paid",
+    "kharchiA11y": "Kharchi paid this month: {{amount}}"
+  },
+  "quickActions": {
+    "eyebrow": "Tools",
+    "title": "Quick actions",
+    "more": "More",
+    "moreHint": "Open all available workspace tools",
+    "createProjectHint": "Create a new project"
+  },
   "projectScope": {
     "ALL": "All projects",
     "ASSIGNED": "Assigned projects",

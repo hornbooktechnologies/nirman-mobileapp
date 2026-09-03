@@ -1,7 +1,7 @@
 {
   "screen": { "title": "खर्ची", "chooseProject": "प्रोजेक्ट चुनें", "readOnly": "यह प्रोजेक्ट सक्रिय नहीं है। खर्ची का इतिहास केवल पढ़ने के लिए है।" },
   "summary": { "outstanding": "बाकी", "advances": "प्रभावी अग्रिम", "deducted": "कटौती", "adjustments": "समायोजन" },
-  "filters": { "search": "कामगार या कोड खोजें", "searchA11y": "कामगार के नाम या कोड से खर्ची खोजें", "allStatuses": "सभी प्रगति", "allMethods": "सभी तरीके" },
+  "filters": { "search": "कामगार या कोड खोजें", "searchA11y": "कामगार के नाम या कोड से खर्ची खोजें", "sheetDescription": "कटौती की प्रगति और भुगतान तरीके से खर्ची फ़िल्टर करें।", "progressGroup": "कटौती की प्रगति", "methodGroup": "भुगतान तरीका", "allStatuses": "सभी प्रगति", "allMethods": "सभी तरीके" },
   "status": { "PAID": "कटौती बाकी", "PARTIALLY_DEDUCTED": "आंशिक कटौती", "DEDUCTED": "पूरी कटौती" },
   "paymentMethod": { "CASH": "नकद", "UPI": "UPI", "BANK_TRANSFER": "बैंक ट्रांसफ़र", "OTHER": "अन्य" },
   "list": { "outstanding": "बाकी", "openA11y": "{{worker}} की खर्ची खोलें, बाकी {{amount}}" },

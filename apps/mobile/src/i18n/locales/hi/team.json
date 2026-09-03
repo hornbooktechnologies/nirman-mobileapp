@@ -109,7 +109,10 @@
     "ATTENDANCE": "हाज़िरी",
     "WAGES": "मज़दूरी",
     "SALES": "सेल्स",
-    "KHARCHI": "खर्ची"
+    "KHARCHI": "खर्ची",
+    "MATERIALS": "सामग्री",
+    "EXPENSES": "साइट खर्च",
+    "PROGRESS": "प्रोजेक्ट प्रगति"
   },
   "permissionAction": {
     "read": "देखें",
@@ -122,6 +125,15 @@
     "update-rate": "दर अपडेट करें",
     "deactivate": "निष्क्रिय करें",
     "export": "निर्यात करें",
+    "configure": "कॉन्फ़िगर करें",
+    "approve": "मंज़ूर करें",
+    "reject": "अस्वीकार करें",
+    "adjust": "समायोजित करें",
+    "approve-level-1": "सत्यापित करें",
+    "approve-final": "अंतिम अनुमोदन",
+    "reject": "अस्वीकार करें",
+    "record-purchase": "खरीद दर्ज करें",
+    "record-delivery": "डिलीवरी दर्ज करें",
     "mark": "हाज़िरी दर्ज करें",
     "correct-locked": "लॉक हाज़िरी सुधारें",
     "generate": "बनाएँ",

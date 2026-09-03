@@ -109,7 +109,10 @@
     "ATTENDANCE": "Attendance",
     "WAGES": "Wages",
     "SALES": "Sales",
-    "KHARCHI": "Kharchi"
+    "KHARCHI": "Kharchi",
+    "MATERIALS": "Materials",
+    "EXPENSES": "Site Expenses",
+    "PROGRESS": "Project Progress"
   },
   "permissionAction": {
     "read": "Read",
@@ -122,6 +125,15 @@
     "update-rate": "Update rate",
     "deactivate": "Deactivate",
     "export": "Export",
+    "configure": "Configure",
+    "approve": "Approve",
+    "reject": "Reject",
+    "adjust": "Adjust",
+    "approve-level-1": "Verify",
+    "approve-final": "Final approve",
+    "reject": "Reject",
+    "record-purchase": "Record purchase",
+    "record-delivery": "Record delivery",
     "mark": "Mark attendance",
     "correct-locked": "Correct locked attendance",
     "generate": "Generate",

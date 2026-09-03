@@ -36,6 +36,22 @@ export type {
   KharchiPaymentMethod,
   KharchiBalanceStatus,
   KharchiAuditAction,
+  ExpensePermissionKey,
+  ExpenseWorkflowMode,
+  ExpenseStatus,
+  ExpenseCategory,
+  ExpensePaymentMethod,
+  ExpenseEventType,
+  ExpenseAuditAction,
+  ExpenseNotificationType,
+  ExpenseAvailableAction,
+  MaterialPermissionKey,
+  MaterialWorkflowMode,
+  MaterialRequestStatus,
+  MaterialUnit,
+  MaterialEventType,
+  MaterialAuditAction,
+  MaterialNotificationType,
   SalesPermissionKey,
   WorkCalendarPermissionKey,
   WorkCalendarDayType,
@@ -60,7 +76,10 @@ export type {
 
 export * from "./attendance";
 export * from "./calendar";
+export * from "./expenses";
 export * from "./kharchi";
+export * from "./materials";
+export * from "./progress";
 export * from "./workers";
 export * from "./onboarding";
 export * from "./wages";

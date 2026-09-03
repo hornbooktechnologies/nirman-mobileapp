@@ -35,7 +35,7 @@
     "openA11y": "{{start}} से {{end}} तक मजदूरी बैच खोलें, कुल {{amount}}"
   },
   "batchStatus": { "DRAFT": "ड्राफ्ट", "CONFIRMED": "पुष्ट", "PARTIALLY_PAID": "आंशिक भुगतान", "PAID": "भुगतान पूरा", "CANCELLED": "रद्द" },
-  "paymentStatus": { "UNPAID": "भुगतान बाकी", "PARTIALLY_PAID": "आंशिक भुगतान", "PAID": "भुगतान पूरा" },
+  "paymentStatus": { "UNPAID": "भुगतान बाकी", "PARTIALLY_PAID": "आंशिक भुगतान", "PAID": "भुगतान पूरा", "KHARCHI_SETTLED": "खर्ची से समायोजित" },
   "paymentMethod": { "CASH": "नकद", "UPI": "UPI", "BANK_TRANSFER": "बैंक", "CHEQUE": "चेक", "OTHER": "अन्य" },
   "detail": {
     "title": "बैच विवरण",
@@ -71,6 +71,8 @@
     "action": "भुगतान दर्ज करें",
     "recording": "भुगतान दर्ज हो रहा है",
     "alreadyPaid": "इस बैच में इस मजदूर का पूरा भुगतान हो चुका है।",
+    "settledByKharchi": "कोई मजदूरी भुगतान देय नहीं है। {{amount}} खर्ची में समायोजित किया गया।",
+    "noPaymentDue": "इस बैच के लिए कोई मजदूरी भुगतान देय नहीं है।",
     "invalidAmount": "शून्य से अधिक राशि दर्ज करें।",
     "exceedsDue": "राशि {{amount}} की बाकी रकम से अधिक नहीं हो सकती।",
     "successTitle": "भुगतान दर्ज हुआ",

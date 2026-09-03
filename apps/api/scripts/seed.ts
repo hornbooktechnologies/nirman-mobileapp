@@ -11,6 +11,9 @@ import {
   DEFAULT_APP_NAME,
   ATTENDANCE_PERMISSIONS,
   KHARCHI_PERMISSIONS,
+  EXPENSE_PERMISSIONS,
+  MATERIAL_PERMISSIONS,
+  PROGRESS_PERMISSIONS,
   PLATFORM_ADMIN_PERMISSIONS,
   PROJECT_PERMISSIONS,
   SALES_PERMISSIONS,
@@ -97,6 +100,9 @@ const ORGANIZATION_ADMIN_PERMISSIONS = [
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
   ...KHARCHI_PERMISSIONS,
+  ...MATERIAL_PERMISSIONS,
+  ...EXPENSE_PERMISSIONS,
+  ...PROGRESS_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -119,6 +125,22 @@ const PROJECT_MANAGER_PERMISSIONS = [
   "kharchi:create",
   "kharchi:adjust",
   "kharchi:export",
+  "materials:read",
+  "materials:create",
+  "materials:update",
+  "materials:approve-level-1",
+  "materials:reject",
+  "materials:record-purchase",
+  "materials:record-delivery",
+  "materials:export",
+  "expenses:read",
+  "expenses:create",
+  "expenses:update",
+  "expenses:approve",
+  "expenses:reject",
+  "expenses:adjust",
+  "expenses:export",
+  ...PROGRESS_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
 const CONTRACTOR_MEMBER_PERMISSIONS = [
@@ -137,6 +159,14 @@ const CONTRACTOR_MEMBER_PERMISSIONS = [
   ...WAGE_PERMISSIONS,
   "kharchi:read",
   "kharchi:create",
+  "materials:read",
+  "materials:create",
+  "materials:update",
+  "expenses:read",
+  "expenses:create",
+  "expenses:update",
+  "progress:read",
+  "progress:update",
 ] as const satisfies readonly PermissionKey[];
 
 const BUILDER_SUPERVISOR_PERMISSIONS = [
@@ -152,6 +182,15 @@ const BUILDER_SUPERVISOR_PERMISSIONS = [
   "wages:read",
   "kharchi:read",
   "kharchi:create",
+  "materials:read",
+  "materials:approve-level-1",
+  "materials:reject",
+  "materials:record-delivery",
+  "expenses:read",
+  "expenses:approve",
+  "expenses:reject",
+  "progress:read",
+  "progress:update",
 ] as const satisfies readonly PermissionKey[];
 
 const SITE_SUPERVISOR_PERMISSIONS = [
@@ -169,6 +208,14 @@ const SITE_SUPERVISOR_PERMISSIONS = [
   "attendance:mark",
   "kharchi:read",
   "kharchi:create",
+  "materials:read",
+  "materials:create",
+  "materials:update",
+  "expenses:read",
+  "expenses:create",
+  "expenses:update",
+  "progress:read",
+  "progress:update",
 ] as const satisfies readonly PermissionKey[];
 
 const SALES_USER_PERMISSIONS = [
@@ -190,6 +237,7 @@ const SALES_USER_PERMISSIONS = [
 const VIEWER_PERMISSIONS = [
   ...SALES_USER_PERMISSIONS,
   "workers:read",
+  "progress:read",
 ] as const satisfies readonly PermissionKey[];
 
 const USER_MANAGER_COMPATIBILITY_PERMISSIONS = [

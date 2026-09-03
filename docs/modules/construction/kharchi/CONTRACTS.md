@@ -1,12 +1,12 @@
 # Kharchi / Worker Advances Module Contract
 
-> Status: API source implemented; migration and runtime verification pending.
+> Status: API and Mobile source implemented; authenticated and physical-device acceptance pending.
 >
 > Scope owner: NirmanSite Product Owner.
 >
-> Last updated: 2026-08-31.
+> Last updated: 2026-09-01.
 >
-> Approved on 2026-08-31 for API-first implementation. Source implementation is complete; migration and seed execution remain separately gated.
+> Approved on 2026-08-31 for API-first implementation. The later migration/grant rollout and Mobile implementation were completed under separate authorization; remaining acceptance gates are recorded in `STATUS.md`.
 
 ## A. Module Identity
 
@@ -352,11 +352,11 @@ Deferred from the API-first phase. The approved future Web role is oversight, fi
 
 ## I. Mobile Experience
 
-Deferred from the API-first phase. The approved future Mobile flow is Project context -> Worker -> record paid Kharchi with a short form and immediate updated balance.
+Implemented after the API-first phase. The Mobile flow is Project context -> Worker -> record paid Kharchi with a short form and immediate updated balance.
 
 The implementation-ready Mobile/API integration contract is `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`.
 
-The future UI must support English, Hindi, and Gujarati, including money, corrections, destructive implications, accessibility labels, errors, and offline/sync states. User-entered names, notes, and references remain unchanged.
+The implemented UI supports English, Hindi, and Gujarati for money, corrections, immutable-history implications, accessibility labels, and operational states. User-entered names, notes, and references remain unchanged. Persisted offline financial writes remain deferred.
 
 ## J. Offline And Synchronisation Contract
 
@@ -443,9 +443,9 @@ Cross-Project Organization reporting is deferred until the Reports module define
 
 Database:
 
-- additive plural `snake_case` tables and required indexes/FKs are defined in a reviewed migration draft;
+- additive plural `snake_case` tables and required indexes/FKs are defined in reviewed migrations;
 - idempotency and allocation uniqueness are enforced by the database;
-- no migration or seed is executed without separate approval.
+- every migration, seed, or role-grant synchronization requires separate exact-target approval.
 
 API:
 
@@ -495,6 +495,9 @@ Required tests:
 - API production build and full API Jest suite.
 
 Authenticated runtime, real-database concurrency, migration, browser, and device verification are reported separately from static and mocked-service tests.
+
+Current implementation and rollout evidence, including completed migration/grant gates and pending
+acceptance boundaries, is maintained in `docs/modules/construction/kharchi/STATUS.md`.
 
 ## R. Open Questions And Decisions
 

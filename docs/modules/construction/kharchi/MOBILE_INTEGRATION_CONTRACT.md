@@ -1,10 +1,10 @@
 # Kharchi Mobile Integration Contract
 
-> Status: implementation-ready contract; Mobile source not started.
+> Status: Mobile source implemented; authenticated and physical-device acceptance pending.
 >
-> API status: source implemented; migrations, guarded role-grant synchronization, and authenticated runtime verification pending.
+> API status: source and approved migrations/grants are active on the recorded target; authenticated role/workflow and live concurrency verification remain pending.
 >
-> Last updated: 2026-08-31.
+> Last updated: 2026-09-01.
 
 ## 1. Purpose
 
@@ -363,7 +363,9 @@ Use:
 - `CompactScreenHeader`;
 - compact `ProjectContextCard` with switch action;
 - summary cards/rows using existing semantic tokens;
-- `SearchField` and compact filter controls;
+- shared `ListFilterBar` with search, a Filters action, and active-filter count;
+- labelled `ListFilterSheet` groups with full-width radio options, Clear all, and Apply filters;
+- removable applied-filter chips only for active filters;
 - `OperationalEntityCard` for each advance;
 - existing loading, empty, error, and permission state primitives.
 
@@ -598,13 +600,21 @@ Device acceptance:
 
 Static checks, mocked tests, or Expo export do not prove authenticated API, database concurrency, or physical-device acceptance.
 
-## 20. Current Runtime Gate
+## 20. Current Verification State
 
-Mobile implementation may be built against the source contract, but live Kharchi calls require:
+The following runtime prerequisites were completed after separate exact-target approval:
 
-1. explicit database target confirmation;
-2. approved application of `012_audit_foundation.sql` and `013_kharchi.sql`;
-3. approved synchronization of guarded role grants;
-4. authenticated API verification.
+1. `012_audit_foundation.sql` and `013_kharchi.sql` were applied to
+   `md-in-30.webhostbox.net / vishwlt9_nirmansite`;
+2. the four expected Kharchi/Audit tables and migration records were verified;
+3. 22 approved `kharchi:*` default-role grants were synchronized and verified;
+4. API/database health returned `200`/`ok`;
+5. the rebuilt unauthenticated Kharchi route returned `401 AUTH_SESSION_REQUIRED`, proving route registration.
 
-Until those gates pass, do not report Kharchi as live or database-verified.
+Mobile source now implements the contracted list, filters, summary, record-paid form, detail,
+adjustment, history, export, permission states, and en/hi/gu coverage. Static Mobile checks and an
+Android Expo export passed. Authenticated role/workflow, live concurrency, automatic Wage-deduction,
+physical-device, screen-reader, large-text, contrast, timeout, and fluent-language acceptance remain
+pending and must not be inferred from the completed checks.
+
+The reconciled evidence record is `docs/modules/construction/kharchi/STATUS.md`.

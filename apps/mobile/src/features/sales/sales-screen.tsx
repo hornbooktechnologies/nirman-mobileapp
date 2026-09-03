@@ -24,6 +24,7 @@ import {
   FormField,
   IconButton,
   Input,
+  ListControls,
   LoadingState,
   NirmanScreenBackground,
   OperationalEntityCard,
@@ -292,7 +293,9 @@ export function SalesScreen() {
         <CompactScreenHeader leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />} title={t('title')} subtitle={project.name} action={<IconButton icon="view-grid-outline" accessibilityLabel={t('navigation.open')} variant="glass" onPress={() => setShowNavigation(true)} />} />
         <ProjectContextCard compact showSwitchAction />
         <SalesSectionHeading title={viewTitle} description={t(`views.${view}.description`)} action={createAction} />
-        <SearchField accessibilityLabel={t('search.a11y')} placeholder={t('search.placeholder')} value={search} onChangeText={setSearch} onSubmitEditing={() => void load()} />
+        <ListControls>
+          <SearchField accessibilityLabel={t('search.a11y')} placeholder={t('search.placeholder')} value={search} onChangeText={setSearch} onSubmitEditing={() => void load()} />
+        </ListControls>
         <FormError message={error} />
         {loading ? <LoadingState label={t('loading')} /> : null}
       </View>}

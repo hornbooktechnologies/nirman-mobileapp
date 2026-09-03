@@ -13,6 +13,8 @@
     "addA11y": "નવો કામદાર ઉમેરો",
     "searchA11y": "ઓર્ગેનાઇઝેશન કામદારો શોધો",
     "searchPlaceholder": "કોડ, નામ અથવા કામ શોધો",
+    "filterDescription": "આ પ્રોજેક્ટની સોંપણી મુજબ કામદારો ફિલ્ટર કરો.",
+    "filterGroup": "પ્રોજેક્ટ સોંપણી",
     "allCount": "બધા {{count}}",
     "assignedFilter": "સોંપેલ {{count}}",
     "unassignedFilter": "ન સોંપેલ {{count}}",

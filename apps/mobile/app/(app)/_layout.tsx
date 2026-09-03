@@ -29,6 +29,11 @@ export default function ProtectedLayout() {
       <Stack.Screen name="wage-batch" />
       <Stack.Screen name="kharchi" />
       <Stack.Screen name="kharchi-detail" />
+      <Stack.Screen name="materials" />
+      <Stack.Screen name="material-detail" />
+      <Stack.Screen name="expenses" />
+      <Stack.Screen name="expense-detail" />
+      <Stack.Screen name="progress" />
       <Stack.Screen name="sales" />
       <Stack.Screen name="sales-lead" />
       <Stack.Screen name="sales-activity" />

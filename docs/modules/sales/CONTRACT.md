@@ -4,7 +4,7 @@
 
 - Status: migrations through `015` are applied on the approved remote target as of 2026-08-31; authenticated workflow/concurrency acceptance is pending.
 - Authority: `MVP_REQUIREMENTS.md` sections 19-23.
-- Scope: one project-scoped Sales vertical slice covering Leads, timeline, follow-ups, site visits, unit inventory, non-exclusive customer interest, approval-based exclusive holds, and booking conversion.
+- Scope: one project-scoped Sales vertical slice covering Leads, timeline, follow-ups, site visits, manual/CSV unit inventory, explicit total/per-square-foot pricing, non-exclusive customer interest, approval-based exclusive holds, and booking conversion.
 
 ## B. Boundaries
 
@@ -44,6 +44,7 @@ Canonical values live in `packages/shared/src/constants/sales.ts`:
 - Follow-up types/statuses.
 - Site-visit statuses.
 - Unit-interest, hold-request, unit-block, and booking statuses.
+- Unit pricing bases (`TOTAL`, `PER_SQFT`) and CSV total-price input units (`RUPEE`, `LAKH`, `CRORE`).
 - Timeline activity types.
 
 Clients must not invent alternate values.

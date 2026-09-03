@@ -12,6 +12,15 @@
     "cancel": "Cancel",
     "back": "Back"
   },
+  "listFilters": {
+    "action": "Filters",
+    "actionA11y": "Open filters, {{count}} active",
+    "title": "Filter list",
+    "description": "Choose the filters to apply to this list.",
+    "clearAll": "Clear all",
+    "apply": "Apply filters",
+    "removeA11y": "Remove {{filter}} filter"
+  },
   "form": {
     "required": "required",
     "optional": "Optional"

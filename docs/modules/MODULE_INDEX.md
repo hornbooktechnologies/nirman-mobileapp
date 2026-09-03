@@ -38,18 +38,18 @@ AI agents must read this file before starting new module work.
 | 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation contract approved as a Workers extension | Implement and verify primary-project-period API in Slice A1; deactivation policy remains separately blocked |
 | 8A | Work Calendar | `docs/modules/calendar/CONTRACT.md` | in_progress | Project Access | Formal contract reconciled; implement and verify Slice A1 API foundation |
 | 9 | Attendance | `docs/modules/attendance/CONTRACT.md` | in_progress | Workers primary periods + Work Calendar + Project Access | Formal exception-model contract reconciled; implement and verify Slice A1 API foundation |
-| 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md` | implementation_complete_migration_pending | Workers + Wages + reusable Audit Foundation | API source/tests and Mobile integration contract complete; migrations, guarded grants, authenticated runtime, and Mobile implementation remain |
+| 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/kharchi/STATUS.md` | implementation_complete_acceptance_pending | Workers + Wages + reusable Audit Foundation | API/Mobile source, migrations, and approved grants complete; run authenticated role/concurrency and physical-device acceptance |
 | 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi | Derived Calendar/Attendance generation and transactional Kharchi allocation implemented; effective-dated rate history remains |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
-| 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
-| 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md` | candidate | Project Access + Files/Media | Contract |
+| 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Run authenticated API and Mobile physical-device acceptance |
+| 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md`, `docs/modules/construction/progress/STATUS.md` | implementation_complete_device_acceptance_pending | Project Access + Audit; Files/Media and Offline Sync deferred | API/database/Mobile verified; run authenticated write and physical-device acceptance |
 | 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md` | candidate | Files/Media + Project Access | Contract |
 
 ## 5. Sales Modules
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | in_progress | Project Access; Notifications/Audit integration remain downstream | Remote migration and role seed applied; complete authenticated role/workflow and concurrency acceptance |
+| 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | in_progress | Project Access; Notifications/Audit integration remain downstream | Migrations through `015` and role seed applied; complete authenticated role/workflow, concurrency, and physical-device acceptance |
 
 ## 6. Oversight Modules
 
@@ -61,7 +61,7 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Calendar/Attendance Slices A0 through C2 are complete. Wages consumes derived Calendar/Attendance results and now creates traceable oldest-first Kharchi allocations during confirmation. Kharchi runtime enablement still requires separately approved migrations and guarded role-grant synchronization; effective-dated Wage rate history also remains.
+Calendar/Attendance Slices A0 through C2 are complete. Wages consumes derived Calendar/Attendance results and creates traceable oldest-first Kharchi allocations during confirmation. Kharchi API/Mobile source, approved migrations, and guarded role grants are complete; authenticated role/concurrency and physical-device acceptance remain. Effective-dated Wage rate history also remains.
 
 Next document:
 

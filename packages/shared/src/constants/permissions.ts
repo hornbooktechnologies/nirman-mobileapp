@@ -17,6 +17,9 @@ export const PERMISSION_RESOURCES = [
   "attendance",
   "wages",
   "kharchi",
+  "materials",
+  "expenses",
+  "progress",
   "leads",
   "followups",
   "site-visits",
@@ -63,6 +66,13 @@ export const PERMISSION_ACTIONS = [
   "update-rate",
   "correct-locked",
   "adjust",
+  "configure",
+  "approve",
+  "approve-level-1",
+  "approve-final",
+  "reject",
+  "record-purchase",
+  "record-delivery",
   "update-organization",
   "update-project",
   "access",
@@ -92,6 +102,9 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   attendance: "Attendance",
   wages: "Wages",
   kharchi: "Kharchi",
+  materials: "Materials",
+  expenses: "Site Expenses",
+  progress: "Project Progress",
   leads: "Leads",
   followups: "Follow-ups",
   "site-visits": "Site Visits",
@@ -278,6 +291,42 @@ export const KHARCHI_PERMISSIONS = [
 
 export type KharchiPermissionKey = (typeof KHARCHI_PERMISSIONS)[number];
 
+export const MATERIAL_PERMISSIONS = [
+  "materials:read",
+  "materials:create",
+  "materials:update",
+  "materials:configure",
+  "materials:approve-level-1",
+  "materials:approve-final",
+  "materials:reject",
+  "materials:record-purchase",
+  "materials:record-delivery",
+  "materials:export",
+] as const satisfies readonly PermissionKey[];
+
+export type MaterialPermissionKey = (typeof MATERIAL_PERMISSIONS)[number];
+
+export const EXPENSE_PERMISSIONS = [
+  "expenses:read",
+  "expenses:create",
+  "expenses:update",
+  "expenses:configure",
+  "expenses:approve",
+  "expenses:reject",
+  "expenses:adjust",
+  "expenses:export",
+] as const satisfies readonly PermissionKey[];
+
+export type ExpensePermissionKey = (typeof EXPENSE_PERMISSIONS)[number];
+
+export const PROGRESS_PERMISSIONS = [
+  "progress:read",
+  "progress:update",
+  "progress:export",
+] as const satisfies readonly PermissionKey[];
+
+export type ProgressPermissionKey = (typeof PROGRESS_PERMISSIONS)[number];
+
 /** Sales CRM is a customer operational module, never a platform permission group. */
 export const SALES_PERMISSIONS = [
   "leads:read-own",
@@ -320,6 +369,9 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
   ...KHARCHI_PERMISSIONS,
+  ...MATERIAL_PERMISSIONS,
+  ...EXPENSE_PERMISSIONS,
+  ...PROGRESS_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -373,6 +425,21 @@ export const PROJECT_PERMISSION_GROUPS = [
     permissions: KHARCHI_PERMISSIONS,
   },
   {
+    key: "MATERIALS",
+    label: "Materials",
+    permissions: MATERIAL_PERMISSIONS,
+  },
+  {
+    key: "EXPENSES",
+    label: "Site Expenses",
+    permissions: EXPENSE_PERMISSIONS,
+  },
+  {
+    key: "PROGRESS",
+    label: "Project Progress",
+    permissions: PROGRESS_PERMISSIONS,
+  },
+  {
     key: "SALES",
     label: "Sales",
     permissions: SALES_PERMISSIONS,
@@ -397,6 +464,9 @@ export const ALL_PERMISSIONS = [
   ...ATTENDANCE_PERMISSIONS,
   ...WAGE_PERMISSIONS,
   ...KHARCHI_PERMISSIONS,
+  ...MATERIAL_PERMISSIONS,
+  ...EXPENSE_PERMISSIONS,
+  ...PROGRESS_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -505,6 +575,32 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "kharchi:adjust": "Record an immutable Worker-advance adjustment.",
   "kharchi:export": "Export Worker advances and balances.",
 
+  "materials:read": "Read Project material requirements and history.",
+  "materials:create": "Create Project material requirements.",
+  "materials:update":
+    "Edit, submit, return, or cancel material requests in allowed states.",
+  "materials:configure": "Configure the Project Materials workflow.",
+  "materials:approve-level-1": "Verify a material requirement on site.",
+  "materials:approve-final":
+    "Give final commercial approval to a material request.",
+  "materials:reject": "Return or reject a material request.",
+  "materials:record-purchase": "Record a material purchase or order.",
+  "materials:record-delivery": "Record a partial or final material delivery.",
+  "materials:export": "Export Project material request reports.",
+
+  "expenses:read": "Read Project site expenses and recognized totals.",
+  "expenses:create": "Record Project site expenses.",
+  "expenses:update": "Edit, submit, or cancel eligible site expenses.",
+  "expenses:configure": "Configure the Project Site Expenses workflow.",
+  "expenses:approve": "Approve another Member's pending site expense.",
+  "expenses:reject": "Reject another Member's pending site expense.",
+  "expenses:adjust": "Record an immutable approved-expense adjustment.",
+  "expenses:export": "Export Project site expense reports.",
+
+  "progress:read": "Read Project progress summaries and immutable history.",
+  "progress:update": "Record a new Project stage progress update.",
+  "progress:export": "Export Project progress history.",
+
   "leads:read-own": "Read assigned and self-created leads.",
   "leads:read-team": "Read leads assigned to the actor's sales team.",
   "leads:read-all": "Read all leads in accessible Projects.",
@@ -518,8 +614,10 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "inventory:read": "Read Project unit inventory.",
   "inventory:manage": "Create and update Project unit inventory.",
   "inventory:interest": "Record and update customer interest in units.",
-  "inventory:request-block": "Request an exclusive unit hold for an accessible lead.",
-  "inventory:block": "Approve, block, reject, and release exclusive unit holds.",
+  "inventory:request-block":
+    "Request an exclusive unit hold for an accessible lead.",
+  "inventory:block":
+    "Approve, block, reject, and release exclusive unit holds.",
   "inventory:book": "Confirm and cancel unit-linked bookings.",
   "sales-reports:read": "Read sales summaries and performance reports.",
 

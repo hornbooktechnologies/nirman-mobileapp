@@ -13,6 +13,8 @@
     "addA11y": "Add new worker",
     "searchA11y": "Search organization workers",
     "searchPlaceholder": "Search code, name or trade",
+    "filterDescription": "Filter workers by their assignment to this project.",
+    "filterGroup": "Project assignment",
     "allCount": "All {{count}}",
     "assignedFilter": "Assigned {{count}}",
     "unassignedFilter": "Unassigned {{count}}",

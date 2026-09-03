@@ -2,9 +2,9 @@
 
 ## 1. Status
 
-- Status: source implementation complete; migration and runtime verification pending.
+- Status: source implementation and approved migration/grant rollout complete; authenticated runtime verification pending.
 - Module: Kharchi / Worker Advances.
-- Last updated: 2026-08-31.
+- Last updated: 2026-09-01.
 
 ## 2. Purpose
 
@@ -128,6 +128,18 @@ None for the API-first source implementation.
 - Focused Kharchi/Audit lint passed with no errors; test mocks retain five unsafe-argument warnings.
 - `git diff --check` passed.
 - No migration-status, migration, seed, database, authenticated HTTP, browser, or device command was run.
+
+Subsequent separately authorized rollout evidence:
+
+- `012_audit_foundation.sql` and `013_kharchi.sql` were applied to the confirmed remote target;
+- four expected Kharchi/Audit tables and both migration records were verified;
+- 22 approved `kharchi:*` role grants were synchronized and verified;
+- API/database health returned `200`/`ok` and the unauthenticated Kharchi route returned
+  `401 AUTH_SESSION_REQUIRED` after rebuilding the stale API process;
+- authenticated role/workflow, live concurrency, and device acceptance remain pending.
+
+Mobile delivery and current acceptance boundaries are recorded in
+`docs/modules/construction/kharchi/STATUS.md`.
 
 ## 13. Exit Criteria
 

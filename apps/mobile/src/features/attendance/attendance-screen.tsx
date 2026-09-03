@@ -14,6 +14,7 @@ import {
   EmptyState,
   FormField,
   IconButton,
+  ListControls,
   NirmanScreenBackground,
   OperationalEntityCard,
   SearchField,
@@ -212,10 +213,10 @@ export function AttendanceScreen() {
           </FormField>
         </View>
       </Card>
-      <View style={styles.filters}>
+      <ListControls>
         <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
         <Toggle accessibilityRole="checkbox" accessibilityState={{ checked: exceptionsOnly }} label={t('filters.exceptionsOnly')} value={exceptionsOnly} onValueChange={setExceptionsOnly} />
-      </View>
+      </ListControls>
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
           <ActivityIndicator color={mobileTheme.color.action.primary} />
@@ -279,7 +280,6 @@ const styles = StyleSheet.create({
   sectionDescription: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
   dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
   dateField: { flexBasis: 150, flexGrow: 1 },
-  filters: { gap: mobileTheme.spacing[2] },
   refreshing: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
   cardNote: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
   loading: { alignItems: 'center', gap: mobileTheme.spacing[3], justifyContent: 'center', minHeight: 180 },

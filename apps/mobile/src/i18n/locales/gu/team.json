@@ -109,7 +109,10 @@
     "ATTENDANCE": "હાજરી",
     "WAGES": "મજૂરી",
     "SALES": "સેલ્સ",
-    "KHARCHI": "ખર્ચી"
+    "KHARCHI": "ખર્ચી",
+    "MATERIALS": "સામગ્રી",
+    "EXPENSES": "સાઇટ ખર્ચ",
+    "PROGRESS": "પ્રોજેક્ટ પ્રગતિ"
   },
   "permissionAction": {
     "read": "જુઓ",
@@ -122,6 +125,15 @@
     "update-rate": "દર અપડેટ કરો",
     "deactivate": "નિષ્ક્રિય કરો",
     "export": "નિકાસ કરો",
+    "configure": "ગોઠવો",
+    "approve": "મંજૂર કરો",
+    "reject": "નકારો",
+    "adjust": "સમાયોજિત કરો",
+    "approve-level-1": "ચકાસો",
+    "approve-final": "અંતિમ મંજૂરી",
+    "reject": "નામંજૂર કરો",
+    "record-purchase": "ખરીદી નોંધો",
+    "record-delivery": "ડિલિવરી નોંધો",
     "mark": "હાજરી નોંધો",
     "correct-locked": "લૉક હાજરી સુધારો",
     "generate": "બનાવો",

@@ -1,5 +1,57 @@
 # Current Task
 
+## Project Progress API And Mobile Implementation
+
+On 2026-09-02, the Product Owner authorized a complete Project Progress vertical slice, including
+database rollout and seed synchronization. The approved contract documents nine canonical stages,
+immutable append-only history, regression notes, idempotent/concurrency-safe writes, and an
+equal-weight overall percentage where untouched stages contribute zero.
+
+Shared contracts, migration `019_project_progress.sql`, the NestJS module, guarded role grants,
+read-only verification scripts, and the Expo integration are implemented. The API provides Project
+summary/history/update/export plus an accessible Organization Project portfolio. Mobile provides
+permission-aware navigation and Home data, an overall progress card, selectable stage cards,
+paginated history, CSV sharing, and a localized update sheet with presets, exact percentage, date,
+notes, conflict handling, and success feedback in English/Hindi/Gujarati.
+
+The configured remote database is 20/20 current; the new table and intended eight role-template
+grant sets are verified. Shared/API/Mobile checks pass, including 27 API suites/149 tests, the API
+production build, 17-namespace locale parity, and Android Expo export. The current API listener was
+restarted; health/database are `ok`, unauthenticated Progress returns `401 AUTH_SESSION_REQUIRED`,
+and an authenticated read-only Progress summary returns `200` with nine stages. Authenticated write
+acceptance using deliberate business test data and physical-device/accessibility/fluent-language
+review remain pending. See `docs/modules/construction/progress/STATUS.md`.
+
+## Site Expenses API And Mobile Implementation
+
+On 2026-09-02, the Product Owner approved all decisions in
+`docs/modules/construction/expenses/CONTRACTS.md` and authorized the API-first slice. Shared expense
+contracts, eight permissions, guarded role defaults, migration draft `018_site_expenses.sql`, and a
+NestJS controller/service/repository module are implemented. The API supports Project workflow
+settings, list/summary/export, create/detail/update, submit/approve/reject/cancel, and immutable
+signed adjustments.
+
+The implementation uses active Organization membership and effective Project access, Direct versus
+Approval-required workflow snapshots, reviewer separation, server-derived actions, Project/entity-
+scoped idempotency, expected-version locking, immutable domain/audit history, transactional in-app
+notifications, and non-negative recognised cost. Shared/API static checks, focused lint, 10 focused
+tests, the full API suite, and production build passed.
+
+After exact-target approval, migration `018` and the full guarded seed ran on
+`md-in-30.webhostbox.net / vishwlt9_nirmansite` with `SEED_ROLE_USERS=false`. The migration ledger is
+19/19 current; all five Expense tables, expected role grants, zero duplicate grants, and zero Expense
+business rows were verified. The listening API was restarted from the current `dist` build;
+API/database health is `200`/`ok` and the unauthenticated Expenses route now returns
+`401 AUTH_SESSION_REQUIRED`, confirming runtime registration.
+
+The Mobile vertical slice is now implemented with permission-aware navigation, Project summary/list,
+search/filter/export, workflow configuration, create/draft/edit, detail, server-derived workflow
+actions, immutable adjustments/timeline, API error mapping, and complete en/hi/gu resources. Mobile
+locale parity, TypeScript, Expo web and Android production exports, and whitespace checks pass.
+Authenticated API/Mobile runtime, Web, offline, browser, accessibility, fluent-language,
+and physical-device acceptance remain pending. See
+`docs/modules/construction/expenses/STATUS.md`.
+
 ## Kharchi / Worker Advances API Implementation
 
 On 2026-08-31, the Product Owner started the API-first Kharchi module and confirmed a
@@ -17,18 +69,24 @@ API idempotency is required now.
 The Product Owner confirmed that incorrect paid records remain immutable and are corrected only
 by signed adjustments, with no Kharchi cancel/delete action. The API-first source implementation
 under `docs/tasks/kharchi-api-technical-plan.md` is complete: shared contracts, guarded role
-defaults, Audit and Kharchi SQL drafts, list/summary/detail/create/adjust/export endpoints,
+defaults, Audit and Kharchi migrations, list/summary/detail/create/adjust/export endpoints,
 transactional audit writes, automatic oldest-first Wage allocation, Worker deletion integration,
-and focused tests are present. Shared and API static checks passed, including all 21 API suites
-and 114 tests. Migration-status, migration, seed, remote database, authenticated runtime, Web,
-Mobile, and offline-sync work remain outside this authorization.
+and focused tests are present.
 
-The Mobile integration contract is now documented at
-`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`. It defines the existing API
-envelopes and shared types, date-valid Worker assignment selection, retry-key lifecycle, list and
-summary UI, paid-advance form, immutable detail/adjustment history, permission states, en/hi/gu,
-accessibility, refresh rules, and acceptance gates. No Mobile source or dependency was changed by
-this documentation slice.
+After separate exact-target approval, `012_audit_foundation.sql` and `013_kharchi.sql` were
+applied to `md-in-30.webhostbox.net / vishwlt9_nirmansite`, four expected Kharchi/Audit tables
+were verified, and 22 approved `kharchi:*` grants were synchronized. API/database health returned
+`200`/`ok`; after rebuilding the stale API process, the unauthenticated Kharchi route returned
+`401 AUTH_SESSION_REQUIRED`, proving route registration but not authenticated acceptance.
+
+The Mobile implementation now follows
+`docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`: permission-aware navigation,
+server summary and paginated list, shared search/filter controls, record-paid flow, immutable
+detail/adjustment and Wage-allocation history, CSV integration, operational states, and en/hi/gu
+coverage are present. Mobile locale parity, type-check, Android Expo export, and diff checks
+passed. The reconciled source map, rollout evidence, and remaining authenticated, concurrency,
+device, accessibility, timeout, and fluent-language gates are recorded in
+`docs/modules/construction/kharchi/STATUS.md`.
 
 ## Sales CRM API Status
 
@@ -48,6 +106,17 @@ owner/admin template, nine for Sales User, and zero for Site Supervisor and Plat
 Admin. All Sales tables remain empty. API health reports app/database `ok`, and the Sales route
 is registered and returns `401` without authentication. Authenticated Sales workflow,
 concurrency, browser, and physical-device acceptance remain pending.
+
+On 2026-08-31, the Sales inventory workflow was extended with non-exclusive multi-customer
+interest, approval-based exclusive holds, manual and CSV Unit inventory, and explicit
+`TOTAL`/`PER_SQFT` pricing. Migrations `014_sales_unit_interest_hold_workflow.sql` and
+`015_sales_unit_pricing.sql` were separately approved and applied to the same exact target.
+The guarded runner now reports 16/16 migrations applied and current. Read-only verification
+confirmed `sales_units.price_basis`, nullable `rate_per_sqft`, and one pre-existing Unit retained
+with the `TOTAL` default; migration `015` inserted no business records. Mobile/API type-checks,
+en/hi/gu locale parity, focused Sales lint, all 21 API suites/120 tests, Android Expo export,
+and `git diff --check` passed. Authenticated role/workflow, concurrent-hold, and physical-device
+acceptance remain pending and must not be inferred from those checks.
 
 ## Calendar And Attendance Implementation Status
 

@@ -15,6 +15,9 @@ export type CustomerRoute =
   | '/(app)/work-calendar'
   | '/(app)/wages'
   | '/(app)/kharchi'
+  | '/(app)/materials'
+  | '/(app)/expenses'
+  | '/(app)/progress'
   | '/(app)/sales'
   | '/(app)/team'
   | '/(app)/members'
@@ -50,6 +53,9 @@ const customerNavigation: readonly CustomerNavigationDefinition[] = [
   { key: 'attendance', labelKey: 'items.attendance.title', titleKey: 'items.attendance.title', descriptionKey: 'items.attendance.description', icon: 'calendar-check', href: '/(app)/attendance', permission: 'attendance:read' },
   { key: 'wages', labelKey: 'items.wages.title', titleKey: 'items.wages.title', descriptionKey: 'items.wages.description', icon: 'cash-multiple', href: '/(app)/wages', permission: 'wages:read' },
   { key: 'kharchi', labelKey: 'items.kharchi.title', titleKey: 'items.kharchi.title', descriptionKey: 'items.kharchi.description', icon: 'cash-minus', href: '/(app)/kharchi', permission: 'kharchi:read' },
+  { key: 'materials', labelKey: 'items.materials.title', titleKey: 'items.materials.title', descriptionKey: 'items.materials.description', icon: 'package-variant-closed', href: '/(app)/materials', permission: 'materials:read' },
+  { key: 'expenses', labelKey: 'items.expenses.title', titleKey: 'items.expenses.title', descriptionKey: 'items.expenses.description', icon: 'receipt-text-outline', href: '/(app)/expenses', permission: 'expenses:read' },
+  { key: 'progress', labelKey: 'items.progress.title', titleKey: 'items.progress.title', descriptionKey: 'items.progress.description', icon: 'chart-timeline-variant-shimmer', href: '/(app)/progress', permission: 'progress:read' },
   { key: 'sales', labelKey: 'items.sales.title', titleKey: 'items.sales.title', descriptionKey: 'items.sales.description', icon: 'account-tie-outline', href: '/(app)/sales', permissionsAny: ['leads:read-own', 'leads:read-team', 'leads:read-all', 'inventory:read'] },
   { key: 'menu', labelKey: 'tabs.menu', titleKey: 'items.menu.title', descriptionKey: 'items.menu.description', icon: 'menu', href: '/(app)/menu' },
 ];

@@ -33,6 +33,9 @@
     "attendance": { "title": "હાજરી", "description": "કામદારોની હાજરી અને ગેરહાજરી" },
     "wages": { "title": "મજૂરી", "description": "કામદારોની ચુકવણી" },
     "kharchi": { "title": "ખર્ચી", "description": "કામદાર એડવાન્સ અને કપાત" },
+    "materials": { "title": "સામગ્રી", "description": "વિનંતી, મંજૂરી અને ડિલિવરી" },
+    "expenses": { "title": "સાઇટ ખર્ચ", "description": "ખર્ચ, મંજૂરી અને સમાયોજન" },
+    "progress": { "title": "પ્રોજેક્ટ પ્રગતિ", "description": "તબક્કાની પૂર્ણતા અને સાઇટ અપડેટ" },
     "sales": { "title": "સેલ્સ", "description": "લીડ, ફોલો-અપ અને ઇન્વેન્ટરી" },
     "calendar": { "title": "કાર્ય કૅલેન્ડર", "description": "કાર્ય દિવસો અને સાઇટ બંધ" },
     "menu": {

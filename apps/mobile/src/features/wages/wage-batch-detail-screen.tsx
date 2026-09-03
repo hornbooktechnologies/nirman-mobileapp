@@ -41,6 +41,10 @@ const today = () => {
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 const remainingValue = (item: WageItem) => Math.max(0, Number(item.netAmount) - Number(item.paidAmount));
+const isSettledByKharchi = (item: WageItem) =>
+  remainingValue(item) === 0 &&
+  Number(item.paidAmount) <= 0 &&
+  Number(item.kharchiDeduction) > 0;
 
 export function WageBatchDetailScreen() {
   const { t } = useTranslation('wages');
@@ -93,6 +97,7 @@ export function WageBatchDetailScreen() {
     [detail?.items, selectedItemId],
   );
   const selectedRemaining = selectedItem ? remainingValue(selectedItem) : 0;
+  const selectedSettledByKharchi = selectedItem ? isSettledByKharchi(selectedItem) : false;
   const paymentValue = Number(amount);
   const paymentError = !amount
     ? ''
@@ -241,27 +246,36 @@ export function WageBatchDetailScreen() {
           ) : !error && detail ? (
             <EmptyState title={t('detail.emptyTitle')} description={t('detail.emptyDescription')} />
           ) : null}
-          renderItem={({ item }) => (
-            <OperationalEntityCard
-              accessibilityLabel={t('worker.openA11y', { worker: item.workerName, due: formatInr(remainingValue(item), language) })}
-              compact
-              contextLeading={item.workerCode}
-              contextTrailing={item.trade}
-              title={item.workerName}
-              supporting={t('worker.attendance', { present: item.presentDays, half: item.halfDays, absent: item.absentDays })}
-              value={formatInr(remainingValue(item), language)}
-              valueLabel={t('worker.due')}
-              footerLeading={
-                <Badge
-                  label={t(`paymentStatus.${item.paymentStatus}`)}
-                  tone={item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
-                />
-              }
-              footerTrailing={(canPay || canUpdate) ? <AppText style={styles.manage} weight={700}>{t('worker.manage')}</AppText> : undefined}
-              tone={item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'info' : 'warning'}
-              onPress={(canPay || canUpdate) ? () => openWorker(item) : undefined}
-            />
-          )}
+          renderItem={({ item }) => {
+            const settledByKharchi = isSettledByKharchi(item);
+            const statusLabel = settledByKharchi
+              ? t('paymentStatus.KHARCHI_SETTLED')
+              : t(`paymentStatus.${item.paymentStatus}`);
+            const statusTone = settledByKharchi
+              ? 'info'
+              : item.paymentStatus === 'PAID'
+                ? 'success'
+                : item.paymentStatus === 'PARTIALLY_PAID'
+                  ? 'warning'
+                  : 'danger';
+
+            return (
+              <OperationalEntityCard
+                accessibilityLabel={t('worker.openA11y', { worker: item.workerName, due: formatInr(remainingValue(item), language) })}
+                compact
+                contextLeading={item.workerCode}
+                contextTrailing={item.trade}
+                title={item.workerName}
+                supporting={t('worker.attendance', { present: item.presentDays, half: item.halfDays, absent: item.absentDays })}
+                value={formatInr(remainingValue(item), language)}
+                valueLabel={t('worker.due')}
+                footerLeading={<Badge label={statusLabel} tone={statusTone} />}
+                footerTrailing={(canPay || canUpdate) ? <AppText style={styles.manage} weight={700}>{t('worker.manage')}</AppText> : undefined}
+                tone={settledByKharchi ? 'info' : item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'info' : 'warning'}
+                onPress={(canPay || canUpdate) ? () => openWorker(item) : undefined}
+              />
+            );
+          }}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshing={false}
@@ -286,8 +300,8 @@ export function WageBatchDetailScreen() {
             valueLabel={t('worker.due')}
             footerLeading={
               <Badge
-                label={t(`paymentStatus.${selectedItem.paymentStatus}`)}
-                tone={selectedItem.paymentStatus === 'PAID' ? 'success' : selectedItem.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
+                label={selectedSettledByKharchi ? t('paymentStatus.KHARCHI_SETTLED') : t(`paymentStatus.${selectedItem.paymentStatus}`)}
+                tone={selectedSettledByKharchi ? 'info' : selectedItem.paymentStatus === 'PAID' ? 'success' : selectedItem.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
               />
             }
             tone="neutral"
@@ -334,8 +348,14 @@ export function WageBatchDetailScreen() {
                     onPress={() => void pay()}
                   />
                 </>
-              ) : (
+              ) : selectedSettledByKharchi ? (
+                <AppText style={styles.infoMessage} weight={600}>
+                  {t('payment.settledByKharchi', { amount: formatInr(Number(selectedItem.kharchiDeduction), language) })}
+                </AppText>
+              ) : selectedItem.paymentStatus === 'PAID' ? (
                 <AppText style={styles.successMessage} weight={600}>{t('payment.alreadyPaid')}</AppText>
+              ) : (
+                <AppText style={styles.infoMessage} weight={600}>{t('payment.noPaymentDue')}</AppText>
               )}
             </View>
           ) : null}
@@ -423,5 +443,6 @@ const styles = StyleSheet.create({
   modeSelected: { backgroundColor: mobileTheme.color.status.info.background, borderColor: mobileTheme.color.action.primary, borderWidth: 2 },
   modeText: { ...mobileText.body, color: mobileTheme.color.text.primary },
   successMessage: { ...mobileText.body, backgroundColor: mobileTheme.color.status.success.background, borderColor: mobileTheme.color.status.success.border, borderRadius: mobileTheme.radius.md, borderWidth: 1, color: mobileTheme.color.status.success.foreground, padding: mobileTheme.spacing[3] },
+  infoMessage: { ...mobileText.body, backgroundColor: mobileTheme.color.status.info.background, borderColor: mobileTheme.color.status.info.border, borderRadius: mobileTheme.radius.md, borderWidth: 1, color: mobileTheme.color.status.info.foreground, padding: mobileTheme.spacing[3] },
   pressed: { opacity: 0.78 },
 });

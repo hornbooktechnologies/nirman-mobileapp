@@ -6,15 +6,21 @@ import {
   AppIcon,
   AppText,
   ActionListItem,
+  AppliedFilterChip,
+  AppliedFilters,
   BottomSheet,
   Button,
   Card,
-  Chip,
   CompactScreenHeader,
   DateInput,
   EmptyState,
+  FilterGroup,
+  FilterOption,
   FormError,
   FormField,
+  ListControls,
+  ListFilterBar,
+  ListFilterSheet,
   NirmanScreenBackground,
   IconButton,
   Input,
@@ -48,6 +54,7 @@ import type {
 const TRADE_SUGGESTION_KEYS = ['mason', 'helper', 'carpenter', 'plumber', 'electrician', 'painter'] as const;
 const today = () => new Date().toISOString().slice(0, 10);
 type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
+type WorkerFilter = 'all' | 'assigned' | 'unassigned';
 
 export function WorkersScreen() {
   const { t } = useTranslation('workers');
@@ -78,7 +85,9 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [workers, setWorkers] = useState<WorkerSummary[]>([]);
   const [roster, setRoster] = useState<ProjectWorkerRosterItem[]>([]);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'assigned' | 'unassigned'>('all');
+  const [filter, setFilter] = useState<WorkerFilter>('all');
+  const [draftFilter, setDraftFilter] = useState<WorkerFilter>('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [availabilityMessage, setAvailabilityMessage] = useState('');
@@ -328,12 +337,23 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       </View>
 
       {availabilityMessage ? <Card style={styles.notice}><AppText style={styles.noticeText}>{availabilityMessage}</AppText></Card> : null}
-      <SearchField accessibilityLabel={t('panel.searchA11y')} placeholder={t('panel.searchPlaceholder')} value={search} onChangeText={setSearch} />
-      <View style={styles.filters}>
-        <Chip label={t('panel.allCount', { count: workers.length })} selected={filter === 'all'} onPress={() => setFilter('all')} />
-        <Chip label={t('panel.assignedFilter', { count: roster.length })} selected={filter === 'assigned'} onPress={() => setFilter('assigned')} />
-        <Chip label={t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })} selected={filter === 'unassigned'} onPress={() => setFilter('unassigned')} />
-      </View>
+      <ListControls>
+        <ListFilterBar
+          search={<SearchField accessibilityLabel={t('panel.searchA11y')} placeholder={t('panel.searchPlaceholder')} value={search} onChangeText={setSearch} />}
+          filterLabel={tCommon('listFilters.action')}
+          filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: filter === 'all' ? 0 : 1 })}
+          activeFilterCount={filter === 'all' ? 0 : 1}
+          expanded={filtersOpen}
+          onOpenFilters={() => { setDraftFilter(filter); setFiltersOpen(true); }}
+        />
+        {filter !== 'all' ? <AppliedFilters>
+          <AppliedFilterChip
+            label={filter === 'assigned' ? t('panel.assignedFilter', { count: roster.length }) : t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })}
+            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: filter === 'assigned' ? t('card.assigned') : t('card.unassigned') })}
+            onRemove={() => setFilter('all')}
+          />
+        </AppliedFilters> : null}
+      </ListControls>
 
       {isLoading ? <LoadingState label={t('panel.loading')} /> : null}
       {error ? <EmptyState title={t('panel.loadFailed')} description={error} actionLabel={t('panel.retry')} onAction={() => void loadWorkers()} /> : null}
@@ -353,6 +373,27 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           windowSize={7}
         />
       ) : null}
+
+      <ListFilterSheet
+        visible={filtersOpen}
+        title={tCommon('listFilters.title')}
+        description={t('panel.filterDescription')}
+        clearLabel={tCommon('listFilters.clearAll')}
+        applyLabel={tCommon('listFilters.apply')}
+        onClear={() => {
+          setDraftFilter('all');
+          setFilter('all');
+          setFiltersOpen(false);
+        }}
+        onApply={() => { setFilter(draftFilter); setFiltersOpen(false); }}
+        onClose={() => setFiltersOpen(false)}
+      >
+        <FilterGroup label={t('panel.filterGroup')}>
+          <FilterOption label={t('panel.allCount', { count: workers.length })} selected={draftFilter === 'all'} onPress={() => setDraftFilter('all')} />
+          <FilterOption label={t('panel.assignedFilter', { count: roster.length })} selected={draftFilter === 'assigned'} onPress={() => setDraftFilter('assigned')} />
+          <FilterOption label={t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })} selected={draftFilter === 'unassigned'} onPress={() => setDraftFilter('unassigned')} />
+        </FilterGroup>
+      </ListFilterSheet>
 
       {showCreate ? <CreateWorkerSheet organizationId={organizationId} projectId={projectId} accessToken={session.accessToken} saving={isSubmitting} onClose={() => setShowCreate(false)} onSaving={setIsSubmitting} onSaved={async () => { setShowCreate(false); await loadWorkers(); }} /> : null}
 
@@ -450,7 +491,6 @@ const styles = StyleSheet.create({
   sectionTitle: { ...mobileText.sectionTitle, fontSize: 20 },
   notice: { backgroundColor: mobileTheme.color.status.warning.background },
   noticeText: { ...mobileText.body, color: mobileTheme.color.status.warning.foreground },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
   list: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
   workerCard: { gap: mobileTheme.spacing[3] },

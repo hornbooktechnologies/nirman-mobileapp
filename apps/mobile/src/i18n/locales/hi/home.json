@@ -13,6 +13,65 @@
     "projectScope": "प्रोजेक्ट पहुँच",
     "projectScopeA11y": "प्रोजेक्ट पहुँच: {{scope}}"
   },
+  "overview": {
+    "eyebrow": "प्रोजेक्ट संदर्भ",
+    "title": "साइट का सार"
+  },
+  "data": {
+    "loading": "साइट की जानकारी अपडेट हो रही है…",
+    "unavailable": "यह जानकारी अभी उपलब्ध नहीं है।",
+    "retry": "डैशबोर्ड फिर लोड करें"
+  },
+  "today": {
+    "eyebrow": "लाइव उपस्थिति",
+    "title": "आज साइट पर",
+    "workers": "सौंपे गए श्रमिक",
+    "workersA11y": "{{count}} सौंपे गए श्रमिक",
+    "present": "आज उपस्थित",
+    "presentA11y": "आज {{count}} उपस्थित",
+    "absent": "आज अनुपस्थित",
+    "absentA11y": "आज {{count}} अनुपस्थित",
+    "spend": "आज का खर्च",
+    "spendA11y": "आज का मान्य साइट खर्च: {{amount}}"
+  },
+  "progress": {
+    "title": "प्रोजेक्ट प्रगति",
+    "dataPending": "चरण-स्तरीय प्रगति के लिए प्रोजेक्ट प्रगति डेटा की प्रतीक्षा है।"
+  },
+  "attention": {
+    "eyebrow": "कार्य सूची",
+    "title": "ध्यान देने योग्य",
+    "clear": "किसी सामग्री या खर्च मद पर ध्यान देना बाकी नहीं है।",
+    "materialApprovals_one": "{{count}} सामग्री अनुरोध",
+    "materialApprovals_other": "{{count}} सामग्री अनुरोध",
+    "materialApprovalsMeta": "स्वीकृति प्रक्रिया में प्रतीक्षारत",
+    "materialApprovalsA11y_one": "स्वीकृति की प्रतीक्षा वाला {{count}} सामग्री अनुरोध खोलें",
+    "materialApprovalsA11y_other": "स्वीकृति की प्रतीक्षा वाले {{count}} सामग्री अनुरोध खोलें",
+    "overdueMaterials_one": "{{count}} विलंबित सामग्री अनुरोध",
+    "overdueMaterials_other": "{{count}} विलंबित सामग्री अनुरोध",
+    "overdueMaterialsMeta": "आवश्यक तारीख बीत चुकी है",
+    "overdueMaterialsA11y_one": "{{count}} विलंबित सामग्री अनुरोध खोलें",
+    "overdueMaterialsA11y_other": "{{count}} विलंबित सामग्री अनुरोध खोलें",
+    "pendingExpenses_one": "{{count}} लंबित खर्च",
+    "pendingExpenses_other": "{{count}} लंबित खर्च",
+    "pendingExpensesA11y_one": "{{amount}} का {{count}} लंबित खर्च खोलें",
+    "pendingExpensesA11y_other": "{{amount}} के {{count}} लंबित खर्च खोलें"
+  },
+  "finance": {
+    "eyebrow": "इस महीने",
+    "title": "वित्तीय सार",
+    "expenses": "मान्य साइट खर्च",
+    "expensesA11y": "इस महीने के मान्य साइट खर्च: {{amount}}",
+    "kharchi": "दी गई खर्ची",
+    "kharchiA11y": "इस महीने दी गई खर्ची: {{amount}}"
+  },
+  "quickActions": {
+    "eyebrow": "टूल",
+    "title": "त्वरित कार्य",
+    "more": "और",
+    "moreHint": "उपलब्ध सभी कार्यक्षेत्र टूल खोलें",
+    "createProjectHint": "नया प्रोजेक्ट बनाएँ"
+  },
   "projectScope": {
     "ALL": "सभी प्रोजेक्ट",
     "ASSIGNED": "सौंपे गए प्रोजेक्ट",

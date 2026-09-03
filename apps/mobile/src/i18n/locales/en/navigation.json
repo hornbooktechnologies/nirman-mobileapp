@@ -33,6 +33,9 @@
     "attendance": { "title": "Attendance", "description": "Worker presence and absences" },
     "wages": { "title": "Wages", "description": "Worker payments" },
     "kharchi": { "title": "Kharchi", "description": "Worker advances and deductions" },
+    "materials": { "title": "Materials", "description": "Requests, approvals and deliveries" },
+    "expenses": { "title": "Site Expenses", "description": "Spend, approvals and adjustments" },
+    "progress": { "title": "Project Progress", "description": "Stage completion and site updates" },
     "sales": { "title": "Sales", "description": "Leads, follow-ups and inventory" },
     "calendar": { "title": "Work Calendar", "description": "Working days and site closures" },
     "menu": {

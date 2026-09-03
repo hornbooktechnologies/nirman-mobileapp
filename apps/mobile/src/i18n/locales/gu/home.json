@@ -13,6 +13,65 @@
     "projectScope": "પ્રોજેક્ટ ઍક્સેસ",
     "projectScopeA11y": "પ્રોજેક્ટ ઍક્સેસ: {{scope}}"
   },
+  "overview": {
+    "eyebrow": "પ્રોજેક્ટ સંદર્ભ",
+    "title": "સાઇટનો સાર"
+  },
+  "data": {
+    "loading": "સાઇટની માહિતી અપડેટ થઈ રહી છે…",
+    "unavailable": "આ માહિતી હાલમાં ઉપલબ્ધ નથી.",
+    "retry": "ડૅશબોર્ડ ફરી લોડ કરો"
+  },
+  "today": {
+    "eyebrow": "લાઇવ હાજરી",
+    "title": "આજે સાઇટ પર",
+    "workers": "સોંપેલા કામદારો",
+    "workersA11y": "{{count}} સોંપેલા કામદારો",
+    "present": "આજે હાજર",
+    "presentA11y": "આજે {{count}} હાજર",
+    "absent": "આજે ગેરહાજર",
+    "absentA11y": "આજે {{count}} ગેરહાજર",
+    "spend": "આજનો ખર્ચ",
+    "spendA11y": "આજનો માન્ય સાઇટ ખર્ચ: {{amount}}"
+  },
+  "progress": {
+    "title": "પ્રોજેક્ટ પ્રગતિ",
+    "dataPending": "તબક્કાવાર પ્રગતિ માટે પ્રોજેક્ટ પ્રગતિના ડેટાની રાહ છે."
+  },
+  "attention": {
+    "eyebrow": "કાર્ય કતાર",
+    "title": "ધ્યાન આપવું જરૂરી",
+    "clear": "કોઈ સામગ્રી અથવા ખર્ચની બાબત પર ધ્યાન આપવાનું બાકી નથી.",
+    "materialApprovals_one": "{{count}} સામગ્રી વિનંતી",
+    "materialApprovals_other": "{{count}} સામગ્રી વિનંતીઓ",
+    "materialApprovalsMeta": "મંજૂરી પ્રક્રિયામાં રાહ જોઈ રહી છે",
+    "materialApprovalsA11y_one": "મંજૂરીની રાહ જોતી {{count}} સામગ્રી વિનંતી ખોલો",
+    "materialApprovalsA11y_other": "મંજૂરીની રાહ જોતી {{count}} સામગ્રી વિનંતીઓ ખોલો",
+    "overdueMaterials_one": "{{count}} મોડી સામગ્રી વિનંતી",
+    "overdueMaterials_other": "{{count}} મોડી સામગ્રી વિનંતીઓ",
+    "overdueMaterialsMeta": "જરૂરી તારીખ પસાર થઈ ગઈ છે",
+    "overdueMaterialsA11y_one": "{{count}} મોડી સામગ્રી વિનંતી ખોલો",
+    "overdueMaterialsA11y_other": "{{count}} મોડી સામગ્રી વિનંતીઓ ખોલો",
+    "pendingExpenses_one": "{{count}} બાકી ખર્ચ",
+    "pendingExpenses_other": "{{count}} બાકી ખર્ચ",
+    "pendingExpensesA11y_one": "{{amount}}નો {{count}} બાકી ખર્ચ ખોલો",
+    "pendingExpensesA11y_other": "{{amount}}ના {{count}} બાકી ખર્ચ ખોલો"
+  },
+  "finance": {
+    "eyebrow": "આ મહિનો",
+    "title": "નાણાકીય સાર",
+    "expenses": "માન્ય સાઇટ ખર્ચ",
+    "expensesA11y": "આ મહિનાનો માન્ય સાઇટ ખર્ચ: {{amount}}",
+    "kharchi": "ચૂકવેલી ખર્ચી",
+    "kharchiA11y": "આ મહિને ચૂકવેલી ખર્ચી: {{amount}}"
+  },
+  "quickActions": {
+    "eyebrow": "સાધનો",
+    "title": "ઝડપી કાર્યો",
+    "more": "વધુ",
+    "moreHint": "ઉપલબ્ધ બધા વર્કસ્પેસ સાધનો ખોલો",
+    "createProjectHint": "નવો પ્રોજેક્ટ બનાવો"
+  },
   "projectScope": {
     "ALL": "બધા પ્રોજેક્ટ",
     "ASSIGNED": "સોંપેલા પ્રોજેક્ટ",
