@@ -391,14 +391,17 @@ physical-device/accessibility/large-text/landscape/fluent-language acceptance re
 ## 2026-09-03: Site Gallery / Project Diary Vertical Slice
 
 The full Gallery contract, Files/Media ownership subset, shared vocabulary/RBAC, migration 020,
-NestJS API, guarded role seed, and multilingual Expo capture/queue/diary/review experience are
-implemented. The remote target is 21/21 current; both new tables and the intended eight customer
-role grants are verified, with no demo users or Gallery business records created.
+NestJS API, guarded role seed, and multilingual Expo capture/queue/direct-publish Gallery experience
+are implemented. The remote target is 21/21 current; both new tables and the intended eight customer
+role grants are verified, with no demo users created.
 
 Shared/API/Mobile type checks, API build, 28 suites/153 tests, 18-namespace locale parity, Android
-Expo export, API/database health, and the unauthenticated Gallery guard pass. Real S3 upload/media
-streaming, authenticated workflow, and physical-device/accessibility/fluent-language acceptance
-remain pending because the current environment does not contain a storage bucket or credentials.
+Expo export, API/database health, and the unauthenticated Gallery guard pass. On 2026-09-07 a
+dedicated private development S3 bucket was configured; a real upload/read/integrity/public-denial/
+delete smoke passed under the Organization/Project asset hierarchy. A real `raxorg1@yopmail.com`
+upload and authenticated media read were confirmed. The Gallery now uses a dense month/day thumbnail
+grid with category/date filters and tap-to-open details. Direct-publish replay and physical-device/
+accessibility/fluent-language acceptance of the redesign remain pending.
 
 ## 2026-09-03: Site Visits Completion
 

@@ -27,34 +27,61 @@ import {
   LoadingState,
   OperationalEntityCard,
   SearchField,
+  SearchableSelect,
   StatusBadge,
 } from '../../components/ui';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
 import { formatInr, getLocalizedErrorMessage } from '../../i18n';
-import { isValidDateOnly, isValidNonNegativeNumber, isValidPhone, parseDateOnly, sanitizePhoneInput } from '../../lib/validation';
+import { formatDateOnly, isValidDateOnly, isValidNonNegativeNumber, isValidPhone, parseDateOnly, sanitizePhoneInput } from '../../lib/validation';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import {
   assignWorkerToProject,
+  createWorkerPrimaryProjectPeriod,
   createWorker,
+  endWorkerPrimaryProjectPeriod,
   endWorkerProjectAssignment,
   fetchOrganizationWorkers,
   fetchProjectWorkers,
+  fetchWorkerDetail,
   fetchWorkerDuplicateCandidates,
+  fetchWorkerPrimaryProjectPeriods,
+  updateWorkerPrimaryProjectPeriod,
   updateWorkerProjectAssignment,
 } from './services';
 import type {
   ProjectWorkerRosterItem,
+  WorkerDetail,
   WorkerDuplicateCandidate,
+  WorkerPrimaryProjectPeriod,
+  WorkerProjectAssignmentSummary,
   WorkerSummary,
 } from './types';
 
 const TRADE_SUGGESTION_KEYS = ['mason', 'helper', 'carpenter', 'plumber', 'electrician', 'painter'] as const;
 const today = () => new Date().toISOString().slice(0, 10);
 type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
-type WorkerFilter = 'all' | 'assigned' | 'unassigned';
+type PrimaryProjectErrors = Partial<Record<'workerAssignmentId' | 'effectiveDate', string>>;
+type WorkerFilter = 'all' | 'assigned_here' | 'not_on_project';
+
+function coversDate(startsOn: string, endsOn: string | null, date: string) {
+  return startsOn.slice(0, 10) <= date && (endsOn === null || endsOn.slice(0, 10) >= date);
+}
+
+function previousDateOnly(value: string) {
+  const date = parseDateOnly(value);
+  if (!date) return null;
+  date.setDate(date.getDate() - 1);
+  return formatDateOnly(date);
+}
+
+function earliestDate(left: string | null, right: string | null) {
+  if (left === null) return right;
+  if (right === null) return left;
+  return left < right ? left : right;
+}
 
 export function WorkersScreen() {
   const { t } = useTranslation('workers');
@@ -79,7 +106,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     getActiveProject(session);
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
-  const projectPermissions = getActiveProjectPermissions(session);
+  const projectPermissions = activeProject?.permissions ?? getActiveProjectPermissions(session);
   const canCreate = projectPermissions.includes('workers:create');
   const canAssign = projectPermissions.includes('workers:assign-project');
   const [workers, setWorkers] = useState<WorkerSummary[]>([]);
@@ -97,7 +124,15 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [assignStartsOn, setAssignStartsOn] = useState(today());
   const [assignError, setAssignError] = useState('');
   const [assignFieldError, setAssignFieldError] = useState('');
-  const [actionWorker, setActionWorker] = useState<ProjectWorkerRosterItem | null>(null);
+  const [detailWorker, setDetailWorker] = useState<WorkerSummary | null>(null);
+  const [workerDetail, setWorkerDetail] = useState<WorkerDetail | null>(null);
+  const [primaryPeriods, setPrimaryPeriods] = useState<WorkerPrimaryProjectPeriod[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [primaryWorker, setPrimaryWorker] = useState<WorkerDetail | null>(null);
+  const [primaryForm, setPrimaryForm] = useState({ workerAssignmentId: '', effectiveDate: today() });
+  const [primaryError, setPrimaryError] = useState('');
+  const [primaryFieldErrors, setPrimaryFieldErrors] = useState<PrimaryProjectErrors>({});
   const [editingWorker, setEditingWorker] = useState<ProjectWorkerRosterItem | null>(null);
   const [editForm, setEditForm] = useState({ startsOn: today(), endsOn: '' });
   const [editError, setEditError] = useState('');
@@ -151,6 +186,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     () => new Map(roster.map((worker) => [worker.id, worker])),
     [roster],
   );
+  const assignedHereCount = workers.filter((worker) => rosterByWorkerId.has(worker.id)).length;
+  const notOnProjectCount = Math.max(workers.length - assignedHereCount, 0);
   const visibleWorkers = workers.filter((worker) => {
     const needle = search.trim().toLowerCase();
     const matchesSearch = (
@@ -159,10 +196,193 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       worker.workerCode.toLowerCase().includes(needle) ||
       worker.trade.toLowerCase().includes(needle)
     );
-    const isAssigned = rosterByWorkerId.has(worker.id);
-    const matchesFilter = filter === 'all' || (filter === 'assigned' ? isAssigned : !isAssigned);
+    const isAssignedHere = rosterByWorkerId.has(worker.id);
+    const matchesFilter = filter === 'all' || (filter === 'assigned_here' ? isAssignedHere : !isAssignedHere);
     return matchesSearch && matchesFilter;
   });
+  const detailProjectWorker = detailWorker ? rosterByWorkerId.get(detailWorker.id) : undefined;
+  const activeDetailAssignments = workerDetail?.assignments.filter((assignment) => assignment.status === 'ACTIVE') ?? [];
+  const endedDetailAssignments = workerDetail?.assignments.filter((assignment) => assignment.status !== 'ACTIVE') ?? [];
+  const currentPrimaryPeriod = primaryPeriods.find((period) => coversDate(period.startsOn, period.endsOn, today())) ?? null;
+  const nextPrimaryPeriod = primaryPeriods
+    .filter((period) => period.startsOn.slice(0, 10) > today())
+    .sort((left, right) => left.startsOn.localeCompare(right.startsOn))[0] ?? null;
+  const canChangePrimary = canAssign && activeDetailAssignments.some(
+    (assignment) => assignment.id !== currentPrimaryPeriod?.workerAssignmentId,
+  );
+  const primarySourcePeriod = primaryPeriods.find(
+    (period) => coversDate(period.startsOn, period.endsOn, primaryForm.effectiveDate),
+  ) ?? null;
+  const primaryAssignmentOptions = (primaryWorker?.assignments ?? [])
+    .filter((assignment) => assignment.status === 'ACTIVE' && coversDate(assignment.startsOn, assignment.endsOn, primaryForm.effectiveDate))
+    .map((assignment) => ({
+      value: assignment.id,
+      label: assignment.projectName ?? t('details.unknownProject'),
+      description: `${displayDateRange(assignment.startsOn, assignment.endsOn)} · ${displayRate(assignment.dailyRate)}`,
+      disabled: assignment.id === primarySourcePeriod?.workerAssignmentId,
+      searchTerms: [assignment.projectName ?? '', assignment.projectId],
+    }));
+  const primaryTargetAssignment = primaryWorker?.assignments.find(
+    (assignment) => assignment.id === primaryForm.workerAssignmentId,
+  ) ?? null;
+
+  async function openWorkerDetails(worker: WorkerSummary) {
+    if (!session?.accessToken || !organizationId) return;
+    setDetailWorker(worker);
+    setWorkerDetail(null);
+    setPrimaryPeriods([]);
+    setDetailError('');
+    setDetailLoading(true);
+    try {
+      const [detail, periods] = await Promise.all([
+        fetchWorkerDetail(organizationId, worker.id, session.accessToken),
+        fetchWorkerPrimaryProjectPeriods(organizationId, worker.id, session.accessToken),
+      ]);
+      setWorkerDetail(detail);
+      setPrimaryPeriods(periods);
+    } catch (loadError) {
+      if (loadError instanceof ApiRequestError && loadError.status === 401) {
+        setDetailWorker(null);
+        await signOut();
+        return;
+      }
+      if (loadError instanceof ApiRequestError && loadError.status === 403) {
+        setDetailError(t('network.accessChanged'));
+        await refreshSession().catch(() => undefined);
+        return;
+      }
+      setDetailError(
+        isNetworkFailure(loadError)
+          ? t('network.offlineUnavailable')
+          : getLocalizedErrorMessage(loadError, t('errors.generic')),
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  function openPrimaryProjectChange() {
+    if (!workerDetail) return;
+    const effectiveDate = today();
+    const current = primaryPeriods.find((period) => coversDate(period.startsOn, period.endsOn, effectiveDate));
+    const eligibleAssignments = workerDetail.assignments.filter(
+      (assignment) => assignment.status === 'ACTIVE' && coversDate(assignment.startsOn, assignment.endsOn, effectiveDate),
+    );
+    const target = current
+      ? eligibleAssignments.find((assignment) => assignment.id !== current.workerAssignmentId)
+      : eligibleAssignments[0];
+
+    setPrimaryWorker(workerDetail);
+    setPrimaryForm({ workerAssignmentId: target?.id ?? '', effectiveDate });
+    setPrimaryError('');
+    setPrimaryFieldErrors({});
+    setDetailWorker(null);
+    setWorkerDetail(null);
+  }
+
+  async function savePrimaryProject() {
+    if (!session?.accessToken || !organizationId || !primaryWorker) return;
+    const nextErrors: PrimaryProjectErrors = {};
+    const effectiveDate = primaryForm.effectiveDate;
+    const targetAssignment = primaryWorker.assignments.find(
+      (assignment) => assignment.id === primaryForm.workerAssignmentId,
+    );
+
+    if (!primaryForm.workerAssignmentId) {
+      nextErrors.workerAssignmentId = tCommon('validation.required', { field: t('primary.project') });
+    }
+    if (!effectiveDate) {
+      nextErrors.effectiveDate = tCommon('validation.required', { field: t('primary.effectiveDate') });
+    } else if (!isValidDateOnly(effectiveDate)) {
+      nextErrors.effectiveDate = tCommon('validation.date');
+    } else if (effectiveDate < today()) {
+      nextErrors.effectiveDate = t('primary.pastDate');
+    }
+    if (
+      targetAssignment
+      && isValidDateOnly(effectiveDate)
+      && !coversDate(targetAssignment.startsOn, targetAssignment.endsOn, effectiveDate)
+    ) {
+      nextErrors.workerAssignmentId = t('primary.outsideAssignment');
+    }
+    setPrimaryFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length || !targetAssignment) return;
+
+    const sourcePeriod = primaryPeriods.find((period) => coversDate(period.startsOn, period.endsOn, effectiveDate)) ?? null;
+    if (sourcePeriod?.workerAssignmentId === targetAssignment.id) {
+      setPrimaryError(t('primary.alreadyPrimary'));
+      return;
+    }
+
+    const nextScheduledPeriod = primaryPeriods
+      .filter((period) => period.id !== sourcePeriod?.id && period.startsOn.slice(0, 10) > effectiveDate)
+      .sort((left, right) => left.startsOn.localeCompare(right.startsOn))[0];
+    const beforeNextPeriod = nextScheduledPeriod ? previousDateOnly(nextScheduledPeriod.startsOn.slice(0, 10)) : null;
+    const replacementEndsOn = earliestDate(
+      earliestDate(sourcePeriod?.endsOn?.slice(0, 10) ?? null, beforeNextPeriod),
+      targetAssignment.endsOn?.slice(0, 10) ?? null,
+    );
+
+    if (replacementEndsOn && replacementEndsOn < effectiveDate) {
+      setPrimaryFieldErrors({ workerAssignmentId: t('primary.outsideAssignment') });
+      return;
+    }
+
+    setPrimaryError('');
+    setIsSubmitting(true);
+    try {
+      if (sourcePeriod?.startsOn.slice(0, 10) === effectiveDate) {
+        await updateWorkerPrimaryProjectPeriod(
+          organizationId,
+          primaryWorker.id,
+          sourcePeriod.id,
+          session.accessToken,
+          { workerAssignmentId: targetAssignment.id, endsOn: replacementEndsOn },
+        );
+      } else {
+        if (sourcePeriod) {
+          const previousDate = previousDateOnly(effectiveDate);
+          if (!previousDate) throw new Error('Invalid effective date');
+          await endWorkerPrimaryProjectPeriod(
+            organizationId,
+            primaryWorker.id,
+            sourcePeriod.id,
+            session.accessToken,
+            { endsOn: previousDate },
+          );
+        }
+        await createWorkerPrimaryProjectPeriod(
+          organizationId,
+          primaryWorker.id,
+          session.accessToken,
+          {
+            workerAssignmentId: targetAssignment.id,
+            startsOn: effectiveDate,
+            endsOn: replacementEndsOn,
+          },
+        );
+      }
+
+      const changedWorker = primaryWorker;
+      setPrimaryWorker(null);
+      await loadWorkers();
+      await openWorkerDetails(changedWorker);
+    } catch (changeError) {
+      setPrimaryError(
+        isNetworkFailure(changeError)
+          ? t('network.onlineOnly')
+          : getLocalizedErrorMessage(changeError, t('errors.generic')),
+      );
+      const periods = await fetchWorkerPrimaryProjectPeriods(
+        organizationId,
+        primaryWorker.id,
+        session.accessToken,
+      ).catch(() => null);
+      if (periods) setPrimaryPeriods(periods);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   async function assign() {
     if (!session?.accessToken || !organizationId || !projectId || !assigningWorker) return;
@@ -196,7 +416,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   }
 
   function openEdit(worker: ProjectWorkerRosterItem) {
-    setActionWorker(null);
+    setDetailWorker(null);
+    setWorkerDetail(null);
     setEditingWorker(worker);
     setEditError('');
     setEditFieldErrors({});
@@ -294,33 +515,64 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   function renderWorkerCard(worker: WorkerSummary) {
     const assignedWorker = rosterByWorkerId.get(worker.id);
     const effectiveRate = assignedWorker?.currentAssignment.dailyRate ?? worker.baseDailyRate;
-    const canOpen = assignedWorker ? canAssign : canAssign;
-    const openWorker = canOpen
-      ? () => {
-        if (assignedWorker) setActionWorker(assignedWorker);
-        else {
-          setAssigningWorker(worker);
-          setAssignStartsOn(today());
-          setAssignError('');
-          setAssignFieldError('');
-        }
-      }
-      : undefined;
+    const assignmentState = assignedWorker
+      ? 'assigned_here'
+      : worker.activeAssignmentCount > 0
+        ? 'assigned_elsewhere'
+        : 'not_assigned';
+    const assignmentLabel = assignmentState === 'assigned_here'
+      ? t('card.assignedHere')
+      : assignmentState === 'assigned_elsewhere'
+        ? t('card.assignedElsewhere')
+        : t('card.notAssigned');
+    const otherAssignmentCount = Math.max(worker.activeAssignmentCount - (assignedWorker ? 1 : 0), 0);
+    const supporting = assignedWorker
+      ? otherAssignmentCount > 0
+        ? t('card.assignedHereOther', { count: otherAssignmentCount })
+        : t('card.projectAllocation')
+      : worker.activeAssignmentCount > 0
+        ? t('card.otherProjectCount', { count: worker.activeAssignmentCount })
+        : t('card.available');
 
     return (
       <OperationalEntityCard
-        accessibilityLabel={t('card.summaryA11y', { code: worker.workerCode, name: worker.name, trade: worker.trade, rate: displayRate(effectiveRate), assignment: assignedWorker ? t('card.assigned') : t('card.unassigned') })}
+        accessibilityLabel={t('card.summaryA11y', { code: worker.workerCode, name: worker.name, trade: worker.trade, rate: displayRate(effectiveRate), assignment: assignmentLabel })}
         contextLeading={worker.workerCode}
         contextTrailing={worker.trade}
-        footerLeading={assignedWorker ? displayDateRange(assignedWorker.currentAssignment.startsOn, assignedWorker.currentAssignment.endsOn) : t('card.noCurrentProject')}
-        footerTrailing={<StatusBadge label={assignedWorker ? t('card.assigned') : t('card.unassigned')} />}
-        onPress={openWorker}
-        supporting={assignedWorker ? t('card.projectAllocation') : t('card.available')}
+        footerLeading={assignedWorker ? displayDateRange(assignedWorker.currentAssignment.startsOn, assignedWorker.currentAssignment.endsOn) : worker.activeAssignmentCount > 0 ? t('card.viewAssignments') : t('card.noCurrentProject')}
+        footerTrailing={<StatusBadge label={assignmentLabel} numberOfLines={1} tone={assignmentState === 'assigned_here' ? 'success' : assignmentState === 'assigned_elsewhere' ? 'info' : 'warning'} />}
+        onPress={() => void openWorkerDetails(worker)}
+        supporting={supporting}
         title={worker.name}
         value={displayRate(effectiveRate)}
         valueLabel={t('card.rate')}
-        tone={assignedWorker ? 'success' : 'warning'}
+        tone={assignmentState === 'assigned_here' ? 'success' : assignmentState === 'assigned_elsewhere' ? 'info' : 'warning'}
       />
+    );
+  }
+
+  function renderAssignmentRow(assignment: WorkerProjectAssignmentSummary) {
+    const isCurrentProjectAssignment = assignment.projectId === projectId && assignment.status === 'ACTIVE';
+    const isPrimaryNow = currentPrimaryPeriod?.workerAssignmentId === assignment.id;
+    return (
+      <View key={assignment.id} style={styles.assignmentRow}>
+        <View style={styles.assignmentCopy}>
+          <AppText style={styles.assignmentProject} weight={700} numberOfLines={2}>
+            {assignment.projectName ?? t('details.unknownProject')}
+          </AppText>
+          <AppText style={styles.subtle} weight={500}>
+            {displayDateRange(assignment.startsOn, assignment.endsOn)}
+          </AppText>
+          <AppText style={styles.subtle} weight={500}>
+            {t('details.projectRate', { rate: displayRate(assignment.dailyRate) })}
+          </AppText>
+        </View>
+        <StatusBadge
+          label={isPrimaryNow ? t('primary.badge') : isCurrentProjectAssignment ? t('details.selectedProject') : assignment.status === 'ACTIVE' ? t('details.active') : t('details.ended')}
+          numberOfLines={1}
+          tone={isPrimaryNow || isCurrentProjectAssignment ? 'current' : assignment.status === 'ACTIVE' ? 'success' : 'neutral'}
+        />
+      </View>
     );
   }
 
@@ -348,8 +600,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         />
         {filter !== 'all' ? <AppliedFilters>
           <AppliedFilterChip
-            label={filter === 'assigned' ? t('panel.assignedFilter', { count: roster.length }) : t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })}
-            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: filter === 'assigned' ? t('card.assigned') : t('card.unassigned') })}
+            label={filter === 'assigned_here' ? t('panel.assignedFilter', { count: assignedHereCount }) : t('panel.unassignedFilter', { count: notOnProjectCount })}
+            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: filter === 'assigned_here' ? t('card.assignedHere') : t('panel.notOnProject') })}
             onRemove={() => setFilter('all')}
           />
         </AppliedFilters> : null}
@@ -390,8 +642,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       >
         <FilterGroup label={t('panel.filterGroup')}>
           <FilterOption label={t('panel.allCount', { count: workers.length })} selected={draftFilter === 'all'} onPress={() => setDraftFilter('all')} />
-          <FilterOption label={t('panel.assignedFilter', { count: roster.length })} selected={draftFilter === 'assigned'} onPress={() => setDraftFilter('assigned')} />
-          <FilterOption label={t('panel.unassignedFilter', { count: Math.max(workers.length - roster.length, 0) })} selected={draftFilter === 'unassigned'} onPress={() => setDraftFilter('unassigned')} />
+          <FilterOption label={t('panel.assignedFilter', { count: assignedHereCount })} selected={draftFilter === 'assigned_here'} onPress={() => setDraftFilter('assigned_here')} />
+          <FilterOption label={t('panel.unassignedFilter', { count: notOnProjectCount })} selected={draftFilter === 'not_on_project'} onPress={() => setDraftFilter('not_on_project')} />
         </FilterGroup>
       </ListFilterSheet>
 
@@ -405,10 +657,112 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         </BottomSheet>
       ) : null}
 
-      {actionWorker ? (
-        <BottomSheet visible title={actionWorker.name} description={t('actions.description', { trade: actionWorker.trade })} onClose={() => setActionWorker(null)}>
-          <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(actionWorker)} />
-          <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setActionWorker(null); setEndingWorker(actionWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} />
+      {detailWorker ? (
+        <BottomSheet visible scroll title={detailWorker.name} description={t('details.description', { code: detailWorker.workerCode, trade: detailWorker.trade })} onClose={() => { setDetailWorker(null); setWorkerDetail(null); setPrimaryPeriods([]); setDetailError(''); }}>
+          {detailLoading ? <LoadingState label={t('details.loading')} /> : null}
+          {detailError ? <EmptyState title={t('details.loadFailed')} description={detailError} actionLabel={t('details.retry')} onAction={() => void openWorkerDetails(detailWorker)} /> : null}
+          {!detailLoading && !detailError && workerDetail ? (
+            <>
+              <View style={styles.detailFacts}>
+                <View style={styles.detailFact}><AppText style={styles.subtle} weight={600}>{t('details.mobile')}</AppText><AppText style={styles.body} weight={700}>{workerDetail.mobileNumber ?? t('details.noMobile')}</AppText></View>
+                <View style={styles.detailFact}><AppText style={styles.subtle} weight={600}>{t('details.baseRate')}</AppText><AppText style={styles.body} weight={700}>{displayRate(workerDetail.baseDailyRate)}</AppText></View>
+              </View>
+              <Card variant="blueprint" style={styles.primarySummary}>
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.primaryIcon}>
+                  <AppIcon color={mobileTheme.color.action.primary} name="map-marker-check-outline" size={mobileTheme.icon.lg} />
+                </View>
+                <View style={styles.primaryCopy}>
+                  <AppText style={styles.subtle} weight={600}>{t('primary.sectionTitle')}</AppText>
+                  <AppText style={styles.body} weight={700} numberOfLines={2}>
+                    {currentPrimaryPeriod?.projectName ?? t('primary.notSet')}
+                  </AppText>
+                  {currentPrimaryPeriod ? <AppText style={styles.subtle} weight={500}>{displayDateRange(currentPrimaryPeriod.startsOn, currentPrimaryPeriod.endsOn)}</AppText> : null}
+                  {nextPrimaryPeriod ? <AppText style={styles.primaryScheduled} weight={600}>{t('primary.scheduled', { date: nextPrimaryPeriod.startsOn.slice(0, 10), project: nextPrimaryPeriod.projectName ?? t('details.unknownProject') })}</AppText> : null}
+                </View>
+              </Card>
+              <View style={styles.assignmentSection}>
+                <AppText style={styles.detailSectionTitle} weight={700}>{t('details.activeAssignments', { count: activeDetailAssignments.length })}</AppText>
+                {activeDetailAssignments.length ? activeDetailAssignments.map(renderAssignmentRow) : <AppText style={styles.subtle}>{t('details.noActiveAssignments')}</AppText>}
+              </View>
+              {endedDetailAssignments.length ? <View style={styles.assignmentSection}><AppText style={styles.detailSectionTitle} weight={700}>{t('details.assignmentHistory', { count: endedDetailAssignments.length })}</AppText>{endedDetailAssignments.map(renderAssignmentRow)}</View> : null}
+              {canAssign ? <View style={styles.assignmentActions}>
+                {canChangePrimary ? <ActionListItem icon="swap-horizontal" label={currentPrimaryPeriod ? t('primary.changeAction') : t('primary.setAction')} tone="info" onPress={openPrimaryProjectChange} /> : null}
+                {detailProjectWorker ? (
+                  <>
+                    <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(detailProjectWorker)} />
+                    <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setEndingWorker(detailProjectWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} />
+                  </>
+                ) : <ActionListItem icon="account-plus-outline" label={t('details.assignHere')} tone="brand" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setAssigningWorker(detailWorker); setAssignStartsOn(today()); setAssignError(''); setAssignFieldError(''); }} />}
+              </View> : null}
+            </>
+          ) : null}
+        </BottomSheet>
+      ) : null}
+
+      {primaryWorker ? (
+        <BottomSheet
+          visible
+          scroll
+          showCloseButton={false}
+          title={primarySourcePeriod ? t('primary.changeTitle') : t('primary.setTitle')}
+          description={primaryWorker.name}
+          onClose={() => setPrimaryWorker(null)}
+          footer={<><Button label={t('primary.cancel')} variant="secondary" disabled={isSubmitting} style={styles.footerButton} onPress={() => setPrimaryWorker(null)} /><Button label={isSubmitting ? t('primary.saving') : t('primary.confirm')} disabled={isSubmitting} style={styles.footerButton} onPress={() => void savePrimaryProject()} /></>}
+        >
+          <FormError message={primaryError} />
+          <FormField label={t('primary.effectiveDate')} required error={primaryFieldErrors.effectiveDate} helperText={t('primary.effectiveDateHelp')}>
+            <DateInput
+              allowClear={false}
+              showPickerIndicator
+              accessibilityLabel={t('primary.effectiveDateA11y')}
+              invalid={Boolean(primaryFieldErrors.effectiveDate)}
+              minimumDate={parseDateOnly(today()) ?? undefined}
+              value={primaryForm.effectiveDate}
+              onChangeText={(effectiveDate) => {
+                const selectedAssignment = primaryWorker.assignments.find((assignment) => assignment.id === primaryForm.workerAssignmentId);
+                setPrimaryForm({
+                  workerAssignmentId: selectedAssignment && coversDate(selectedAssignment.startsOn, selectedAssignment.endsOn, effectiveDate)
+                    ? primaryForm.workerAssignmentId
+                    : '',
+                  effectiveDate,
+                });
+                setPrimaryError('');
+                setPrimaryFieldErrors({});
+              }}
+            />
+          </FormField>
+          <FormField label={t('primary.project')} required error={primaryFieldErrors.workerAssignmentId}>
+            <SearchableSelect
+              accessibilityLabel={t('primary.projectA11y')}
+              accessibilityHint={t('primary.projectHint')}
+              emptyDescription={t('primary.noEligibleDescription')}
+              emptyTitle={t('primary.noEligibleTitle')}
+              invalid={Boolean(primaryFieldErrors.workerAssignmentId)}
+              options={primaryAssignmentOptions}
+              placeholder={t('primary.projectPlaceholder')}
+              searchAccessibilityLabel={t('primary.searchA11y')}
+              searchPlaceholder={t('primary.searchPlaceholder')}
+              title={t('primary.projectPickerTitle')}
+              value={primaryForm.workerAssignmentId || null}
+              onChange={(workerAssignmentId) => {
+                setPrimaryForm((current) => ({ ...current, workerAssignmentId }));
+                setPrimaryError('');
+                setPrimaryFieldErrors((current) => ({ ...current, workerAssignmentId: undefined }));
+              }}
+            />
+          </FormField>
+          <Card variant="blueprint" style={styles.primaryImpact}>
+            <AppText style={styles.subtle} weight={600}>{t('primary.currentLabel')}</AppText>
+            <AppText style={styles.body} weight={700}>{primarySourcePeriod?.projectName ?? t('primary.notSet')}</AppText>
+            {primaryTargetAssignment ? (
+              <AppText style={styles.primaryImpactText} weight={600}>
+                {t('primary.impact', {
+                  date: primaryForm.effectiveDate,
+                  project: primaryTargetAssignment.projectName ?? t('details.unknownProject'),
+                })}
+              </AppText>
+            ) : null}
+          </Card>
         </BottomSheet>
       ) : null}
 
@@ -501,6 +855,20 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
   body: { ...mobileText.body },
   subtle: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
+  detailFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
+  detailFact: { flex: 1, flexBasis: 140, gap: mobileTheme.spacing[1], minWidth: 140 },
+  assignmentSection: { gap: mobileTheme.spacing[2] },
+  detailSectionTitle: { ...mobileText.sectionTitle, fontSize: 17 },
+  primarySummary: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3] },
+  primaryIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.status.info.background, borderRadius: mobileTheme.component.iconContainer.radius, height: 44, justifyContent: 'center', width: 44 },
+  primaryCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
+  primaryImpact: { gap: mobileTheme.spacing[1] },
+  primaryImpactText: { ...mobileText.body, color: mobileTheme.color.status.info.foreground, paddingTop: mobileTheme.spacing[1] },
+  primaryScheduled: { ...mobileText.caption, color: mobileTheme.color.status.info.foreground },
+  assignmentRow: { alignItems: 'flex-start', borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], paddingVertical: mobileTheme.spacing[3] },
+  assignmentCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
+  assignmentProject: { ...mobileText.body, color: mobileTheme.color.text.primary },
+  assignmentActions: { gap: mobileTheme.spacing[2], paddingTop: mobileTheme.spacing[2] },
   assignmentSummary: { gap: mobileTheme.spacing[2] },
   assignmentRate: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
   footerButton: { flex: 1 },

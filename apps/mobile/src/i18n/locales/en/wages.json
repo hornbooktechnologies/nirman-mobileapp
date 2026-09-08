@@ -52,9 +52,16 @@
   },
   "worker": {
     "attendance": "{{present}} present · {{half}} half · {{absent}} absent",
+    "attendanceLabel": "Attendance",
+    "rateAndAttendance": "{{rate}}/day · {{present}} present · {{half}} half · {{absent}} absent",
+    "dailyRate": "Daily rate",
+    "perDayAmount": "{{amount}} / day",
+    "grossWage": "Gross wage",
+    "kharchiDeduction": "Kharchi deduction",
+    "adjustment": "Adjustment",
     "due": "Due",
     "manage": "Manage",
-    "openA11y": "Manage {{worker}}, due {{due}}",
+    "openA11y": "Manage {{worker}}, daily rate {{rate}}, due {{due}}",
     "currentSummary": "Current summary",
     "netPayable": "Net payable",
     "paidAmount": "Paid {{amount}}"

@@ -19,6 +19,38 @@ describe("WorkersRepository", () => {
     );
   });
 
+  it("scopes organization worker rows and assignment counts to readable projects", async () => {
+    database.query.mockResolvedValue([]);
+
+    await repository.findAll("organization-id", {}, [
+      "project-one",
+      "project-two",
+    ]);
+
+    const listSql = database.query.mock.calls[0]?.[0];
+    const listParams = database.query.mock.calls[0]?.[1];
+    const countSql = database.query.mock.calls[1]?.[0];
+    expect(listSql).toContain("active_wpa.project_id IN (?, ?)");
+    expect(listSql).toContain("current_wpa.project_id IN (?, ?)");
+    expect(countSql).toContain("current_wpa.project_id IN (?, ?)");
+    expect(listParams?.slice(0, 4)).toEqual([
+      "project-one",
+      "project-two",
+      "project-one",
+      "project-two",
+    ]);
+  });
+
+  it("returns an empty organization worker page when no project is readable", async () => {
+    await expect(
+      repository.findAll("organization-id", {}, []),
+    ).resolves.toEqual({
+      data: [],
+      meta: { total: 0, page: 1, pageSize: 20, pageCount: 0 },
+    });
+    expect(database.query).not.toHaveBeenCalled();
+  });
+
   it("filters the default project roster to active current workers and assignments", async () => {
     database.query.mockResolvedValue([]);
 
@@ -155,6 +187,64 @@ describe("WorkersRepository", () => {
     expect(assignmentParams?.[4]).toBeNull();
     expect(assignmentParams?.[5]).toBe("750.00");
     expect(assignmentParams?.[6]).toBe("2026-08-17");
+  });
+
+  it("rejects assignment dates that would leave a primary period outside the assignment", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "assignment-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "primary-period-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never);
+
+    await expect(
+      repository.updateAssignment(
+        "organization-id",
+        "project-id",
+        "worker-id",
+        { endsOn: "2026-09-22" },
+        "actor-id",
+      ),
+    ).rejects.toThrow("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    expect(database.execute).not.toHaveBeenCalled();
+  });
+
+  it("rejects ending an assignment before its primary period has been ended", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "assignment-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "primary-period-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never);
+
+    await expect(
+      repository.endAssignment(
+        "organization-id",
+        "project-id",
+        "worker-id",
+        "2026-09-22",
+        "actor-id",
+      ),
+    ).rejects.toThrow("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    expect(database.execute).not.toHaveBeenCalled();
   });
 
   it("normalizes mobile digits before duplicate comparison", async () => {

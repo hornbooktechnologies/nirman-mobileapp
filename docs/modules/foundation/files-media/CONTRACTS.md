@@ -14,6 +14,8 @@ The current slice supports Gallery images (`image/jpeg`, `image/png`, and `image
 - `context_type = GALLERY_ENTRY` and `context_id` identify the owning diary entry.
 - The Gallery service verifies active Organization membership, effective Project access, and the relevant Gallery permission before returning metadata or a signed read.
 - Storage keys are server generated and namespaced by Organization and Project. Client paths and public URLs are never trusted or persisted.
+- Gallery objects use `organizations/{organizationId}/projects/{projectId}/assets/gallery/{entryId}/{fileAssetId}.{extension}`. S3 prefixes are the folder hierarchy; placeholder folder objects are not created.
+- The Gallery bucket is private. Public URLs are not returned by the storage layer; authenticated API media routes enforce Organization, Project, and entry visibility before streaming bytes.
 - Failed metadata persistence triggers best-effort object cleanup. Database records are never created for a failed object upload.
 
 ## Reliability

@@ -9,10 +9,11 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
   Image,
+  InteractionManager,
   Pressable,
   RefreshControl,
+  SectionList,
   ScrollView,
   StyleSheet,
   View,
@@ -23,16 +24,22 @@ import { useTranslation } from "react-i18next";
 import {
   AppIcon,
   AppText,
+  AppliedFilterChip,
+  AppliedFilters,
   BottomSheet,
   Button,
   Card,
   Chip,
   CompactScreenHeader,
+  DateInput,
   EmptyState,
+  FilterGroup,
+  FilterOption,
   FormError,
   FormField,
   IconButton,
   Input,
+  ListFilterSheet,
   LoadingState,
   NirmanScreenBackground,
 } from "../../components/ui";
@@ -46,6 +53,7 @@ import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
+import { AuthenticatedGalleryImage } from "./authenticated-gallery-image";
 import {
   enqueueGalleryUpload,
   readGalleryQueue,
@@ -53,11 +61,8 @@ import {
   updateGalleryQueue,
 } from "./queue";
 import {
-  approveGalleryEntry,
   fetchGalleryEntries,
   fetchGallerySummary,
-  galleryMediaUrl,
-  rejectGalleryEntry,
   uploadGalleryEntry,
 } from "./services";
 import type { QueuedGalleryUpload } from "./types";
@@ -75,24 +80,45 @@ export function GalleryScreen() {
   const canRead = permissions.includes("gallery:read");
   const canUpload =
     permissions.includes("gallery:upload") && project?.status === "ACTIVE";
-  const canApprove = permissions.includes("gallery:approve");
-  const canReject = permissions.includes("gallery:reject");
   const [items, setItems] = useState<GalleryEntry[]>([]);
   const [summary, setSummary] = useState<GallerySummary | null>(null);
   const [queue, setQueue] = useState<QueuedGalleryUpload[]>([]);
   const [category, setCategory] = useState<GalleryCategory | undefined>();
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [draftCategory, setDraftCategory] = useState<
+    GalleryCategory | undefined
+  >();
+  const [draftDateFrom, setDraftDateFrom] = useState("");
+  const [draftDateTo, setDraftDateTo] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [review, setReview] = useState<{
-    entry: GalleryEntry;
-    action: "approve" | "reject";
-  } | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<GalleryEntry | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { width } = useWindowDimensions();
+  const columnCount = width >= 700 ? 6 : 4;
+  const thumbnailGap = mobileTheme.spacing[1];
+  const thumbnailSize = Math.floor(
+    (width - mobileTheme.spacing[5] * 2 - thumbnailGap * (columnCount - 1)) /
+      columnCount,
+  );
+  const sections = useMemo(
+    () =>
+      buildGallerySections(
+        items,
+        language,
+        columnCount,
+        t("diary.today"),
+        t("diary.yesterday"),
+      ),
+    [columnCount, items, language, t],
+  );
 
   const refreshQueue = useCallback(async () => {
     const all = await readGalleryQueue();
@@ -115,8 +141,10 @@ export function GalleryScreen() {
         const [list, nextSummary] = await Promise.all([
           fetchGalleryEntries(organizationId, projectId, token, {
             page: nextPage,
-            pageSize: 20,
+            pageSize: 48,
             category,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
           }),
           append
             ? Promise.resolve(null)
@@ -143,7 +171,7 @@ export function GalleryScreen() {
         setLoadingMore(false);
       }
     },
-    [canRead, category, organizationId, projectId, t, token],
+    [canRead, category, dateFrom, dateTo, organizationId, projectId, t, token],
   );
   useEffect(() => {
     setItems([]);
@@ -202,23 +230,94 @@ export function GalleryScreen() {
       </NirmanScreenBackground>
     );
 
+  const activeFilterCount =
+    Number(Boolean(category)) +
+    Number(Boolean(dateFrom)) +
+    Number(Boolean(dateTo));
+  const hasFilters = activeFilterCount > 0;
+  const dateRangeInvalid = Boolean(
+    draftDateFrom && draftDateTo && draftDateFrom > draftDateTo,
+  );
+  function openFilters() {
+    setDraftCategory(category);
+    setDraftDateFrom(dateFrom);
+    setDraftDateTo(dateTo);
+    setFiltersOpen(true);
+  }
+
+  function clearFilters() {
+    setDraftCategory(undefined);
+    setDraftDateFrom("");
+    setDraftDateTo("");
+    setCategory(undefined);
+    setDateFrom("");
+    setDateTo("");
+    setFiltersOpen(false);
+  }
+
   const header = (
     <View style={styles.header}>
       <CompactScreenHeader
         title={t("screen.title")}
         subtitle={project.name}
         action={
-          canUpload ? (
+          <View style={styles.headerActions}>
             <IconButton
-              icon="camera-plus-outline"
-              variant="primary"
-              accessibilityLabel={t("capture.openA11y")}
-              onPress={() => setCaptureOpen(true)}
+              icon="filter-variant"
+              variant={activeFilterCount ? "primary" : "default"}
+              badgeCount={activeFilterCount}
+              accessibilityLabel={t("filter.actionA11y", {
+                count: activeFilterCount,
+              })}
+              onPress={openFilters}
             />
-          ) : undefined
+            {canUpload ? (
+              <IconButton
+                icon="camera-plus-outline"
+                variant="primary"
+                accessibilityLabel={t("capture.openA11y")}
+                onPress={() => setCaptureOpen(true)}
+              />
+            ) : null}
+          </View>
         }
       />
       <ProjectContextCard compact showSwitchAction />
+      {hasFilters ? (
+        <AppliedFilters>
+          {category ? (
+            <AppliedFilterChip
+              label={t(`category.${category}`)}
+              removeAccessibilityLabel={t("filter.removeA11y", {
+                value: t(`category.${category}`),
+              })}
+              onRemove={() => setCategory(undefined)}
+            />
+          ) : null}
+          {dateFrom ? (
+            <AppliedFilterChip
+              label={t("filter.fromChip", {
+                date: formatDate(dateOnly(dateFrom), language),
+              })}
+              removeAccessibilityLabel={t("filter.removeA11y", {
+                value: formatDate(dateOnly(dateFrom), language),
+              })}
+              onRemove={() => setDateFrom("")}
+            />
+          ) : null}
+          {dateTo ? (
+            <AppliedFilterChip
+              label={t("filter.toChip", {
+                date: formatDate(dateOnly(dateTo), language),
+              })}
+              removeAccessibilityLabel={t("filter.removeA11y", {
+                value: formatDate(dateOnly(dateTo), language),
+              })}
+              onRemove={() => setDateTo("")}
+            />
+          ) : null}
+        </AppliedFilters>
+      ) : null}
       {success ? (
         <Card
           variant="selected"
@@ -241,7 +340,7 @@ export function GalleryScreen() {
           />
         </Card>
       ) : null}
-      <GallerySummaryCard summary={summary} />
+      {/* <GallerySummaryCard summary={summary} /> */}
       {queue.length ? (
         <View style={styles.queueSection}>
           <View style={styles.sectionHeading}>
@@ -261,30 +360,6 @@ export function GalleryScreen() {
           ))}
         </View>
       ) : null}
-      <View style={styles.filterSection}>
-        <AppText style={styles.sectionTitle} weight={700}>
-          {t("filter.title")}
-        </AppText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}
-        >
-          <Chip
-            label={t("filter.all")}
-            selected={!category}
-            onPress={() => setCategory(undefined)}
-          />
-          {GALLERY_CATEGORIES.map((value) => (
-            <Chip
-              key={value}
-              label={t(`category.${value}`)}
-              selected={category === value}
-              onPress={() => setCategory(value)}
-            />
-          ))}
-        </ScrollView>
-      </View>
       <View style={styles.sectionHeading}>
         <AppText style={styles.sectionTitle} weight={700}>
           {t("diary.title")}
@@ -301,11 +376,11 @@ export function GalleryScreen() {
       footer={<CustomerTabBar activeKey="gallery" />}
       scroll={false}
     >
-      <FlatList
-        data={items}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        columnWrapperStyle={styles.gridRow}
+      <SectionList
+        key={`gallery-grid-${columnCount}`}
+        sections={sections}
+        keyExtractor={(row) => row.key}
+        stickySectionHeadersEnabled
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
         refreshControl={
@@ -329,9 +404,9 @@ export function GalleryScreen() {
             />
           ) : (
             <EmptyState
-              title={category ? t("empty.filteredTitle") : t("empty.title")}
+              title={hasFilters ? t("empty.filteredTitle") : t("empty.title")}
               description={
-                category
+                hasFilters
                   ? t("empty.filteredDescription")
                   : t("empty.description")
               }
@@ -348,49 +423,103 @@ export function GalleryScreen() {
           if (!loading && !loadingMore && page < totalPages)
             void load(page + 1, true);
         }}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.monthHeader}>
+            <AppText style={styles.monthTitle} weight={700}>
+              {section.title}
+            </AppText>
+          </View>
+        )}
         renderItem={({ item }) => (
-          <GalleryCard
-            entry={item}
+          <GalleryGridRowView
+            row={item}
             token={token!}
             language={language}
-            canApprove={
-              canApprove && item.uploadedByUserId !== session?.user.id
-            }
-            canReject={canReject && item.uploadedByUserId !== session?.user.id}
-            onReview={(action) => setReview({ entry: item, action })}
+            columnCount={columnCount}
+            thumbnailSize={thumbnailSize}
+            onOpen={setSelectedEntry}
           />
         )}
       />
+      {filtersOpen ? (
+        <ListFilterSheet
+          visible
+          title={t("filter.sheetTitle")}
+          description={t("filter.sheetDescription")}
+          clearLabel={tCommon("listFilters.clearAll")}
+          applyLabel={tCommon("listFilters.apply")}
+          onClear={clearFilters}
+          onClose={() => setFiltersOpen(false)}
+          onApply={() => {
+            if (dateRangeInvalid) return;
+            setCategory(draftCategory);
+            setDateFrom(draftDateFrom);
+            setDateTo(draftDateTo);
+            setFiltersOpen(false);
+          }}
+        >
+          <FilterGroup label={t("filter.category")}>
+            <FilterOption
+              label={t("filter.all")}
+              selected={!draftCategory}
+              onPress={() => setDraftCategory(undefined)}
+            />
+            {GALLERY_CATEGORIES.map((value) => (
+              <FilterOption
+                key={value}
+                label={t(`category.${value}`)}
+                selected={draftCategory === value}
+                onPress={() => setDraftCategory(value)}
+              />
+            ))}
+          </FilterGroup>
+          <View style={styles.dateFilters}>
+            <FormField label={t("filter.dateFrom")}>
+              <DateInput
+                accessibilityLabel={t("filter.dateFromA11y")}
+                value={draftDateFrom}
+                maximumDate={new Date()}
+                invalid={dateRangeInvalid}
+                onChangeText={setDraftDateFrom}
+              />
+            </FormField>
+            <FormField label={t("filter.dateTo")}>
+              <DateInput
+                accessibilityLabel={t("filter.dateToA11y")}
+                value={draftDateTo}
+                minimumDate={
+                  draftDateFrom ? dateOnly(draftDateFrom) : undefined
+                }
+                maximumDate={new Date()}
+                invalid={dateRangeInvalid}
+                onChangeText={setDraftDateTo}
+              />
+            </FormField>
+            <FormError
+              message={dateRangeInvalid ? t("filter.dateRangeError") : ""}
+            />
+          </View>
+        </ListFilterSheet>
+      ) : null}
       {captureOpen ? (
         <CaptureSheet
           organizationId={organizationId!}
           projectId={projectId}
           onClose={() => setCaptureOpen(false)}
-          onQueued={async (item) => {
+          onQueued={(item) => {
             setCaptureOpen(false);
-            await refreshQueue();
-            void sendQueued(item);
+            InteractionManager.runAfterInteractions(() => {
+              void sendQueued(item);
+            });
           }}
         />
       ) : null}
-      {review ? (
-        <ReviewSheet
-          value={review}
-          organizationId={organizationId!}
-          projectId={projectId}
+      {selectedEntry ? (
+        <GalleryDetailSheet
+          entry={selectedEntry}
           token={token!}
-          onClose={() => setReview(null)}
-          onSaved={() => {
-            setReview(null);
-            setSuccess(
-              t(
-                review.action === "approve"
-                  ? "success.approved"
-                  : "success.rejected",
-              ),
-            );
-            void load(1);
-          }}
+          language={language}
+          onClose={() => setSelectedEntry(null)}
         />
       ) : null}
     </NirmanScreenBackground>
@@ -415,8 +544,7 @@ function GallerySummaryCard({ summary }: { summary: GallerySummary | null }) {
         <AppText style={styles.summaryText}>
           {summary
             ? t("summary.values", {
-                published: summary.totalApproved,
-                pending: summary.pendingReview,
+                total: summary.totalApproved,
                 today: summary.uploadedToday,
               })
             : t("loading.summary")}
@@ -461,90 +589,222 @@ function QueueCard({
   );
 }
 
-function GalleryCard({
+type GalleryGridRow = {
+  key: string;
+  dayTitle?: string;
+  entries: GalleryEntry[];
+};
+
+type GalleryMonthSection = {
+  title: string;
+  data: GalleryGridRow[];
+};
+
+function dateOnly(value: string) {
+  return new Date(`${value}T12:00:00`);
+}
+
+function calendarKey(value: Date) {
+  return [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, "0"),
+    String(value.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function buildGallerySections(
+  entries: GalleryEntry[],
+  language: SupportedLanguage,
+  columnCount: number,
+  todayLabel: string,
+  yesterdayLabel: string,
+): GalleryMonthSection[] {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const todayKey = calendarKey(today);
+  const yesterdayKey = calendarKey(yesterday);
+  const months = new Map<
+    string,
+    {
+      title: string;
+      days: Map<string, { title: string; entries: GalleryEntry[] }>;
+    }
+  >();
+
+  entries.forEach((entry) => {
+    const capturedAt = new Date(entry.capturedAt);
+    const monthKey = `${capturedAt.getFullYear()}-${String(
+      capturedAt.getMonth() + 1,
+    ).padStart(2, "0")}`;
+    const dayKey = calendarKey(capturedAt);
+    const month = months.get(monthKey) ?? {
+      title: formatDate(capturedAt, language, {
+        month: "long",
+        year: "numeric",
+      }),
+      days: new Map(),
+    };
+    const day = month.days.get(dayKey) ?? {
+      title:
+        dayKey === todayKey
+          ? todayLabel
+          : dayKey === yesterdayKey
+            ? yesterdayLabel
+            : formatDate(capturedAt, language, {
+                day: "numeric",
+                month: "short",
+                weekday: "short",
+              }),
+      entries: [],
+    };
+    day.entries.push(entry);
+    month.days.set(dayKey, day);
+    months.set(monthKey, month);
+  });
+
+  return Array.from(months.values()).map((month) => {
+    const data: GalleryGridRow[] = [];
+    month.days.forEach((day, dayKey) => {
+      for (let index = 0; index < day.entries.length; index += columnCount) {
+        data.push({
+          key: `${dayKey}-${index}`,
+          dayTitle: index === 0 ? day.title : undefined,
+          entries: day.entries.slice(index, index + columnCount),
+        });
+      }
+    });
+    return { title: month.title, data };
+  });
+}
+
+function GalleryGridRowView({
+  row,
+  token,
+  language,
+  columnCount,
+  thumbnailSize,
+  onOpen,
+}: {
+  row: GalleryGridRow;
+  token: string;
+  language: SupportedLanguage;
+  columnCount: number;
+  thumbnailSize: number;
+  onOpen: (entry: GalleryEntry) => void;
+}) {
+  const { t } = useTranslation("gallery");
+  return (
+    <View style={styles.dayBlock}>
+      {row.dayTitle ? (
+        <AppText style={styles.dayTitle} weight={700}>
+          {row.dayTitle}
+        </AppText>
+      ) : null}
+      <View style={styles.thumbnailRow}>
+        {row.entries.map((entry) => (
+          <Pressable
+            key={entry.id}
+            accessibilityRole="button"
+            accessibilityLabel={t("diary.openPhotoA11y", {
+              date: formatDate(entry.capturedAt, language),
+            })}
+            style={({ pressed }) => [
+              styles.thumbnail,
+              { height: thumbnailSize, width: thumbnailSize },
+              pressed && styles.thumbnailPressed,
+            ]}
+            onPress={() => onOpen(entry)}
+          >
+            <AuthenticatedGalleryImage
+              entry={entry}
+              token={token}
+              compact
+              accessibilityLabel={
+                entry.caption ??
+                t("card.photoA11y", {
+                  category: t(`category.${entry.category}`),
+                })
+              }
+              style={styles.thumbnailImage}
+            />
+          </Pressable>
+        ))}
+        {Array.from({ length: columnCount - row.entries.length }).map(
+          (_, index) => (
+            <View
+              key={`placeholder-${index}`}
+              style={{ height: thumbnailSize, width: thumbnailSize }}
+            />
+          ),
+        )}
+      </View>
+    </View>
+  );
+}
+
+function GalleryDetailSheet({
   entry,
   token,
   language,
-  canApprove,
-  canReject,
-  onReview,
+  onClose,
 }: {
   entry: GalleryEntry;
   token: string;
   language: SupportedLanguage;
-  canApprove: boolean;
-  canReject: boolean;
-  onReview: (action: "approve" | "reject") => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation("gallery");
-  const { width } = useWindowDimensions();
-  const size = Math.max(
-    142,
-    (width - mobileTheme.spacing[5] * 2 - mobileTheme.spacing[3]) / 2,
-  );
   return (
-    <Card padding="none" style={[styles.galleryCard, { width: size }]}>
-      <Image
-        source={{
-          uri: galleryMediaUrl(entry),
-          headers: { Authorization: `Bearer ${token}` },
-        }}
-        accessible
+    <BottomSheet
+      visible
+      title={t("detail.title")}
+      description={formatDate(entry.capturedAt, language, {
+        dateStyle: "full",
+        timeStyle: "short",
+      })}
+      scroll
+      onClose={onClose}
+    >
+      <AuthenticatedGalleryImage
+        entry={entry}
+        token={token}
         accessibilityLabel={
           entry.caption ??
           t("card.photoA11y", { category: t(`category.${entry.category}`) })
         }
-        style={[styles.photo, { height: size }]}
+        style={styles.detailImage}
       />
-      <View style={styles.cardBody}>
-        <View style={styles.cardMeta}>
-          <AppText style={styles.category} weight={700}>
-            {t(`category.${entry.category}`)}
-          </AppText>
-          <AppText
-            style={[
-              styles.status,
-              entry.status === "REJECTED" && styles.statusDanger,
-            ]}
-            weight={700}
-          >
-            {t(`status.${entry.status}`)}
-          </AppText>
-        </View>
-        <AppText style={styles.cardCaption} numberOfLines={3} weight={600}>
-          {entry.caption || t("card.noCaption")}
-        </AppText>
-        <AppText style={styles.caption}>
-          {formatDate(new Date(entry.capturedAt), language)} ·{" "}
-          {entry.uploadedBy}
-        </AppText>
-        {entry.rejectionReason ? (
-          <AppText style={styles.rejectReason}>{entry.rejectionReason}</AppText>
-        ) : null}
-        {entry.status === "PENDING" && (canApprove || canReject) ? (
-          <View style={styles.reviewActions}>
-            {canReject ? (
-              <Button
-                label={t("review.reject")}
-                size="sm"
-                variant="outline"
-                fullWidth={false}
-                onPress={() => onReview("reject")}
-              />
-            ) : null}
-            {canApprove ? (
-              <Button
-                label={t("review.approve")}
-                size="sm"
-                variant="success"
-                fullWidth={false}
-                onPress={() => onReview("approve")}
-              />
-            ) : null}
-          </View>
-        ) : null}
+      <View style={styles.detailGrid}>
+        <GalleryDetailRow
+          label={t("detail.category")}
+          value={t(`category.${entry.category}`)}
+        />
+        <GalleryDetailRow
+          label={t("detail.stage")}
+          value={entry.stage ? t(`stage.${entry.stage}`) : t("detail.noStage")}
+        />
+        <GalleryDetailRow
+          label={t("detail.uploadedBy")}
+          value={entry.uploadedBy}
+        />
+        <GalleryDetailRow
+          label={t("detail.caption")}
+          value={entry.caption || t("detail.noCaption")}
+        />
       </View>
-    </Card>
+    </BottomSheet>
+  );
+}
+
+function GalleryDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <AppText style={styles.detailLabel} weight={700}>
+        {label}
+      </AppText>
+      <AppText style={styles.detailValue}>{value}</AppText>
+    </View>
   );
 }
 
@@ -724,105 +984,10 @@ function CaptureSheet({
   );
 }
 
-function ReviewSheet({
-  value,
-  organizationId,
-  projectId,
-  token,
-  onClose,
-  onSaved,
-}: {
-  value: { entry: GalleryEntry; action: "approve" | "reject" };
-  organizationId: string;
-  projectId: string;
-  token: string;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const { t } = useTranslation("gallery");
-  const { t: tCommon } = useTranslation("common");
-  const [reason, setReason] = useState("");
-  const [working, setWorking] = useState(false);
-  const [error, setError] = useState("");
-  async function submit() {
-    if (value.action === "reject" && reason.trim().length < 8) {
-      setError(t("validation.rejectionReason"));
-      return;
-    }
-    setWorking(true);
-    setError("");
-    try {
-      if (value.action === "approve")
-        await approveGalleryEntry(
-          organizationId,
-          projectId,
-          value.entry.id,
-          token,
-          value.entry.version,
-        );
-      else
-        await rejectGalleryEntry(
-          organizationId,
-          projectId,
-          value.entry.id,
-          token,
-          value.entry.version,
-          reason.trim(),
-        );
-      onSaved();
-    } catch (reviewError) {
-      setError(getLocalizedErrorMessage(reviewError, t("errors.reviewFailed")));
-    } finally {
-      setWorking(false);
-    }
-  }
-  return (
-    <BottomSheet
-      visible
-      title={t(`review.${value.action}Title`)}
-      description={t(`review.${value.action}Description`)}
-      showCloseButton={false}
-      onClose={onClose}
-      footer={
-        <>
-          <Button
-            label={tCommon("actions.cancel")}
-            variant="secondary"
-            onPress={onClose}
-          />
-          <Button
-            label={working ? t("review.working") : t(`review.${value.action}`)}
-            variant={value.action === "reject" ? "danger" : "success"}
-            disabled={working}
-            onPress={() => void submit()}
-          />
-        </>
-      }
-    >
-      <FormError message={error} />
-      {value.action === "reject" ? (
-        <FormField label={t("review.reason")} required>
-          <Input
-            multiline
-            numberOfLines={4}
-            maxLength={500}
-            value={reason}
-            onChangeText={setReason}
-            style={styles.multiline}
-          />
-        </FormField>
-      ) : null}
-    </BottomSheet>
-  );
-}
-
 const styles = StyleSheet.create({
   list: { paddingBottom: mobileTheme.spacing[8] },
   header: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[4] },
-  gridRow: {
-    gap: mobileTheme.spacing[3],
-    marginBottom: mobileTheme.spacing[3],
-  },
+  headerActions: { flexDirection: "row", gap: mobileTheme.spacing[2] },
   message: {
     alignItems: "center",
     flexDirection: "row",
@@ -856,8 +1021,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { ...mobileText.sectionTitle },
   sectionMeta: { ...mobileText.caption },
-  filterSection: { gap: mobileTheme.spacing[2] },
   chips: { gap: mobileTheme.spacing[2], paddingRight: mobileTheme.spacing[5] },
+  dateFilters: { gap: mobileTheme.spacing[3] },
   queueSection: { gap: mobileTheme.spacing[2] },
   queueCard: {
     alignItems: "center",
@@ -866,39 +1031,51 @@ const styles = StyleSheet.create({
   },
   queueImage: { borderRadius: mobileTheme.radius.md, height: 58, width: 58 },
   queueCopy: { flex: 1, gap: mobileTheme.spacing[1] },
-  galleryCard: { flex: 1, overflow: "hidden" },
-  photo: {
+  caption: { ...mobileText.caption },
+  monthHeader: {
+    backgroundColor: mobileTheme.color.surface.app,
+    paddingBottom: mobileTheme.spacing[2],
+    paddingTop: mobileTheme.spacing[3],
+  },
+  monthTitle: { ...mobileText.sectionTitle },
+  dayBlock: {
+    gap: mobileTheme.spacing[2],
+    marginBottom: mobileTheme.spacing[1],
+  },
+  dayTitle: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+    paddingTop: mobileTheme.spacing[2],
+  },
+  thumbnailRow: {
+    flexDirection: "row",
+    gap: mobileTheme.spacing[1],
+  },
+  thumbnail: {
     backgroundColor: mobileTheme.color.status.neutral.background,
+    borderRadius: mobileTheme.radius.sm,
+    overflow: "hidden",
+  },
+  thumbnailPressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  thumbnailImage: { height: "100%", width: "100%" },
+  detailImage: {
+    backgroundColor: mobileTheme.color.status.neutral.background,
+    borderRadius: mobileTheme.radius.lg,
+    height: 360,
     width: "100%",
   },
-  cardBody: { gap: mobileTheme.spacing[2], padding: mobileTheme.spacing[3] },
-  cardMeta: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: mobileTheme.spacing[2],
-    justifyContent: "space-between",
+  detailGrid: { gap: mobileTheme.spacing[3] },
+  detailRow: {
+    borderBottomColor: mobileTheme.color.border.subtle,
+    borderBottomWidth: 1,
+    gap: mobileTheme.spacing[1],
+    paddingBottom: mobileTheme.spacing[3],
   },
-  category: {
+  detailLabel: {
     ...mobileText.caption,
-    color: mobileTheme.color.text.brand,
-    flex: 1,
+    color: mobileTheme.color.text.secondary,
   },
-  status: {
-    ...mobileText.caption,
-    color: mobileTheme.color.status.success.foreground,
-  },
-  statusDanger: { color: mobileTheme.color.status.danger.foreground },
-  cardCaption: { ...mobileText.body, color: mobileTheme.color.text.primary },
-  caption: { ...mobileText.caption },
-  rejectReason: {
-    ...mobileText.caption,
-    color: mobileTheme.color.status.danger.foreground,
-  },
-  reviewActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileTheme.spacing[2],
-  },
+  detailValue: { ...mobileText.body, color: mobileTheme.color.text.primary },
   preview: { borderRadius: mobileTheme.radius.lg, height: 260, width: "100%" },
   sourceRow: { gap: mobileTheme.spacing[3] },
   multiline: {

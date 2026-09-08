@@ -47,12 +47,10 @@ export class WorkersService {
           organizationId,
           "workers:read",
         );
-    return this.workersRepo.findAll(
-      organizationId,
-      query,
-      access.membership.id,
-      access.organizationWideProjectAccess,
-    );
+    const readableProjectIds = access.organizationWideProjectAccess
+      ? null
+      : await this.findReadableProjectIds(actor, organizationId);
+    return this.workersRepo.findAll(organizationId, query, readableProjectIds);
   }
 
   async findProjectRoster(
@@ -149,10 +147,9 @@ export class WorkersService {
     workerId: string,
     actor: AuthenticatedUser,
   ) {
-    await this.assertWorkerAccess(
+    const access = await this.projectAccess.resolveOrganizationAccess(
       actor,
       organizationId,
-      workerId,
       "workers:read",
     );
     const worker = await this.workersRepo.findById(organizationId, workerId);
@@ -161,7 +158,36 @@ export class WorkersService {
         this.error("WORKER_NOT_FOUND", "Worker not found"),
       );
     }
-    return worker;
+    if (access.organizationWideProjectAccess) return worker;
+
+    const readableProjectIds = new Set(
+      await this.findReadableProjectIds(actor, organizationId),
+    );
+    const assignments = worker.assignments.filter((assignment) =>
+      readableProjectIds.has(assignment.projectId),
+    );
+    const activeAssignments = assignments.filter(
+      (assignment) => assignment.status === "ACTIVE",
+    );
+    if (activeAssignments.length === 0) {
+      throw new ForbiddenException(
+        this.error(
+          "WORKER_PROJECT_ACCESS_REQUIRED",
+          "Worker project access is required",
+        ),
+      );
+    }
+
+    return {
+      ...worker,
+      activeAssignmentCount: activeAssignments.length,
+      currentAssignment:
+        worker.currentAssignment &&
+        readableProjectIds.has(worker.currentAssignment.projectId)
+          ? worker.currentAssignment
+          : null,
+      assignments,
+    };
   }
 
   async update(
@@ -353,12 +379,14 @@ export class WorkersService {
       dto.startsOn ?? current.startsOn,
       dto.endsOn === undefined ? current.endsOn : dto.endsOn,
     );
-    const assignment = await this.workersRepo.updateAssignment(
-      organizationId,
-      projectId,
-      workerId,
-      dto,
-      actor.id,
+    const assignment = await this.translatePrimaryPeriodError(() =>
+      this.workersRepo.updateAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        dto,
+        actor.id,
+      ),
     );
     if (!assignment) {
       throw new NotFoundException(
@@ -479,12 +507,14 @@ export class WorkersService {
       );
     }
     this.validateAssignmentDates(current.startsOn, dto.endsOn);
-    const assignment = await this.workersRepo.endAssignment(
-      organizationId,
-      projectId,
-      workerId,
-      dto.endsOn,
-      actor.id,
+    const assignment = await this.translatePrimaryPeriodError(() =>
+      this.workersRepo.endAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        dto.endsOn,
+        actor.id,
+      ),
     );
     if (!assignment) {
       throw new NotFoundException(
@@ -621,6 +651,19 @@ export class WorkersService {
     return access;
   }
 
+  private async findReadableProjectIds(
+    actor: AuthenticatedUser,
+    organizationId: string,
+  ) {
+    const summary = await this.projectAccess.getProjectAccessSummary(
+      actor,
+      organizationId,
+    );
+    return summary.projects
+      .filter((project) => project.permissions.includes("workers:read"))
+      .map((project) => project.id);
+  }
+
   private assertRequiredText(
     value: string | undefined | null,
     message: string,
@@ -674,6 +717,14 @@ export class WorkersService {
       }
       if (error.message === "WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT") {
         throw new BadRequestException(this.error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT", "Primary Project period must stay within the assignment date window"));
+      }
+      if (error.message === "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT") {
+        throw new ConflictException(
+          this.error(
+            "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT",
+            "Change or end the primary Project period before changing this assignment date range",
+          ),
+        );
       }
       if (error.message === "WORKER_PRIMARY_PERIOD_NOT_FOUND") throw this.primaryPeriodNotFound();
       if (error.message === "WORKER_ASSIGNMENT_NOT_FOUND") {

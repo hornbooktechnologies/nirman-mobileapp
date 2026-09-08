@@ -52,9 +52,16 @@
   },
   "worker": {
     "attendance": "{{present}} હાજર · {{half}} અડધો · {{absent}} ગેરહાજર",
+    "attendanceLabel": "હાજરી",
+    "rateAndAttendance": "{{rate}}/દિવસ · {{present}} હાજર · {{half}} અડધો · {{absent}} ગેરહાજર",
+    "dailyRate": "દૈનિક દર",
+    "perDayAmount": "{{amount}} / દિવસ",
+    "grossWage": "કુલ મજૂરી",
+    "kharchiDeduction": "ખર્ચી કપાત",
+    "adjustment": "સમાયોજન",
     "due": "બાકી",
     "manage": "વ્યવસ્થાપન",
-    "openA11y": "{{worker}}નું વ્યવસ્થાપન કરો, {{due}} બાકી",
+    "openA11y": "{{worker}}નું વ્યવસ્થાપન કરો, દૈનિક દર {{rate}}, {{due}} બાકી",
     "currentSummary": "વર્તમાન સારાંશ",
     "netPayable": "કુલ ચૂકવવાપાત્ર",
     "paidAmount": "ચૂકવેલ {{amount}}"

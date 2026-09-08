@@ -70,6 +70,7 @@ export function ProjectContextCard({ compact = false, featured = false, showSwit
     return (
       <>
         <GlassCard variant="strong" style={styles.featuredCard}>
+          <View accessible={false} style={styles.featuredGlow} />
           <Image
             accessible={false}
             resizeMode="contain"
@@ -98,7 +99,6 @@ export function ProjectContextCard({ compact = false, featured = false, showSwit
 
           <View style={styles.featuredCopy}>
             <AppText style={styles.featuredProject} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.76} weight={700}>{projectName}</AppText>
-            <AppText style={styles.featuredOrganization} numberOfLines={1} weight={500}>{organizationName}</AppText>
           </View>
 
           <View style={styles.featuredFooter}>
@@ -244,17 +244,27 @@ const styles = StyleSheet.create({
     backgroundColor: mobileTheme.color.navigation.floating,
     borderColor: mobileTheme.color.border.inverse,
     gap: mobileTheme.spacing[4],
-    minHeight: 260,
+    minHeight: 246,
     overflow: 'hidden',
     padding: mobileTheme.spacing[5],
   },
+  featuredGlow: {
+    backgroundColor: mobileTheme.color.brand.secondary,
+    borderRadius: mobileTheme.radius.full,
+    height: 190,
+    opacity: 0.12,
+    position: 'absolute',
+    right: -54,
+    top: -72,
+    width: 190,
+  },
   featuredArtwork: {
-    bottom: -18,
-    height: 228,
+    bottom: -12,
+    height: 214,
     opacity: 0.82,
     position: 'absolute',
-    right: -48,
-    width: 260,
+    right: -44,
+    width: 244,
   },
   featuredArtworkSmall: {
     height: 196,
@@ -300,19 +310,14 @@ const styles = StyleSheet.create({
   },
   featuredCopy: {
     gap: mobileTheme.spacing[2],
-    maxWidth: '72%',
+    maxWidth: '84%',
     zIndex: 1,
   },
   featuredProject: {
     ...mobileText.display,
     color: mobileTheme.color.text.inverse,
-    fontSize: 34,
-    lineHeight: 39,
-  },
-  featuredOrganization: {
-    ...mobileText.body,
-    color: mobileTheme.color.text.inverse,
-    opacity: 0.68,
+    fontSize: 24,
+    lineHeight: 29,
   },
   featuredFooter: {
     alignItems: 'flex-end',

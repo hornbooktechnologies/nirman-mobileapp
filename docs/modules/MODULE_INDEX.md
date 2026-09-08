@@ -27,7 +27,7 @@ AI agents must read this file before starting new module work.
 | 3 | Role And Permission Model | `docs/modules/foundation/role-permission-model/PLAN.md` | in_progress | Platform Settings access/save restored; Gmail delivery reaches SMTP but awaits a valid same-account App Password | Replace/test SMTP credential, then run the remaining full platform/customer role matrix |
 | 3A | Mobile Localization Foundation | `docs/modules/foundation/localization/CONTRACTS.md` | in_progress | Current Expo customer surface localized across common/auth/navigation/Home/Projects/Members/Team/Workers; static checks passing | Run authenticated physical-device, accessibility, large-text, and fluent Hindi/Gujarati review |
 | 4 | Audit Foundation | `docs/modules/foundation/audit/CONTRACTS.md` | candidate | none | Contract after Phase 1 review |
-| 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | implemented_gallery_slice | Object storage configuration | Configure storage and run authenticated Gallery media smoke |
+| 5 | File And Media Ownership | `docs/modules/foundation/files-media/CONTRACTS.md` | implemented_gallery_slice_storage_verified | Gallery device acceptance | Run redesigned Gallery physical-device acceptance |
 | 6 | Notifications Foundation | `docs/modules/foundation/notifications/CONTRACTS.md`, `docs/modules/foundation/notifications/STATUS.md` | implementation_complete_device_acceptance_pending | In-app API, migration 022, guarded grants, Expo push outbox, and localized Mobile inbox/badge verified | Configure the EAS Project ID and run authenticated producer-to-device push/deep-link acceptance |
 | 7 | Offline Sync Foundation | `docs/modules/foundation/offline-sync/CONTRACTS.md` | candidate | none | Contract before offline writes |
 
@@ -43,7 +43,7 @@ AI agents must read this file before starting new module work.
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Run authenticated API and Mobile physical-device acceptance |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md`, `docs/modules/construction/progress/STATUS.md` | implementation_complete_device_acceptance_pending | Project Access + Audit; Files/Media and Offline Sync deferred | API/database/Mobile verified; run authenticated write and physical-device acceptance |
-| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md`, `docs/modules/construction/gallery/STATUS.md` | implementation_complete_storage_acceptance_pending | Files/Media + Project Access + Audit + Notifications | Configure S3, then run authenticated/device acceptance |
+| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md`, `docs/modules/construction/gallery/STATUS.md` | implementation_complete_authenticated_media_verified | Files/Media + Project Access + Audit + Notifications | Verify direct-publish replay and redesigned Gallery on device |
 
 ## 5. Sales Modules
 

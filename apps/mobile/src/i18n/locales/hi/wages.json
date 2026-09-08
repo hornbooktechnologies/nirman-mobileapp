@@ -52,9 +52,16 @@
   },
   "worker": {
     "attendance": "{{present}} उपस्थित · {{half}} आधा · {{absent}} अनुपस्थित",
+    "attendanceLabel": "उपस्थिति",
+    "rateAndAttendance": "{{rate}}/दिन · {{present}} उपस्थित · {{half}} आधा · {{absent}} अनुपस्थित",
+    "dailyRate": "दैनिक दर",
+    "perDayAmount": "{{amount}} / दिन",
+    "grossWage": "कुल मजदूरी",
+    "kharchiDeduction": "खर्ची कटौती",
+    "adjustment": "समायोजन",
     "due": "बाकी",
     "manage": "प्रबंधित करें",
-    "openA11y": "{{worker}} प्रबंधित करें, {{due}} बाकी",
+    "openA11y": "{{worker}} प्रबंधित करें, दैनिक दर {{rate}}, {{due}} बाकी",
     "currentSummary": "वर्तमान सारांश",
     "netPayable": "कुल देय",
     "paidAmount": "भुगतान {{amount}}"

@@ -48,6 +48,7 @@
   },
   "menu": {
     "title": "મેનુ",
+    "subtitle": "તમારી સાઇટ, લોકો અને પ્રગતિનું સંચાલન કરો",
     "customerUser": "ગ્રાહક વપરાશકર્તા",
     "noActiveOrganization": "કોઈ સક્રિય ઓર્ગેનાઇઝેશન નથી",
     "organizationMember": "ઓર્ગેનાઇઝેશનનો સભ્ય",
@@ -57,6 +58,12 @@
     "organization": "ઓર્ગેનાઇઝેશન",
     "selectProject": "કોઈ સક્રિય પ્રોજેક્ટ પસંદ કરો",
     "openScreen": "સ્ક્રીન ખોલો",
+    "sections": {
+      "main": "મુખ્ય",
+      "workforce": "કામદારો અને કામગીરી",
+      "projectManagement": "પ્રોજેક્ટ મેનેજમેન્ટ",
+      "organization": "ઓર્ગેનાઇઝેશન"
+    },
     "refreshingAccess": "ઍક્સેસ રિફ્રેશ થઈ રહી છે",
     "refreshAccess": "ઍક્સેસ રિફ્રેશ કરો",
     "signOut": "સાઇન આઉટ કરો"

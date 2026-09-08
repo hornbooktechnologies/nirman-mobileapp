@@ -2,6 +2,8 @@ import { apiRequest } from '../../lib/api';
 import type {
   AssignWorkerToProjectInput,
   CreateWorkerInput,
+  CreateWorkerPrimaryProjectPeriodInput,
+  EndWorkerPrimaryProjectPeriodInput,
   EndWorkerProjectAssignmentInput,
   ProjectWorkerRosterResponse,
   UpdateWorkerProjectAssignmentInput,
@@ -9,6 +11,8 @@ import type {
   WorkerDuplicateCandidate,
   WorkerListResponse,
   WorkerProjectAssignmentSummary,
+  WorkerPrimaryProjectPeriod,
+  UpdateWorkerPrimaryProjectPeriodInput,
 } from './types';
 
 type ApiEnvelope<TData> = {
@@ -36,6 +40,76 @@ export async function fetchOrganizationWorkers(
   const response = await apiRequest<ApiEnvelope<WorkerListResponse>>(
     `/organizations/${organizationId}/workers?status=ACTIVE&pageSize=100&sortBy=name&sortOrder=asc`,
     {},
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function fetchWorkerDetail(
+  organizationId: string,
+  workerId: string,
+  accessToken: string,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerDetail>>(
+    `/organizations/${organizationId}/workers/${workerId}`,
+    {},
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function fetchWorkerPrimaryProjectPeriods(
+  organizationId: string,
+  workerId: string,
+  accessToken: string,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerPrimaryProjectPeriod[]>>(
+    `/organizations/${organizationId}/workers/${workerId}/primary-project-periods`,
+    {},
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function createWorkerPrimaryProjectPeriod(
+  organizationId: string,
+  workerId: string,
+  accessToken: string,
+  input: CreateWorkerPrimaryProjectPeriodInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerPrimaryProjectPeriod>>(
+    `/organizations/${organizationId}/workers/${workerId}/primary-project-periods`,
+    { method: 'POST', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function updateWorkerPrimaryProjectPeriod(
+  organizationId: string,
+  workerId: string,
+  periodId: string,
+  accessToken: string,
+  input: UpdateWorkerPrimaryProjectPeriodInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerPrimaryProjectPeriod>>(
+    `/organizations/${organizationId}/workers/${workerId}/primary-project-periods/${periodId}`,
+    { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function endWorkerPrimaryProjectPeriod(
+  organizationId: string,
+  workerId: string,
+  periodId: string,
+  accessToken: string,
+  input: EndWorkerPrimaryProjectPeriodInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerPrimaryProjectPeriod>>(
+    `/organizations/${organizationId}/workers/${workerId}/primary-project-periods/${periodId}/end`,
+    { method: 'POST', body: JSON.stringify(input) },
     { accessToken },
   );
   return response.data;

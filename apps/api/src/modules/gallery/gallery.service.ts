@@ -8,7 +8,6 @@ import {
 import { createHash, randomUUID } from "node:crypto";
 import {
   GALLERY_ALLOWED_MIME_TYPES,
-  GALLERY_DIRECT_OPERATING_PROFILES,
   GALLERY_MAX_FILE_BYTES,
   type ErrorCode,
   type PermissionKey,
@@ -122,11 +121,7 @@ export class GalleryService {
         ),
       );
     const checksum = createHash("sha256").update(file.buffer).digest("hex");
-    const workflowMode = (
-      GALLERY_DIRECT_OPERATING_PROFILES as readonly string[]
-    ).includes(access.organization.operatingProfile)
-      ? ("DIRECT" as const)
-      : ("REVIEW_REQUIRED" as const);
+    const workflowMode = "DIRECT" as const;
     const normalized = {
       entryId: dto.entryId,
       projectId,
@@ -174,7 +169,13 @@ export class GalleryService {
           ? "webp"
           : "jpg";
     const fileAssetId = randomUUID();
-    const storageKey = `organizations/${organizationId}/projects/${projectId}/gallery/${dto.entryId}/${fileAssetId}.${extension}`;
+    const storageKey = this.buildStorageKey(
+      organizationId,
+      projectId,
+      dto.entryId,
+      fileAssetId,
+      extension,
+    );
     await this.storage.upload(storageKey, file.buffer, file.mimetype);
     try {
       return await this.translate(() =>
@@ -194,7 +195,7 @@ export class GalleryService {
           byteSize: file.size,
           checksum,
           workflowMode,
-          status: workflowMode === "DIRECT" ? "APPROVED" : "PENDING",
+          status: "APPROVED",
           fingerprint,
         }),
       );
@@ -355,6 +356,24 @@ export class GalleryService {
       buffer.toString("ascii", 0, 4) === "RIFF" &&
       buffer.toString("ascii", 8, 12) === "WEBP"
     );
+  }
+  private buildStorageKey(
+    organizationId: string,
+    projectId: string,
+    entryId: string,
+    fileAssetId: string,
+    extension: string,
+  ) {
+    return [
+      "organizations",
+      organizationId,
+      "projects",
+      projectId,
+      "assets",
+      "gallery",
+      entryId,
+      `${fileAssetId}.${extension}`,
+    ].join("/");
   }
   private async translate<T>(operation: () => Promise<T>) {
     try {

@@ -9,7 +9,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export interface StorageUploadResult {
   key: string;
-  url: string;
 }
 
 export interface StorageDownloadResult {
@@ -55,10 +54,7 @@ export class StorageService {
       }),
     );
 
-    return {
-      key,
-      url: `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`,
-    };
+    return { key };
   }
 
   async delete(key: string): Promise<void> {

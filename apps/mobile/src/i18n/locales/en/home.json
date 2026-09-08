@@ -45,10 +45,14 @@
   },
   "progress": {
     "title": "Project progress",
-    "dataPending": "Stage-level progress is awaiting project progress data."
+    "dataPending": "Stage-level progress is awaiting project progress data.",
+    "completion": "Overall project completion",
+    "updatedStages_one": "{{count}} stage updated",
+    "updatedStages_other": "{{count}} stages updated"
   },
   "attention": {
     "eyebrow": "Action queue",
+    "tab": "Attention",
     "title": "Needs attention",
     "clear": "No material or expense items need attention.",
     "materialApprovals_one": "{{count}} material request",
@@ -68,6 +72,7 @@
   },
   "finance": {
     "eyebrow": "This month",
+    "tab": "Financial",
     "title": "Financial snapshot",
     "expenses": "Recognized site expenses",
     "expensesA11y": "Recognized site expenses this month: {{amount}}",
@@ -79,10 +84,19 @@
   },
   "quickActions": {
     "eyebrow": "Tools",
+    "tab": "Actions",
     "title": "Quick actions",
     "more": "More",
     "moreHint": "Open all available workspace tools",
     "createProjectHint": "Create a new project"
+  },
+  "activity": {
+    "title": "Recent site activity",
+    "viewAll": "View all",
+    "updates_one": "{{count}} site update this week",
+    "updates_other": "{{count}} site updates this week",
+    "latest": "Latest capture: {{date}}",
+    "empty": "No recent site activity has been captured yet."
   },
   "projectScope": {
     "ALL": "All projects",

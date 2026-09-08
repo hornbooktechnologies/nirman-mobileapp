@@ -47,15 +47,22 @@ describe("GalleryService", () => {
     repository.findReplay.mockResolvedValue(null);
     storage.upload.mockResolvedValue({});
     storage.delete.mockResolvedValue(undefined);
-    repository.create.mockResolvedValue({ id: dto.entryId, status: "PENDING" });
+    repository.create.mockResolvedValue({
+      id: dto.entryId,
+      status: "APPROVED",
+    });
   });
 
-  it("uploads review-required metadata after durable object storage", async () => {
+  it("publishes permitted uploads directly after durable object storage", async () => {
     await expect(
       service.upload("org", "project", dto, file, actor),
-    ).resolves.toMatchObject({ status: "PENDING" });
+    ).resolves.toMatchObject({ status: "APPROVED" });
     expect(storage.upload).toHaveBeenCalledWith(
-      expect.stringContaining(dto.entryId),
+      expect.stringMatching(
+        new RegExp(
+          `^organizations/org/projects/project/assets/gallery/${dto.entryId}/[0-9a-f-]+\\.jpg$`,
+        ),
+      ),
       file.buffer,
       "image/jpeg",
     );
@@ -63,8 +70,8 @@ describe("GalleryService", () => {
       "org",
       "project",
       expect.objectContaining({
-        workflowMode: "REVIEW_REQUIRED",
-        status: "PENDING",
+        workflowMode: "DIRECT",
+        status: "APPROVED",
       }),
     );
   });

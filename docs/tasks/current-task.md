@@ -375,11 +375,11 @@ All nine namespaces passed English/Hindi/Gujarati key and placeholder parity. Mo
 
 ## 2026-09-03 — Site Gallery / Project Diary
 
-The Product Owner authorized the full contract, API, migration, seed synchronization, Mobile integration, and UI delivery without intermediate approval stops. Gallery now has tenant/Project-owned private file metadata, chronological entries, direct-versus-review workflow snapshots, role-scoped approval/rejection, audit/notifications, and safe idempotent upload retries.
+The Product Owner authorized the full contract, API, migration, seed synchronization, Mobile integration, and UI delivery without intermediate approval stops. Gallery now has tenant/Project-owned private file metadata, chronological entries, direct publishing for every permitted uploader, compatibility workflow fields, audit/notifications, and safe idempotent upload retries.
 
-Migration `020` is applied to the configured remote target and the ledger is 21/21 current. The intended eight customer role templates are synchronized with demo-user creation disabled. The Expo app includes camera/library capture, app-owned persisted upload queue, retry states, category/stage/caption metadata, a two-column Project diary, reviewer actions, and complete English/Hindi/Gujarati copy.
+Migration `020` is applied to the configured remote target and the ledger is 21/21 current. The intended eight customer role templates are synchronized with demo-user creation disabled. The Expo app includes camera/library capture, app-owned persisted upload queue, retry states, category/stage/caption metadata, a dense month/day Gallery, category/date-range filters, a large photo detail sheet, and complete English/Hindi/Gujarati copy.
 
-Static/database/runtime-route verification passes. Real upload and authenticated/device acceptance remain pending because the current environment has no S3 bucket/access credentials configured; this is an environment gate, not an unimplemented code path.
+Static/database/runtime-route verification passes. On 2026-09-07 a dedicated private development S3 bucket was configured and `verify:gallery:storage` passed real upload, authenticated read, byte/content-type integrity, blocked public access, delete, and version cleanup under `organizations/{organizationId}/projects/{projectId}/assets/gallery/...`. A real `raxorg1@yopmail.com` upload and authenticated media read were also confirmed. Direct-publish replay and redesigned Gallery physical-device acceptance remain pending.
 
 ## 2026-09-03 — Site Visits Completion
 

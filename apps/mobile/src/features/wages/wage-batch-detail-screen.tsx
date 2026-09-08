@@ -261,12 +261,21 @@ export function WageBatchDetailScreen() {
 
             return (
               <OperationalEntityCard
-                accessibilityLabel={t('worker.openA11y', { worker: item.workerName, due: formatInr(remainingValue(item), language) })}
+                accessibilityLabel={t('worker.openA11y', {
+                  worker: item.workerName,
+                  rate: formatInr(Number(item.dailyRate), language),
+                  due: formatInr(remainingValue(item), language),
+                })}
                 compact
                 contextLeading={item.workerCode}
                 contextTrailing={item.trade}
                 title={item.workerName}
-                supporting={t('worker.attendance', { present: item.presentDays, half: item.halfDays, absent: item.absentDays })}
+                supporting={t('worker.rateAndAttendance', {
+                  rate: formatInr(Number(item.dailyRate), language),
+                  present: item.presentDays,
+                  half: item.halfDays,
+                  absent: item.absentDays,
+                })}
                 value={formatInr(remainingValue(item), language)}
                 valueLabel={t('worker.due')}
                 footerLeading={<Badge label={statusLabel} tone={statusTone} />}
@@ -303,6 +312,15 @@ export function WageBatchDetailScreen() {
                 label={selectedSettledByKharchi ? t('paymentStatus.KHARCHI_SETTLED') : t(`paymentStatus.${selectedItem.paymentStatus}`)}
                 tone={selectedSettledByKharchi ? 'info' : selectedItem.paymentStatus === 'PAID' ? 'success' : selectedItem.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
               />
+            }
+            details={
+              <View style={styles.calculationDetails}>
+                <CalculationLine label={t('worker.dailyRate')} value={t('worker.perDayAmount', { amount: formatInr(Number(selectedItem.dailyRate), language) })} />
+                <CalculationLine label={t('worker.attendanceLabel')} value={t('worker.attendance', { present: selectedItem.presentDays, half: selectedItem.halfDays, absent: selectedItem.absentDays })} />
+                <CalculationLine label={t('worker.grossWage')} value={formatInr(Number(selectedItem.grossAmount), language)} />
+                <CalculationLine label={t('worker.kharchiDeduction')} value={`−${formatInr(Number(selectedItem.kharchiDeduction), language)}`} />
+                <CalculationLine label={t('worker.adjustment')} value={formatInr(Number(selectedItem.adjustmentAmount), language)} />
+              </View>
             }
             tone="neutral"
           />
@@ -415,6 +433,15 @@ function Total({ label, value, emphasis = false }: { label: string; value: strin
   );
 }
 
+function CalculationLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View accessible accessibilityLabel={`${label}: ${value}`} style={styles.calculationLine}>
+      <AppText style={styles.calculationLabel} weight={500}>{label}</AppText>
+      <AppText style={styles.calculationValue} weight={700}>{value}</AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   listContent: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] },
   headerContent: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[1] },
@@ -431,6 +458,10 @@ const styles = StyleSheet.create({
   totalEmphasis: { color: mobileTheme.color.action.primary },
   totalLabel: { ...mobileText.body, color: mobileTheme.color.text.secondary, flex: 1 },
   manage: { ...mobileText.caption, color: mobileTheme.color.action.primary },
+  calculationDetails: { gap: mobileTheme.spacing[2], paddingHorizontal: mobileTheme.spacing[4], paddingVertical: mobileTheme.spacing[3] },
+  calculationLine: { alignItems: 'flex-start', flexDirection: 'row', gap: mobileTheme.spacing[3], justifyContent: 'space-between', minHeight: 24 },
+  calculationLabel: { ...mobileText.caption, color: mobileTheme.color.text.secondary, flex: 1 },
+  calculationValue: { ...mobileText.caption, color: mobileTheme.color.text.primary, flexShrink: 1, fontVariant: ['tabular-nums'], textAlign: 'right' },
   sheetSection: { borderTopColor: mobileTheme.color.border.subtle, borderTopWidth: 1, gap: mobileTheme.spacing[3], paddingTop: mobileTheme.spacing[4] },
   formRow: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
   formField: { flex: 1 },

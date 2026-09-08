@@ -6,22 +6,21 @@
 
 The module creates a chronological, project-scoped visual diary for Builders, Project Managers, Contractors, and Supervisors. Authentication, active Organization membership, Project Access, RBAC, Audit, Notifications, and Files/Media ownership are mandatory. Progress may supply an optional canonical stage tag but owns no Gallery data. Dashboards/reports are downstream. Other attachment modules have no direct dependency in this slice.
 
-Included: image capture/selection, caption/category/stage/date metadata, durable queued mobile upload, chronological paginated reads, summary, authenticated media access, approval/rejection, audit, and notification records. Deferred: video, editing/deletion, Web review, comments, exports, image transformations/thumbnails, GPS, generic offline sync/conflict UI, storage quotas, and attachments in other modules.
+Included: image capture/selection, caption/category/stage/date metadata, durable queued mobile upload, direct publishing for permitted uploaders, chronological paginated reads, category/date filters, summary, authenticated media access, audit, and notification records. Deferred: video, editing/deletion, moderated approval, Web Gallery, comments, exports, image transformations/thumbnails, GPS, generic offline sync/conflict UI, storage quotas, and attachments in other modules.
 
 ## Vocabulary And State
 
 - Categories: `PROGRESS`, `WORK`, `MATERIAL_DELIVERY`, `SAFETY`, `ISSUE`, `OTHER`.
-- Review statuses: `PENDING`, `APPROVED`, `REJECTED`.
-- Visibility: pending/rejected items are internal; approval publishes an item to ordinary Gallery readers.
-- Direct profiles: `SELF_MANAGED_BUILDER` and `INDEPENDENT_CONTRACTOR` publish uploads immediately. Other profiles create `PENDING` items for review.
-- Rejection requires an 8–500 character reason. Review uses `expectedVersion`; a stale action conflicts. Review is immutable in this slice.
+- Persisted compatibility statuses: `PENDING`, `APPROVED`, `REJECTED`; all active-flow uploads are created as `APPROVED`.
+- Visibility: active-flow uploads are immediately visible to Project Gallery readers.
+- Every permitted `gallery:upload` actor publishes immediately. Gallery has no approval queue in the active product workflow.
+- The persisted workflow/status fields and review endpoints remain compatibility scaffolding for a possible future moderated mode; Mobile does not expose approval or rejection actions.
 
 ## Actors And Permissions
 
-- `gallery:read`: read approved Project diary items; uploaders may also read their own pending/rejected items; reviewers may read all.
-- `gallery:upload`: upload an image to an active accessible Project.
-- `gallery:approve`: approve a pending item created by another Member.
-- `gallery:reject`: reject a pending item created by another Member.
+- `gallery:read`: read Project diary items for an accessible Project.
+- `gallery:upload`: upload and immediately publish an image to an active accessible Project.
+- `gallery:approve` and `gallery:reject`: retained for API compatibility only; not part of the active Mobile workflow.
 
 Platform Super Admin receives no customer Gallery permissions. Project CUSTOM grants can narrow Organization Role authority.
 
@@ -38,13 +37,13 @@ Base route: `/organizations/:organizationId/projects/:projectId/gallery`.
 - `POST /entries/:entryId/approve` — `gallery:approve`; body `expectedVersion`.
 - `POST /entries/:entryId/reject` — `gallery:reject`; body `expectedVersion`, `reason`.
 
-Stable failures cover unsupported/oversized media, missing item, future capture time, invalid transition, self-review, stale version, and idempotency conflict. Upload and review create immutable Audit events. Pending uploads notify Project reviewers; review results notify the uploader with a Gallery deep link.
+Stable failures cover unsupported/oversized media, missing item, future capture time, invalid transition, self-review, stale version, and idempotency conflict. Uploads create immutable Audit events. The inactive compatibility review endpoints retain their existing Audit and notification behavior.
 
 ## Mobile And Offline Contract
 
-The permission-aware Menu exposes Gallery. The Project screen is an image-first two-column diary with date/category context, clear review state, pull-to-refresh, pagination, and a prominent capture action. The capture sheet offers camera or library, preview, category, optional stage/caption, visible validation, upload progress, and retry feedback. Controls are at least 44dp and all copy/accessibility labels ship in English, Hindi, and Gujarati.
+The permission-aware Menu exposes Gallery. The Project screen is a dense, virtualized thumbnail gallery grouped by month and capture date, with category/date-range filters, pull-to-refresh, pagination, and a prominent capture action. Tapping a thumbnail opens the large private image with its category, stage, uploader, capture date/time, and caption. The capture sheet offers camera or library, preview, category, optional stage/caption, visible validation, upload progress, and retry feedback. Controls are at least 44dp and all copy/accessibility labels ship in English, Hindi, and Gujarati.
 
-Selected media is copied to app-owned storage by Expo Image Picker and the queue metadata is persisted in AsyncStorage before upload. A stable client UUID/idempotency key is retained across restarts. Queued/failed uploads retry from the screen while connected; successful uploads are removed. The client never claims server success while queued. Server states and review authority remain authoritative.
+Selected media is copied to app-owned storage by Expo Image Picker and the queue metadata is persisted in AsyncStorage before upload. A stable client UUID/idempotency key is retained across restarts. Queued/failed uploads retry from the screen while connected; successful uploads are removed. The client never claims server success while queued. Server upload permission remains authoritative.
 
 ## Validation And Acceptance
 

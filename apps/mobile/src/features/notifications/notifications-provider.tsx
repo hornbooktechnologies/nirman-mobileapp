@@ -11,7 +11,9 @@ import { notificationHref } from './notification-routing';
 type NotificationsContextValue = { unreadCount: number; refreshUnreadCount: () => Promise<void>; setUnreadCount: (count: number) => void };
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
-Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
+}
 
 export function NotificationsProvider({ children }: PropsWithChildren) {
   const { language } = useLocalization();
@@ -49,7 +51,7 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
   }, [canRead, language, organizationId, session]);
 
   useEffect(() => {
-    if (!session || !canRead) return;
+    if (!session || !canRead || Platform.OS === 'web') return;
     const handleResponse = (response: Notifications.NotificationResponse) => {
       if (handledResponseId.current === response.notification.request.identifier) return;
       handledResponseId.current = response.notification.request.identifier;

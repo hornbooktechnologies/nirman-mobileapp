@@ -307,6 +307,8 @@ Action:
 Validation:
 
 - Start date cannot be after end date.
+- An assignment date change must continue to contain every primary-Project period linked to that assignment.
+- Reject the change with `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT` when a linked primary period would fall outside the new assignment dates; the primary allocation must be changed or ended first.
 - Daily-rate changes use the separate rate-change workflow.
 
 Result:
@@ -361,6 +363,7 @@ Validation:
 
 - Assignment must be active.
 - End date cannot be before start date.
+- Ending the assignment must not leave a linked primary-Project period open or ending after the assignment end date; reject with `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT` until the primary allocation is changed or ended.
 
 Result:
 
@@ -529,6 +532,7 @@ Rules:
 - A Worker may have overlapping assignments to multiple Projects.
 - Primary periods for the same Organization/Worker may not overlap, including open-ended periods.
 - The referenced assignment must belong to the same Organization/Worker and cover the complete primary period.
+- Assignment date mutations lock and validate linked primary periods transactionally so an assignment can never be shortened outside its primary-allocation history.
 - Creation/update uses a transaction and locks the Worker's relevant period rows before overlap validation.
 - History is changed only through effective-dated update/end operations; no mutable assignment `is_primary` flag is introduced.
 - Split-day Project allocation is deferred.
@@ -587,6 +591,7 @@ Error codes:
 - `WORKER_RATE_CHANGE_ELEVATED_PERMISSION_REQUIRED`
 - `WORKER_HAS_HISTORY`
 - `WORKER_PROJECT_ACCESS_REQUIRED`
+- `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT`
 - `WORKER_PRIMARY_PERIOD_NOT_FOUND`
 - `WORKER_PRIMARY_PERIOD_OVERLAP`
 - `WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT`
@@ -632,6 +637,8 @@ All routes are under `/api/v1`.
 - Route: `/organizations/:organizationId/workers/:workerId`
 - Permission: `workers:read`
 - Response: worker detail plus project assignments.
+- Organization-wide actors receive all assignments in the organization.
+- Project-scoped actors receive only assignments for Projects where their effective Project access includes `workers:read`; assignment names and counts from inaccessible Projects must not be disclosed.
 
 ### Update Worker
 
@@ -961,6 +968,7 @@ Exports:
 
 - Tenant isolation by `organization_id` on every worker and assignment query.
 - Project access enforced for project-roster operations.
+- Organization worker summaries and Worker detail assignment lists must scope assignment counts and Project names to the actor's effective `workers:read` Project access unless the actor has organization-wide Project access.
 - Permissions enforced in API, not only navigation.
 - Mobile number is personal data and must be visible only to users with `workers:read` within scope.
 - No mass assignment of `organization_id`, `created_by`, `updated_by`, status, or audit fields from client body.

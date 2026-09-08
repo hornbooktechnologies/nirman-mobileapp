@@ -42,6 +42,7 @@ describe("WorkersService", () => {
   const projectAccess = {
     resolveOrganizationAccess: jest.fn(),
     resolveProjectAccess: jest.fn(),
+    getProjectAccessSummary: jest.fn(),
   } as unknown as jest.Mocked<ProjectAccessService>;
   const service = new WorkersService(workersRepo, projectAccess);
 
@@ -66,6 +67,9 @@ describe("WorkersService", () => {
       organizationAccess(true),
     );
     projectAccess.resolveProjectAccess.mockResolvedValue(projectAccessResult());
+    projectAccess.getProjectAccessSummary.mockResolvedValue(
+      projectAccessSummary([projectId]),
+    );
     workersRepo.findById.mockResolvedValue(worker());
     workersRepo.findActiveAssignment.mockResolvedValue(assignment());
     workersRepo.findAssignmentById.mockResolvedValue(assignment());
@@ -97,12 +101,23 @@ describe("WorkersService", () => {
       organizationId,
       "workers:read",
     );
-    expect(workersRepo.findAll).toHaveBeenCalledWith(
-      organizationId,
-      {},
-      "membership-id",
-      true,
+    expect(workersRepo.findAll).toHaveBeenCalledWith(organizationId, {}, null);
+  });
+
+  it("limits organization worker counts to projects with effective read access", async () => {
+    projectAccess.resolveOrganizationAccess.mockResolvedValueOnce(
+      organizationAccess(false),
     );
+    workersRepo.findAll.mockResolvedValue({
+      data: [],
+      meta: { total: 0, page: 1, pageSize: 20, pageCount: 0 },
+    });
+
+    await service.findAll(organizationId, {}, actor);
+
+    expect(workersRepo.findAll).toHaveBeenCalledWith(organizationId, {}, [
+      projectId,
+    ]);
   });
 
   it("uses project access for a project-filtered organization list", async () => {
@@ -125,23 +140,47 @@ describe("WorkersService", () => {
     projectAccess.resolveOrganizationAccess.mockResolvedValueOnce(
       organizationAccess(false),
     );
-    workersRepo.isWorkerVisibleToMember.mockResolvedValueOnce(false);
+    projectAccess.getProjectAccessSummary.mockResolvedValueOnce(
+      projectAccessSummary(["another-project-id"]),
+    );
 
     await expect(
       service.findById(organizationId, workerId, actor),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(workersRepo.findById).not.toHaveBeenCalled();
   });
 
   it("allows an assigned-project member to read a visible worker", async () => {
     projectAccess.resolveOrganizationAccess.mockResolvedValueOnce(
       organizationAccess(false),
     );
-    workersRepo.isWorkerVisibleToMember.mockResolvedValueOnce(true);
 
     await expect(
       service.findById(organizationId, workerId, actor),
     ).resolves.toEqual(worker());
+  });
+
+  it("hides assignments outside an assigned-project member's readable projects", async () => {
+    projectAccess.resolveOrganizationAccess.mockResolvedValueOnce(
+      organizationAccess(false),
+    );
+    workersRepo.findById.mockResolvedValueOnce(
+      worker({
+        activeAssignmentCount: 2,
+        assignments: [
+          assignment(),
+          assignment({
+            id: "another-assignment-id",
+            projectId: "another-project-id",
+            projectName: "Hidden Project",
+          }),
+        ],
+      }),
+    );
+
+    const result = await service.findById(organizationId, workerId, actor);
+
+    expect(result.activeAssignmentCount).toBe(1);
+    expect(result.assignments).toEqual([assignment()]);
   });
 
   it("denies unauthorized project roster access", async () => {
@@ -336,6 +375,24 @@ describe("WorkersService", () => {
     expect(workersRepo.updateAssignment).not.toHaveBeenCalled();
   });
 
+  it("returns a stable conflict when assignment dates would invalidate a primary period", async () => {
+    workersRepo.updateAssignment.mockRejectedValueOnce(
+      new Error("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT"),
+    );
+
+    await expect(
+      service.updateAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        { endsOn: "2026-09-22" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT" },
+    });
+  });
+
   it("updates the current pre-Attendance rate with an effective date", async () => {
     workersRepo.updateAssignmentRate.mockResolvedValueOnce(
       assignment({ dailyRate: "825.00" }),
@@ -389,6 +446,24 @@ describe("WorkersService", () => {
         actor,
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("returns a stable conflict when ending an assignment would invalidate a primary period", async () => {
+    workersRepo.endAssignment.mockRejectedValueOnce(
+      new Error("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT"),
+    );
+
+    await expect(
+      service.endAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        { endsOn: "2026-09-22" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT" },
+    });
   });
 
   it("rejects overlapping primary Project periods transactionally", async () => {
@@ -471,6 +546,24 @@ function projectAccessResult() {
     projectAccessScope: "ASSIGNED",
     projectMember: { id: "project-member-id", roleLabel: "Supervisor" },
   } as Awaited<ReturnType<ProjectAccessService["resolveProjectAccess"]>>;
+}
+
+function projectAccessSummary(projectIds: string[]) {
+  return {
+    organizationId: "00000000-0000-4000-8000-000000000010",
+    projectScope: "ASSIGNED",
+    activeProjectId: projectIds[0] ?? null,
+    projects: projectIds.map((id) => ({
+      id,
+      name: `Project ${id}`,
+      projectCode: null,
+      status: "ACTIVE",
+      roleLabel: null,
+      permissionMode: "ROLE_DEFAULT",
+      permissions: ["workers:read"],
+      isDefault: id === projectIds[0],
+    })),
+  } as Awaited<ReturnType<ProjectAccessService["getProjectAccessSummary"]>>;
 }
 
 function worker(overrides: Partial<WorkerDetail> = {}): WorkerDetail {

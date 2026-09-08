@@ -20,6 +20,7 @@
     "db:verify:progress": "ts-node scripts/verify-project-progress.ts",
     "verify:progress:runtime": "ts-node scripts/verify-project-progress-runtime.ts",
     "db:verify:gallery": "ts-node scripts/verify-gallery.ts",
+    "verify:gallery:storage": "ts-node scripts/verify-gallery-storage.ts",
     "db:verify:site-visits": "ts-node scripts/verify-site-visits.ts",
     "db:verify:unit-inventory": "ts-node scripts/verify-unit-inventory.ts",
     "db:verify:booking-linkage": "ts-node scripts/verify-booking-linkage.ts",
