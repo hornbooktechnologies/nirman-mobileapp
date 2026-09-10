@@ -1,6 +1,7 @@
 "use client";
 
 import { Ban, Trash2 } from "lucide-react";
+import { LoadingState } from "@/components/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -162,7 +163,7 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
             Select an organization from Workers first.
           </Card>
         ) : worker.isLoading ? (
-          <Card className="text-[13px] text-body">Loading worker</Card>
+          <LoadingState label="Loading worker" />
         ) : worker.isError || !worker.data ? (
           <Card className="text-[13px] text-red-600">
             Unable to load worker

@@ -160,7 +160,7 @@ export default function ActivateInvitationRoute() {
         <Image
           accessibilityLabel="NirmanSite"
           accessible
-          source={require('../../assets/brand/logo-full.png')}
+          source={require('../../assets/brand/horizontal-logo.png')}
           resizeMode="contain"
           style={styles.logo}
         />
@@ -288,7 +288,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 84,
-    width: 116,
+    width: '100%',
+    maxWidth: 240,
   },
   title: {
     ...mobileText.display,

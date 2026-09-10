@@ -1,0 +1,25 @@
+{
+  "screen": { "title": "Notifications", "subtitle": "{{count}} unread updates" },
+  "actions": { "markAllA11y": "Mark all {{count}} notifications as read" },
+  "filters": { "all": "All", "unread": "Unread ({{count}})" },
+  "loading": "Loading notifications", "loadingMore": "Loading more notifications",
+  "empty": { "title": "No notifications yet", "description": "Important project and account updates will appear here.", "unreadTitle": "You are all caught up", "unreadDescription": "There are no unread notifications.", "permissionTitle": "Notifications are unavailable", "permissionDescription": "Your current role does not include notification access." },
+  "errors": { "title": "Notifications could not load", "load": "Please check your connection and try again." },
+  "card": { "new": "New", "open": "Open update", "read": "read", "unread": "unread", "a11y": "{{title}}. {{message}}. {{time}}. {{state}}." },
+  "types": {
+    "MATERIAL_VERIFICATION_REQUIRED": { "title": "Material verification required", "message": "A material request is waiting for your review." },
+    "MATERIAL_FINAL_APPROVAL_REQUIRED": { "title": "Material approval required", "message": "A material request is waiting for final approval." },
+    "MATERIAL_REQUEST_RETURNED": { "title": "Material request returned", "message": "Your material request needs changes." },
+    "MATERIAL_REQUEST_APPROVED": { "title": "Material request approved", "message": "Your material request was approved." },
+    "MATERIAL_REQUEST_REJECTED": { "title": "Material request rejected", "message": "Your material request was rejected." },
+    "MATERIAL_PURCHASE_RECORDED": { "title": "Material purchase recorded", "message": "A purchase was recorded for your material request." },
+    "MATERIAL_DELIVERY_RECORDED": { "title": "Material delivery recorded", "message": "A delivery was recorded for your material request." },
+    "EXPENSE_APPROVAL_REQUIRED": { "title": "Expense approval required", "message": "A site expense is waiting for your review." },
+    "EXPENSE_APPROVED": { "title": "Expense approved", "message": "Your site expense was approved." },
+    "EXPENSE_REJECTED": { "title": "Expense rejected", "message": "Your site expense was rejected." },
+    "EXPENSE_ADJUSTED": { "title": "Expense adjusted", "message": "An approved site expense was corrected." },
+    "GALLERY_APPROVAL_REQUIRED": { "title": "Gallery review required", "message": "A Project diary photo is waiting for review." },
+    "GALLERY_APPROVED": { "title": "Gallery photo approved", "message": "Your Project diary photo is now published." },
+    "GALLERY_REJECTED": { "title": "Gallery photo needs attention", "message": "Your Project diary photo was rejected." }
+  }
+}

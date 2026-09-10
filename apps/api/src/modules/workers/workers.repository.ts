@@ -58,6 +58,18 @@ interface WageBatchIdRow extends DbRow {
   id: string;
 }
 
+interface AssignmentWindowRow extends DbRow {
+  id: string;
+  starts_on: Date | string;
+  ends_on: Date | string | null;
+}
+
+interface PrimaryPeriodWindowRow extends DbRow {
+  id: string;
+  starts_on: Date | string;
+  ends_on: Date | string | null;
+}
+
 function normalizeMobile(mobile?: string | null) {
   const digits = mobile?.replace(/\D/g, "") ?? "";
   if (!digits) return null;
@@ -152,31 +164,34 @@ export class WorkersRepository {
   async findAll(
     organizationId: string,
     query: QueryWorkerDto,
-    memberId: string,
-    organizationWideProjectAccess: boolean,
+    readableProjectIds: string[] | null,
   ): Promise<WorkerListResponse> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const params: QueryParam[] = [organizationId];
+    if (readableProjectIds?.length === 0) {
+      return {
+        data: [],
+        meta: { total: 0, page, pageSize, pageCount: 0 },
+      };
+    }
+
+    const whereParams: QueryParam[] = [organizationId];
     const where = ["w.organization_id = ?"];
-    const join = organizationWideProjectAccess
-      ? ""
-      : `INNER JOIN worker_project_assignments current_wpa
+    const projectPlaceholders = readableProjectIds?.map(() => "?").join(", ");
+    const join =
+      readableProjectIds === null
+        ? ""
+        : `INNER JOIN worker_project_assignments current_wpa
         ON current_wpa.worker_id = w.id
         AND current_wpa.organization_id = w.organization_id
         AND current_wpa.status = 'ACTIVE'
-      INNER JOIN project_members current_pm
-        ON current_pm.project_id = current_wpa.project_id
-        AND current_pm.organization_id = current_wpa.organization_id
-        AND current_pm.member_id = ?
-        AND current_pm.status = 'ACTIVE'`;
+        AND current_wpa.project_id IN (${projectPlaceholders})`;
 
-    if (!organizationWideProjectAccess) params.push(memberId);
     if (query.search) {
       where.push(
         "(w.name LIKE ? OR w.worker_code LIKE ? OR w.mobile_number LIKE ?)",
       );
-      params.push(
+      whereParams.push(
         `%${query.search}%`,
         `%${query.search}%`,
         `%${query.search}%`,
@@ -184,39 +199,46 @@ export class WorkersRepository {
     }
     if (query.status) {
       where.push("w.status = ?");
-      params.push(query.status);
+      whereParams.push(query.status);
     }
     if (query.trade) {
       where.push("w.trade LIKE ?");
-      params.push(`%${query.trade}%`);
+      whereParams.push(`%${query.trade}%`);
     }
     if (query.projectId) {
       where.push(
         "EXISTS (SELECT 1 FROM worker_project_assignments fpa WHERE fpa.organization_id = w.organization_id AND fpa.worker_id = w.id AND fpa.project_id = ?)",
       );
-      params.push(query.projectId);
+      whereParams.push(query.projectId);
     }
 
     const sortBy = this.safeSortBy(query.sortBy);
     const sortOrder = query.sortOrder === "asc" ? "ASC" : "DESC";
     const whereSql = `WHERE ${where.join(" AND ")}`;
+    const scopedProjectParams = readableProjectIds ?? [];
 
     const [rows, totalRows] = await Promise.all([
       this.database.query<WorkerRow>(
-        `${this.workerSelectSql()}
+        `${this.workerSelectSql(readableProjectIds)}
         ${join}
         ${whereSql}
         GROUP BY w.id
         ORDER BY w.${sortBy} ${sortOrder}
         LIMIT ? OFFSET ?`,
-        [...params, pageSize, (page - 1) * pageSize],
+        [
+          ...scopedProjectParams,
+          ...scopedProjectParams,
+          ...whereParams,
+          pageSize,
+          (page - 1) * pageSize,
+        ],
       ),
       this.database.query<{ total: number } & WorkerRow>(
         `SELECT COUNT(DISTINCT w.id) AS total
         FROM workers w
         ${join}
         ${whereSql}`,
-        params,
+        [...scopedProjectParams, ...whereParams],
       ),
     ]);
 
@@ -963,21 +985,45 @@ export class WorkersRepository {
     ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
 
     if (entries.length > 0) {
-      const result = await this.database.execute(
-        `UPDATE worker_project_assignments
-        SET ${entries.map(([column]) => `${column} = ?`).join(", ")},
-          updated_by = ?,
-          updated_at = CURRENT_TIMESTAMP(3)
-        WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'`,
-        [
-          ...entries.map(([, value]) => value),
-          actorId,
+      const updated = await this.database.transaction(async (connection) => {
+        const rows = await this.database.query<AssignmentWindowRow>(
+          `SELECT id, starts_on, ends_on FROM worker_project_assignments
+           WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'
+           LIMIT 1 FOR UPDATE`,
+          [organizationId, projectId, workerId],
+          connection,
+        );
+        const current = rows[0];
+        if (!current) return false;
+        const startsOn = dto.startsOn ?? dateOnlyValue(current.starts_on);
+        const endsOn =
+          dto.endsOn === undefined
+            ? nullableDateOnly(current.ends_on)
+            : dto.endsOn;
+        await this.assertAssignmentCoversPrimaryPeriods(
           organizationId,
-          projectId,
-          workerId,
-        ],
-      );
-      if (result.affectedRows === 0) return null;
+          current.id,
+          startsOn,
+          endsOn,
+          connection,
+        );
+        const result = await this.database.execute(
+          `UPDATE worker_project_assignments
+           SET ${entries.map(([column]) => `${column} = ?`).join(", ")},
+             updated_by = ?,
+             updated_at = CURRENT_TIMESTAMP(3)
+           WHERE id = ? AND organization_id = ? AND status = 'ACTIVE'`,
+          [
+            ...entries.map(([, value]) => value),
+            actorId,
+            current.id,
+            organizationId,
+          ],
+          connection,
+        );
+        return result.affectedRows > 0;
+      });
+      if (!updated) return null;
     }
     return this.findActiveAssignment(organizationId, projectId, workerId);
   }
@@ -1008,18 +1054,38 @@ export class WorkersRepository {
     endsOn: string,
     actorId: string,
   ) {
-    const result = await this.database.execute(
-      `UPDATE worker_project_assignments
-      SET status = 'ENDED',
-        ends_on = ?,
-        ended_at = CURRENT_TIMESTAMP(3),
-        ended_by = ?,
-        updated_by = ?,
-        updated_at = CURRENT_TIMESTAMP(3)
-      WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'`,
-      [endsOn, actorId, actorId, organizationId, projectId, workerId],
-    );
-    if (result.affectedRows === 0) return null;
+    const ended = await this.database.transaction(async (connection) => {
+      const rows = await this.database.query<AssignmentWindowRow>(
+        `SELECT id, starts_on, ends_on FROM worker_project_assignments
+         WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'
+         LIMIT 1 FOR UPDATE`,
+        [organizationId, projectId, workerId],
+        connection,
+      );
+      const current = rows[0];
+      if (!current) return false;
+      await this.assertAssignmentCoversPrimaryPeriods(
+        organizationId,
+        current.id,
+        dateOnlyValue(current.starts_on),
+        endsOn,
+        connection,
+      );
+      const result = await this.database.execute(
+        `UPDATE worker_project_assignments
+         SET status = 'ENDED',
+           ends_on = ?,
+           ended_at = CURRENT_TIMESTAMP(3),
+           ended_by = ?,
+           updated_by = ?,
+           updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ? AND organization_id = ? AND status = 'ACTIVE'`,
+        [endsOn, actorId, actorId, current.id, organizationId],
+        connection,
+      );
+      return result.affectedRows > 0;
+    });
+    if (!ended) return null;
     return this.findAssignment(organizationId, projectId, workerId);
   }
 
@@ -1138,6 +1204,33 @@ export class WorkersRepository {
       throw new Error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT");
   }
 
+  private async assertAssignmentCoversPrimaryPeriods(
+    organizationId: string,
+    assignmentId: string,
+    startsOn: string,
+    endsOn: string | null,
+    connection: DatabaseConnection,
+  ) {
+    const periods = await this.database.query<PrimaryPeriodWindowRow>(
+      `SELECT id, starts_on, ends_on FROM worker_primary_project_periods
+       WHERE organization_id = ? AND worker_assignment_id = ?
+       FOR UPDATE`,
+      [organizationId, assignmentId],
+      connection,
+    );
+    const fallsOutsideAssignment = periods.some((period) => {
+      const periodStart = dateOnlyValue(period.starts_on);
+      const periodEnd = nullableDateOnly(period.ends_on);
+      return (
+        periodStart < startsOn ||
+        (endsOn !== null && (periodEnd === null || periodEnd > endsOn))
+      );
+    });
+    if (fallsOutsideAssignment) {
+      throw new Error("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    }
+  }
+
   private async assertNoPrimaryOverlap(
     organizationId: string,
     workerId: string,
@@ -1238,7 +1331,10 @@ export class WorkersRepository {
     return allowed.has(sortBy ?? "") ? sortBy : "created_at";
   }
 
-  private workerSelectSql() {
+  private workerSelectSql(readableProjectIds: string[] | null = null) {
+    const projectScope = readableProjectIds
+      ? `AND active_wpa.project_id IN (${readableProjectIds.map(() => "?").join(", ")})`
+      : "";
     return `SELECT
       ${this.workerColumns("w")},
       COUNT(DISTINCT active_wpa.id) AS activeAssignmentCount
@@ -1246,7 +1342,8 @@ export class WorkersRepository {
     LEFT JOIN worker_project_assignments active_wpa
       ON active_wpa.worker_id = w.id
       AND active_wpa.organization_id = w.organization_id
-      AND active_wpa.status = 'ACTIVE'`;
+      AND active_wpa.status = 'ACTIVE'
+      ${projectScope}`;
   }
 
   private assignmentSelectSql() {

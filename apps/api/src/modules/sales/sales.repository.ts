@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
+import { AuditService } from "../audit/audit.service";
 import type {
   BlockUnitDto,
   CancelBookingDto,
@@ -14,8 +15,10 @@ import type {
   CreateUnitInterestDto,
   CreateUnitDto,
   DecideUnitHoldRequestDto,
+  QueryBookingsDto,
   QuerySalesDto,
   QueryScheduledSalesDto,
+  QuerySiteVisitsDto,
   QueryUnitsDto,
   UpdateFollowUpDto,
   UpdateLeadDto,
@@ -39,9 +42,21 @@ export interface SalesLeadRecord {
   [key: string]: unknown;
 }
 
+export interface SalesBookingRecord {
+  id: string;
+  leadId: string;
+  unitId: string | null;
+  status: string;
+  bookingAmount: number | null;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class SalesRepository {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly audit: AuditService,
+  ) {}
 
   async isEligibleAssignee(
     organizationId: string,
@@ -476,20 +491,59 @@ export class SalesRepository {
   async listSiteVisits(
     organizationId: string,
     projectId: string,
+    query: QuerySiteVisitsDto = {},
     actorId?: string,
   ) {
+    const where = ["v.organization_id = ?", "v.project_id = ?"];
+    const params: string[] = [organizationId, projectId];
+    if (query.status) {
+      where.push("v.status = ?");
+      params.push(query.status);
+    }
+    if (actorId) {
+      where.push("v.assigned_salesperson = ?");
+      params.push(actorId);
+    } else if (query.assignedSalesperson) {
+      where.push("v.assigned_salesperson = ?");
+      params.push(query.assignedSalesperson);
+    }
+    if (query.scheduledFrom) {
+      where.push("v.scheduled_at >= ?");
+      params.push(query.scheduledFrom);
+    }
+    if (query.scheduledTo) {
+      where.push("v.scheduled_at <= ?");
+      params.push(query.scheduledTo);
+    }
     return this.database.query<Row>(
       `SELECT v.id, v.lead_id leadId, v.scheduled_at scheduledAt,
               v.assigned_salesperson assignedSalesperson, v.attendee_count attendeeCount,
               v.status, v.customer_feedback customerFeedback, v.objections_concerns objectionsConcerns,
-              v.next_action nextAction, v.completed_at completedAt, l.customer_name customerName
-       FROM sales_site_visits v INNER JOIN sales_leads l ON l.id = v.lead_id
-       WHERE v.organization_id = ? AND v.project_id = ? ${actorId ? "AND v.assigned_salesperson = ?" : ""}
-       ORDER BY v.scheduled_at DESC`,
-      actorId
-        ? [organizationId, projectId, actorId]
-        : [organizationId, projectId],
+              v.next_action nextAction, v.completed_at completedAt, l.customer_name customerName,
+              assignee.name assignedSalespersonName
+       FROM sales_site_visits v
+       INNER JOIN sales_leads l ON l.id = v.lead_id
+       INNER JOIN user assignee ON assignee.id = v.assigned_salesperson
+       WHERE ${where.join(" AND ")}
+       ORDER BY v.scheduled_at ASC`,
+      params,
     );
+  }
+
+  async findSiteVisit(
+    organizationId: string,
+    projectId: string,
+    leadId: string,
+    visitId: string,
+  ) {
+    const rows = await this.database.query<Row>(
+      `SELECT id, status, scheduled_at scheduledAt
+       FROM sales_site_visits
+       WHERE id = ? AND lead_id = ? AND organization_id = ? AND project_id = ?
+       LIMIT 1`,
+      [visitId, leadId, organizationId, projectId],
+    );
+    return rows[0];
   }
 
   async createSiteVisit(
@@ -535,7 +589,7 @@ export class SalesRepository {
         { siteVisitId: id, scheduledAt: dto.scheduledAt },
       );
     });
-    return (await this.listSiteVisits(organizationId, projectId)).find(
+    return (await this.listSiteVisits(organizationId, projectId, {})).find(
       (item) => item.id === id,
     );
   }
@@ -550,11 +604,14 @@ export class SalesRepository {
   ) {
     await this.database.transaction(async (connection) => {
       const result = await this.database.execute(
-        `UPDATE sales_site_visits SET status = ?, customer_feedback = ?, objections_concerns = ?, next_action = ?,
+        `UPDATE sales_site_visits SET status = ?, scheduled_at = COALESCE(?, scheduled_at),
+           attendee_count = COALESCE(?, attendee_count), customer_feedback = ?, objections_concerns = ?, next_action = ?,
            completed_at = IF(? = 'COMPLETED', CURRENT_TIMESTAMP(3), completed_at)
          WHERE id = ? AND lead_id = ? AND organization_id = ? AND project_id = ?`,
         [
           dto.status,
+          dto.scheduledAt ?? null,
+          dto.attendeeCount ?? null,
           dto.customerFeedback ?? null,
           dto.objectionsConcerns ?? null,
           dto.nextAction ?? null,
@@ -595,10 +652,10 @@ export class SalesRepository {
         activityType,
         `Site visit ${dto.status.toLowerCase().replace("_", " ")}`,
         actorId,
-        { siteVisitId: visitId },
+        { siteVisitId: visitId, scheduledAt: dto.scheduledAt ?? null },
       );
     });
-    return (await this.listSiteVisits(organizationId, projectId)).find(
+    return (await this.listSiteVisits(organizationId, projectId, {})).find(
       (item) => item.id === visitId,
     );
   }
@@ -1232,37 +1289,59 @@ export class SalesRepository {
   async listBookings(
     organizationId: string,
     projectId: string,
+    query: QueryBookingsDto = {},
     actorId?: string,
   ) {
-    return this.database.query<Row>(
-      `SELECT b.id, b.lead_id leadId, b.unit_id unitId, b.booked_by bookedBy, b.booking_date bookingDate,
-              b.customer_name customerName, b.customer_mobile customerMobile, b.booking_amount bookingAmount,
-              b.booking_reference bookingReference, b.status, b.cancellation_reason cancellationReason,
-              b.cancelled_by cancelledBy, b.cancelled_at cancelledAt, b.created_at createdAt,
-              l.customer_name leadCustomerName, u.unit_number unitNumber
-       FROM sales_bookings b INNER JOIN sales_leads l ON l.id = b.lead_id
-       LEFT JOIN sales_units u ON u.id = b.unit_id
-       WHERE b.organization_id = ? AND b.project_id = ?
-         ${actorId ? "AND (l.assigned_to = ? OR l.created_by = ?)" : ""}
+    const where = ["b.organization_id = ?", "b.project_id = ?"];
+    const params: string[] = [organizationId, projectId];
+    if (actorId) {
+      where.push("(l.assigned_to = ? OR l.created_by = ?)");
+      params.push(actorId, actorId);
+    }
+    if (query.status) {
+      where.push("b.status = ?");
+      params.push(query.status);
+    }
+    if (query.search) {
+      where.push(
+        "(b.customer_name LIKE ? OR b.customer_mobile LIKE ? OR b.booking_reference LIKE ? OR u.unit_number LIKE ?)",
+      );
+      const needle = `%${query.search}%`;
+      params.push(needle, needle, needle, needle);
+    }
+    if (query.bookedFrom) {
+      where.push("b.booking_date >= ?");
+      params.push(query.bookedFrom);
+    }
+    if (query.bookedTo) {
+      where.push("b.booking_date <= ?");
+      params.push(query.bookedTo);
+    }
+    const rows = await this.database.query<Row>(
+      `${this.bookingSelect()}
+       WHERE ${where.join(" AND ")}
        ORDER BY b.booking_date DESC, b.created_at DESC`,
-      actorId
-        ? [organizationId, projectId, actorId, actorId]
-        : [organizationId, projectId],
+      params,
     );
+    return rows.map((row) => this.mapBooking(row));
   }
 
   async findBooking(
     organizationId: string,
     projectId: string,
     bookingId: string,
+    actorId?: string,
   ) {
     const rows = await this.database.query<Row>(
-      `SELECT id, lead_id leadId, unit_id unitId, status
-       FROM sales_bookings
-       WHERE id = ? AND organization_id = ? AND project_id = ? LIMIT 1`,
-      [bookingId, organizationId, projectId],
+      `${this.bookingSelect()}
+       WHERE b.id = ? AND b.organization_id = ? AND b.project_id = ?
+         ${actorId ? "AND (l.assigned_to = ? OR l.created_by = ?)" : ""}
+       LIMIT 1`,
+      actorId
+        ? [bookingId, organizationId, projectId, actorId, actorId]
+        : [bookingId, organizationId, projectId],
     );
-    return rows[0] ?? null;
+    return rows[0] ? this.mapBooking(rows[0]) : null;
   }
 
   async createBooking(
@@ -1272,135 +1351,169 @@ export class SalesRepository {
     actorId: string,
   ) {
     let id: string = randomUUID();
-    await this.database.transaction(async (connection) => {
-      const existing = await this.database.query<Row>(
-        `SELECT id, project_id, lead_id, unit_id, booking_date, customer_name,
+    const fingerprint = this.bookingFingerprint(projectId, dto);
+    try {
+      await this.database.transaction(async (connection) => {
+        const existing = await this.database.query<Row>(
+          `SELECT id, request_fingerprint, project_id, lead_id, unit_id, booking_date, customer_name,
                 customer_mobile, booking_amount, booking_reference
          FROM sales_bookings
          WHERE organization_id = ? AND idempotency_key = ? LIMIT 1 FOR UPDATE`,
-        [organizationId, dto.idempotencyKey],
-        connection,
-      );
-      if (existing[0]) {
-        const row = existing[0];
-        const sameRequest =
-          row.project_id === projectId &&
-          row.lead_id === dto.leadId &&
-          (row.unit_id ?? null) === (dto.unitId ?? null) &&
-          (row.booking_date instanceof Date
-            ? row.booking_date.toISOString().slice(0, 10)
-            : String(row.booking_date).slice(0, 10)) ===
-            dto.bookingDate.slice(0, 10) &&
-          row.customer_name === dto.customerName &&
-          row.customer_mobile === dto.customerMobile &&
-          Number(row.booking_amount ?? 0) === Number(dto.bookingAmount ?? 0) &&
-          (row.booking_reference ?? null) === (dto.bookingReference ?? null);
-        if (!sameRequest) {
-          throw Object.assign(new Error("IDEMPOTENCY_CONFLICT"), {
-            code: "IDEMPOTENCY_CONFLICT",
-          });
-        }
-        id = row.id as string;
-        return;
-      }
-      const leads = await this.database.query<Row>(
-        `SELECT current_stage FROM sales_leads WHERE id = ? AND organization_id = ? AND project_id = ? FOR UPDATE`,
-        [dto.leadId, organizationId, projectId],
-        connection,
-      );
-      if (!leads[0])
-        throw Object.assign(new Error("LEAD_NOT_FOUND"), {
-          code: "LEAD_NOT_FOUND",
-        });
-      if (leads[0].current_stage === "BOOKED")
-        throw Object.assign(new Error("LEAD_ALREADY_BOOKED"), {
-          code: "LEAD_ALREADY_BOOKED",
-        });
-      if (dto.unitId) {
-        await this.expireBlocks(organizationId, projectId, connection);
-        const units = await this.database.query<Row>(
-          `SELECT status FROM sales_units WHERE id = ? AND organization_id = ? AND project_id = ? FOR UPDATE`,
-          [dto.unitId, organizationId, projectId],
+          [organizationId, dto.idempotencyKey],
           connection,
         );
-        if (
-          !units[0] ||
-          !["AVAILABLE", "BLOCKED"].includes(units[0].status as string)
-        )
-          throw Object.assign(new Error("UNIT_NOT_AVAILABLE"), {
-            code: "UNIT_NOT_AVAILABLE",
-          });
-        if (units[0].status === "BLOCKED") {
-          const blocks = await this.database.query<Row>(
-            `SELECT id FROM sales_unit_blocks WHERE unit_id = ? AND lead_id = ? AND status = 'ACTIVE' FOR UPDATE`,
-            [dto.unitId, dto.leadId],
+        if (existing[0]) {
+          const row = existing[0];
+          if (!this.isSameBookingRequest(row, projectId, dto, fingerprint)) {
+            throw this.domainError("IDEMPOTENCY_CONFLICT");
+          }
+          id = row.id as string;
+          return;
+        }
+        const leads = await this.database.query<Row>(
+          `SELECT current_stage, customer_name, primary_mobile, source
+         FROM sales_leads WHERE id = ? AND organization_id = ? AND project_id = ? FOR UPDATE`,
+          [dto.leadId, organizationId, projectId],
+          connection,
+        );
+        const lead = leads[0];
+        if (!lead) throw this.domainError("LEAD_NOT_FOUND");
+        if (lead.current_stage === "BOOKED") {
+          throw this.domainError("LEAD_ALREADY_BOOKED");
+        }
+        let unitStatusBeforeBooking: string | null = null;
+        if (dto.unitId) {
+          await this.expireBlocks(organizationId, projectId, connection);
+          const units = await this.database.query<Row>(
+            `SELECT status FROM sales_units WHERE id = ? AND organization_id = ? AND project_id = ? FOR UPDATE`,
+            [dto.unitId, organizationId, projectId],
             connection,
           );
-          if (!blocks[0])
-            throw Object.assign(new Error("UNIT_BLOCKED_FOR_ANOTHER_LEAD"), {
-              code: "UNIT_BLOCKED_FOR_ANOTHER_LEAD",
-            });
+          if (
+            !units[0] ||
+            !["AVAILABLE", "BLOCKED"].includes(units[0].status as string)
+          ) {
+            throw this.domainError("UNIT_NOT_AVAILABLE");
+          }
+          unitStatusBeforeBooking = units[0].status as string;
+          if (units[0].status === "BLOCKED") {
+            const blocks = await this.database.query<Row>(
+              `SELECT id FROM sales_unit_blocks WHERE unit_id = ? AND lead_id = ? AND status = 'ACTIVE' FOR UPDATE`,
+              [dto.unitId, dto.leadId],
+              connection,
+            );
+            if (!blocks[0]) {
+              throw this.domainError("UNIT_BLOCKED_FOR_ANOTHER_LEAD");
+            }
+          }
         }
-      }
-      await this.database.execute(
-        `INSERT INTO sales_bookings
+        await this.database.execute(
+          `INSERT INTO sales_bookings
           (id, organization_id, project_id, lead_id, unit_id, booked_by, booking_date,
-           customer_name, customer_mobile, booking_amount, booking_reference, idempotency_key)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          organizationId,
-          projectId,
-          dto.leadId,
-          dto.unitId ?? null,
-          actorId,
-          dto.bookingDate,
-          dto.customerName,
-          dto.customerMobile,
-          dto.bookingAmount ?? null,
-          dto.bookingReference ?? null,
-          dto.idempotencyKey,
-        ],
-        connection,
-      );
-      await this.database.execute(
-        `UPDATE sales_leads SET current_stage = 'BOOKED',
+           customer_name, customer_mobile, lead_source, lead_stage_before_booking,
+           unit_status_before_booking, booking_amount, booking_reference, idempotency_key,
+           request_fingerprint)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            organizationId,
+            projectId,
+            dto.leadId,
+            dto.unitId ?? null,
+            actorId,
+            dto.bookingDate,
+            lead.customer_name as string,
+            lead.primary_mobile as string,
+            lead.source as string,
+            lead.current_stage as string,
+            unitStatusBeforeBooking,
+            dto.bookingAmount ?? null,
+            dto.bookingReference ?? null,
+            dto.idempotencyKey,
+            fingerprint,
+          ],
+          connection,
+        );
+        await this.database.execute(
+          `UPDATE sales_leads SET current_stage = 'BOOKED',
            converted_at = COALESCE(converted_at, CURRENT_TIMESTAMP(3)),
            converted_by = COALESCE(converted_by, ?), interested_unit_id = COALESCE(?, interested_unit_id)
          WHERE id = ?`,
-        [actorId, dto.unitId ?? null, dto.leadId],
-        connection,
-      );
-      if (dto.unitId) {
-        await this.database.execute(
-          `UPDATE sales_units SET status = 'BOOKED', updated_by = ? WHERE id = ?`,
-          [actorId, dto.unitId],
+          [actorId, dto.unitId ?? null, dto.leadId],
           connection,
         );
-        await this.database.execute(
-          `UPDATE sales_unit_blocks SET status = 'CONVERTED' WHERE unit_id = ? AND lead_id = ? AND status = 'ACTIVE'`,
-          [dto.unitId, dto.leadId],
-          connection,
-        );
-        await this.database.execute(
-          `UPDATE sales_unit_interests SET status = IF(lead_id = ?, 'SELECTED', 'WAITLISTED'), updated_by = ?
+        if (dto.unitId) {
+          await this.database.execute(
+            `UPDATE sales_units SET status = 'BOOKED', updated_by = ? WHERE id = ?`,
+            [actorId, dto.unitId],
+            connection,
+          );
+          await this.database.execute(
+            `UPDATE sales_unit_blocks SET status = 'CONVERTED' WHERE unit_id = ? AND lead_id = ? AND status = 'ACTIVE'`,
+            [dto.unitId, dto.leadId],
+            connection,
+          );
+          await this.database.execute(
+            `UPDATE sales_unit_interests SET status = IF(lead_id = ?, 'SELECTED', 'WAITLISTED'), updated_by = ?
            WHERE unit_id = ? AND status <> 'WITHDRAWN'`,
-          [dto.leadId, actorId, dto.unitId],
+            [dto.leadId, actorId, dto.unitId],
+            connection,
+          );
+        }
+        await this.addActivity(
+          connection,
+          organizationId,
+          projectId,
+          dto.leadId,
+          "LEAD_BOOKED",
+          "Lead converted to booking",
+          actorId,
+          { bookingId: id, unitId: dto.unitId ?? null },
+        );
+        await this.audit.record(
+          {
+            organizationId,
+            projectId,
+            actorUserId: actorId,
+            action: "sales.booking-confirmed",
+            entityType: "sales_booking",
+            entityId: id,
+            oldValues: {
+              leadStage: lead.current_stage as string,
+              unitStatus: unitStatusBeforeBooking,
+            },
+            newValues: {
+              status: "CONFIRMED",
+              leadStage: "BOOKED",
+              unitStatus: dto.unitId ? "BOOKED" : null,
+            },
+            metadata: {
+              leadId: dto.leadId,
+              unitId: dto.unitId ?? null,
+              idempotencyKey: dto.idempotencyKey,
+            },
+          },
           connection,
         );
-      }
-      await this.addActivity(
-        connection,
-        organizationId,
-        projectId,
-        dto.leadId,
-        "LEAD_BOOKED",
-        "Lead converted to booking",
-        actorId,
-        { bookingId: id, unitId: dto.unitId ?? null },
+      });
+    } catch (error) {
+      if (!this.isDuplicateEntry(error)) throw error;
+      const existing = await this.database.query<Row>(
+        `SELECT id, request_fingerprint, project_id, lead_id, unit_id, booking_date,
+                customer_name, customer_mobile, booking_amount, booking_reference
+         FROM sales_bookings
+         WHERE organization_id = ? AND idempotency_key = ? LIMIT 1`,
+        [organizationId, dto.idempotencyKey],
       );
-    });
-    return (await this.listBookings(organizationId, projectId)).find(
+      if (
+        !existing[0] ||
+        !this.isSameBookingRequest(existing[0], projectId, dto, fingerprint)
+      ) {
+        throw this.domainError("IDEMPOTENCY_CONFLICT");
+      }
+      id = existing[0].id as string;
+    }
+    return (await this.listBookings(organizationId, projectId, {})).find(
       (booking) => booking.id === id,
     );
   }
@@ -1414,8 +1527,13 @@ export class SalesRepository {
   ) {
     await this.database.transaction(async (connection) => {
       const rows = await this.database.query<Row>(
-        `SELECT lead_id, unit_id, status FROM sales_bookings
-         WHERE id = ? AND organization_id = ? AND project_id = ? FOR UPDATE`,
+        `SELECT b.lead_id, b.unit_id, b.status, b.lead_stage_before_booking,
+                b.unit_status_before_booking, l.current_stage current_lead_stage,
+                u.status current_unit_status
+         FROM sales_bookings b
+         INNER JOIN sales_leads l ON l.id = b.lead_id
+         LEFT JOIN sales_units u ON u.id = b.unit_id
+         WHERE b.id = ? AND b.organization_id = ? AND b.project_id = ? FOR UPDATE`,
         [bookingId, organizationId, projectId],
         connection,
       );
@@ -1432,9 +1550,17 @@ export class SalesRepository {
           code: "BOOKING_RESTORE_UNIT_STATUS_REQUIRED",
         });
       await this.database.execute(
-        `UPDATE sales_bookings SET status = 'CANCELLED', cancellation_reason = ?, cancelled_by = ?, cancelled_at = CURRENT_TIMESTAMP(3)
+        `UPDATE sales_bookings SET status = 'CANCELLED', cancellation_reason = ?,
+           restored_lead_stage = ?, restored_unit_status = ?, cancelled_by = ?,
+           cancelled_at = CURRENT_TIMESTAMP(3)
          WHERE id = ?`,
-        [dto.cancellationReason, actorId, bookingId],
+        [
+          dto.cancellationReason,
+          dto.restoredLeadStage,
+          dto.restoredUnitStatus ?? null,
+          actorId,
+          bookingId,
+        ],
         connection,
       );
       await this.database.execute(
@@ -1469,8 +1595,34 @@ export class SalesRepository {
           restoredLeadStage: dto.restoredLeadStage,
         },
       );
+      await this.audit.record(
+        {
+          organizationId,
+          projectId,
+          actorUserId: actorId,
+          action: "sales.booking-cancelled",
+          entityType: "sales_booking",
+          entityId: bookingId,
+          oldValues: {
+            status: "CONFIRMED",
+            leadStage: rows[0].current_lead_stage as string,
+            unitStatus: (rows[0].current_unit_status as string | null) ?? null,
+          },
+          newValues: {
+            status: "CANCELLED",
+            leadStage: dto.restoredLeadStage,
+            unitStatus: dto.restoredUnitStatus ?? null,
+          },
+          metadata: {
+            leadId: rows[0].lead_id as string,
+            unitId: (rows[0].unit_id as string | null) ?? null,
+            cancellationReason: dto.cancellationReason,
+          },
+        },
+        connection,
+      );
     });
-    return (await this.listBookings(organizationId, projectId)).find(
+    return (await this.listBookings(organizationId, projectId, {})).find(
       (booking) => booking.id === bookingId,
     );
   }
@@ -1550,6 +1702,90 @@ export class SalesRepository {
         actorId,
       ],
       connection,
+    );
+  }
+
+  private bookingSelect() {
+    return `SELECT b.id, b.organization_id organizationId, b.project_id projectId,
+      b.lead_id leadId, b.unit_id unitId, b.booked_by bookedBy,
+      booker.name bookedByName, b.booking_date bookingDate,
+      b.customer_name customerName, b.customer_mobile customerMobile,
+      b.lead_source leadSource, b.lead_stage_before_booking leadStageBeforeBooking,
+      b.unit_status_before_booking unitStatusBeforeBooking,
+      b.booking_amount bookingAmount, b.booking_reference bookingReference,
+      b.status, b.cancellation_reason cancellationReason,
+      b.restored_lead_stage restoredLeadStage, b.restored_unit_status restoredUnitStatus,
+      b.cancelled_by cancelledBy, canceller.name cancelledByName,
+      b.cancelled_at cancelledAt, b.created_at createdAt, b.updated_at updatedAt,
+      l.current_stage leadCurrentStage, l.converted_at convertedAt,
+      l.converted_by convertedBy, converter.name convertedByName,
+      u.unit_number unitNumber, u.unit_type unitType, u.status unitCurrentStatus
+      FROM sales_bookings b
+      INNER JOIN sales_leads l ON l.id = b.lead_id
+      LEFT JOIN sales_units u ON u.id = b.unit_id
+      LEFT JOIN \`user\` booker ON booker.id = b.booked_by
+      LEFT JOIN \`user\` converter ON converter.id = l.converted_by
+      LEFT JOIN \`user\` canceller ON canceller.id = b.cancelled_by`;
+  }
+
+  private mapBooking(row: Row): SalesBookingRecord {
+    return {
+      ...row,
+      bookingAmount:
+        row.bookingAmount === null ? null : Number(row.bookingAmount),
+    } as unknown as SalesBookingRecord;
+  }
+
+  private bookingFingerprint(projectId: string, dto: CreateBookingDto) {
+    return createHash("sha256")
+      .update(
+        JSON.stringify({
+          projectId,
+          leadId: dto.leadId,
+          unitId: dto.unitId ?? null,
+          bookingDate: dto.bookingDate.slice(0, 10),
+          bookingAmount: dto.bookingAmount ?? null,
+          bookingReference: dto.bookingReference ?? null,
+        }),
+      )
+      .digest("hex");
+  }
+
+  private isSameBookingRequest(
+    row: Row,
+    projectId: string,
+    dto: CreateBookingDto,
+    fingerprint: string,
+  ) {
+    if (row.request_fingerprint) {
+      return row.request_fingerprint === fingerprint;
+    }
+    const storedDate =
+      row.booking_date instanceof Date
+        ? row.booking_date.toISOString().slice(0, 10)
+        : String(row.booking_date).slice(0, 10);
+    return (
+      row.project_id === projectId &&
+      row.lead_id === dto.leadId &&
+      (row.unit_id ?? null) === (dto.unitId ?? null) &&
+      storedDate === dto.bookingDate.slice(0, 10) &&
+      (row.booking_amount === null
+        ? dto.bookingAmount == null
+        : Number(row.booking_amount) === dto.bookingAmount) &&
+      (row.booking_reference ?? null) === (dto.bookingReference ?? null)
+    );
+  }
+
+  private domainError(code: string) {
+    return Object.assign(new Error(code), { code });
+  }
+
+  private isDuplicateEntry(error: unknown) {
+    return Boolean(
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ER_DUP_ENTRY",
     );
   }
 

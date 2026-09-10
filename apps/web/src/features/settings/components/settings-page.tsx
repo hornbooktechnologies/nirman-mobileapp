@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { LoadingState } from "@/components/ui";
 import {
   Button,
   Card,
@@ -107,7 +108,7 @@ export function SettingsPage() {
 
       <Card>
         {settings.isLoading ? (
-          <p className="text-[13px] text-body">Loading settings</p>
+          <LoadingState label="Loading settings" />
         ) : settings.isError ? (
           <p className="text-[13px] text-red-600">Unable to load settings</p>
         ) : (

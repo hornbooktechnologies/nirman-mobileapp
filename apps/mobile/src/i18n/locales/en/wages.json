@@ -35,7 +35,7 @@
     "openA11y": "Open wage batch from {{start}} to {{end}}, total {{amount}}"
   },
   "batchStatus": { "DRAFT": "Draft", "CONFIRMED": "Confirmed", "PARTIALLY_PAID": "Partially paid", "PAID": "Paid", "CANCELLED": "Cancelled" },
-  "paymentStatus": { "UNPAID": "Unpaid", "PARTIALLY_PAID": "Partially paid", "PAID": "Paid" },
+  "paymentStatus": { "UNPAID": "Unpaid", "PARTIALLY_PAID": "Partially paid", "PAID": "Paid", "KHARCHI_SETTLED": "Adjusted by Kharchi" },
   "paymentMethod": { "CASH": "Cash", "UPI": "UPI", "BANK_TRANSFER": "Bank", "CHEQUE": "Cheque", "OTHER": "Other" },
   "detail": {
     "title": "Batch details",
@@ -52,9 +52,16 @@
   },
   "worker": {
     "attendance": "{{present}} present · {{half}} half · {{absent}} absent",
+    "attendanceLabel": "Attendance",
+    "rateAndAttendance": "{{rate}}/day · {{present}} present · {{half}} half · {{absent}} absent",
+    "dailyRate": "Daily rate",
+    "perDayAmount": "{{amount}} / day",
+    "grossWage": "Gross wage",
+    "kharchiDeduction": "Kharchi deduction",
+    "adjustment": "Adjustment",
     "due": "Due",
     "manage": "Manage",
-    "openA11y": "Manage {{worker}}, due {{due}}",
+    "openA11y": "Manage {{worker}}, daily rate {{rate}}, due {{due}}",
     "currentSummary": "Current summary",
     "netPayable": "Net payable",
     "paidAmount": "Paid {{amount}}"
@@ -71,6 +78,8 @@
     "action": "Record payment",
     "recording": "Recording payment",
     "alreadyPaid": "This worker is fully paid for this batch.",
+    "settledByKharchi": "No wage payment is due. {{amount}} was adjusted against Kharchi.",
+    "noPaymentDue": "No wage payment is due for this batch.",
     "invalidAmount": "Enter an amount greater than zero.",
     "exceedsDue": "Amount cannot exceed the due balance of {{amount}}.",
     "successTitle": "Payment recorded",

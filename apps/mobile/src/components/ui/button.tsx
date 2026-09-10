@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
@@ -11,34 +11,40 @@ type ButtonProps = PressableProps & {
   fullWidth?: boolean;
   leadingIcon?: AppIconName;
   contentStyle?: StyleProp<ViewStyle>;
+  loading?: boolean;
 };
 
-export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, leadingIcon, hitSlop, style, contentStyle, ...props }: ButtonProps) {
+export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, leadingIcon, hitSlop, style, contentStyle, loading = false, disabled, accessibilityState, ...props }: ButtonProps) {
   const usesInverseContent = variant === 'primary' || variant === 'brand' || variant === 'info' || variant === 'success' || variant === 'danger' || variant === 'dark';
+  const isDisabled = disabled || loading;
 
   return (
     <Pressable
       accessibilityRole="button"
+      aria-busy={loading || accessibilityState?.busy}
+      accessibilityState={{ ...accessibilityState, disabled: Boolean(isDisabled), busy: loading || accessibilityState?.busy }}
+      disabled={isDisabled}
       hitSlop={hitSlop ?? (size === 'sm' ? 4 : undefined)}
       style={(state) => [
         styles.base,
         styles[size],
         styles[variant],
         fullWidth ? styles.fullWidth : styles.inline,
-        state.pressed && styles.pressed,
+        state.pressed && !isDisabled && styles.pressed,
         contentStyle,
         typeof style === 'function' ? style(state) : style,
+        loading && styles.loading,
       ]}
       {...props}
     >
-      {leadingIcon ? (
+      {loading ? <ActivityIndicator accessible={false} size="small" color={usesInverseContent ? mobileTheme.color.text.inverse : mobileTheme.color.text.link} /> : leadingIcon ? (
         <AppIcon
-          color={usesInverseContent ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary}
+          color={usesInverseContent ? mobileTheme.color.text.inverse : variant === 'ghost' ? mobileTheme.color.text.link : mobileTheme.color.text.primary}
           name={leadingIcon}
           size={mobileTheme.icon.sm}
         />
       ) : null}
-      <AppText style={[styles.label, usesInverseContent ? styles.inverseLabel : styles.secondaryLabel]} weight={700}>
+      <AppText style={[styles.label, usesInverseContent ? styles.inverseLabel : variant === 'ghost' ? styles.linkLabel : styles.secondaryLabel]} weight={700}>
         {label}
       </AppText>
     </Pressable>
@@ -111,6 +117,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.82,
   },
+  loading: {
+    opacity: 0.6,
+  },
   label: {
     fontSize: 16,
     lineHeight: 24,
@@ -121,5 +130,8 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     color: mobileTheme.color.text.primary,
+  },
+  linkLabel: {
+    color: mobileTheme.color.text.link,
   },
 });

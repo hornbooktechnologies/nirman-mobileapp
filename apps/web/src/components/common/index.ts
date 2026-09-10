@@ -1,4 +1,5 @@
 export * from "./action-group";
+export * from "./loading-screen";
 export * from "./protected-dashboard-shell";
 export * from "./responsive-filter-bar";
 export * from "./row-action-menu";

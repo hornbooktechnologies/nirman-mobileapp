@@ -7,6 +7,7 @@ type DateInputProps = {
   invalid?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
+  showPickerIndicator?: boolean;
 };
 
 export function DateInput({ accessibilityLabel, value, onChangeText, invalid = false }: DateInputProps) {

@@ -267,7 +267,7 @@ An exact duplicate of Lead, assigned user, scheduled time, and type is rejected.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `GET` | `/site-visits` | List visible Project site visits. |
+| `GET` | `/site-visits` | List visible Project site visits; optional `status`, `assignedSalesperson`, `scheduledFrom`, and `scheduledTo` filters. |
 | `POST` | `/leads/:leadId/site-visits` | Schedule a visit. |
 | `PATCH` | `/leads/:leadId/site-visits/:visitId` | Complete/cancel/reschedule/no-show a visit. |
 
@@ -286,6 +286,8 @@ Update payload:
 ```json
 {
   "status": "COMPLETED",
+  "scheduledAt": "required only when status is RESCHEDULED",
+  "attendeeCount": 3,
   "customerFeedback": "Liked the layout",
   "objectionsConcerns": "Concerned about handover date",
   "nextAction": "Share construction schedule"
@@ -293,6 +295,8 @@ Update payload:
 ```
 
 Scheduling advances a non-terminal Lead to `SITE_VISIT_SCHEDULED`. Completion advances it to `SITE_VISIT_COMPLETED`. Timeline entries distinguish completed, cancelled, rescheduled, and no-show outcomes.
+
+Only scheduled/rescheduled visits are actionable. Terminal visits are immutable. Rescheduling the same visit requires a new schedule, and own-lead users cannot escape salesperson scoping through query parameters.
 
 ### 7.4 Unit Inventory, Interest, And Holds
 
@@ -400,6 +404,7 @@ The default expiry is 24 hours when omitted. A generated unique active-block key
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/bookings` | List bookings permitted by Lead visibility. |
+| `GET` | `/bookings/:bookingId` | Read one visible booking with Lead, Unit, conversion, and restoration linkage. |
 | `POST` | `/bookings` | Confirm an inventory-less or Unit-linked booking. |
 | `POST` | `/bookings/:bookingId/cancel` | Cancel and explicitly restore Lead/Unit state. |
 
@@ -411,8 +416,6 @@ Create booking payload:
   "leadId": "lead-uuid",
   "unitId": "optional-unit-uuid",
   "bookingDate": "2026-08-26",
-  "customerName": "Asha Patel",
-  "customerMobile": "9876543210",
   "bookingAmount": 100000,
   "bookingReference": "REC-1001"
 }
@@ -423,12 +426,16 @@ Rules:
 - `idempotencyKey` is required and unique within the Organization.
 - Reusing the same key with the same booking request returns the existing booking.
 - Reusing the key with a different request returns `IDEMPOTENCY_CONFLICT`.
+- The API reads customer name/mobile, Lead source, previous Lead stage, and previous Unit status from locked server records; clients do not own these values.
 - Inventory-less booking requires `leads:convert`.
 - Unit-linked booking additionally requires `inventory:book`.
 - An available Unit may be booked directly.
 - A blocked Unit may be booked only for the Lead that owns its active block.
 - Confirmation atomically creates the Booking, changes the Lead to `BOOKED`, records first conversion actor/time, changes the Unit to `BOOKED`, converts the matching active block, and creates timeline evidence.
 - First Lead conversion actor/time are preserved as immutable history after cancellation or later rebooking. Each Booking row also retains its own actor/date.
+- Confirmation and cancellation write immutable `audit_events` inside the same transaction as the Sales state changes.
+
+`GET /bookings` accepts optional `status`, `search`, `bookedFrom`, and `bookedTo`. `search` matches the customer name/mobile, booking reference, or Unit number. The Mobile client keeps a single generated idempotency key for the lifetime of the confirmation attempt so retrying an uncertain response remains the same logical request.
 
 Cancellation payload:
 
@@ -596,6 +603,8 @@ apps/api/src/database/sql/migrations/015_sales_unit_pricing.sql
 
 Migration `014` creates `sales_unit_interests` and `sales_unit_hold_requests`, adds `sales_unit_blocks.previous_lead_stage`, grants the two new permissions, and removes `inventory:block` from the Sales User role.
 
+Migration `021_sales_booking_linkage.sql` adds `request_fingerprint`, `lead_source`, `lead_stage_before_booking`, `unit_status_before_booking`, `restored_lead_stage`, `restored_unit_status`, and the Project/status/date booking index.
+
 Migration `015` was applied to the approved hosted target on 2026-08-31. It adds explicit total/per-square-foot pricing columns. The one pre-existing Unit was retained and received the `TOTAL` default; the migration inserted no business records.
 
 Important constraints:
@@ -616,11 +625,11 @@ Database state after the approved 2026-08-27 server rollout:
 - The guarded runner reports 16 local migrations, 16 applied, zero pending, zero drafts, and current after applying `015` on 2026-08-31.
 - Migration `010` and migration `011` were applied in order through the guarded runner.
 - The updated guarded seed committed with `SEED_ROLE_USERS=false`.
-- All eight Sales tables, both stored generated columns, and all three workflow uniqueness indexes are present.
+- All ten Sales tables (eight base CRM tables plus interest and hold-request tables), both stored generated columns, and all three workflow uniqueness indexes are present.
 - Verified Sales grants are 17 each for Organization Owner, Builder Admin, and Independent Contractor Owner and 10 for Sales User. Sales User has `inventory:interest` and `inventory:request-block` but not `inventory:block`; existing sessions must re-login to refresh JWT permissions.
 - `sales_unit_interests` and `sales_unit_hold_requests` exist, `sales_unit_blocks.previous_lead_stage` exists, and both new business tables contain zero rows immediately after rollout.
 - Duplicate role permissions: zero.
-- Every Sales table remains empty.
+- At the read-only verification after migration `015`, `sales_units` contained one pre-existing Unit. Migration `015` inserted no business rows; it retained that Unit and applied the `TOTAL` pricing-basis default.
 - API health reports app/database `ok`; the Sales Leads route is registered and returns `401` without authentication.
 - Authenticated Sales workflow and live concurrency acceptance remain pending.
 
@@ -712,13 +721,15 @@ Recorded results:
 
 - Shared build passed.
 - API type-check passed.
+- Mobile type-check and en/hi/gu locale parity validation passed.
 - Focused Sales lint passed.
-- All 19 API test suites passed.
-- All 105 API tests passed.
+- All 21 API test suites passed.
+- All 120 API tests passed.
 - API production build passed.
+- Android Expo export passed after the Unit import/pricing changes.
 - `git diff --check` passed.
 
-This evidence is static/automated source evidence only. It does not prove that migration `011` works on the configured database or that authenticated API workflows work against real rows.
+This static/automated source evidence is separate from the target-specific database evidence above. The approved target is current through migration `021`; authenticated API workflows, role/concurrency acceptance, and physical-device interaction still require runtime verification against real rows.
 
 ## 14. Required Runtime Acceptance Matrix
 
@@ -780,14 +791,18 @@ Recommended sequence:
 
 1. Read this handoff and inspect the current checkout.
 2. Review the Sales contract and API implementation for product-owner changes.
-3. Inspect the exact configured database target read-only.
-4. Add/run the required read-only migration preflight.
-5. Request explicit approval for migration `011` on the named target.
-6. Apply migration `011` only after approval.
-7. Request explicit approval before running the guarded seed.
-8. Run the authenticated API authorization and concurrency matrix.
-9. Update the contract, module index, current task, and progress ledger with runtime evidence.
-10. Obtain approval for either Mobile Sales or Web Sales as the next client slice.
+3. Treat migrations through `021` as applied only on the recorded target; use a fresh guarded
+   status check before any new database work.
+4. Restart the API and Expo/Metro so the pricing columns, import routes, and document-picker
+   dependency are loaded.
+5. Run the authenticated Owner/Sales User authorization and Lead visibility matrix.
+6. Verify manual `TOTAL`/`PER_SQFT` Unit entry and CSV validate/preview/confirm behavior without
+   inserting unapproved fixtures.
+7. Run concurrent interest, hold-decision, booking-idempotency, and cancellation-restoration tests.
+8. Complete English/Hindi/Gujarati and physical-device acceptance, reporting it separately from
+   static and database evidence.
+9. Update the contract, module index, current task, progress ledger, and this handoff with the
+   resulting runtime evidence.
 
 For client implementation, preserve all API enums and identifiers. Translate only display copy. Mobile must use existing NirmanSite field-operation primitives, selected Project context, permission-aware navigation, and complete en/hi/gu localization.
 
@@ -810,7 +825,7 @@ First read these files in order:
 
 Then inspect the current Git status and the Sales shared/API/migration/seed files listed in the handoff. Preserve all unrelated user changes.
 
-The Sales API and mobile source include Leads, timeline, follow-ups, site visits, manual and CSV Unit inventory, explicit total/per-square-foot pricing, multi-customer interest, approval-based exclusive holds, and booking conversion. Migrations through `015_sales_unit_pricing.sql` are applied on the approved remote target as of 2026-08-31; pricing columns and the existing Unit backfill were verified read-only. Authenticated role/concurrency and physical-device acceptance remain pending.
+The Sales API and mobile source include Leads, timeline, follow-ups, site visits, manual and CSV Unit inventory, explicit total/per-square-foot pricing, multi-customer interest, approval-based exclusive holds, and booking conversion/detail/cancellation. Migrations through `021_sales_booking_linkage.sql` are applied on the approved remote target as of 2026-09-03; booking snapshots, idempotency/query indexes, audit persistence, RBAC, pricing, and Unit inventory were verified read-only. Authenticated role/concurrency and physical-device acceptance remain pending.
 
 Do not run a migration or seed until you have identified the exact database target and received explicit target-specific approval. Do not infer runtime, browser, or physical-device acceptance from static checks.
 

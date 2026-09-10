@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Archive, Banknote, CalendarCheck, RotateCcw, UsersRound } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { Button, Card, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, LoadingState, PageHeader, StatusBadge } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
@@ -123,7 +123,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         {!organizationId ? (
           <Card className="text-[13px] text-body">No active organization is available.</Card>
         ) : project.isLoading ? (
-          <Card className="text-[13px] text-body">Loading project</Card>
+          <LoadingState label="Loading project" />
         ) : project.isError ? (
           <Card className="text-[13px] text-red-600">Unable to load project</Card>
         ) : (

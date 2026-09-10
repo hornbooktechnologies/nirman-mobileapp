@@ -1,7 +1,7 @@
 {
   "screen": { "title": "ખર્ચી", "chooseProject": "પ્રોજેક્ટ પસંદ કરો", "readOnly": "આ પ્રોજેક્ટ સક્રિય નથી. ખર્ચીનો ઇતિહાસ માત્ર વાંચી શકાય છે." },
   "summary": { "outstanding": "બાકી", "advances": "અસરકારક એડવાન્સ", "deducted": "કપાત", "adjustments": "સુધારા" },
-  "filters": { "search": "કામદાર અથવા કોડ શોધો", "searchA11y": "કામદારના નામ અથવા કોડથી ખર્ચી શોધો", "allStatuses": "બધી પ્રગતિ", "allMethods": "બધી રીતો" },
+  "filters": { "search": "કામદાર અથવા કોડ શોધો", "searchA11y": "કામદારના નામ અથવા કોડથી ખર્ચી શોધો", "sheetDescription": "કપાતની પ્રગતિ અને ચુકવણી રીતથી ખર્ચી ફિલ્ટર કરો.", "progressGroup": "કપાતની પ્રગતિ", "methodGroup": "ચુકવણી રીત", "allStatuses": "બધી પ્રગતિ", "allMethods": "બધી રીતો" },
   "status": { "PAID": "કપાત બાકી", "PARTIALLY_DEDUCTED": "આંશિક કપાત", "DEDUCTED": "સંપૂર્ણ કપાત" },
   "paymentMethod": { "CASH": "રોકડ", "UPI": "UPI", "BANK_TRANSFER": "બેંક ટ્રાન્સફર", "OTHER": "અન્ય" },
   "list": { "outstanding": "બાકી", "openA11y": "{{worker}}ની ખર્ચી ખોલો, બાકી {{amount}}" },

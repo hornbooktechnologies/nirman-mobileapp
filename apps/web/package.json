@@ -10,8 +10,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@nirman-app/shared": "workspace:*",
     "@hookform/resolvers": "^5.4.0",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
+    "@nirman-app/shared": "workspace:*",
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.17.0",
     "clsx": "^2.1.1",

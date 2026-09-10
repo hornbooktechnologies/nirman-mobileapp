@@ -1,7 +1,7 @@
 import { WAGE_PAYMENT_METHODS, type WagePaymentMethod } from '@nirman-app/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -17,6 +17,7 @@ import {
   FormField,
   IconButton,
   Input,
+  LottieLoader,
   NirmanScreenBackground,
   OperationalEntityCard,
   StatusBadge,
@@ -41,6 +42,10 @@ const today = () => {
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 const remainingValue = (item: WageItem) => Math.max(0, Number(item.netAmount) - Number(item.paidAmount));
+const isSettledByKharchi = (item: WageItem) =>
+  remainingValue(item) === 0 &&
+  Number(item.paidAmount) <= 0 &&
+  Number(item.kharchiDeduction) > 0;
 
 export function WageBatchDetailScreen() {
   const { t } = useTranslation('wages');
@@ -93,6 +98,7 @@ export function WageBatchDetailScreen() {
     [detail?.items, selectedItemId],
   );
   const selectedRemaining = selectedItem ? remainingValue(selectedItem) : 0;
+  const selectedSettledByKharchi = selectedItem ? isSettledByKharchi(selectedItem) : false;
   const paymentValue = Number(amount);
   const paymentError = !amount
     ? ''
@@ -235,33 +241,51 @@ export function WageBatchDetailScreen() {
           ListHeaderComponent={header}
           ListEmptyComponent={isLoading ? (
             <View style={styles.loading} accessibilityLiveRegion="polite">
-              <ActivityIndicator color={mobileTheme.color.action.primary} />
+              <LottieLoader />
               <AppText style={styles.muted}>{t('detail.loading')}</AppText>
             </View>
           ) : !error && detail ? (
             <EmptyState title={t('detail.emptyTitle')} description={t('detail.emptyDescription')} />
           ) : null}
-          renderItem={({ item }) => (
-            <OperationalEntityCard
-              accessibilityLabel={t('worker.openA11y', { worker: item.workerName, due: formatInr(remainingValue(item), language) })}
-              compact
-              contextLeading={item.workerCode}
-              contextTrailing={item.trade}
-              title={item.workerName}
-              supporting={t('worker.attendance', { present: item.presentDays, half: item.halfDays, absent: item.absentDays })}
-              value={formatInr(remainingValue(item), language)}
-              valueLabel={t('worker.due')}
-              footerLeading={
-                <Badge
-                  label={t(`paymentStatus.${item.paymentStatus}`)}
-                  tone={item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
-                />
-              }
-              footerTrailing={(canPay || canUpdate) ? <AppText style={styles.manage} weight={700}>{t('worker.manage')}</AppText> : undefined}
-              tone={item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'info' : 'warning'}
-              onPress={(canPay || canUpdate) ? () => openWorker(item) : undefined}
-            />
-          )}
+          renderItem={({ item }) => {
+            const settledByKharchi = isSettledByKharchi(item);
+            const statusLabel = settledByKharchi
+              ? t('paymentStatus.KHARCHI_SETTLED')
+              : t(`paymentStatus.${item.paymentStatus}`);
+            const statusTone = settledByKharchi
+              ? 'info'
+              : item.paymentStatus === 'PAID'
+                ? 'success'
+                : item.paymentStatus === 'PARTIALLY_PAID'
+                  ? 'warning'
+                  : 'danger';
+
+            return (
+              <OperationalEntityCard
+                accessibilityLabel={t('worker.openA11y', {
+                  worker: item.workerName,
+                  rate: formatInr(Number(item.dailyRate), language),
+                  due: formatInr(remainingValue(item), language),
+                })}
+                compact
+                contextLeading={item.workerCode}
+                contextTrailing={item.trade}
+                title={item.workerName}
+                supporting={t('worker.rateAndAttendance', {
+                  rate: formatInr(Number(item.dailyRate), language),
+                  present: item.presentDays,
+                  half: item.halfDays,
+                  absent: item.absentDays,
+                })}
+                value={formatInr(remainingValue(item), language)}
+                valueLabel={t('worker.due')}
+                footerLeading={<Badge label={statusLabel} tone={statusTone} />}
+                footerTrailing={(canPay || canUpdate) ? <AppText style={styles.manage} weight={700}>{t('worker.manage')}</AppText> : undefined}
+                tone={settledByKharchi ? 'info' : item.paymentStatus === 'PAID' ? 'success' : item.paymentStatus === 'PARTIALLY_PAID' ? 'info' : 'warning'}
+                onPress={(canPay || canUpdate) ? () => openWorker(item) : undefined}
+              />
+            );
+          }}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshing={false}
@@ -286,9 +310,18 @@ export function WageBatchDetailScreen() {
             valueLabel={t('worker.due')}
             footerLeading={
               <Badge
-                label={t(`paymentStatus.${selectedItem.paymentStatus}`)}
-                tone={selectedItem.paymentStatus === 'PAID' ? 'success' : selectedItem.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
+                label={selectedSettledByKharchi ? t('paymentStatus.KHARCHI_SETTLED') : t(`paymentStatus.${selectedItem.paymentStatus}`)}
+                tone={selectedSettledByKharchi ? 'info' : selectedItem.paymentStatus === 'PAID' ? 'success' : selectedItem.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'danger'}
               />
+            }
+            details={
+              <View style={styles.calculationDetails}>
+                <CalculationLine label={t('worker.dailyRate')} value={t('worker.perDayAmount', { amount: formatInr(Number(selectedItem.dailyRate), language) })} />
+                <CalculationLine label={t('worker.attendanceLabel')} value={t('worker.attendance', { present: selectedItem.presentDays, half: selectedItem.halfDays, absent: selectedItem.absentDays })} />
+                <CalculationLine label={t('worker.grossWage')} value={formatInr(Number(selectedItem.grossAmount), language)} />
+                <CalculationLine label={t('worker.kharchiDeduction')} value={`−${formatInr(Number(selectedItem.kharchiDeduction), language)}`} />
+                <CalculationLine label={t('worker.adjustment')} value={formatInr(Number(selectedItem.adjustmentAmount), language)} />
+              </View>
             }
             tone="neutral"
           />
@@ -334,8 +367,14 @@ export function WageBatchDetailScreen() {
                     onPress={() => void pay()}
                   />
                 </>
-              ) : (
+              ) : selectedSettledByKharchi ? (
+                <AppText style={styles.infoMessage} weight={600}>
+                  {t('payment.settledByKharchi', { amount: formatInr(Number(selectedItem.kharchiDeduction), language) })}
+                </AppText>
+              ) : selectedItem.paymentStatus === 'PAID' ? (
                 <AppText style={styles.successMessage} weight={600}>{t('payment.alreadyPaid')}</AppText>
+              ) : (
+                <AppText style={styles.infoMessage} weight={600}>{t('payment.noPaymentDue')}</AppText>
               )}
             </View>
           ) : null}
@@ -395,6 +434,15 @@ function Total({ label, value, emphasis = false }: { label: string; value: strin
   );
 }
 
+function CalculationLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View accessible accessibilityLabel={`${label}: ${value}`} style={styles.calculationLine}>
+      <AppText style={styles.calculationLabel} weight={500}>{label}</AppText>
+      <AppText style={styles.calculationValue} weight={700}>{value}</AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   listContent: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] },
   headerContent: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[1] },
@@ -411,6 +459,10 @@ const styles = StyleSheet.create({
   totalEmphasis: { color: mobileTheme.color.action.primary },
   totalLabel: { ...mobileText.body, color: mobileTheme.color.text.secondary, flex: 1 },
   manage: { ...mobileText.caption, color: mobileTheme.color.action.primary },
+  calculationDetails: { gap: mobileTheme.spacing[2], paddingHorizontal: mobileTheme.spacing[4], paddingVertical: mobileTheme.spacing[3] },
+  calculationLine: { alignItems: 'flex-start', flexDirection: 'row', gap: mobileTheme.spacing[3], justifyContent: 'space-between', minHeight: 24 },
+  calculationLabel: { ...mobileText.caption, color: mobileTheme.color.text.secondary, flex: 1 },
+  calculationValue: { ...mobileText.caption, color: mobileTheme.color.text.primary, flexShrink: 1, fontVariant: ['tabular-nums'], textAlign: 'right' },
   sheetSection: { borderTopColor: mobileTheme.color.border.subtle, borderTopWidth: 1, gap: mobileTheme.spacing[3], paddingTop: mobileTheme.spacing[4] },
   formRow: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
   formField: { flex: 1 },
@@ -423,5 +475,6 @@ const styles = StyleSheet.create({
   modeSelected: { backgroundColor: mobileTheme.color.status.info.background, borderColor: mobileTheme.color.action.primary, borderWidth: 2 },
   modeText: { ...mobileText.body, color: mobileTheme.color.text.primary },
   successMessage: { ...mobileText.body, backgroundColor: mobileTheme.color.status.success.background, borderColor: mobileTheme.color.status.success.border, borderRadius: mobileTheme.radius.md, borderWidth: 1, color: mobileTheme.color.status.success.foreground, padding: mobileTheme.spacing[3] },
+  infoMessage: { ...mobileText.body, backgroundColor: mobileTheme.color.status.info.background, borderColor: mobileTheme.color.status.info.border, borderRadius: mobileTheme.radius.md, borderWidth: 1, color: mobileTheme.color.status.info.foreground, padding: mobileTheme.spacing[3] },
   pressed: { opacity: 0.78 },
 });

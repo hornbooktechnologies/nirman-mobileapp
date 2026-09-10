@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingState } from "@/components/ui";
 import {
   ALL_PERMISSIONS,
   PERMISSION_LABELS,
@@ -40,7 +41,7 @@ const PERMISSIONS_BY_RESOURCE = PERMISSION_RESOURCES.map((resource) => ({
 export function RoleDetailPage({ roleId }: { roleId: string }) {
   const role = useRole(roleId);
 
-  if (role.isLoading) return <Card>Loading role</Card>;
+  if (role.isLoading) return <LoadingState label="Loading role" />;
   if (role.isError || !role.data) return <Card>Unable to load role</Card>;
 
   return <RolePermissionEditor key={role.data.updatedAt} role={role.data} />;

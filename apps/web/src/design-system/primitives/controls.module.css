@@ -61,10 +61,6 @@
   visibility: hidden;
 }
 
-.buttonSpinner {
-  animation: button-spin 800ms linear infinite;
-}
-
 .buttonLoadingContent {
   grid-area: content;
   display: inline-flex;

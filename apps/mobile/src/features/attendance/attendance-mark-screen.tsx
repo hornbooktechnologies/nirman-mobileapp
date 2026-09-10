@@ -1,7 +1,7 @@
 import type { AttendanceSummaryResponse, AttendanceSummaryRow, DerivedAttendanceState } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Alert, FlatList, findNodeHandle, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, FlatList, findNodeHandle, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -14,6 +14,8 @@ import {
   EmptyState,
   FormField,
   IconButton,
+  ListControls,
+  LottieLoader,
   NirmanScreenBackground,
   SearchField,
 } from '../../components/ui';
@@ -324,11 +326,13 @@ export function AttendanceMarkScreen() {
           <Button fullWidth={false} label={tCommon('actions.close')} size="sm" variant="ghost" onPress={() => setSuccess('')} />
         </Card>
       ) : null}
-      <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
+      <ListControls>
+        <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
+      </ListControls>
       {!canCreate && !canUpdate && canRead ? <Card><AppText style={styles.cardNote} weight={500}>{t('markScreen.readOnly')}</AppText></Card> : null}
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
-          <ActivityIndicator color={mobileTheme.color.action.primary} />
+          <LottieLoader size={24} />
           <AppText style={styles.cardNote}>{t('loading.refreshing')}</AppText>
         </View>
       ) : null}
@@ -351,7 +355,7 @@ export function AttendanceMarkScreen() {
         renderItem={({ item }) => <DailyWorkerCard canCreate={canCreate} canUpdate={canUpdate} row={item} onEdit={openSheet} onRestore={confirmRestore} />}
         ListHeaderComponent={header}
         ListEmptyComponent={noContext ?? (isLoading ? (
-          <View style={styles.loading}><ActivityIndicator color={mobileTheme.color.action.primary} /><AppText>{t('loading.daily')}</AppText></View>
+          <View style={styles.loading}><LottieLoader /><AppText>{t('loading.daily')}</AppText></View>
         ) : !error ? (
           <EmptyState title={debouncedSearch ? t('empty.noMatchesTitle') : t('empty.noDailyWorkersTitle')} description={debouncedSearch ? t('empty.noMatchesDescription') : t('empty.noDailyWorkersDescription')} />
         ) : null)}

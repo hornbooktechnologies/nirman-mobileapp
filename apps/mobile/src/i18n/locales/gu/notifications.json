@@ -1,0 +1,25 @@
+{
+  "screen": { "title": "સૂચનાઓ", "subtitle": "{{count}} ન વાંચેલા અપડેટ" },
+  "actions": { "markAllA11y": "બધી {{count}} સૂચનાઓ વાંચેલી તરીકે ચિહ્નિત કરો" },
+  "filters": { "all": "બધી", "unread": "ન વાંચેલી ({{count}})" },
+  "loading": "સૂચનાઓ લોડ થઈ રહી છે", "loadingMore": "વધુ સૂચનાઓ લોડ થઈ રહી છે",
+  "empty": { "title": "હજુ કોઈ સૂચના નથી", "description": "મહત્વપૂર્ણ પ્રોજેક્ટ અને ખાતાના અપડેટ અહીં દેખાશે.", "unreadTitle": "તમે બધું જોઈ લીધું છે", "unreadDescription": "કોઈ ન વાંચેલી સૂચના નથી.", "permissionTitle": "સૂચનાઓ ઉપલબ્ધ નથી", "permissionDescription": "તમારી વર્તમાન ભૂમિકામાં સૂચના ઍક્સેસ નથી." },
+  "errors": { "title": "સૂચનાઓ લોડ થઈ શકી નહીં", "load": "કનેક્શન તપાસો અને ફરી પ્રયાસ કરો." },
+  "card": { "new": "નવી", "open": "અપડેટ ખોલો", "read": "વાંચેલી", "unread": "ન વાંચેલી", "a11y": "{{title}}. {{message}}. {{time}}. {{state}}." },
+  "types": {
+    "MATERIAL_VERIFICATION_REQUIRED": { "title": "સામગ્રી ચકાસણી જરૂરી", "message": "એક સામગ્રી વિનંતી તમારી સમીક્ષાની રાહ જોઈ રહી છે." },
+    "MATERIAL_FINAL_APPROVAL_REQUIRED": { "title": "સામગ્રી મંજૂરી જરૂરી", "message": "એક સામગ્રી વિનંતી અંતિમ મંજૂરીની રાહ જોઈ રહી છે." },
+    "MATERIAL_REQUEST_RETURNED": { "title": "સામગ્રી વિનંતી પરત આવી", "message": "તમારી સામગ્રી વિનંતીમાં ફેરફાર જરૂરી છે." },
+    "MATERIAL_REQUEST_APPROVED": { "title": "સામગ્રી વિનંતી મંજૂર", "message": "તમારી સામગ્રી વિનંતી મંજૂર થઈ." },
+    "MATERIAL_REQUEST_REJECTED": { "title": "સામગ્રી વિનંતી નામંજૂર", "message": "તમારી સામગ્રી વિનંતી નામંજૂર થઈ." },
+    "MATERIAL_PURCHASE_RECORDED": { "title": "સામગ્રી ખરીદી નોંધાઈ", "message": "તમારી સામગ્રી વિનંતી માટે ખરીદી નોંધાઈ." },
+    "MATERIAL_DELIVERY_RECORDED": { "title": "સામગ્રી ડિલિવરી નોંધાઈ", "message": "તમારી સામગ્રી વિનંતી માટે ડિલિવરી નોંધાઈ." },
+    "EXPENSE_APPROVAL_REQUIRED": { "title": "ખર્ચ મંજૂરી જરૂરી", "message": "એક સાઇટ ખર્ચ તમારી સમીક્ષાની રાહ જોઈ રહ્યો છે." },
+    "EXPENSE_APPROVED": { "title": "ખર્ચ મંજૂર", "message": "તમારો સાઇટ ખર્ચ મંજૂર થયો." },
+    "EXPENSE_REJECTED": { "title": "ખર્ચ નામંજૂર", "message": "તમારો સાઇટ ખર્ચ નામંજૂર થયો." },
+    "EXPENSE_ADJUSTED": { "title": "ખર્ચ સમાયોજિત", "message": "મંજૂર સાઇટ ખર્ચમાં સુધારો થયો." },
+    "GALLERY_APPROVAL_REQUIRED": { "title": "ગેલેરી સમીક્ષા જરૂરી", "message": "એક પ્રોજેક્ટ ડાયરી ફોટો સમીક્ષાની રાહ જોઈ રહ્યો છે." },
+    "GALLERY_APPROVED": { "title": "ગેલેરી ફોટો મંજૂર", "message": "તમારો પ્રોજેક્ટ ડાયરી ફોટો પ્રકાશિત થયો." },
+    "GALLERY_REJECTED": { "title": "ગેલેરી ફોટા પર ધ્યાન આપો", "message": "તમારો પ્રોજેક્ટ ડાયરી ફોટો નામંજૂર થયો." }
+  }
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { PermissionKey } from "@nirman-app/shared";
 import { Pencil, Plus, UserMinus } from "lucide-react";
+import { LoadingState } from "@/components/ui";
 import { useMemo, useState, type FormEvent } from "react";
 import {
   Button,
@@ -198,7 +199,7 @@ export function ProjectWorkersPanel({
       </div>
 
       {roster.isLoading || workers.isLoading ? (
-        <p className="text-[13px] text-body">Loading organization workers</p>
+        <LoadingState label="Loading organization workers" />
       ) : roster.isError || workers.isError ? (
         <p className="text-[13px] text-red-600">
           Unable to load organization workers

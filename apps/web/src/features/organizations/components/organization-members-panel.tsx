@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { LoadingState, LottieLoader } from "@/components/ui";
 import {
   FolderKanban,
   Pencil,
@@ -336,7 +337,7 @@ export function OrganizationMembersPanel({
         ) : null}
 
         {members.isLoading ? (
-          <p className="text-[13px] text-body">Loading organization members</p>
+          <LoadingState label="Loading organization members" />
         ) : members.isError ? (
           <p className="text-[13px] text-red-600">
             Unable to load organization members
@@ -384,8 +385,9 @@ export function OrganizationMembersPanel({
                       {member.organizationWideProjectAccess ? (
                         <Badge variant="info">All projects</Badge>
                       ) : projectOverview.isLoading ? (
-                        <span className="text-[12px] text-sub">
-                          Loading access
+                        <span aria-busy="true" className="inline-flex items-center gap-1.5 text-[12px] text-sub" role="status">
+                          <LottieLoader className="size-4" />
+                          <span>Loading access</span>
                         </span>
                       ) : assignments.length > 0 ? (
                         <div className="flex max-w-[320px] flex-wrap gap-1.5">

@@ -1,10 +1,10 @@
 import { WEEKDAYS, type OrganizationWorkCalendar, type Weekday, type WorkingWeek, type WorkCalendarDayType, type WorkCalendarOverride, type EffectiveProjectWorkCalendarResponse } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Alert, findNodeHandle, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, findNodeHandle, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AppIcon, AppText, Badge, BottomSheet, Button, Card, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, NirmanScreenBackground } from '../../components/ui';
+import { AppIcon, AppText, Badge, BottomSheet, Button, Card, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, LottieLoader, NirmanScreenBackground } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { ApiRequestError } from '../../lib/api';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
@@ -313,9 +313,9 @@ export function WorkCalendarScreen() {
                 ))}
               </View>
               {success ? <Card accessibilityLiveRegion="polite" style={styles.successCard}><AppText style={styles.successText} weight={600}>{success}</AppText><Button fullWidth={false} label={tCommon('actions.close')} size="sm" variant="ghost" onPress={() => setSuccess('')} /></Card> : null}
-              {isRefreshing ? <View style={styles.refreshing}><ActivityIndicator color={mobileTheme.color.action.primary} /><AppText style={styles.muted}>{t('loading.refreshing')}</AppText></View> : null}
+              {isRefreshing ? <View style={styles.refreshing}><LottieLoader size={24} /><AppText style={styles.muted}>{t('loading.refreshing')}</AppText></View> : null}
               {error ? <EmptyState title={t('errors.loadTitle')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load()} />
-                : isLoading ? <View style={styles.loading}><ActivityIndicator color={mobileTheme.color.action.primary} /><AppText>{t('loading.calendar')}</AppText></View>
+                : isLoading ? <View style={styles.loading}><LottieLoader /><AppText>{t('loading.calendar')}</AppText></View>
                   : scope === 'PROJECT' ? (
                     <>
                       <Card style={styles.monthControls}>

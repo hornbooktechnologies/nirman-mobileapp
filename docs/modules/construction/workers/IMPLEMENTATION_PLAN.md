@@ -394,6 +394,8 @@ Implementation details:
 - Show generated worker code on worker cards/details where useful.
 - Use free-text trade input with common suggestions such as Mason, Helper, Carpenter, Plumber, Electrician, and Painter.
 - Show duplicate warning acknowledgement before create continues.
+- Distinguish `Assigned here`, `Assigned elsewhere`, and `Not assigned` in the selected-Project list; provide `Assigned to this project` and `Not on this project` filters.
+- Open a permission-safe Worker detail bottom sheet from every readable Worker card and show accessible active and ended Project assignments by Project name.
 - Disable create, edit, assign, deactivate, and rate-change actions while offline with a clear user-facing message.
 - Show loading, empty, error, forbidden, and offline read-only states.
 - Use large controls and mobile tokens.

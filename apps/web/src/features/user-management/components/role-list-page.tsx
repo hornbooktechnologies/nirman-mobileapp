@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
+import { LoadingState } from "@/components/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -69,7 +70,7 @@ export function RoleListPage() {
 
       <Card>
         {roles.isLoading ? (
-          "Loading roles"
+          <LoadingState label="Loading roles" />
         ) : roles.isError ? (
           "Unable to load roles"
         ) : (

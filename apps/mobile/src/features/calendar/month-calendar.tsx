@@ -60,6 +60,14 @@ export function MonthCalendar({ calendar, month, selectedDate, onSelectDate }: {
 }) {
   const { t } = useTranslation('calendar');
   const gridDates = useMemo(() => calendarDays(month), [month]);
+  const weekRows = useMemo(() => {
+    const dates = [...gridDates];
+    while (dates.length % weekdayOrder.length !== 0) dates.push(null);
+    return Array.from(
+      { length: dates.length / weekdayOrder.length },
+      (_, index) => dates.slice(index * weekdayOrder.length, (index + 1) * weekdayOrder.length),
+    );
+  }, [gridDates]);
   const daysByDate = useMemo(() => new Map(calendar.days.map((day) => [day.date, day])), [calendar.days]);
 
   return (
@@ -71,13 +79,17 @@ export function MonthCalendar({ calendar, month, selectedDate, onSelectDate }: {
           </View>
         ))}
       </View>
-      <View style={styles.grid}>
-        {gridDates.map((date, index) => {
-          const day = date ? daysByDate.get(date) : null;
-          return day ? (
-            <CalendarDay key={day.date} day={day} selected={day.date === selectedDate} onSelect={onSelectDate} />
-          ) : <View key={`empty-${index}`} style={styles.emptyDay} />;
-        })}
+      <View>
+        {weekRows.map((week, weekIndex) => (
+          <View key={`week-${weekIndex}`} style={styles.weekRow}>
+            {week.map((date, dayIndex) => {
+              const day = date ? daysByDate.get(date) : null;
+              return day ? (
+                <CalendarDay key={day.date} day={day} selected={day.date === selectedDate} onSelect={onSelectDate} />
+              ) : <View key={`empty-${weekIndex}-${dayIndex}`} style={styles.emptyDay} />;
+            })}
+          </View>
+        ))}
       </View>
       <View style={styles.legend}>
         {(['WORKING', 'NON_WORKING', 'SPECIAL_WORKING'] as const).map((type) => (
@@ -94,11 +106,11 @@ export function MonthCalendar({ calendar, month, selectedDate, onSelectDate }: {
 const styles = StyleSheet.create({
   calendarCard: { overflow: 'hidden' },
   weekdayRow: { backgroundColor: mobileTheme.color.background.mist, flexDirection: 'row' },
-  weekdayCell: { alignItems: 'center', flexBasis: `${100 / 7}%`, justifyContent: 'center', minHeight: 40 },
+  weekdayCell: { alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 40 },
   weekday: { ...mobileText.caption, color: mobileTheme.color.text.secondary, fontSize: 11 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  day: { alignItems: 'center', borderColor: mobileTheme.color.border.subtle, borderRightWidth: 1, borderTopWidth: 1, flexBasis: `${100 / 7}%`, gap: 1, justifyContent: 'center', minHeight: 58, paddingVertical: mobileTheme.spacing[1] },
-  emptyDay: { borderColor: mobileTheme.color.border.subtle, borderRightWidth: 1, borderTopWidth: 1, flexBasis: `${100 / 7}%`, minHeight: 58 },
+  weekRow: { flexDirection: 'row' },
+  day: { alignItems: 'center', borderColor: mobileTheme.color.border.subtle, borderRightWidth: 1, borderTopWidth: 1, flex: 1, gap: 1, justifyContent: 'center', minHeight: 58, paddingVertical: mobileTheme.spacing[1] },
+  emptyDay: { borderColor: mobileTheme.color.border.subtle, borderRightWidth: 1, borderTopWidth: 1, flex: 1, minHeight: 58 },
   selectedDay: { borderColor: mobileTheme.color.border.selected, borderWidth: 2 },
   today: { borderBottomColor: mobileTheme.color.action.primary, borderBottomWidth: 3 },
   pressed: { opacity: 0.76 },

@@ -1,0 +1,99 @@
+{
+  "screen": {
+    "title": "Project Progress",
+    "readOnly": "This Project is not active. Progress history remains available, but new updates are disabled."
+  },
+  "summary": {
+    "overall": "Overall progress",
+    "stageCoverage": "{{updated}} of {{total}} stages updated",
+    "latest": "Latest: {{stage}} on {{date}}",
+    "notStarted": "No progress has been recorded yet.",
+    "a11y": "Overall progress {{percentage}} percent. {{updated}} of {{total}} stages updated."
+  },
+  "stages": {
+    "title": "Construction stages",
+    "itemA11y": "{{stage}}, {{percentage}} percent. Tap to filter history."
+  },
+  "stage": {
+    "FOUNDATION": "Foundation",
+    "PLINTH": "Plinth",
+    "SLAB": "Slab",
+    "BRICKWORK": "Brickwork",
+    "PLASTERING": "Plastering",
+    "ELECTRICAL": "Electrical",
+    "PLUMBING": "Plumbing",
+    "FINISHING": "Finishing",
+    "HANDOVER": "Handover"
+  },
+  "history": {
+    "title": "Update history",
+    "all": "All stage updates",
+    "filtered": "Showing {{stage}} only. Tap its stage card again to clear.",
+    "updatedBy": "Updated by {{name}}",
+    "noNotes": "Progress update",
+    "firstUpdate": "First update",
+    "from": "Previously {{value}}%",
+    "correction": "Correction recorded",
+    "recorded": "Immutable history",
+    "itemA11y": "{{stage}}, {{percentage}} percent on {{date}}, updated by {{actor}}."
+  },
+  "update": {
+    "title": "Record progress",
+    "description": "Add the latest completion value for one construction stage.",
+    "action": "Record progress",
+    "openA11y": "Record a Project progress update",
+    "save": "Save update",
+    "current": "Current stage value",
+    "percentageHelp": "Choose a quick value or enter an exact percentage.",
+    "notesHelp": "Add a short site note for useful context.",
+    "regressionHelp": "A note is required because this value is lower than the current stage value.",
+    "presetA11y": "Set progress to {{value}} percent"
+  },
+  "fields": {
+    "stage": "Construction stage",
+    "percentage": "Completion percentage",
+    "updateDate": "Update date",
+    "notes": "Site note"
+  },
+  "select": {
+    "chooseStage": "Choose a stage",
+    "search": "Search stages",
+    "searchA11y": "Search construction stages",
+    "emptyTitle": "No stage found",
+    "emptyDescription": "Try another stage name."
+  },
+  "validation": {
+    "percentage": "Enter a percentage from 0 to 100 with up to two decimal places.",
+    "date": "Choose an update date.",
+    "regressionNote": "Add a note explaining why progress was reduced."
+  },
+  "loading": {
+    "list": "Loading Project progress…",
+    "more": "Loading more updates…",
+    "saving": "Saving…"
+  },
+  "empty": {
+    "title": "No progress updates yet",
+    "description": "Record the first construction stage update for this Project.",
+    "filteredTitle": "No updates for this stage",
+    "filteredDescription": "Clear the stage filter or record a new update.",
+    "noProjectTitle": "Choose a Project",
+    "noProjectDescription": "Select an active Project to view its progress.",
+    "permissionTitle": "Progress access unavailable",
+    "permissionDescription": "Your current Project access does not include progress history."
+  },
+  "export": {
+    "title": "Project progress CSV",
+    "action": "Export",
+    "preparing": "Preparing…",
+    "failed": "Could not export Project progress."
+  },
+  "errors": {
+    "title": "Progress unavailable",
+    "loadFailed": "Could not load Project progress.",
+    "saveFailed": "Could not save the progress update."
+  },
+  "success": {
+    "saved": "Progress update saved and added to history."
+  }
+}

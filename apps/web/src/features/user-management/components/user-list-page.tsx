@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LoadingState } from "@/components/ui";
 import {
   Button,
   Card,
@@ -34,7 +35,7 @@ export function UserListPage() {
       />
       <Card>
         {users.isLoading ? (
-          <p className="text-[13px] text-body">Loading users</p>
+          <LoadingState label="Loading users" />
         ) : users.isError ? (
           <p className="text-[13px] text-red-600">Unable to load users</p>
         ) : (

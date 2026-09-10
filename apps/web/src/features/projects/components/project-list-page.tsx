@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { PROJECT_STATUSES, PROJECT_TYPES, type ProjectStatus, type ProjectType } from "@nirman-app/shared";
-import { Button, Card, Input, PageHeader, Select, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
+import { Button, Card, Input, LoadingState, PageHeader, Select, StatusBadge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -80,7 +80,7 @@ export function ProjectListPage() {
           {!organizationId ? (
             <p className="text-[13px] text-body">No active organization is available.</p>
           ) : projects.isLoading ? (
-            <p className="text-[13px] text-body">Loading projects</p>
+            <LoadingState label="Loading projects" />
           ) : projects.isError ? (
             <p className="text-[13px] text-red-600">Unable to load projects</p>
           ) : projectRows.length === 0 ? (

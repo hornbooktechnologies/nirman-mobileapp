@@ -18,6 +18,7 @@ import {
   NirmanScreenBackground,
   IconButton,
   Input,
+  ListControls,
   LoadingState,
   OperationalEntityCard,
   SearchField,
@@ -256,12 +257,14 @@ export function MembersScreen() {
         </Card>
       ) : null}
 
-      <SearchField
-        accessibilityLabel={t('screen.searchA11y')}
-        placeholder={t('screen.searchPlaceholder')}
-        value={search}
-        onChangeText={setSearch}
-      />
+      <ListControls>
+        <SearchField
+          accessibilityLabel={t('screen.searchA11y')}
+          placeholder={t('screen.searchPlaceholder')}
+          value={search}
+          onChangeText={setSearch}
+        />
+      </ListControls>
 
       {loading ? <LoadingState label={t('screen.loading')} /> : null}
       {error ? <EmptyState title={t('screen.unavailable')} description={error} actionLabel={t('screen.retry')} onAction={() => void load()} /> : null}

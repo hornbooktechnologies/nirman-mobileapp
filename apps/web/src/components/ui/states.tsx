@@ -1,8 +1,8 @@
-import { Loader2 } from "lucide-react";
 import { type ReactNode } from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { LottieLoader } from "./lottie-loader";
 
 export function EmptyState({ title, description, action, className }: { title: string; description?: string; action?: ReactNode; className?: string }) {
   return (
@@ -18,8 +18,8 @@ export function EmptyState({ title, description, action, className }: { title: s
 
 export function LoadingState({ label = "Loading", className }: { label?: string; className?: string }) {
   return (
-    <div className={cn("flex min-h-28 items-center justify-center gap-2.5 rounded-inner bg-sunken/55 px-4 py-6 text-[13px] font-semibold text-sub animate-fade-in-up", className)}>
-      <Loader2 className="size-4 animate-spin text-lime" />
+    <div aria-busy="true" aria-live="polite" className={cn("flex min-h-28 items-center justify-center gap-2.5 rounded-inner bg-sunken/55 px-4 py-6 text-[13px] font-semibold text-sub animate-fade-in-up", className)} role="status">
+      <LottieLoader />
       {label}
     </div>
   );

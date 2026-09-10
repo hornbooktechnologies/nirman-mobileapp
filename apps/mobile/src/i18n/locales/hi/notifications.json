@@ -1,0 +1,25 @@
+{
+  "screen": { "title": "सूचनाएँ", "subtitle": "{{count}} अपठित अपडेट" },
+  "actions": { "markAllA11y": "सभी {{count}} सूचनाओं को पढ़ा हुआ चिन्हित करें" },
+  "filters": { "all": "सभी", "unread": "अपठित ({{count}})" },
+  "loading": "सूचनाएँ लोड हो रही हैं", "loadingMore": "और सूचनाएँ लोड हो रही हैं",
+  "empty": { "title": "अभी कोई सूचना नहीं", "description": "महत्वपूर्ण प्रोजेक्ट और खाते के अपडेट यहाँ दिखाई देंगे।", "unreadTitle": "सब कुछ देख लिया गया है", "unreadDescription": "कोई अपठित सूचना नहीं है।", "permissionTitle": "सूचनाएँ उपलब्ध नहीं हैं", "permissionDescription": "आपकी वर्तमान भूमिका में सूचना एक्सेस शामिल नहीं है।" },
+  "errors": { "title": "सूचनाएँ लोड नहीं हो सकीं", "load": "कनेक्शन जाँचें और फिर प्रयास करें।" },
+  "card": { "new": "नई", "open": "अपडेट खोलें", "read": "पढ़ी हुई", "unread": "अपठित", "a11y": "{{title}}। {{message}}। {{time}}। {{state}}।" },
+  "types": {
+    "MATERIAL_VERIFICATION_REQUIRED": { "title": "सामग्री सत्यापन आवश्यक", "message": "एक सामग्री अनुरोध आपकी समीक्षा की प्रतीक्षा में है।" },
+    "MATERIAL_FINAL_APPROVAL_REQUIRED": { "title": "सामग्री अनुमोदन आवश्यक", "message": "एक सामग्री अनुरोध अंतिम अनुमोदन की प्रतीक्षा में है।" },
+    "MATERIAL_REQUEST_RETURNED": { "title": "सामग्री अनुरोध वापस आया", "message": "आपके सामग्री अनुरोध में बदलाव आवश्यक हैं।" },
+    "MATERIAL_REQUEST_APPROVED": { "title": "सामग्री अनुरोध स्वीकृत", "message": "आपका सामग्री अनुरोध स्वीकृत हुआ।" },
+    "MATERIAL_REQUEST_REJECTED": { "title": "सामग्री अनुरोध अस्वीकृत", "message": "आपका सामग्री अनुरोध अस्वीकृत हुआ।" },
+    "MATERIAL_PURCHASE_RECORDED": { "title": "सामग्री खरीद दर्ज", "message": "आपके सामग्री अनुरोध के लिए खरीद दर्ज हुई।" },
+    "MATERIAL_DELIVERY_RECORDED": { "title": "सामग्री डिलीवरी दर्ज", "message": "आपके सामग्री अनुरोध के लिए डिलीवरी दर्ज हुई।" },
+    "EXPENSE_APPROVAL_REQUIRED": { "title": "खर्च अनुमोदन आवश्यक", "message": "एक साइट खर्च आपकी समीक्षा की प्रतीक्षा में है।" },
+    "EXPENSE_APPROVED": { "title": "खर्च स्वीकृत", "message": "आपका साइट खर्च स्वीकृत हुआ।" },
+    "EXPENSE_REJECTED": { "title": "खर्च अस्वीकृत", "message": "आपका साइट खर्च अस्वीकृत हुआ।" },
+    "EXPENSE_ADJUSTED": { "title": "खर्च समायोजित", "message": "स्वीकृत साइट खर्च में सुधार किया गया।" },
+    "GALLERY_APPROVAL_REQUIRED": { "title": "गैलरी समीक्षा आवश्यक", "message": "एक प्रोजेक्ट डायरी फ़ोटो समीक्षा की प्रतीक्षा में है।" },
+    "GALLERY_APPROVED": { "title": "गैलरी फ़ोटो स्वीकृत", "message": "आपकी प्रोजेक्ट डायरी फ़ोटो प्रकाशित हो गई।" },
+    "GALLERY_REJECTED": { "title": "गैलरी फ़ोटो पर ध्यान दें", "message": "आपकी प्रोजेक्ट डायरी फ़ोटो अस्वीकृत हुई।" }
+  }
+}
