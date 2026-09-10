@@ -7,6 +7,7 @@ export * from "./data-table";
 export * from "./dialog";
 export * from "./drawer";
 export * from "./layout";
+export * from "./lottie-loader";
 export * from "./icon-button";
 export * from "./input";
 export * from "./notification";

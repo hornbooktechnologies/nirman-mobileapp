@@ -21,6 +21,7 @@ export * from './icon-container';
 export * from './icon-button';
 export * from './input';
 export * from './list-item';
+export * from './lottie-loader';
 export * from './list-filter-controls';
 export * from './language-picker';
 export * from './modal';

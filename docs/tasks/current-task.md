@@ -1,5 +1,21 @@
 # Current Task
 
+## Mobile Brand Assets — 2026-09-10
+
+Replaced legacy Mobile logo references with the supplied horizontal logo on Login/invitation activation, primary stacked logo for splash, orange light icon for the default/Android/favicon, and green dark icon for iOS dark appearance. Auth logo sizing preserves proportions and fits narrow screens. Original assets and backgrounds are unchanged; the text-only and neutral icon variants remain available for future placements. Mobile type-check, resolved Expo configuration, and whitespace checks passed. Native launcher/splash and device visual acceptance remain pending a new native build.
+
+## Login Redesign — 2026-09-10
+
+Implemented a subtle theme-based Login redesign and visibly disabled/busy Sign in loading state with duplicate-request protection. Mobile type-check, locale validation and nine multilingual responsive fixtures passed, including submission failure/retry behavior. See `artifacts/login-redesign/README.md`. Live authentication and physical-device keyboard/accessibility acceptance remain pending.
+
+## Shared Mobile Action Links — 2026-09-10
+
+Applied the dashboard's deep saffron link token to shared text-only buttons, TextLink default/accent variants, and the compact Switch project action. Preserved logical status/category/type colors and filled controls. Mobile type-check and whitespace validation passed; device visual review remains pending.
+
+## Dashboard Accent Refinement — 2026-09-10
+
+Implemented the approved subtle saffron link/action treatment and soft gradient progress card. Preserved inner-screen status/category/type colors and existing dashboard data/actions. Shared build, Mobile type-check, locale parity, and nine responsive multilingual component previews passed. See `artifacts/dashboard-accents/README.md`; physical-device acceptance remains pending.
+
 ## Role-Specific Dashboards Vertical Slice
 
 On 2026-09-03, the Product Owner authorized the full Dashboard vertical slice, including API,
@@ -394,3 +410,9 @@ The Product Owner authorized the complete Notifications contract, API, migration
 Notification rows and per-device outbox entries are now created transactionally. Recipient-only list/read/mark-all/unread-summary and device registration APIs are implemented. A bounded-retry worker delivers en/hi/gu Expo pushes and disables permanently invalid device tokens. Nine customer operational role templates now receive `notifications:read`; Platform Super Admin remains outside customer operations.
 
 Mobile now has automatic permission/token registration, an accurate Home badge, Menu entry, virtualized All/Unread inbox, pull-to-refresh/pagination, mark-all, localized system copy, and safe reference-based deep links whose destination APIs reauthorize access. Migration `022` and guarded seed sync completed on the configured remote target; status is 23/23 current and schema/grants are verified. Focused/full tests, shared/API/Mobile checks, API build, 18-namespace parity, Android export, and diff check passed. A real EAS Project ID, authenticated producer data, physical development build, and device/accessibility/fluent-language review are still required for push acceptance.
+
+## 2026-09-09 — Dashboard asset redesign
+
+Completed the requested reference-led Mobile dashboard with 38 separate PNG assets in ten folders, including the user-approved project-card background, reusable Dashboard components, live permission-aware metrics/actions, actual Gallery previews, project location and en/hi/gu copy. Existing header, footer menu and bottom navigation are preserved. No API/schema/dependency changes were required; unrelated dirty work remains intact.
+
+Mobile TypeScript, locale parity, focused lint, PNG validation and Expo web/Android exports passed. All nine 320/375/425px language fixtures passed overflow, 50px target and tab checks. Authenticated location/Gallery reads, physical-device performance, native accessibility/large text/reduced motion and fluent-language acceptance remain pending. See [implementation report](dashboard-asset-redesign.md) and [screenshots](artifacts/dashboard-redesign/README.md).

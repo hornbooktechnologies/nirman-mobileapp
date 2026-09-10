@@ -1,7 +1,7 @@
 import { WAGE_PAYMENT_METHODS, type WagePaymentMethod } from '@nirman-app/shared';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -17,6 +17,7 @@ import {
   FormField,
   IconButton,
   Input,
+  LottieLoader,
   NirmanScreenBackground,
   OperationalEntityCard,
   StatusBadge,
@@ -240,7 +241,7 @@ export function WageBatchDetailScreen() {
           ListHeaderComponent={header}
           ListEmptyComponent={isLoading ? (
             <View style={styles.loading} accessibilityLiveRegion="polite">
-              <ActivityIndicator color={mobileTheme.color.action.primary} />
+              <LottieLoader />
               <AppText style={styles.muted}>{t('detail.loading')}</AppText>
             </View>
           ) : !error && detail ? (

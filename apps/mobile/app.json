@@ -5,7 +5,7 @@
     "scheme": "nirmansite",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/logo-mark.png",
+    "icon": "./assets/brand/app-icon-light.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [
@@ -24,8 +24,16 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["en", "hi", "gu"],
-            "android": ["en", "hi", "gu"]
+            "ios": [
+              "en",
+              "hi",
+              "gu"
+            ],
+            "android": [
+              "en",
+              "hi",
+              "gu"
+            ]
           }
         }
       ],
@@ -35,24 +43,50 @@
       "typedRoutes": true
     },
     "ios": {
+      "icon": {
+        "light": "./assets/brand/app-icon-light.png",
+        "dark": "./assets/brand/app-icon-dark.png"
+      },
       "supportsTablet": true,
-      "bundleIdentifier": "com.nirmansite.mobile"
+      "bundleIdentifier": "com.nirmansite.mobile",
+      "infoPlist": {
+        "CFBundleLocalizations": [
+          "en",
+          "hi",
+          "gu",
+          "en",
+          "hi",
+          "gu"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.nirmansite.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brand/logo-mark.png",
+        "foregroundImage": "./assets/brand/app-icon-light.png",
         "backgroundColor": "#FAF8F5"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "splash": {
-      "image": "./assets/brand/logo-mark.png",
+      "image": "./assets/brand/primary-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#FAF8F5"
     },
     "web": {
+      "favicon": "./assets/brand/app-icon-light.png",
       "bundler": "metro",
       "output": "single"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e5923f64-2d38-40c1-a31d-7cb5c69ea2db"
+      }
+    },
+    "owner": "raxitvs-team"
   }
 }

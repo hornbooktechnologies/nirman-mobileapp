@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PermissionKey } from "@nirman-app/shared";
+import { LoadingScreen } from "@/components/common";
 import { Card, PageHeader, TabButton, Tabs } from "@/components/ui";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { ProjectMembersPanel } from "@/features/projects/components/project-members-panel";
+
 import { useProject } from "@/features/projects/hooks/use-projects";
 import { ProjectWorkersPanel } from "@/features/workers/components/project-workers-panel";
 
@@ -35,7 +37,7 @@ export function ProjectTeamPage({ projectId }: { projectId: string }) {
           No active organization is available.
         </Card>
       ) : project.isLoading ? (
-        <Card className="text-[13px] text-body">Loading project team</Card>
+        <LoadingScreen message="Loading project team" />
       ) : project.isError ? (
         <Card className="text-[13px] text-red-600">
           Unable to load this project or you no longer have access.

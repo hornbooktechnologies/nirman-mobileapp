@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
+import { LoadingScreen } from "@/components/common/loading-screen";
 import { Sidebar } from "@/components/common/sidebar";
 import { TopBar } from "@/components/common/top-bar";
-import { Card } from "@/components/ui";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 
 const MOBILE_NAVIGATION_ID = "mobile-navigation-dialog";
@@ -152,10 +151,7 @@ export function ProtectedDashboardShell({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <main className="grid min-h-screen place-items-center bg-canvas p-4">
-        <Card padding="compact" className="flex items-center gap-3 text-[13px] text-body">
-          <LoaderCircle size={17} className="animate-spin text-lime" aria-hidden="true" />
-          Loading workspace
-        </Card>
+        <LoadingScreen message="Loading workspace" />
       </main>
     );
   }

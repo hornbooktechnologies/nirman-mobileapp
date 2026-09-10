@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Banknote, CalendarDays, Check, CreditCard, Download, Save } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button, Card, Input, PageHeader, Select, StatusBadge } from "@/components/ui";
+import { Button, Card, Input, LoadingState, PageHeader, Select, StatusBadge } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
@@ -214,7 +214,7 @@ export function WagesPage({ projectId }: { projectId: string }) {
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
           <Card className="space-y-3">
             <p className="font-semibold text-body">Confirmed batches</p>
-            {batches.isLoading ? <p className="text-[13px] text-sub">Loading batches</p> : null}
+            {batches.isLoading ? <LoadingState label="Loading batches" /> : null}
             {(batches.data ?? []).map((batch) => (
               <button key={batch.id} type="button" onClick={() => setSelectedBatchId(batch.id)} className="block w-full rounded-inner border border-hairline p-3 text-left hover:bg-sunken">
                 <div className="flex items-center justify-between gap-2">
@@ -232,7 +232,7 @@ export function WagesPage({ projectId }: { projectId: string }) {
               <Banknote size={18} />
               <p className="font-semibold text-body">Batch detail</p>
             </div>
-            {!selectedBatchId ? <p className="text-[13px] text-sub">Select a confirmed batch to view items and record payments.</p> : detail.isLoading ? <p className="text-[13px] text-sub">Loading batch</p> : detail.data ? (
+            {!selectedBatchId ? <p className="text-[13px] text-sub">Select a confirmed batch to view items and record payments.</p> : detail.isLoading ? <LoadingState label="Loading batch" /> : detail.data ? (
               <>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid flex-1 gap-2 text-[13px] sm:grid-cols-4">

@@ -425,9 +425,21 @@ export function GalleryScreen() {
         }}
         renderSectionHeader={({ section }) => (
           <View style={styles.monthHeader}>
-            <AppText style={styles.monthTitle} weight={700}>
-              {section.title}
-            </AppText>
+            <View style={styles.monthBadge}>
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <AppIcon
+                  name="calendar-month-outline"
+                  size={mobileTheme.icon.sm}
+                  color={mobileTheme.color.action.primary}
+                />
+              </View>
+              <AppText style={styles.monthTitle} weight={700}>
+                {section.title}
+              </AppText>
+            </View>
           </View>
         )}
         renderItem={({ item }) => (
@@ -1033,19 +1045,32 @@ const styles = StyleSheet.create({
   queueCopy: { flex: 1, gap: mobileTheme.spacing[1] },
   caption: { ...mobileText.caption },
   monthHeader: {
-    backgroundColor: mobileTheme.color.surface.app,
-    paddingBottom: mobileTheme.spacing[2],
-    paddingTop: mobileTheme.spacing[3],
+    alignItems: "flex-start",
+    paddingBottom: mobileTheme.spacing[3],
   },
-  monthTitle: { ...mobileText.sectionTitle },
+  monthBadge: {
+    alignItems: "center",
+    backgroundColor: mobileTheme.color.surface.raised,
+    borderColor: mobileTheme.color.border.subtle,
+    borderRadius: mobileTheme.radius.full,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: mobileTheme.spacing[2],
+    minHeight: 44,
+    paddingHorizontal: mobileTheme.spacing[4],
+    paddingVertical: mobileTheme.spacing[2],
+  },
+  monthTitle: {
+    ...mobileText.label,
+    color: mobileTheme.color.text.primary,
+  },
   dayBlock: {
     gap: mobileTheme.spacing[2],
-    marginBottom: mobileTheme.spacing[1],
+    marginBottom: mobileTheme.spacing[3],
   },
   dayTitle: {
     ...mobileText.caption,
     color: mobileTheme.color.text.secondary,
-    paddingTop: mobileTheme.spacing[2],
   },
   thumbnailRow: {
     flexDirection: "row",

@@ -1,10 +1,11 @@
-import { ActivityIndicator, StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { Button } from './button';
 import { Card } from './card';
 import { AppText } from './app-text';
+import { LottieLoader } from './lottie-loader';
 
 type EmptyStateProps = ViewProps & {
   title: string;
@@ -28,7 +29,7 @@ export function LoadingState({ label, style, ...props }: ViewProps & { label?: s
 
   return (
     <View style={[styles.loading, style]} {...props}>
-      <ActivityIndicator color={mobileTheme.color.action.primary} />
+      <LottieLoader />
       <AppText style={styles.description} weight={500}>{label ?? t('loading.default')}</AppText>
     </View>
   );

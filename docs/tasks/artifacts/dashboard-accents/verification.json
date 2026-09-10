@@ -1,0 +1,92 @@
+[
+  {
+    "language": "en",
+    "width": 320,
+    "viewport": 320,
+    "scroll": 320,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "en",
+    "width": 375,
+    "viewport": 375,
+    "scroll": 375,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "en",
+    "width": 425,
+    "viewport": 425,
+    "scroll": 425,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "hi",
+    "width": 320,
+    "viewport": 320,
+    "scroll": 320,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "hi",
+    "width": 375,
+    "viewport": 375,
+    "scroll": 375,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "hi",
+    "width": 425,
+    "viewport": 425,
+    "scroll": 425,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "gu",
+    "width": 320,
+    "viewport": 320,
+    "scroll": 320,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "gu",
+    "width": 375,
+    "viewport": 375,
+    "scroll": 375,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  },
+  {
+    "language": "gu",
+    "width": 425,
+    "viewport": 425,
+    "scroll": 425,
+    "offenders": [],
+    "errors": [],
+    "actionsSelected": "true",
+    "attentionSelected": "true"
+  }
+]

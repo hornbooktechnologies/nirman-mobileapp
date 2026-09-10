@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LoadingState } from "@/components/ui";
 import { Pencil, Plus, UserMinus } from "lucide-react";
 import {
   PROJECT_MEMBER_STATUSES,
@@ -219,7 +220,7 @@ export function ProjectMembersPanel({
       </div>
 
       {members.isLoading ? (
-        <p className="text-[13px] text-body">Loading project members</p>
+        <LoadingState label="Loading project members" />
       ) : members.isError ? (
         <p className="text-[13px] text-red-600">Unable to load project members</p>
       ) : projectMembers.length === 0 ? (
@@ -315,7 +316,7 @@ export function ProjectMembersPanel({
               </p>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-inner border border-hairline bg-sunken/30 p-2">
                 {organizationMembers.isLoading ? (
-                  <p className="p-2 text-[12px] text-sub">Loading organization members</p>
+                  <LoadingState className="min-h-0 p-2 text-[12px]" label="Loading organization members" />
                 ) : filteredOrganizationMembers.length ? (
                   filteredOrganizationMembers.map((member) => {
                     const selected = member.id === assignForm.memberId;

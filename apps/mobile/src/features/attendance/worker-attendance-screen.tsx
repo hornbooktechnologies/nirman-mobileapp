@@ -1,7 +1,7 @@
 import type { AttendanceException, WorkerAttendancePeriodResponse } from '@nirman-app/shared';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -13,6 +13,7 @@ import {
   EmptyState,
   FormField,
   IconButton,
+  LottieLoader,
   NirmanScreenBackground,
   OperationalEntityCard,
 } from '../../components/ui';
@@ -182,7 +183,7 @@ export function WorkerAttendanceScreen() {
       {canRead && period ? <AttendanceTotalsTable locale={locale} totals={period.totals} /> : null}
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
-          <ActivityIndicator color={mobileTheme.color.action.primary} />
+          <LottieLoader size={24} />
           <AppText style={styles.subtleText}>{t('loading.refreshing')}</AppText>
         </View>
       ) : null}
@@ -207,7 +208,7 @@ export function WorkerAttendanceScreen() {
         renderItem={({ item }) => <ExceptionCard exception={item} locale={locale} />}
         ListHeaderComponent={header}
         ListEmptyComponent={blockingState ?? (isLoading ? (
-          <View style={styles.loading}><ActivityIndicator color={mobileTheme.color.action.primary} /><AppText>{t('loading.history')}</AppText></View>
+          <View style={styles.loading}><LottieLoader /><AppText>{t('loading.history')}</AppText></View>
         ) : !error && !invalidRange ? (
           <EmptyState title={t('history.emptyTitle')} description={t('history.emptyDescription')} />
         ) : null)}

@@ -1,5 +1,40 @@
 # NirmanSite Progress Ledger
 
+## 2026-09-10 — Mobile brand assets
+
+- Wired supplied horizontal-logo.png into Login and invitation activation with responsive contain sizing; primary-logo.png into splash; app-icon-light.png into default/Android/favicon; app-icon-dark.png into iOS dark appearance. Kept original PNGs, backgrounds, existing flows, and unrelated work intact.
+- Mobile type-check, resolved Expo configuration, and whitespace checks passed. Native launcher/splash and physical-device visual acceptance require a new native build and remain unverified.
+- Android export stalled after Metro startup and was interrupted; bundle validation remains pending.
+
+## 2026-09-10 — Login background restored
+
+- Restored the original `assets/brand/background.png` behind the redesigned Login form at full opacity with cover sizing. Retained the form, small gradient accent, keyboard handling, and disabled/loading submission behavior.
+
+## 2026-09-10 — Login redesign and submission loading
+
+- Redesigned Mobile Login with the existing logo, subtle theme gradient, centered width-constrained form, light fields, restrained shadows, saffron invitation action, and existing language selector. Added safe-area/keyboard-aware scrolling and explicit input accessibility/autofill properties. Existing en/hi/gu copy and authentication routing/error mapping are preserved.
+- Added an opt-in shared Button loading state with spinner, disabled/busy semantics, and visual dimming. Login uses it and a synchronous ref guard to prevent duplicate requests; fields and invitation navigation are disabled during submission and restored after failure.
+- Mobile type-check, locale parity, and whitespace checks passed. Isolated actual-component browser fixtures passed 320/375/425px across en/hi/gu, disabled/busy semantics, duplicate submission prevention, failed-request recovery with password retained, and successful retry routing. See `artifacts/login-redesign/README.md`.
+- Physical-device keyboard/autofill and screen-reader acceptance and live authenticated sign-in remain unverified. No API, credential, dependency, or generated asset changes.
+
+## 2026-09-10 — Shared Mobile action links
+
+- Extended the existing deep saffron `color.text.link` to shared TextLink default/accent variants, text-only Button ghost labels/icons (including invitation activation, calendar Today and dismiss actions), and the shared compact Switch project action.
+- Preserved muted/destructive link variants, filled buttons, icon-only controls, selectors, and status/category/type colors. TextLink currently has no screen consumers; ghost buttons and ProjectContextCard provide the active screen coverage.
+- Mobile type-check and diff whitespace checks passed. Styling only; no copy, layout, navigation, API or data changes. Physical-device visual review remains pending.
+
+## 2026-09-10 — Subtle dashboard saffron accents
+
+- Applied approved concepts 1/2/3: deep saffron links and action icons, warm icon wells, soft selected dashboard tabs, white dashboard surfaces, and a restrained olive/ivory/warm gradient on Project Progress with a dynamic olive-to-saffron progress fill.
+- Added semantic `color.text.link`, `gradient.summarySurface`, and `gradient.progressAccent` using existing theme colors. Inner-screen status/category/type mappings, dashboard status indicators, primary buttons, and the approved bottom navigation are preserved. No generated concept images were imported.
+- Shared build, Mobile type-check, locale parity, and whitespace checks passed. Actual component fixtures passed nine width/language combinations (320/375/425px, en/hi/gu), with no page errors, horizontal overflow, or sub-50px/off-screen interactive targets; Actions/Attention tab selection passed. See `docs/tasks/artifacts/dashboard-accents/README.md`.
+- Physical-device, authenticated workflow, native font scaling, and screen-reader acceptance remain pending.
+
+## 2026-09-10 — Bottom navigation selected color
+
+- Changed the shared navigation selected background from olive to the existing palette's `supportingPalette.constructionOrange` (`#D88032`), with `textPalette.inverse` (white) icons and labels as requested.
+- Shared build, Mobile type-check, and diff whitespace checks passed. Physical-device visual verification remains pending.
+
 ## 1. Purpose
 
 This ledger records the path followed to build NirmanSite.
@@ -454,3 +489,9 @@ uncertain retries and adds a multilingual Booking detail/cancellation experience
 NirmanSite operational primitives. API/Mobile type checks, locale parity, and focused Sales tests pass.
 Authenticated live booking/idempotency/cancellation workflows and physical-device, screen-reader,
 large-text, landscape, dark-mode, and fluent-language acceptance remain pending.
+
+## 2026-09-09 — Dashboard asset redesign
+
+Completed the requested reference-led Mobile dashboard with 38 separate PNG assets in ten folders, including the user-approved project-card background, reusable Dashboard components, live permission-aware metrics/actions, actual Gallery previews, project location and en/hi/gu copy. Existing header, footer menu and bottom navigation are preserved. No API/schema/dependency changes were required; unrelated dirty work remains intact.
+
+Mobile TypeScript, locale parity, focused lint, PNG validation and Expo web/Android exports passed. All nine 320/375/425px language fixtures passed overflow, 50px target and tab checks. Authenticated location/Gallery reads, physical-device performance, native accessibility/large text/reduced motion and fluent-language acceptance remain pending. See [implementation report](dashboard-asset-redesign.md) and [screenshots](artifacts/dashboard-redesign/README.md).

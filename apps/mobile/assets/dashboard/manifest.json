@@ -1,0 +1,382 @@
+[
+  {
+    "file": "backgrounds/dashboard-background.png",
+    "width": 1024,
+    "height": 1024,
+    "bytes": 506658,
+    "alpha": false,
+    "transparentPixels": false,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: portrait warm ivory #FEF6EB paper-like background, very subtle sand shading at lower edges, large completely clean center, no objects. Background: opaque warm ivory. 1024 square."
+  },
+  {
+    "file": "backgrounds/dashboardcard-bg.png",
+    "width": 3072,
+    "height": 1024,
+    "bytes": 1718827,
+    "alpha": false,
+    "transparentPixels": false,
+    "origin": "user-supplied approved dashboard-card background",
+    "prompt": "Not applicable; supplied and approved by the user."
+  },
+  {
+    "file": "backgrounds/blueprint-overlay.png",
+    "width": 1024,
+    "height": 683,
+    "bytes": 271469,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: very faint pale cyan #CBF6FF architectural blueprint grid and floor-plan linework, spacious sparse pattern, no labels. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "backgrounds/construction-line-art.png",
+    "width": 683,
+    "height": 1024,
+    "bytes": 355179,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Create a transparent PNG architectural LINE ART overlay for a construction mobile dashboard. ONLY thin muted warm-sand monochrome strokes outlining a tower crane and unfinished building on the far right and bottom edges. Large blank transparent center and left. Flat technical drafting elevation drawing, NOT a 3D render, no solid fills, no photoreal materials, no shadows, no glow, no colors beyond subtle sand strokes, no text, no measurements, no labels, no UI. True transparent alpha background. Refined sparse linework, all lines inside margins, portrait composition."
+  },
+  {
+    "file": "hero/crane-overlay.png",
+    "width": 718,
+    "height": 768,
+    "bytes": 355017,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single realistic tower crane in warm construction orange, complete tower and boom visible, three-quarter view, clean silhouette. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "hero/project-hero-decoration.png",
+    "width": 768,
+    "height": 512,
+    "bytes": 482571,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small arrangement of concrete beams and three steel reinforcement rods, horizontal composition. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "progress/progress-ring.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 38216,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: perfect front-facing neutral warm ivory circular ring with subtle bevel, empty transparent center, no colored segment, no numbers; decorative track only. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "progress/construction-stage-icon.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 59835,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single small concrete foundation footing with upright reinforcement rods, isometric. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "project-summary/helmet.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 73662,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single realistic construction-orange safety helmet with restrained matte finish, three-quarter view. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "project-summary/project-folder.png",
+    "width": 256,
+    "height": 234,
+    "bytes": 86339,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: olive green project document folder with ivory architectural plan sheets protruding, subtle embossed building symbol, no writing. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "statistics/assigned-workers.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 65955,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: three realistically proportioned construction safety helmets grouped neatly, olive green and construction orange, no faces or people. Background: genuinely transparent with alpha channel."
+  },
+  {
+    "file": "quick-actions/update-progress.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 63996,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small concrete building foundation with two emerging columns and an olive upward arrow, realistic isometric. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "quick-actions/more-actions.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 39473,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: three dark olive satin spheres neatly arranged horizontally above a very thin ivory rounded square base, restrained realistic object. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "financial/money-stack.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 59322,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small stack of generic ivory and olive banknote-like paper bundles with two brass coins, no real banknotes, no numbers or text. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "financial/kharchi-wallet.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 69000,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: olive green leather worker advance wallet with a small ivory envelope and understated brass coin, no text. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "financial/wage-payment.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 54736,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: ivory wage envelope next to construction-orange hard hat and two subtle brass coins, no writing. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "attention/warning.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 64577,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: construction-orange triangular safety warning sign with dark coffee exclamation mark, matte realistic material. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "attention/material-request.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 74313,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: kraft material box beside an olive clipboard with blank ivory sheet and small orange clock symbol, realistic. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "attention/delayed-work.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 46478,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small concrete building column beside an orange framed clock with olive hands, no numbers. Background: genuinely transparent with alpha channel, no background glow, isolated cutout."
+  },
+  {
+    "file": "statistics/present-workers.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 47001,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single olive green construction safety helmet beside small ivory circular checkmark badge, realistic product materials. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "statistics/absent-workers.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 53195,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single warm sand construction safety helmet beside small construction-orange circular minus badge, realistic product materials. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "statistics/expense-wallet.png",
+    "width": 242,
+    "height": 256,
+    "bytes": 85021,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: dark coffee leather expense wallet with ivory receipt and two understated brass coins, no currency numbers or text. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "statistics/sales-chart.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 46760,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: three ascending olive and sand chart bars with thin construction-orange upward arrow, realistic satin material, restrained isometric object. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "statistics/calendar.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 51582,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: ivory desk calendar with olive binding and one small orange highlighted cell, no letters or numbers. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "statistics/inventory-box.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 65363,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: two warm kraft cardboard inventory boxes and one small olive building marker, realistic materials. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "quick-actions/create-project.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 82308,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small concrete building model and construction-orange plus symbol on ivory circular badge, realistic isometric. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "quick-actions/attendance.png",
+    "width": 213,
+    "height": 256,
+    "bytes": 56935,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: olive clipboard with ivory paper and a single green check mark, construction-orange clip, no writing. Background: genuinely transparent with alpha channel, no background glow or halo, clean isolated cutout."
+  },
+  {
+    "file": "activity/labour-photo-placeholder.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 114350,
+    "alpha": false,
+    "transparentPixels": false,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: clearly illustrative miniature realistic orange safety helmet and olive high visibility vest neatly laid on ivory folded fabric, no person or face. Background: opaque warm ivory studio backdrop."
+  },
+  {
+    "file": "activity/material-delivery.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 117457,
+    "alpha": false,
+    "transparentPixels": false,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: clearly illustrative realistic miniature stack of cement bags on wooden pallet, clean warm ivory studio background, no text. Background: opaque warm ivory studio backdrop."
+  },
+  {
+    "file": "activity/site-update.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 98680,
+    "alpha": false,
+    "transparentPixels": false,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: clearly illustrative miniature realistic concrete slab and upright reinforcement bars with orange safety railing, warm ivory studio background. Background: opaque warm ivory studio backdrop."
+  },
+  {
+    "file": "decorative/construction-tools.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 49279,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: realistic neatly arranged trowel, measuring tape and carpenter hammer, olive handles and small orange accents. Background: genuinely transparent with alpha channel, isolated cutout."
+  },
+  {
+    "file": "decorative/safety-helmet.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 52883,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: single realistic olive green safety helmet, clean matte finish and warm studio light. Background: genuinely transparent with alpha channel, isolated cutout."
+  },
+  {
+    "file": "decorative/bulldozer.png",
+    "width": 256,
+    "height": 205,
+    "bytes": 75762,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: small realistically proportioned construction-orange bulldozer with charcoal tracks, three-quarter isometric, no logo. Background: genuinely transparent with alpha channel, isolated cutout."
+  },
+  {
+    "file": "decorative/cement-bags.png",
+    "width": 256,
+    "height": 213,
+    "bytes": 114435,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: three realistic stacked warm kraft cement bags, small olive block markings without writing. Background: genuinely transparent with alpha channel, isolated cutout."
+  },
+  {
+    "file": "decorative/blueprint-paper.png",
+    "width": 256,
+    "height": 171,
+    "bytes": 54389,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Asset type: separate reusable PNG for premium construction ERP mobile dashboard. Warm premium construction product illustration, realistic proportions and clean materials, soft shadows, consistent warm upper-left studio lighting, isometric where suitable. Palette ivory #FEF6EB, dark coffee #2F2010, construction orange #FE4F04, green #194826, olive #657044, pale blueprint cyan #CBF6FF. No UI, no text, no logo, no watermark, no cartoon, no emoji, no gaming graphics. Entire subject visible with generous margins, optimized for readable small-size silhouette. Subject: two ivory rolled architectural blueprint sheets with faint cyan linework, no letters or numbers. Background: genuinely transparent with alpha channel, isolated cutout."
+  },
+  {
+    "file": "hero/selected-project-building.png",
+    "width": 768,
+    "height": 768,
+    "bytes": 1173690,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "built-in image_gen",
+    "prompt": "Use case: stylized-concept. Create one reusable transparent PNG asset for NirmanSite premium construction ERP: a realistically proportioned unfinished five-floor concrete commercial building, subtle scaffolding and olive green safety mesh, isometric three-quarter view, soft warm studio lighting from upper left, clean architectural visualization, restrained warm sand and charcoal concrete, tiny construction-orange #FE4F04 details, olive #657044. Entire building visible with margins, genuinely transparent background with alpha, no crane (separate layer), no words, no logos, no people, no UI, no cartoon, no gaming graphics. It will be placed at the right of a dark coffee #2F2010 project hero. High quality clean silhouette, 1024 square."
+  },
+  {
+    "file": "progress/progress-building.png",
+    "width": 768,
+    "height": 768,
+    "bytes": 936571,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "approved brand library",
+    "prompt": "Reused approved construction progress building."
+  },
+  {
+    "file": "project-summary/site-building-mini.png",
+    "width": 256,
+    "height": 256,
+    "bytes": 94133,
+    "alpha": true,
+    "transparentPixels": true,
+    "origin": "approved brand library",
+    "prompt": "Reused approved site building and location marker."
+  }
+]

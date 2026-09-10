@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Building2, Plus } from "lucide-react";
+import { LoadingState } from "@/components/ui";
 import { useState, type FormEvent } from "react";
 import {
   OPERATING_PROFILES_BY_ORGANIZATION_TYPE,
@@ -273,7 +274,7 @@ export function OrganizationListPage() {
 
         <Card>
           {organizations.isLoading ? (
-            <p className="text-[13px] text-body">Loading organizations</p>
+            <LoadingState label="Loading organizations" />
           ) : organizations.isError ? (
             <p className="text-[13px] text-red-600">Unable to load organizations</p>
           ) : organizations.data?.length === 0 ? (

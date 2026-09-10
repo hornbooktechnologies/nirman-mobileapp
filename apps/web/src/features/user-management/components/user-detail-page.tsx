@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, PageHeader } from "@/components/ui";
+import { Card, LoadingState, PageHeader } from "@/components/ui";
 import { useUser } from "@/features/user-management/hooks/use-user-management";
 
 export function UserDetailPage({ userId }: { userId: string }) {
@@ -9,7 +9,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
     <div className="space-y-4">
       <PageHeader title="User Detail" description="View a user profile and role." />
       <Card className="space-y-2 text-[13px] text-body">
-        {user.isLoading ? "Loading user" : user.isError ? "Unable to load user" : (
+        {user.isLoading ? <LoadingState label="Loading user" /> : user.isError ? "Unable to load user" : (
           <>
             <p><strong>Name:</strong> {user.data?.name}</p>
             <p><strong>Email:</strong> {user.data?.email}</p>

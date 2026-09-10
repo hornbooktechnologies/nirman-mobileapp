@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import {
   Image,
-  ScrollView,
+  Animated,
   StyleSheet,
   View,
   type StyleProp,
@@ -18,6 +18,7 @@ const DASHBOARD_LAYER_SOURCE = require('../../../assets/brand/background1.png');
 
 type NirmanScreenBackgroundProps = Omit<ViewProps, 'style'> & {
   footer?: ReactNode;
+  scrollY?: Animated.Value;
   scroll?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'dashboard';
@@ -36,6 +37,7 @@ const BackgroundImage = memo(function BackgroundImage() {
 
 export function NirmanScreenBackground({
   footer,
+  scrollY,
   scroll = true,
   children,
   style,
@@ -61,12 +63,14 @@ export function NirmanScreenBackground({
       ) : null}
       <SafeAreaView style={styles.safeArea}>
         {scroll ? (
-          <ScrollView
+          <Animated.ScrollView
+            onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
+            scrollEventThrottle={scrollY ? 16 : undefined}
             contentContainerStyle={[styles.content, contentInset, style]}
             showsVerticalScrollIndicator={false}
           >
             {children}
-          </ScrollView>
+          </Animated.ScrollView>
         ) : (
           <View style={[styles.content, styles.flexContent, contentInset, style]}>
             {children}

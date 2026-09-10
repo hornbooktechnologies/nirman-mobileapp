@@ -20,12 +20,12 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
-  LoaderCircle,
   Search,
   X,
   type LucideIcon,
 } from "lucide-react";
 import styles from "./controls.module.css";
+import { LottieLoader } from "@/components/ui/lottie-loader";
 
 function cx(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -88,7 +88,7 @@ export function Button({
       </span>
       {loading ? (
         <span className={styles.buttonLoadingContent}>
-          <LoaderCircle aria-hidden="true" size={16} className={styles.buttonSpinner} />
+          <LottieLoader className="size-4" />
           <span>{loadingLabel}</span>
         </span>
       ) : null}

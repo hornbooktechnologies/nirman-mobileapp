@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { LoadingState } from "@/components/ui";
 import {
   Button,
   Card,
@@ -23,7 +24,7 @@ export function ProfilePage() {
       <PageHeader title="Profile" description="Manage your account details." />
 
       {profile.isLoading ? (
-        <Card><p className="text-[13px] text-body">Loading profile</p></Card>
+        <LoadingState label="Loading profile" />
       ) : profile.isError ? (
         <Card><p className="text-[13px] text-red-600">Unable to load profile</p></Card>
       ) : profile.data ? (

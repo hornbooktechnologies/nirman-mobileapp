@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { LoadingState } from "@/components/ui";
 import { Check, RefreshCw } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -109,7 +110,7 @@ export function OrganizationDetailPage({
 
         <Card>
           {organization.isLoading ? (
-            <p className="text-[13px] text-body">Loading organization</p>
+            <LoadingState label="Loading organization" />
           ) : organization.isError ? (
             <p className="text-[13px] text-red-600">
               Unable to load organization

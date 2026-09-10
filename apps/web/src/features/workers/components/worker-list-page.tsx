@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Plus, UsersRound } from "lucide-react";
+import { LoadingState } from "@/components/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
@@ -123,7 +124,7 @@ export function WorkerListPage() {
               Select an organization to view workers.
             </p>
           ) : workers.isLoading ? (
-            <p className="text-[13px] text-body">Loading workers</p>
+            <LoadingState label="Loading workers" />
           ) : workers.isError ? (
             <p className="text-[13px] text-red-600">Unable to load workers</p>
           ) : workerRows.length === 0 ? (

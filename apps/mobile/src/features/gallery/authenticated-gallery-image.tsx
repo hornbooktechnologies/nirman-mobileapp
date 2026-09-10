@@ -2,7 +2,6 @@ import type { GalleryEntry } from "@nirman-app/shared";
 import * as FileSystem from "expo-file-system/legacy";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Platform,
   Pressable,
@@ -14,7 +13,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { AppIcon, AppText } from "../../components/ui";
+import { AppIcon, AppText, LottieLoader } from "../../components/ui";
 import { mobileText, mobileTheme } from "../../theme";
 import { galleryMediaUrl } from "./services";
 
@@ -130,7 +129,7 @@ export function AuthenticatedGalleryImage({
           accessibilityLabel={t("card.photoLoading")}
           style={[styles.fill, styles.state, compact && styles.compactState]}
         >
-          <ActivityIndicator color={mobileTheme.color.action.primary} />
+          <LottieLoader size={compact ? 20 : 28} />
           {!compact ? (
             <AppText style={styles.stateText}>{t("card.photoLoading")}</AppText>
           ) : null}

@@ -1,7 +1,7 @@
 import type { AttendanceSummaryResponse, AttendanceSummaryRow } from '@nirman-app/shared';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -15,6 +15,7 @@ import {
   FormField,
   IconButton,
   ListControls,
+  LottieLoader,
   NirmanScreenBackground,
   OperationalEntityCard,
   SearchField,
@@ -219,7 +220,7 @@ export function AttendanceScreen() {
       </ListControls>
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
-          <ActivityIndicator color={mobileTheme.color.action.primary} />
+          <LottieLoader size={24} />
           <AppText style={styles.cardNote}>{t('loading.refreshing')}</AppText>
         </View>
       ) : null}
@@ -247,7 +248,7 @@ export function AttendanceScreen() {
         renderItem={({ item }) => <WorkerSummaryCard locale={locale} row={item} onView={openWorkerHistory} />}
         ListHeaderComponent={header}
         ListEmptyComponent={noContext ?? (isLoading ? (
-          <View style={styles.loading}><ActivityIndicator color={mobileTheme.color.action.primary} /><AppText>{t('loading.attendance')}</AppText></View>
+          <View style={styles.loading}><LottieLoader /><AppText>{t('loading.attendance')}</AppText></View>
         ) : !error && !invalidRange ? (
           <EmptyState
             title={debouncedSearch || exceptionsOnly ? t('empty.noMatchesTitle') : t('empty.noWorkersTitle')}

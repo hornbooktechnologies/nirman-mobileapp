@@ -48,3 +48,9 @@ The endpoint runs independent authorized aggregates concurrently and relies on m
 - API: focused 2/2 unit tests, type-check, build, health/database smoke, and authenticated Organization Owner response with all six authorized sections passed.
 - Mobile: type-check and 18-namespace en/hi/gu key/placeholder validation passed.
 - Pending: authenticated Supervisor and Sales response matrix plus physical-device narrow/large phone, Dynamic Type, screen-reader, reduced-motion, landscape, and fluent-language review.
+
+## Mobile visual implementation — 2026-09-09
+
+The asset-driven dashboard redesign preserves this contract, existing header/navigation, server-derived actions and nullable metric semantics. It uses 38 PNG assets, including the user-approved project-card background, reusable dashboard components, reduced-motion-aware transitions and a real Gallery-entry preview using the existing Gallery endpoint. Project location uses the existing project read endpoint. No delayed-work metric is fabricated. All authorized server actions remain available in the Actions tab.
+
+TypeScript, locale parity, focused lint and web/Android export passed. Component fixtures passed at 320/375/425px in en/hi/gu; these are not authenticated/device acceptance. See [implementation and remaining gates](../../../tasks/dashboard-asset-redesign.md) and [screenshots](../../../tasks/artifacts/dashboard-redesign/README.md).

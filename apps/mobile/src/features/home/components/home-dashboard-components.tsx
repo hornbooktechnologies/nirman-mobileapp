@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   insightTabs: { backgroundColor: mobileTheme.color.status.neutral.background, borderRadius: mobileTheme.radius.xl, flexDirection: 'row', gap: mobileTheme.spacing[1], padding: mobileTheme.spacing[1] },
   insightTab: { alignItems: 'center', borderRadius: mobileTheme.radius.lg, flex: 1, flexDirection: 'row', gap: mobileTheme.spacing[1], justifyContent: 'center', minHeight: 48, paddingHorizontal: mobileTheme.spacing[1] },
   insightTabActive: { backgroundColor: mobileTheme.color.brand.primary },
-  insightTabLabel: { ...mobileText.caption, color: mobileTheme.color.text.secondary, fontSize: 11, lineHeight: 15 },
+  insightTabLabel: { ...mobileText.caption, color: mobileTheme.color.text.secondary, fontSize: 14, lineHeight: 15 },
   insightTabLabelActive: { color: mobileTheme.color.text.inverse },
   insightEmpty: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 72, padding: mobileTheme.spacing[2] },
   insightMetric: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3], minHeight: 58, paddingVertical: mobileTheme.spacing[2] },

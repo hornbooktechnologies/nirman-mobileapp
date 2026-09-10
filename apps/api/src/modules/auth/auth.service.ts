@@ -9,7 +9,7 @@ import { AuthTokens, AuthenticatedUser, JwtPayload } from './types/auth.types';
 import { ProjectAccessService } from '../project-access/project-access.service';
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
-const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 
 @Injectable()
 export class AuthService {
@@ -105,7 +105,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET,
-      expiresIn: '15m',
+      expiresIn: '1h',
     });
 
     const refreshToken = this.jwtService.sign(payload, {

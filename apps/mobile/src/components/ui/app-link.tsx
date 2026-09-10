@@ -20,9 +20,9 @@ export function TextLink({ label, variant = 'accent', withChevron = false, style
 }
 
 const linkColors = {
-  default: mobileTheme.color.text.primary,
+  default: mobileTheme.color.text.link,
   muted: mobileTheme.color.text.muted,
-  accent: mobileTheme.color.action.primary,
+  accent: mobileTheme.color.text.link,
   destructive: mobileTheme.color.status.danger.foreground,
 } as const;
 

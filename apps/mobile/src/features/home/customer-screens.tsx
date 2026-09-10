@@ -1,7 +1,7 @@
-import type { DashboardActionKey, RoleDashboardResponse } from '@nirman-app/shared';
+import type { DashboardActionKey, GalleryEntry, RoleDashboardResponse } from '@nirman-app/shared';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -27,14 +27,12 @@ import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import {
   CustomerTabBar,
-  DashboardInsightPanel,
-  ProjectProgressCard,
-  ProjectSummaryStrip,
-  RecentSiteActivityCard,
-  TodayAtSiteCard,
   visibleNavigation,
   visibleOrganizationNavigation,
 } from './components';
+import { ActivityTimeline, DashboardBackdrop, DashboardTabs, Entrance, ProgressCard, ProjectSummary, QuickActions, SalesPulse, SiteStatsCard } from './components/Dashboard';
+import { fetchGalleryEntries } from '../gallery/services';
+import { AuthenticatedGalleryImage } from '../gallery/authenticated-gallery-image';
 import { fetchRoleDashboard } from './services';
 import { useNotifications } from '../notifications';
 import {
@@ -86,16 +84,23 @@ export function DashboardScreen() {
   const { t: tHome } = useTranslation('home');
   const { t: tNavigation } = useTranslation('navigation');
   const { t: tProgress } = useTranslation('progress');
+  const { t: tGallery } = useTranslation('gallery');
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [projectLocation, setProjectLocation] = useState<{ projectId: string; organizationId: string; text: string } | null>(null);
+  const [activityEntries, setActivityEntries] = useState<GalleryEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityFailed, setActivityFailed] = useState(false);
   const { refreshSession, session } = useSession();
   const { unreadCount } = useNotifications();
   const { language } = useLocalization();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
-  const [dashboard, setDashboard] = useState<RoleDashboardResponse | null>(null);
+  const [dashboardResponse, setDashboard] = useState<RoleDashboardResponse | null>(null);
   const [dashboardFailed, setDashboardFailed] = useState(false);
   const requestSequence = useRef(0);
   const activeProject = getActiveProject(session);
+  const dashboard = dashboardResponse?.project.id === activeProject?.id && dashboardResponse?.organizationId === session?.activeOrganization?.id ? dashboardResponse : null;
   const availableProjects =
     session?.projectAccess.projects.filter((project) => project.status !== 'ARCHIVED') ?? [];
   const workspaceNavigation = [
@@ -126,6 +131,7 @@ export function DashboardScreen() {
     }
 
     setLoadingDashboard(true);
+    setDashboard(null);
     try {
       const nextDashboard = await fetchRoleDashboard(organizationId, projectId, accessToken);
       if (sequence !== requestSequence.current) return;
@@ -146,6 +152,32 @@ export function DashboardScreen() {
       requestSequence.current += 1;
     };
   }, [loadDashboard]);
+
+  useEffect(() => {
+    let current = true;
+    setProjectLocation(null);
+    if (activeProject && session?.activeOrganization && session.accessToken) {
+      void fetchProject(session.activeOrganization.id, activeProject.id, session.accessToken)
+        .then(project => { if (current) setProjectLocation({ projectId: project.id, organizationId: project.organizationId, text: [project.address.city, project.address.state].filter(Boolean).join(', ') }); })
+        .catch(() => undefined);
+    }
+    return () => { current = false; };
+  }, [activeProject?.id, session?.activeOrganization?.id, session?.accessToken]);
+
+  useEffect(() => {
+    let current = true;
+    setActivityEntries([]);
+    setActivityFailed(false);
+    setActivityLoading(false);
+    if (dashboard?.gallery && dashboard.project.id === activeProject?.id && session?.activeOrganization && session.accessToken) {
+      setActivityLoading(true);
+      void fetchGalleryEntries(session.activeOrganization.id, activeProject.id, session.accessToken, { page: 1, pageSize: 3 })
+        .then(result => { if (current) setActivityEntries(result.items); })
+        .catch(() => { if (current) setActivityFailed(true); })
+        .finally(() => { if (current) setActivityLoading(false); });
+    }
+    return () => { current = false; };
+  }, [dashboard, activeProject?.id, session?.activeOrganization?.id, session?.accessToken]);
 
   const number = (value: number) => formatNumber(value, language, { maximumFractionDigits: 1 });
   const money = (value: string) => formatInr(Number(value), language, { maximumFractionDigits: 0 });
@@ -176,11 +208,10 @@ export function DashboardScreen() {
   ];
   const attentionUnavailable = dashboardFailed;
   const financialMetrics = [
-    ...(dashboard?.finance?.recognizedExpensesThisMonth ? [{ accessibilityLabel: tHome('finance.expensesA11y', { amount: money(dashboard.finance.recognizedExpensesThisMonth) }), label: tHome('finance.expenses'), value: money(dashboard.finance.recognizedExpensesThisMonth) }] : []),
-    ...(dashboard?.finance?.outstandingKharchi ? [{ accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.finance.outstandingKharchi) }), label: tHome('finance.outstandingKharchi'), value: money(dashboard.finance.outstandingKharchi) }] : []),
-    ...(dashboard?.finance?.wageEstimate ? [{ accessibilityLabel: tHome('finance.wageEstimateA11y', { amount: money(dashboard.finance.wageEstimate) }), label: tHome('finance.wageEstimate'), value: money(dashboard.finance.wageEstimate) }] : []),
+    ...(dashboard?.finance?.recognizedExpensesThisMonth ? [{ key: 'expenses', accessibilityLabel: tHome('finance.expensesA11y', { amount: money(dashboard.finance.recognizedExpensesThisMonth) }), label: tHome('finance.expenses'), value: money(dashboard.finance.recognizedExpensesThisMonth) }] : []),
+    ...(dashboard?.finance?.outstandingKharchi ? [{ key: 'kharchi', accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.finance.outstandingKharchi) }), label: tHome('finance.outstandingKharchi'), value: money(dashboard.finance.outstandingKharchi) }] : []),
+    ...(dashboard?.finance?.wageEstimate ? [{ key: 'wages', accessibilityLabel: tHome('finance.wageEstimateA11y', { amount: money(dashboard.finance.wageEstimate) }), label: tHome('finance.wageEstimate'), value: money(dashboard.finance.wageEstimate) }] : []),
   ];
-  const progressStages: Array<{ label: string; percentage: number }> = [];
   const canCreateProject = Boolean(session?.permissions.includes('projects:create'));
   const quickNavigation = workspaceNavigation.filter((item) => !['project', 'team', 'members'].includes(item.key)).slice(0, canCreateProject ? 2 : 3);
   const actionRoutes: Record<DashboardActionKey, { href: Href; icon: 'calendar-check-outline' | 'cash-plus' | 'package-variant-closed-plus' | 'receipt-text-plus-outline' | 'chart-timeline-variant' | 'camera-plus-outline' | 'account-plus-outline' | 'calendar-clock-outline' | 'office-building-outline' }> = {
@@ -192,12 +223,12 @@ export function DashboardScreen() {
   const roleQuickActions = (dashboard?.quickActions ?? []).map((key) => ({ key, label: tHome(`role.actions.${key}`), accessibilityHint: tHome(`role.actionHints.${key}`), icon: actionRoutes[key].icon, onPress: () => router.push(actionRoutes[key].href) }));
   const quickActions = [
     ...(canCreateProject ? [{ key: 'create-project', label: tHome('workspace.createProject'), accessibilityHint: tHome('quickActions.createProjectHint'), icon: 'plus' as const, onPress: () => setShowCreateProject(true) }] : []),
-    ...(roleQuickActions.length ? roleQuickActions.slice(0, canCreateProject ? 3 : 4) : quickNavigation.map((item) => ({ key: item.key, label: item.title, accessibilityHint: item.description, icon: item.icon, onPress: () => router.push(item.href as Href) }))),
+    ...(roleQuickActions.length ? roleQuickActions : quickNavigation.map((item) => ({ key: item.key, label: item.title, accessibilityHint: item.description, icon: item.icon, onPress: () => router.push(item.href as Href) }))),
     ...(workspaceNavigation.length ? [{ key: 'more', label: tHome('quickActions.more'), accessibilityHint: tHome('quickActions.moreHint'), icon: 'dots-horizontal' as const, onPress: () => router.push('/(app)/menu') }] : []),
   ];
 
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent} variant="dashboard">
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent} variant="dashboard" scrollY={scrollY}>
       <View style={styles.homeHeader}>
         <View style={styles.headerCopy}>
           <View style={styles.eyebrowRow}>
@@ -222,13 +253,18 @@ export function DashboardScreen() {
         </View>
       </View>
 
+      <DashboardBackdrop>
+      <Entrance>
       <ProjectContextCard
         featured
+        location={projectLocation?.projectId === activeProject?.id && projectLocation?.organizationId === session?.activeOrganization?.id ? projectLocation?.text : undefined}
+        scrollY={scrollY}
         onOpenProject={activeProject ? () => router.push('/(app)/project-detail') : undefined}
       />
 
-      <ProjectSummaryStrip items={[
-        { accessibilityLabel: tHome('metrics.workingSitesA11y', { count: availableProjects.length }), icon: 'office-building-marker-outline', label: tHome('metrics.workingSites'), tone: 'brand', value: availableProjects.length },
+      </Entrance>
+      <ProjectSummary items={[
+        { accessibilityLabel: tHome('metrics.workingSitesA11y', { count: availableProjects.filter(project => project.status === 'ACTIVE').length }), icon: 'office-building-marker-outline', label: tHome('metrics.workingSites'), tone: 'brand', value: availableProjects.filter(project => project.status === 'ACTIVE').length },
         { accessibilityLabel: tHome('metrics.projectScopeA11y', { scope: projectScopeLabel }), icon: 'shield-check-outline', label: tHome('metrics.projectScope'), tone: 'warm', value: projectScopeLabel },
       ]} />
 
@@ -240,12 +276,11 @@ export function DashboardScreen() {
       ) : null}
 
       {activeProject && dashboard?.progress ? (
-        <ProjectProgressCard
+        <ProgressCard
           accessibilityLabel={tProgress('summary.a11y', { percentage: dashboard.progress.overallPercentage, updated: dashboard.progress.updatedStages, total: 9 })}
           emptyLabel={tProgress('summary.notStarted')}
           loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
           percentage={dashboard.progress.overallPercentage}
-          stages={progressStages}
           statusLabel={tHome('progress.updatedStages', { count: dashboard.progress.updatedStages })}
           summaryLabel={tHome('progress.completion')}
           title={tProgress('screen.title')}
@@ -254,29 +289,36 @@ export function DashboardScreen() {
       ) : null}
 
       {activeProject && dashboard?.site ? (
-        <TodayAtSiteCard
-          artwork={false}
+        <SiteStatsCard
           dateLabel={formatDate(dashboard.generatedAt, language, { dateStyle: 'medium' })}
           title={tHome('today.title')}
           loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
           stats={[
-            { accessibilityLabel: tHome('today.workersA11y', { count: dashboard.site.assignedWorkers ?? 0 }), icon: 'account-hard-hat-outline', label: tHome('today.workers'), value: number(dashboard.site.assignedWorkers ?? 0) },
-            { accessibilityLabel: tHome('today.presentA11y', { count: dashboard.site.presentToday ?? 0 }), icon: 'account-check-outline', label: tHome('today.present'), value: number(dashboard.site.presentToday ?? 0) },
-            { accessibilityLabel: tHome('today.absentA11y', { count: dashboard.site.absentToday ?? 0 }), icon: 'account-off-outline', label: tHome('today.absent'), value: number(dashboard.site.absentToday ?? 0) },
-            ...(dashboard.site.todaySpend ? [{ accessibilityLabel: tHome('today.spendA11y', { amount: money(dashboard.site.todaySpend) }), icon: 'cash' as const, label: tHome('today.spend'), value: money(dashboard.site.todaySpend) }] : []),
+            ...(dashboard.site.assignedWorkers !== null ? [{ key: 'workers', accessibilityLabel: tHome('today.workersA11y', { count: dashboard.site.assignedWorkers ?? 0 }), icon: 'account-hard-hat-outline' as const, label: tHome('today.workers'), value: number(dashboard.site.assignedWorkers ?? 0) }] : []),
+            ...(dashboard.site.presentToday !== null ? [{ key: 'present', accessibilityLabel: tHome('today.presentA11y', { count: dashboard.site.presentToday ?? 0 }), icon: 'account-check-outline' as const, label: tHome('today.present'), value: number(dashboard.site.presentToday ?? 0) }] : []),
+            ...(dashboard.site.absentToday !== null ? [{ key: 'absent', accessibilityLabel: tHome('today.absentA11y', { count: dashboard.site.absentToday ?? 0 }), icon: 'account-off-outline' as const, label: tHome('today.absent'), value: number(dashboard.site.absentToday ?? 0) }] : []),
+            ...(dashboard.site.todaySpend ? [{ key: 'spend', accessibilityLabel: tHome('today.spendA11y', { amount: money(dashboard.site.todaySpend) }), icon: 'cash' as const, label: tHome('today.spend'), value: money(dashboard.site.todaySpend) }] : []),
           ]}
         />
       ) : null}
 
-      {dashboard?.sales ? <TodayAtSiteCard artwork={false} title={tHome('role.salesPulse')} stats={[
-        { accessibilityLabel: tHome('role.metrics.pipeline'), icon: 'chart-line-variant', label: tHome('role.metrics.pipeline'), value: number(dashboard.sales.activePipeline ?? 0) },
-        { accessibilityLabel: tHome('role.metrics.overdueFollowUps'), icon: 'calendar-alert', label: tHome('role.metrics.overdueFollowUps'), value: number(dashboard.sales.overdueFollowUps ?? 0) },
-        { accessibilityLabel: tHome('role.metrics.expiringBlocks'), icon: 'timer-alert-outline', label: tHome('role.metrics.expiringBlocks'), value: number(dashboard.sales.blocksNearingExpiry ?? 0) },
-        { accessibilityLabel: tHome('role.metrics.bookedUnits'), icon: 'home-outline', label: tHome('role.metrics.bookedUnits'), value: number(dashboard.sales.bookedUnits ?? 0) },
-      ]} /> : null}
+      {dashboard?.sales ? <SalesPulse title={tHome('role.salesPulse')} stats={[
+        { key: 'pipeline', label: tHome('role.metrics.pipeline'), raw: dashboard.sales.activePipeline },
+        { key: 'overdueFollowUps', label: tHome('role.metrics.overdueFollowUps'), raw: dashboard.sales.overdueFollowUps },
+        { key: 'expiringBlocks', label: tHome('role.metrics.expiringBlocks'), raw: dashboard.sales.blocksNearingExpiry },
+        { key: 'bookedUnits', label: tHome('role.metrics.bookedUnits'), raw: dashboard.sales.bookedUnits },
+      ].filter(metric => metric.raw !== null).map(metric => ({ key: metric.key, label: metric.label, value: number(metric.raw!), accessibilityLabel: metric.label + ': ' + number(metric.raw!) }))} /> : null}
+
+      {quickActions.length ? <QuickActions title={tHome('quickActions.title')} items={[
+        ...quickActions.filter(action => action.key === 'create-project'),
+        ...(roleQuickActions.some(action => action.key === 'MARK_ATTENDANCE' || action.key === 'UPDATE_PROGRESS')
+          ? roleQuickActions.filter(action => action.key === 'MARK_ATTENDANCE' || action.key === 'UPDATE_PROGRESS')
+          : quickActions.filter(action => action.key !== 'create-project' && action.key !== 'more').slice(0, 2)),
+        ...quickActions.filter(action => action.key === 'more'),
+      ].map(action => ({ ...action, label: action.key === 'create-project' ? tHome('dashboard.create') : action.key === 'MARK_ATTENDANCE' ? tHome('dashboard.attendance') : action.key === 'UPDATE_PROGRESS' ? tHome('dashboard.progress') : action.label }))} /> : null}
 
       {activeProject && (dashboard?.finance || dashboard?.workflow || quickActions.length) ? (
-        <DashboardInsightPanel
+        <DashboardTabs
           actions={quickActions}
           actionsLabel={tHome('quickActions.tab')}
           attentionEmptyLabel={tHome('attention.clear')}
@@ -290,20 +332,29 @@ export function DashboardScreen() {
       ) : null}
 
       {activeProject && dashboard?.gallery ? (
-        <RecentSiteActivityCard
-          count={dashboard.gallery.recentUpdates}
-          emptyLabel={tHome('activity.empty')}
-          latestLabel={dashboard.gallery.latestCapturedAt ? tHome('activity.latest', { date: formatDate(dashboard.gallery.latestCapturedAt, language, { dateStyle: 'medium', timeStyle: 'short' }) }) : undefined}
-          onPress={() => router.push('/(app)/gallery')}
+        <ActivityTimeline
           title={tHome('activity.title')}
-          updatesLabel={tHome('activity.updates', { count: dashboard.gallery.recentUpdates })}
+          emptyLabel={tHome('activity.empty')}
           viewAllLabel={tHome('activity.viewAll')}
+          onViewAll={() => router.push('/(app)/gallery')}
+          loadingLabel={activityLoading ? tHome('data.loading') : activityFailed ? tHome('data.unavailable') : undefined}
+          items={activityEntries.filter(entry => entry.projectId === activeProject.id && entry.organizationId === session?.activeOrganization?.id).map(entry => ({
+            id: entry.id,
+            title: entry.caption || tGallery(`category.${entry.category}`),
+            date: formatDate(entry.capturedAt, language, { dateStyle: 'medium', timeStyle: 'short' }),
+            status: tGallery(`status.${entry.status}`),
+            statusTone: entry.status === 'APPROVED' ? 'success' as const : entry.status === 'REJECTED' ? 'danger' as const : 'warning' as const,
+            thumbnail: session?.accessToken ? <AuthenticatedGalleryImage compact entry={entry} token={session.accessToken} accessibilityLabel={tGallery('card.photoA11y', { category: tGallery(`category.${entry.category}`) })} style={{ width: 60, height: 60 }} /> : undefined,
+            onPress: () => router.push('/(app)/gallery'),
+          }))}
         />
       ) : null}
 
       {dashboardFailed ? (
         <Button fullWidth={false} label={tHome('data.retry')} leadingIcon="refresh" size="sm" variant="secondary" onPress={() => void loadDashboard()} />
       ) : null}
+
+      </DashboardBackdrop>
 
       {showCreateProject && session?.activeOrganization ? (
         <ProjectFormSheet
