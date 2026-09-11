@@ -22,8 +22,7 @@
     "removeA11y": "{{filter}} फ़िल्टर हटाएँ"
   },
   "form": {
-    "required": "आवश्यक",
-    "optional": "वैकल्पिक"
+    "required": "आवश्यक"
   },
   "validation": {
     "required": "{{field}} आवश्यक है।",

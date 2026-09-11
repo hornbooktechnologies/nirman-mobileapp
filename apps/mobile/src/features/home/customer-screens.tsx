@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import {
   AppText,
+  ActionListItem,
   AppIcon,
   Badge,
   Button,
@@ -36,7 +37,7 @@ import { AuthenticatedGalleryImage } from '../gallery/authenticated-gallery-imag
 import { fetchRoleDashboard } from './services';
 import { useNotifications } from '../notifications';
 import {
-  createProject,
+  CreateProjectSheet,
   fetchProject,
   ProjectContextCard,
   ProjectFormSheet,
@@ -90,11 +91,10 @@ export function DashboardScreen() {
   const [activityEntries, setActivityEntries] = useState<GalleryEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityFailed, setActivityFailed] = useState(false);
-  const { refreshSession, session } = useSession();
+  const { session } = useSession();
   const { unreadCount } = useNotifications();
   const { language } = useLocalization();
   const [showCreateProject, setShowCreateProject] = useState(false);
-  const [savingProject, setSavingProject] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [dashboardResponse, setDashboard] = useState<RoleDashboardResponse | null>(null);
   const [dashboardFailed, setDashboardFailed] = useState(false);
@@ -212,7 +212,7 @@ export function DashboardScreen() {
     ...(dashboard?.finance?.outstandingKharchi ? [{ key: 'kharchi', accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.finance.outstandingKharchi) }), label: tHome('finance.outstandingKharchi'), value: money(dashboard.finance.outstandingKharchi) }] : []),
     ...(dashboard?.finance?.wageEstimate ? [{ key: 'wages', accessibilityLabel: tHome('finance.wageEstimateA11y', { amount: money(dashboard.finance.wageEstimate) }), label: tHome('finance.wageEstimate'), value: money(dashboard.finance.wageEstimate) }] : []),
   ];
-  const canCreateProject = Boolean(session?.permissions.includes('projects:create'));
+  const canCreateProject = Boolean(session?.activeOrganization && session.permissions.includes('projects:create'));
   const quickNavigation = workspaceNavigation.filter((item) => !['project', 'team', 'members'].includes(item.key)).slice(0, canCreateProject ? 2 : 3);
   const actionRoutes: Record<DashboardActionKey, { href: Href; icon: 'calendar-check-outline' | 'cash-plus' | 'package-variant-closed-plus' | 'receipt-text-plus-outline' | 'chart-timeline-variant' | 'camera-plus-outline' | 'account-plus-outline' | 'calendar-clock-outline' | 'office-building-outline' }> = {
     MARK_ATTENDANCE: { href: '/(app)/attendance', icon: 'calendar-check-outline' }, ADD_KHARCHI: { href: '/(app)/kharchi', icon: 'cash-plus' },
@@ -315,7 +315,7 @@ export function DashboardScreen() {
           ? roleQuickActions.filter(action => action.key === 'MARK_ATTENDANCE' || action.key === 'UPDATE_PROGRESS')
           : quickActions.filter(action => action.key !== 'create-project' && action.key !== 'more').slice(0, 2)),
         ...quickActions.filter(action => action.key === 'more'),
-      ].map(action => ({ ...action, label: action.key === 'create-project' ? tHome('dashboard.create') : action.key === 'MARK_ATTENDANCE' ? tHome('dashboard.attendance') : action.key === 'UPDATE_PROGRESS' ? tHome('dashboard.progress') : action.label }))} /> : null}
+      ].map(action => ({ ...action, label: action.key === 'MARK_ATTENDANCE' ? tHome('dashboard.attendance') : action.key === 'UPDATE_PROGRESS' ? tHome('dashboard.progress') : action.label }))} /> : null}
 
       {activeProject && (dashboard?.finance || dashboard?.workflow || quickActions.length) ? (
         <DashboardTabs
@@ -356,21 +356,8 @@ export function DashboardScreen() {
 
       </DashboardBackdrop>
 
-      {showCreateProject && session?.activeOrganization ? (
-        <ProjectFormSheet
-          saving={savingProject}
-          onClose={() => setShowCreateProject(false)}
-          onSave={async (input) => {
-            setSavingProject(true);
-            try {
-              await createProject(session.activeOrganization!.id, session.accessToken, input);
-              setShowCreateProject(false);
-              await refreshSession();
-            } finally {
-              setSavingProject(false);
-            }
-          }}
-        />
+      {showCreateProject && canCreateProject ? (
+        <CreateProjectSheet onClose={() => setShowCreateProject(false)} />
       ) : null}
     </NirmanScreenBackground>
   );
@@ -381,6 +368,8 @@ export function ProjectDetailScreen() {
   const { t: tCommon } = useTranslation('common');
   const { refreshSession, session } = useSession();
   const params = useLocalSearchParams<{ projectId?: string }>();
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const canCreateProject = Boolean(session?.activeOrganization && session.permissions.includes('projects:create'));
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
@@ -423,6 +412,13 @@ export function ProjectDetailScreen() {
         subtitle={selectedProject?.name ?? t('detail.chooseProject')}
         title={t('detail.title')}
       />
+
+      {canCreateProject ? (
+        <Button label={t('detail.addProject')} leadingIcon="plus" variant="brand" onPress={() => setShowCreateProject(true)} />
+      ) : null}
+      {showCreateProject && canCreateProject ? (
+        <CreateProjectSheet onClose={() => setShowCreateProject(false)} />
+      ) : null}
 
       {selectedProject ? (
         <>
@@ -608,6 +604,13 @@ export function MenuScreen() {
           {session?.user.email ? <AppText numberOfLines={1} style={styles.cardCaption} weight={500}>{session.user.email}</AppText> : null}
         </View>
       </GlassCard>
+      <ActionListItem
+        accessibilityLabel={t('menu.accountSecurity')}
+        icon="shield-account-outline"
+        label={t('menu.accountSecurity')}
+        tone="brand"
+        onPress={() => router.push('/(app)/account-security')}
+      />
 
       <ProjectContextCard compact />
 

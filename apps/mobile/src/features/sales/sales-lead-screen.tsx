@@ -464,7 +464,7 @@ export function SalesLeadScreen() {
               }}
             />
           </FormField>
-          <FormField label={t('fields.email')} optional error={editFieldErrors.email}>
+          <FormField label={t('fields.email')} error={editFieldErrors.email}>
             <Input
               autoCapitalize="none"
               invalid={Boolean(editFieldErrors.email)}
@@ -552,7 +552,7 @@ export function SalesLeadScreen() {
           <FormField label={t('fields.summary')} required>
             <Input value={summary} onChangeText={setSummary} />
           </FormField>
-          <FormField label={t('fields.details')} optional>
+          <FormField label={t('fields.details')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
         </BottomSheet>
@@ -593,7 +593,7 @@ export function SalesLeadScreen() {
               ))}
             </View>
           </FormField>
-          <FormField label={t('fields.notes')} optional>
+          <FormField label={t('fields.notes')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
         </BottomSheet>
@@ -627,7 +627,7 @@ export function SalesLeadScreen() {
         >
           <FormError message={error} />
           <ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} />
-          <FormField label={t('fields.attendeeCount')} optional>
+          <FormField label={t('fields.attendeeCount')}>
             <Input accessibilityLabel={t('fields.attendeeCount')} keyboardType="number-pad" value={visitAttendeeCount} onChangeText={(value) => setVisitAttendeeCount(value.replace(/\D/g, '').slice(0, 4))} />
           </FormField>
         </BottomSheet>
@@ -680,7 +680,7 @@ export function SalesLeadScreen() {
               ))}
             </View>
           </FormField>
-          <FormField label={t('fields.notes')} optional>
+          <FormField label={t('fields.notes')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
         </BottomSheet>
@@ -690,7 +690,7 @@ export function SalesLeadScreen() {
         <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.submitHoldRequest')} working={working || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
           <FormError message={error} />
           {interests.filter((interest) => !interest.holdRequestId).length ? interests.filter((interest) => !interest.holdRequestId).map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} />}
-          <FormField label={t('fields.requestNotes')} optional>
+          <FormField label={t('fields.requestNotes')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
         </BottomSheet>
@@ -709,10 +709,10 @@ export function SalesLeadScreen() {
           <FormField label={t('fields.bookingDate')} required>
             <DateInput allowClear={false} accessibilityLabel={t('fields.bookingDate')} value={scheduleDate} onChangeText={setScheduleDate} />
           </FormField>
-          <FormField label={t('fields.bookingAmount')} optional error={bookingAmountInvalid ? tCommon('validation.number') : undefined}>
+          <FormField label={t('fields.bookingAmount')} error={bookingAmountInvalid ? tCommon('validation.number') : undefined}>
             <Input invalid={bookingAmountInvalid} keyboardType="decimal-pad" value={amount} onChangeText={(value) => setAmount(value.replace(/[^0-9.]/g, ''))} />
           </FormField>
-          <FormField label={t('fields.bookingReference')} optional>
+          <FormField label={t('fields.bookingReference')}>
             <Input value={reference} onChangeText={setReference} />
           </FormField>
         </BottomSheet>

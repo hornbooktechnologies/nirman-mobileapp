@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   UnauthorizedException,
   UseGuards,
@@ -19,6 +20,8 @@ import { ChangeOwnPasswordDto } from './dto/change-own-password.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { AuthenticatedUser } from './types/auth.types';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const COOKIE_NAME = 'refresh_token';
 const COOKIE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -41,6 +44,30 @@ export class AuthController {
       success: true,
       message: 'Login successful',
       data: { accessToken, expiresInSeconds, user, ...session },
+    };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    await this.authService.requestPasswordReset(dto, req.ip);
+    return {
+      success: true,
+      message: 'If an account exists, password reset instructions have been sent',
+      data: null,
+    };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto);
+    return {
+      success: true,
+      message: 'Password reset successfully',
+      data: null,
     };
   }
 
@@ -112,8 +139,10 @@ export class AuthController {
   async changePassword(
     @Body() dto: ChangeOwnPasswordDto,
     @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.changeOwnPassword(user.id, dto);
+    this.clearRefreshCookie(res);
     return {
       success: true,
       message: 'Password changed successfully',
@@ -127,6 +156,14 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: COOKIE_TTL_MS,
+    });
+  }
+
+  private clearRefreshCookie(res: Response) {
+    res.clearCookie(COOKIE_NAME, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
     });
   }
 }

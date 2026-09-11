@@ -110,7 +110,6 @@ export function ProjectAssignmentEditor({
     <View style={styles.root}>
       <FormField
         label={t('assignment.responsibility')}
-        optional
         helperText={t('assignment.responsibilityHelp')}
       >
         <Input
@@ -137,7 +136,7 @@ export function ProjectAssignmentEditor({
       </FormField>
 
       <View style={styles.dateRow}>
-        <FormField label={t('assignment.startDate')} optional error={errors.startsOn} style={styles.dateField}>
+        <FormField label={t('assignment.startDate')} error={errors.startsOn} style={styles.dateField}>
           <DateInput
             accessibilityLabel={t('assignment.startDateA11y')}
             invalid={Boolean(errors.startsOn)}
@@ -145,7 +144,7 @@ export function ProjectAssignmentEditor({
             onChangeText={(startsOn) => update({ startsOn })}
           />
         </FormField>
-        <FormField label={t('assignment.endDate')} optional error={errors.endsOn} style={styles.dateField}>
+        <FormField label={t('assignment.endDate')} error={errors.endsOn} style={styles.dateField}>
           <DateInput
             accessibilityLabel={t('assignment.endDateA11y')}
             invalid={Boolean(errors.endsOn)}

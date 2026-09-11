@@ -163,7 +163,7 @@ Evidence:
 | --- | --- | --- |
 | Authentication | complete for email/password MVP foundation | `apps/api/src/modules/auth`, `apps/web/src/features/auth`, `apps/mobile/src/features/auth` |
 | Refresh-token flow | partial | API issues HTTP-only refresh cookie and web retries refresh; mobile does not implement refresh-token storage/rotation yet. Evidence: `apps/api/src/modules/auth/auth.controller.ts`, `apps/web/src/lib/api/api-client.ts`, `apps/mobile/src/providers/session-provider.tsx` |
-| Password recovery | missing | Change-password exists, but forgot/reset password flow was not found. Evidence: `apps/api/src/modules/auth/dto/change-own-password.dto.ts`, no reset module/routes found by repository scan |
+| Password recovery | implementation complete, DB/runtime pending | API recovery/change-password contracts, migration 024, SMTP template, Mobile en/hi/gu recovery/account screens, and Web recovery/profile integration exist. Migration execution, outbound email, authenticated runtime, and device/browser acceptance remain pending. |
 | Users | complete for foundation | API/web user management exists. Evidence: `apps/api/src/modules/users`, `apps/web/src/features/user-management`, `apps/web/src/app/(app)/users` |
 | Roles | complete for foundation | API/web role and permission management exists. Evidence: `apps/api/src/modules/roles`, `apps/web/src/features/user-management`, `apps/web/src/app/(app)/roles` |
 | Permissions | partial | Foundation permissions exist and are seeded; construction module permissions are not yet added. Evidence: `packages/shared/src/constants/permissions.ts`, `apps/api/scripts/seed.ts` |

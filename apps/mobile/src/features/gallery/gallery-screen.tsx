@@ -957,7 +957,7 @@ function CaptureSheet({
           ))}
         </ScrollView>
       </FormField>
-      <FormField label={t("fields.stage")} optional>
+      <FormField label={t("fields.stage")}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -980,7 +980,6 @@ function CaptureSheet({
       </FormField>
       <FormField
         label={t("fields.caption")}
-        optional
         helperText={t("fields.captionHelper")}
       >
         <Input

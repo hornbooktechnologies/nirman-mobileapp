@@ -1,5 +1,6 @@
 {
   "detail": {
+    "addProject": "Add project",
     "title": "Project",
     "chooseProject": "Choose a project",
     "unavailableTitle": "Project unavailable",
@@ -22,6 +23,8 @@
     "summaryA11y": "{{name}}, {{status}}"
   },
   "form": {
+    "createdTitle": "Project created",
+    "createdDescription": "{{name}} has been saved. Refresh access to open it.",
     "newTitle": "New project",
     "editTitle": "Edit project",
     "newDescription": "Create the workspace, then add its team and workers.",
@@ -32,6 +35,7 @@
       "details": "Details"
     },
     "fields": {
+      "addressLine2": "Address line 2",
       "name": "Name",
       "projectName": "Project name",
       "code": "Code",
@@ -45,16 +49,17 @@
       "startDate": "Start date",
       "expectedCompletion": "Expected completion",
       "description": "Description",
-      "optional": "Optional",
       "dateFormat": "YYYY-MM-DD"
     },
     "actions": {
+      "openProject": "Open project",
       "cancel": "Cancel",
       "saving": "Saving…",
       "saveChanges": "Save changes",
       "create": "Create"
     },
     "errors": {
+      "refreshFailed": "Project created, but access could not be refreshed. Try opening it again.",
       "nameRequired": "Project name is required.",
       "completionBeforeStart": "Expected completion cannot be before the start date.",
       "saveFailed": "Unable to save project"

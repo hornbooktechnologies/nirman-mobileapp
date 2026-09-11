@@ -91,10 +91,10 @@ export function AttendanceExceptionSheet({
           ))}
         </View>
       </FormField>
-      <FormField label={t('form.reason')} optional>
+      <FormField label={t('form.reason')}>
         <Input accessibilityLabel={t('form.reason')} maxLength={80} value={draft.reasonCode} onChangeText={(reasonCode) => onChange({ ...draft, reasonCode })} />
       </FormField>
-      <FormField label={t('form.notes')} optional>
+      <FormField label={t('form.notes')}>
         <Input
           accessibilityLabel={t('form.notes')}
           maxLength={2000}

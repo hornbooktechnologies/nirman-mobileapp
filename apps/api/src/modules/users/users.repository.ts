@@ -178,6 +178,21 @@ export class UsersRepository {
     );
   }
 
+  async updatePasswordAndRevokeSessions(id: string, password: string) {
+    await this.database.transaction(async (connection) => {
+      await this.database.execute(
+        "UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",
+        [password, id],
+        connection,
+      );
+      await this.database.execute(
+        "DELETE FROM refreshtoken WHERE userId = ?",
+        [id],
+        connection,
+      );
+    });
+  }
+
   async delete(id: string) {
     await this.database.execute(
       "UPDATE `user` SET isActive = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",

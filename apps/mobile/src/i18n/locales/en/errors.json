@@ -7,7 +7,9 @@
   "server": "NirmanSite is temporarily unavailable. Try again shortly.",
   "api": {
     "AUTH_INVALID_CREDENTIALS": "The email or password is incorrect.",
+    "AUTH_CURRENT_PASSWORD_INVALID": "Your current password is incorrect.",
     "AUTH_PASSWORD_WEAK": "Use a stronger password with at least 8 characters.",
+    "AUTH_PASSWORD_RESET_INVALID": "This password reset link is invalid or expired. Request a new link.",
     "AUTH_RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
     "AUTH_SESSION_REQUIRED": "Your session has expired. Sign in again.",
     "PERMISSION_DENIED": "You do not have permission to do this.",

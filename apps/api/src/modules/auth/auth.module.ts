@@ -7,9 +7,10 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { ProjectAccessModule } from '../project-access/project-access.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), ProjectAccessModule],
+  imports: [PassportModule, JwtModule.register({}), ProjectAccessModule, EmailModule],
   controllers: [AuthController],
   providers: [AuthService, AuthRepository, JwtStrategy, JwtRefreshStrategy],
   exports: [AuthService],

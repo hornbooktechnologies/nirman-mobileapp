@@ -45,6 +45,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="team" />
       <Stack.Screen name="members" />
       <Stack.Screen name="menu" />
+      <Stack.Screen name="account-security" />
     </Stack>
   );
 }

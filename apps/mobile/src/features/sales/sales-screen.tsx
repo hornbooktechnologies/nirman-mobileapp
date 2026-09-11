@@ -708,7 +708,7 @@ export function SalesScreen() {
               }}
             />
           </FormField>
-          <FormField label={t('fields.email')} optional error={leadFieldErrors.email}>
+          <FormField label={t('fields.email')} error={leadFieldErrors.email}>
             <Input
               autoCapitalize="none"
               invalid={Boolean(leadFieldErrors.email)}
@@ -724,10 +724,10 @@ export function SalesScreen() {
               }}
             />
           </FormField>
-          <FormField label={t('fields.preferredUnitType')} optional>
+          <FormField label={t('fields.preferredUnitType')}>
             <Input value={leadDraft.preferredUnitType ?? ''} onChangeText={(preferredUnitType) => setLeadDraft({ ...leadDraft, preferredUnitType })} />
           </FormField>
-          <FormField label={t('fields.budgetMin')} optional error={leadFieldErrors.budgetMin}>
+          <FormField label={t('fields.budgetMin')} error={leadFieldErrors.budgetMin}>
             <Input
               invalid={Boolean(leadFieldErrors.budgetMin)}
               keyboardType="decimal-pad"
@@ -746,7 +746,7 @@ export function SalesScreen() {
               }}
             />
           </FormField>
-          <FormField label={t('fields.budgetMax')} optional error={leadFieldErrors.budgetMax}>
+          <FormField label={t('fields.budgetMax')} error={leadFieldErrors.budgetMax}>
             <Input
               invalid={Boolean(leadFieldErrors.budgetMax)}
               keyboardType="decimal-pad"
@@ -822,19 +822,19 @@ export function SalesScreen() {
           </FormField>
           <View style={styles.fieldRow}>
             <View style={styles.fieldColumn}>
-              <FormField label={t('fields.wingTower')} optional>
+              <FormField label={t('fields.wingTower')}>
                 <Input value={unitDraft.wingTower ?? ''} onChangeText={(wingTower) => setUnitDraft({ ...unitDraft, wingTower })} />
               </FormField>
             </View>
             <View style={styles.fieldColumn}>
-              <FormField label={t('fields.floor')} optional>
+              <FormField label={t('fields.floor')}>
                 <Input value={unitDraft.floor ?? ''} onChangeText={(floor) => setUnitDraft({ ...unitDraft, floor })} />
               </FormField>
             </View>
           </View>
           <View style={styles.fieldRow}>
             <View style={styles.fieldColumn}>
-              <FormField label={t('fields.areaSqft')} required={unitDraft.priceBasis === 'PER_SQFT'} optional={unitDraft.priceBasis !== 'PER_SQFT'} error={unitFieldErrors.areaSqft}>
+              <FormField label={t('fields.areaSqft')} required={unitDraft.priceBasis === 'PER_SQFT'} error={unitFieldErrors.areaSqft}>
                 <Input
                   invalid={Boolean(unitFieldErrors.areaSqft)}
                   keyboardType="decimal-pad"
@@ -854,7 +854,7 @@ export function SalesScreen() {
               </FormField>
             </View>
             <View style={styles.fieldColumn}>
-              <FormField label={t('fields.facing')} optional>
+              <FormField label={t('fields.facing')}>
                 <Input value={unitDraft.facing ?? ''} onChangeText={(facing) => setUnitDraft({ ...unitDraft, facing })} />
               </FormField>
             </View>
@@ -963,7 +963,7 @@ export function SalesScreen() {
             </View>
           }
         >
-          <FormField label={t('fields.outcome')} optional>
+          <FormField label={t('fields.outcome')}>
             <Input multiline numberOfLines={3} value={outcome} onChangeText={setOutcome} style={styles.multiline} />
           </FormField>
         </BottomSheet>
@@ -1000,16 +1000,16 @@ export function SalesScreen() {
               </FormField>
             </View>
           ) : null}
-          <FormField label={t('fields.attendeeCount')} optional>
+          <FormField label={t('fields.attendeeCount')}>
             <Input accessibilityLabel={t('fields.attendeeCount')} keyboardType="number-pad" value={visitAttendeeCount} onChangeText={(value) => setVisitAttendeeCount(value.replace(/\D/g, '').slice(0, 4))} />
           </FormField>
-          <FormField label={t('fields.customerFeedback')} optional>
+          <FormField label={t('fields.customerFeedback')}>
             <Input multiline numberOfLines={3} value={visitFeedback} onChangeText={setVisitFeedback} style={styles.multiline} />
           </FormField>
-          <FormField label={t('fields.objectionsConcerns')} optional>
+          <FormField label={t('fields.objectionsConcerns')}>
             <Input multiline numberOfLines={3} value={visitObjections} onChangeText={setVisitObjections} style={styles.multiline} />
           </FormField>
-          <FormField label={t('fields.nextAction')} optional>
+          <FormField label={t('fields.nextAction')}>
             <Input multiline numberOfLines={2} value={visitNextAction} onChangeText={setVisitNextAction} style={styles.multiline} />
           </FormField>
         </BottomSheet>

@@ -183,10 +183,10 @@ export function KharchiFormSheet({ visible, organizationId, projectId, accessTok
         <FormField label={t('create.paymentMethod')} required>
           <View style={styles.choiceRow}>{KHARCHI_PAYMENT_METHODS.map((method) => <Pressable key={method} accessibilityRole="radio" accessibilityState={{ checked: paymentMethod === method }} style={({ pressed }) => [styles.choice, paymentMethod === method && styles.choiceSelected, pressed && styles.pressed]} onPress={() => { changed(); setPaymentMethod(method); }}><AppText style={styles.choiceText} weight={700}>{t(`paymentMethod.${method}`)}</AppText></Pressable>)}</View>
         </FormField>
-        <FormField label={t('create.reference')} optional error={fieldErrors.paymentReference}>
+        <FormField label={t('create.reference')} error={fieldErrors.paymentReference}>
           <Input maxLength={120} value={paymentReference} onChangeText={(value) => { changed(); setPaymentReference(value); setFieldErrors((current) => ({ ...current, paymentReference: undefined })); }} />
         </FormField>
-        <FormField label={t('create.notes')} optional error={fieldErrors.notes}>
+        <FormField label={t('create.notes')} error={fieldErrors.notes}>
           <Input multiline maxLength={2000} value={notes} onChangeText={(value) => { changed(); setNotes(value); setFieldErrors((current) => ({ ...current, notes: undefined })); }} />
         </FormField>
       </BottomSheet>

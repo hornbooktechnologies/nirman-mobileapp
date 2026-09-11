@@ -1,5 +1,17 @@
 # Current Task
 
+## Password Recovery And Account Security — 2026-09-11
+
+Implemented the approved email recovery mechanism for every active global user identity. The API now provides generic role-neutral forgot-password requests, hashed 15-minute single-use recovery tokens, DB-backed normalized-email/IP throttling, web/mobile reset links through the existing SMTP settings, transactional password reset, and refresh-session revocation. Authenticated password change requires the current password and also revokes refresh sessions. Permanent or generated passwords are never emailed; OTP/2FA remains separately deferred.
+
+Mobile now exposes Forgot password on Login, handles Expo/deep-link resets, and provides Account & Security from the shared Menu for every customer role with en/hi/gu parity. Web now exposes matching forgot/reset pages and upgrades Profile to current/new/confirm password. Migration `024_password_recovery.sql` is prepared but not executed. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Database/runtime, real SMTP, authenticated browser/device, and physical-device acceptance remain pending.
+
+## Mobile Project Creation — 2026-09-11
+
+Implemented the requested Web-to-Mobile project creation parity using the existing Projects API and form. Project now exposes Add project even without a selected project; Home labels its shortcut Create project. Both use organization-level `projects:create`, including Builder owners/admins and Independent Contractor Owners with that permission. Added address line 2, preserved API-supported Draft/Active creation and existing date validation, and localized all new copy in en/hi/gu. The form marks required fields with an asterisk and leaves other labels unadorned.
+
+Successful creation refreshes authorized session access with the new project preferred, then opens its detail. A failed refresh retains the created result and retries access refresh without another create request. In-flight duplicate taps and dismissal are blocked. Focused isolated orchestration checks, locale parity, Mobile type-check, and whitespace checks passed. Authenticated API and physical-device acceptance remain unrun. No API, database, dependency, or role-grant changes.
+
 ## Mobile Brand Assets — 2026-09-10
 
 Replaced legacy Mobile logo references with the supplied horizontal logo on Login/invitation activation, primary stacked logo for splash, orange light icon for the default/Android/favicon, and green dark icon for iOS dark appearance. Auth logo sizing preserves proportions and fits narrow screens. Original assets and backgrounds are unchanged; the text-only and neutral icon variants remain available for future placements. Mobile type-check, resolved Expo configuration, and whitespace checks passed. Native launcher/splash and device visual acceptance remain pending a new native build.

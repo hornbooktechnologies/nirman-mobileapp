@@ -13,6 +13,6 @@ export const profileService = {
     return api.patch<Profile, UpdateProfileInput>("/users/me", input);
   },
   changePassword(input: ChangePasswordInput) {
-    return api.patch<null, ChangePasswordInput>("/users/me/password", input);
+    return api.patch<null, ChangePasswordInput>("/auth/change-password", input);
   },
 };

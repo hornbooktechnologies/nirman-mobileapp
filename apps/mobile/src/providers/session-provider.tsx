@@ -38,7 +38,7 @@ type SessionContextValue = {
   isRefreshing: boolean;
   session: MobileSession | null;
   signIn: (credentials: SignInCredentials) => Promise<void>;
-  refreshSession: () => Promise<void>;
+  refreshSession: (preferredProjectId?: string) => Promise<void>;
   switchActiveProject: (projectId: string) => Promise<void>;
   switchActiveOrganization: (organizationId: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -138,7 +138,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setSession(nextSession);
   }, []);
 
-  const refreshSession = useCallback(async () => {
+  const refreshSession = useCallback(async (preferredProjectId?: string) => {
     if (!session) return;
 
     setIsRefreshing(true);
@@ -155,7 +155,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       const nextSession = mergeSessionPayload(
         session,
         response.data,
-        storedProjectId,
+        preferredProjectId ?? storedProjectId,
       );
 
       await saveStoredSession(nextSession);

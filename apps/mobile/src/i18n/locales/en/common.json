@@ -22,8 +22,7 @@
     "removeA11y": "Remove {{filter}} filter"
   },
   "form": {
-    "required": "required",
-    "optional": "Optional"
+    "required": "required"
   },
   "validation": {
     "required": "{{field}} is required.",

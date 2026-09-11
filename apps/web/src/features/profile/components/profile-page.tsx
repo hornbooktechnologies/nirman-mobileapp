@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LoadingState } from "@/components/ui";
 import {
   Button,
@@ -15,6 +16,7 @@ import {
   useUpdateProfile,
 } from "@/features/profile/hooks/use-profile";
 import type { Profile } from "@/features/profile/types/profile.types";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 export function ProfilePage() {
   const profile = useProfile();
@@ -38,23 +40,35 @@ export function ProfilePage() {
 }
 
 function ProfileEditor({ profile }: { profile: Profile }) {
+  const router = useRouter();
+  const { clearSession } = useAuth();
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone ?? "");
-  const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateProfile.mutate({ name, phone: phone || null });
   }
 
-  function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    changePassword.mutate(
-      { password },
-      { onSuccess: () => setPassword("") },
-    );
+    if (!currentPassword) return setPasswordError("Enter your current password.");
+    if (newPassword.length < 8) return setPasswordError("New password must be at least 8 characters.");
+    if (newPassword !== confirmPassword) return setPasswordError("Passwords do not match.");
+    setPasswordError("");
+    try {
+      await changePassword.mutateAsync({ currentPassword, newPassword });
+      clearSession();
+      router.replace("/login?passwordChanged=1");
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Unable to change password");
+    }
   }
 
   return (
@@ -110,20 +124,41 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 className="mt-6 flex flex-1 flex-col"
                 onSubmit={handlePasswordSubmit}
               >
-                <label className="space-y-1.5 mb-3">
+                <label className="mb-3 block space-y-1.5">
+                  <span className="text-[12px] font-medium text-sub">Current password</span>
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                  />
+                </label>
+                <label className="mb-3 block space-y-1.5">
                   <span className="text-[12px] font-medium text-sub">New password</span>
                   <Input
                     type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
                     minLength={8}
                   />
                 </label>
+                <label className="mb-3 block space-y-1.5">
+                  <span className="text-[12px] font-medium text-sub">Confirm password</span>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    minLength={8}
+                  />
+                </label>
+                {passwordError ? <p className="mb-3 text-[12px] text-danger" role="alert">{passwordError}</p> : null}
                 <div className="mt-6 flex justify-end border-t border-hairline/60 pt-4 lg:mt-auto">
                   <Button
                     className="w-full sm:w-auto sm:min-w-[148px]"
                     type="submit"
-                    disabled={changePassword.isPending || password.length < 8}
+                    disabled={changePassword.isPending || newPassword.length < 8}
                   >
                     {changePassword.isPending ? "Updating" : "Change Password"}
                   </Button>

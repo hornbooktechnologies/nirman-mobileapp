@@ -6,6 +6,11 @@ import {
   buildOrganizationOwnerInvitationEmail,
   type OrganizationOwnerInvitationEmailInput,
 } from "./invitation-email.template";
+import {
+  buildPasswordResetEmail,
+  type PasswordResetEmailInput,
+} from "./password-reset-email.template";
+import { buildPasswordChangedEmail } from "./password-changed-email.template";
 
 @Injectable()
 export class EmailService {
@@ -61,6 +66,99 @@ export class EmailService {
         `Invitation ${invitationId} email delivery failed: ${reason}`,
       );
       return "EMAIL_FAILED";
+    }
+  }
+
+  async sendPasswordReset(
+    requestId: string,
+    input: PasswordResetEmailInput,
+  ): Promise<"EMAIL_SENT" | "EMAIL_FAILED" | "MANUAL"> {
+    try {
+      const settings = await this.settingsService.getAll();
+      const smtp = this.resolveSmtpSettings(settings.email);
+      if (!smtp) {
+        this.logger.log(
+          `Password reset ${requestId} remains undelivered because SMTP is not configured`,
+        );
+        return "MANUAL";
+      }
+
+      const transport = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        requireTLS: smtp.requireTls,
+        auth: smtp.username
+          ? { user: smtp.username, pass: smtp.password }
+          : undefined,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 15_000,
+      });
+      const content = buildPasswordResetEmail(input);
+
+      try {
+        await transport.sendMail({
+          from: { name: smtp.fromName, address: smtp.fromAddress },
+          to: input.recipientEmail,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+        });
+      } finally {
+        transport.close();
+      }
+
+      this.logger.log(`Password reset ${requestId} email was accepted by SMTP`);
+      return "EMAIL_SENT";
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unknown SMTP error";
+      this.logger.warn(
+        `Password reset email delivery failed for request ${requestId}: ${reason}`,
+      );
+      return "EMAIL_FAILED";
+    }
+  }
+
+  async sendPasswordChangedNotice(
+    userId: string,
+    recipientName: string,
+    recipientEmail: string,
+  ) {
+    try {
+      const settings = await this.settingsService.getAll();
+      const smtp = this.resolveSmtpSettings(settings.email);
+      if (!smtp) return "MANUAL" as const;
+      const transport = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        requireTLS: smtp.requireTls,
+        auth: smtp.username
+          ? { user: smtp.username, pass: smtp.password }
+          : undefined,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 15_000,
+      });
+      const content = buildPasswordChangedEmail({ recipientName });
+      try {
+        await transport.sendMail({
+          from: { name: smtp.fromName, address: smtp.fromAddress },
+          to: recipientEmail,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+        });
+      } finally {
+        transport.close();
+      }
+      this.logger.log(`Password change notice for user ${userId} was accepted by SMTP`);
+      return "EMAIL_SENT" as const;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unknown SMTP error";
+      this.logger.warn(`Password change notice for user ${userId} failed: ${reason}`);
+      return "EMAIL_FAILED" as const;
     }
   }
 

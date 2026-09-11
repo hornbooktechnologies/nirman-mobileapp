@@ -2,6 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -47,12 +49,18 @@ function LoginPageContent() {
     <main className="grid min-h-screen place-items-center px-4 py-8">
       <Card className="w-full max-w-[420px]">
         <CardHeader className="items-center text-center">
-          <img
+          <Image
             src={brandAssets.logoFull}
             alt="NirmanSite"
+            width={220}
+            height={80}
             className="mb-3 h-auto w-[220px] max-w-full object-contain"
+            priority
           />
           <CardTitle>Sign in to your workspace</CardTitle>
+          {searchParams.get("passwordChanged") === "1" ? (
+            <p className="rounded-inner border border-success/25 bg-success/5 px-3 py-2 text-[12px] font-medium text-success" role="status">Password changed. Sign in again with your new password.</p>
+          ) : null}
           <p className="max-w-[300px] text-[13px] leading-5 text-sub">
             {searchParams.get("activated") === "1"
               ? "Your organization access is active. Sign in with your account password."
@@ -73,7 +81,10 @@ function LoginPageContent() {
               ) : null}
             </div>
             <div className="space-y-2">
-              <label className="text-[12px] font-semibold text-body">Password</label>
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-[12px] font-semibold text-body">Password</label>
+                <Link className="text-[12px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Forgot password?</Link>
+              </div>
               <Input type="password" {...form.register("password")} />
               {form.formState.errors.password ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.password.message}</p>

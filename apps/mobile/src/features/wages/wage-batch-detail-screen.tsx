@@ -357,7 +357,7 @@ export function WageBatchDetailScreen() {
                       ))}
                     </View>
                   </FormField>
-                  <FormField label={t('payment.reference')} optional>
+                  <FormField label={t('payment.reference')}>
                     <Input value={reference} onChangeText={setReference} placeholder={t('payment.referencePlaceholder')} />
                   </FormField>
                   <Button
@@ -406,7 +406,7 @@ export function WageBatchDetailScreen() {
               >
                 <Input value={adjustmentAmount} onChangeText={setAdjustmentAmount} keyboardType="decimal-pad" inputMode="decimal" />
               </FormField>
-              <FormField label={t('adjustment.notes')} optional>
+              <FormField label={t('adjustment.notes')}>
                 <Input value={itemNotes} onChangeText={setItemNotes} placeholder={t('adjustment.notesPlaceholder')} />
               </FormField>
               <FormError message={adjustmentMode === 'DEDUCT' && adjustmentValue > Number(selectedItem.netAmount) ? t('adjustment.largeDeduction') : undefined} />

@@ -1,5 +1,6 @@
 {
   "detail": {
+    "addProject": "प्रोजेक्ट जोड़ें",
     "title": "प्रोजेक्ट",
     "chooseProject": "प्रोजेक्ट चुनें",
     "unavailableTitle": "प्रोजेक्ट उपलब्ध नहीं है",
@@ -22,6 +23,8 @@
     "summaryA11y": "{{name}}, {{status}}"
   },
   "form": {
+    "createdTitle": "प्रोजेक्ट बन गया",
+    "createdDescription": "{{name}} सहेजा गया है। इसे खोलने के लिए पहुँच रीफ़्रेश करें।",
     "newTitle": "नया प्रोजेक्ट",
     "editTitle": "प्रोजेक्ट संपादित करें",
     "newDescription": "कार्यक्षेत्र बनाएँ, फिर उसकी टीम और श्रमिक जोड़ें।",
@@ -32,6 +35,7 @@
       "details": "विवरण"
     },
     "fields": {
+      "addressLine2": "पते की दूसरी पंक्ति",
       "name": "नाम",
       "projectName": "प्रोजेक्ट का नाम",
       "code": "कोड",
@@ -45,16 +49,17 @@
       "startDate": "आरंभ तिथि",
       "expectedCompletion": "अपेक्षित पूर्णता",
       "description": "विवरण",
-      "optional": "वैकल्पिक",
       "dateFormat": "YYYY-MM-DD"
     },
     "actions": {
+      "openProject": "प्रोजेक्ट खोलें",
       "cancel": "रद्द करें",
       "saving": "सहेजा जा रहा है…",
       "saveChanges": "बदलाव सहेजें",
       "create": "बनाएँ"
     },
     "errors": {
+      "refreshFailed": "प्रोजेक्ट बन गया, लेकिन पहुँच रीफ़्रेश नहीं हो सकी। इसे फिर से खोलने की कोशिश करें।",
       "nameRequired": "प्रोजेक्ट का नाम आवश्यक है।",
       "completionBeforeStart": "अपेक्षित पूर्णता तिथि आरंभ तिथि से पहले नहीं हो सकती।",
       "saveFailed": "प्रोजेक्ट सहेजा नहीं जा सका"

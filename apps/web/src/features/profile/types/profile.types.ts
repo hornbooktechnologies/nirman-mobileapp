@@ -20,5 +20,6 @@ export interface UpdateProfileInput {
 }
 
 export interface ChangePasswordInput {
-  password: string;
+  currentPassword: string;
+  newPassword: string;
 }

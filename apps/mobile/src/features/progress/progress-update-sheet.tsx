@@ -183,7 +183,6 @@ export function ProgressUpdateSheet({
       <FormField
         label={t('fields.notes')}
         required={Number(percentage) < current}
-        optional={Number(percentage) >= current}
         helperText={Number(percentage) < current ? t('update.regressionHelp') : t('update.notesHelp')}
       >
         <Input

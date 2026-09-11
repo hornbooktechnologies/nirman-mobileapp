@@ -36,6 +36,7 @@ type ProjectForm = {
   type: ProjectType;
   status: ProjectStatus;
   line1: string;
+  line2: string;
   city: string;
   state: string;
   postalCode: string;
@@ -53,6 +54,7 @@ function initialForm(project?: Project): ProjectForm {
     type: project?.type ?? 'RESIDENTIAL',
     status: project?.status ?? 'DRAFT',
     line1: project?.address.line1 ?? '',
+    line2: project?.address.line2 ?? '',
     city: project?.address.city ?? '',
     state: project?.address.state ?? '',
     postalCode: project?.address.postalCode ?? '',
@@ -78,6 +80,7 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
     : ['DRAFT', 'ACTIVE'];
 
   async function submit() {
+    if (saving) return;
     setError('');
     const nextFieldErrors: ProjectFormErrors = {};
     if (!form.name.trim()) {
@@ -108,6 +111,7 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
         status: form.status,
         address: {
           line1: form.line1.trim() || null,
+          line2: form.line2.trim() || null,
           city: form.city.trim() || null,
           state: form.state.trim() || null,
           postalCode: form.postalCode.trim() || null,
@@ -128,10 +132,10 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
       showCloseButton={false}
       title={project ? t('form.editTitle') : t('form.newTitle')}
       description={project ? project.name : t('form.newDescription')}
-      onClose={onClose}
+      onClose={() => { if (!saving) onClose(); }}
       footer={(
         <>
-          <Button label={t('form.actions.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} />
+          <Button label={t('form.actions.cancel')} disabled={saving} variant="secondary" style={styles.footerButton} onPress={onClose} />
           <Button
             label={saving ? t('form.actions.saving') : project ? t('form.actions.saveChanges') : t('form.actions.create')}
             variant={project ? 'brand' : 'primary'}
@@ -145,17 +149,18 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
       <FormError message={error} />
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.basics')}</AppText>
       <FormField label={t('form.fields.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} maxLength={120} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
-      <FormField label={t('form.fields.code')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.projectCode')} maxLength={40} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
+      <FormField label={t('form.fields.code')}><Input accessibilityLabel={t('form.fields.projectCode')} maxLength={40} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
       <FormField label={t('form.fields.type')} required><ChoiceRow values={PROJECT_TYPES} selected={form.type} getLabel={(value) => t(projectTypeTranslationKeys[value])} onSelect={(type) => setForm({ ...form, type })} /></FormField>
       <FormField label={t('form.fields.status')} required><ChoiceRow values={allowedStatuses} selected={form.status} getLabel={(value) => t(projectStatusTranslationKeys[value])} onSelect={(status) => setForm({ ...form, status })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.location')}</AppText>
-      <FormField label={t('form.fields.addressLine')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.addressLine')} maxLength={180} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
-      <View style={styles.row}><FormField label={t('form.fields.city')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} maxLength={100} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} optional optionalLabel={t('form.fields.optional')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} maxLength={100} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
-      <FormField label={t('form.fields.postalCode')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" maxLength={20} value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
+      <FormField label={t('form.fields.addressLine')}><Input accessibilityLabel={t('form.fields.addressLine')} maxLength={180} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
+      <FormField label={t('form.fields.addressLine2')}><Input accessibilityLabel={t('form.fields.addressLine2')} maxLength={180} value={form.line2} onChangeText={(line2) => setForm({ ...form, line2 })} /></FormField>
+      <View style={styles.row}><FormField label={t('form.fields.city')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} maxLength={100} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} maxLength={100} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
+      <FormField label={t('form.fields.postalCode')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" maxLength={20} value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.timeline')}</AppText>
-      <View style={styles.row}><FormField label={t('form.fields.startDate')} optional optionalLabel={t('form.fields.optional')} error={fieldErrors.startDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.startDate')} invalid={Boolean(fieldErrors.startDate)} value={form.startDate} onChangeText={(startDate) => { setForm({ ...form, startDate }); setFieldErrors((current) => ({ ...current, startDate: undefined, expectedCompletionDate: undefined })); }} /></FormField><FormField label={t('form.fields.expectedCompletion')} optional optionalLabel={t('form.fields.optional')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} minimumDate={parseDateOnly(form.startDate) ?? undefined} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => { setForm({ ...form, expectedCompletionDate }); if (fieldErrors.expectedCompletionDate) setFieldErrors((current) => ({ ...current, expectedCompletionDate: undefined })); }} /></FormField></View>
+      <View style={styles.row}><FormField label={t('form.fields.startDate')} error={fieldErrors.startDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.startDate')} invalid={Boolean(fieldErrors.startDate)} value={form.startDate} onChangeText={(startDate) => { setForm({ ...form, startDate }); setFieldErrors((current) => ({ ...current, startDate: undefined, expectedCompletionDate: undefined })); }} /></FormField><FormField label={t('form.fields.expectedCompletion')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} minimumDate={parseDateOnly(form.startDate) ?? undefined} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => { setForm({ ...form, expectedCompletionDate }); if (fieldErrors.expectedCompletionDate) setFieldErrors((current) => ({ ...current, expectedCompletionDate: undefined })); }} /></FormField></View>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.details')}</AppText>
-      <FormField label={t('form.fields.description')} optional optionalLabel={t('form.fields.optional')}><Input accessibilityLabel={t('form.fields.description')} maxLength={2000} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
+      <FormField label={t('form.fields.description')}><Input accessibilityLabel={t('form.fields.description')} maxLength={2000} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
     </BottomSheet>
   );
 }

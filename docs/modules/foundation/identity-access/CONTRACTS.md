@@ -446,6 +446,9 @@ Current implementation:
 - Sets refresh token in HTTP-only cookie.
 - `POST /auth/refresh` returns a new access token and rotates refresh token.
 - `GET /auth/me` returns user, role, and permissions.
+- `POST /auth/forgot-password` accepts an email and always returns the same success response.
+- `POST /auth/reset-password` consumes a single-use recovery token and revokes refresh sessions.
+- `PATCH /auth/change-password` requires the current password and revokes refresh sessions.
 - Mobile currently stores a placeholder access token and username.
 
 Target contract:
@@ -531,6 +534,8 @@ Current implemented endpoints:
 
 ```text
 POST   /auth/login
+POST   /auth/forgot-password
+POST   /auth/reset-password
 POST   /auth/refresh
 POST   /auth/logout
 GET    /auth/me
@@ -562,6 +567,8 @@ Target Identity Access endpoints:
 
 ```text
 POST   /auth/login
+POST   /auth/forgot-password
+POST   /auth/reset-password
 POST   /auth/login/otp/request
 POST   /auth/login/otp/verify
 POST   /auth/refresh
@@ -599,6 +606,21 @@ PUT    /organizations/:organizationId/projects/:projectId/members/:memberId
 DELETE /organizations/:organizationId/projects/:projectId/members/:memberId
 POST   /organizations/:organizationId/projects/:projectId/switch
 ```
+
+### Password recovery and account security
+
+- Recovery belongs to the global user identity and is available to every active user role. It does not change roles, memberships, project access, or account activation state.
+- `POST /auth/forgot-password` accepts `{ "email": "user@example.com" }` and returns HTTP 200 with the same generic message for existing, inactive, and unknown identities.
+- Recovery requests are throttled per normalized-email hash and requesting-IP hash. Raw email/IP values are not stored in the recovery table.
+- For an active identity, the API generates a cryptographically random token, stores only its SHA-256 hash, invalidates previous unused requests, and sends web/mobile reset links through configured SMTP.
+- Tokens expire after 15 minutes and are single-use. Neither API responses nor logs expose the raw token.
+- `POST /auth/reset-password` accepts `{ "token": "...", "newPassword": "..." }`. A successful reset hashes the password, consumes every outstanding reset request for the identity, and revokes all refresh tokens transactionally.
+- Invalid, expired, already-used, inactive-user, and unknown-user tokens return `AUTH_PASSWORD_RESET_INVALID` without identifying an account.
+- Recovery does not create a login session; clients return the user to Login.
+- A successful recovery or authenticated password change sends an account-security notice to the identity email when SMTP is configured; delivery failure does not roll back the completed password change.
+- Account settings use `PATCH /auth/change-password` with `{ "currentPassword": "...", "newPassword": "..." }`. Successful change revokes refresh sessions and clients require sign-in again.
+- The compatibility route `PATCH /users/me/password` has the same current/new password requirement. New clients use `/auth/change-password`.
+- The system never emails a generated password. Email OTP/login 2FA remains separate and unimplemented pending the existing provider/rate-limit decision.
 
 ## 16. Request And Response Schemas
 
@@ -720,6 +742,8 @@ AUTH_REFRESH_TOKEN_INVALID
 AUTH_REFRESH_TOKEN_REVOKED
 AUTH_SESSION_REQUIRED
 AUTH_PASSWORD_WEAK
+AUTH_CURRENT_PASSWORD_INVALID
+AUTH_PASSWORD_RESET_INVALID
 AUTH_OTP_INVALID
 AUTH_OTP_EXPIRED
 AUTH_RATE_LIMITED
@@ -758,6 +782,7 @@ SERVER_ERROR
 - User email must be valid and normalized to lowercase.
 - Mobile number format must be approved before OTP implementation.
 - Password minimum remains at least 8 characters; stronger policy requires approval.
+- Password recovery tokens must contain at least 32 characters before hashing/lookup, expire after 15 minutes, and be single-use.
 - A login identity must be unique within the selected authentication strategy.
 - Organisation name is required.
 - Organisation type must be `BUILDER` or `CONTRACTOR`.
@@ -771,7 +796,7 @@ SERVER_ERROR
 
 ## 19. Database Table Plan
 
-No migration is approved by this draft.
+Migration `024_password_recovery.sql` adds `password_reset_requests`. Source is implemented; database execution remains separately approval-gated.
 
 Current implemented foundation tables may still use inherited compatibility names in code:
 
@@ -871,6 +896,10 @@ role_permissions unique (role_id, permission_id)
 projects unique (organization_id, project_code)
 project_members unique (project_id, member_id)
 refresh_tokens index (user_id, token_hash)
+password_reset_requests unique (token_hash)
+password_reset_requests index (email_hash, created_at)
+password_reset_requests index (requested_ip_hash, created_at)
+password_reset_requests index (user_id, used_at, expires_at)
 ```
 
 ## 20. Audit Events
@@ -1019,6 +1048,12 @@ Auth:
 - refresh rotates token
 - revoked refresh token cannot be reused
 - logout revokes current refresh token
+- forgot-password returns the same response for active, inactive, and unknown emails
+- recovery requests are throttled without revealing account existence
+- raw recovery tokens/email/IP values are not stored in the recovery table
+- valid reset changes the password, consumes outstanding requests, and revokes refresh sessions
+- invalid, expired, and reused reset tokens fail with AUTH_PASSWORD_RESET_INVALID
+- authenticated password change requires the current password and revokes refresh sessions
 
 Organisation:
 - active member can load organisation

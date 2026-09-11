@@ -9,8 +9,6 @@ type FormFieldProps = ViewProps & {
   helperText?: string;
   error?: string;
   required?: boolean;
-  optional?: boolean;
-  optionalLabel?: string;
 };
 
 export function FormField({
@@ -18,15 +16,12 @@ export function FormField({
   helperText,
   error,
   required = false,
-  optional = false,
-  optionalLabel,
   children,
   style,
   ...props
 }: FormFieldProps) {
   const { t } = useTranslation('common');
-  const resolvedOptionalLabel = optionalLabel ?? t('form.optional');
-  const fieldRequirement = required ? t('form.required') : optional ? resolvedOptionalLabel : undefined;
+  const fieldRequirement = required ? t('form.required') : undefined;
 
   return (
     <View style={[styles.field, style]} {...props}>
@@ -37,7 +32,6 @@ export function FormField({
       >
         {label}
         {required ? <AppText style={styles.requiredIndicator} weight={700}> *</AppText> : null}
-        {!required && optional ? <AppText style={styles.optionalLabel} weight={500}> ({resolvedOptionalLabel})</AppText> : null}
       </AppText>
       {children}
       {error ? (
@@ -69,9 +63,6 @@ const styles = StyleSheet.create({
   },
   requiredIndicator: {
     color: mobileTheme.color.status.danger.foreground,
-  },
-  optionalLabel: {
-    color: mobileTheme.color.text.secondary,
   },
   helper: {
     ...mobileText.caption,

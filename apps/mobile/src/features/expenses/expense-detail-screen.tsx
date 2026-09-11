@@ -482,7 +482,6 @@ function CommandSheet({
       <FormField
         label={t("fields.reason")}
         required={required}
-        optional={!required}
         error={
           required && reason.length > 0 && reason.trim().length < 2
             ? t("validation.reasonRequired")

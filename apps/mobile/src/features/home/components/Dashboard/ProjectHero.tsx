@@ -38,6 +38,7 @@ export function ProjectHero(props: ProjectHeroProps) {
         resizeMode="cover"
         style={[styles.background, { transform: [{ translateY }] }]}
       />
+      <View accessible={false} style={styles.backgroundOverlay} />
       <View style={styles.top}>
         <View style={styles.eyebrow}>
           <View style={styles.dot} />
@@ -121,6 +122,10 @@ const styles = StyleSheet.create({
     left: -610,
     top: -60,
     width: 1440,
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
   },
   top: {
     flexDirection: "row",

@@ -6,6 +6,20 @@ import { UserRow } from '../users/users.types';
 import { mapUserRow } from '../users/users.repository';
 import { UserWithRolePermissions, RefreshTokenWithUser } from './types/auth-db.types';
 
+interface CountRow extends DbRow {
+  total: number;
+}
+
+interface PasswordResetRow extends DbRow {
+  id: string;
+  user_id: string | null;
+  expires_at: Date;
+  used_at: Date | null;
+  user_is_active: number | boolean | null;
+  user_name: string | null;
+  user_email: string | null;
+}
+
 interface PermissionJoinRow extends DbRow {
   permission_id: string;
   permission_resource: string;
@@ -102,6 +116,139 @@ export class AuthRepository {
 
   async deleteRefreshToken(token: string) {
     await this.database.execute('DELETE FROM refreshtoken WHERE token = ?', [token]);
+  }
+
+  async countRecentPasswordResetRequests(
+    emailHash: string,
+    requestedIpHash: string | null,
+    since: Date,
+  ) {
+    const emailRows = await this.database.query<CountRow>(
+      `SELECT COUNT(*) AS total
+      FROM password_reset_requests
+      WHERE email_hash = ? AND created_at >= ?`,
+      [emailHash, since],
+    );
+    let ipTotal = 0;
+    if (requestedIpHash) {
+      const ipRows = await this.database.query<CountRow>(
+        `SELECT COUNT(*) AS total
+        FROM password_reset_requests
+        WHERE requested_ip_hash = ? AND created_at >= ?`,
+        [requestedIpHash, since],
+      );
+      ipTotal = Number(ipRows[0]?.total ?? 0);
+    }
+    return {
+      emailTotal: Number(emailRows[0]?.total ?? 0),
+      ipTotal,
+    };
+  }
+
+  async createPasswordResetRequest(input: {
+    userId: string | null;
+    emailHash: string;
+    tokenHash: string;
+    requestedIpHash: string | null;
+    expiresAt: Date;
+  }) {
+    const id = randomUUID();
+    await this.database.transaction(async (connection) => {
+      await this.database.execute(
+        `UPDATE password_reset_requests
+        SET used_at = CURRENT_TIMESTAMP(3)
+        WHERE email_hash = ? AND used_at IS NULL`,
+        [input.emailHash],
+        connection,
+      );
+      await this.database.execute(
+        `INSERT INTO password_reset_requests
+          (id, user_id, email_hash, token_hash, requested_ip_hash, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          input.userId,
+          input.emailHash,
+          input.tokenHash,
+          input.requestedIpHash,
+          input.expiresAt,
+        ],
+        connection,
+      );
+    });
+    return id;
+  }
+
+  async completePasswordReset(tokenHash: string, passwordHash: string) {
+    return this.database.transaction(async (connection) => {
+      const rows = await this.database.query<PasswordResetRow>(
+        `SELECT
+          prr.id,
+          prr.user_id,
+          prr.expires_at,
+          prr.used_at,
+          u.isActive AS user_is_active,
+          u.name AS user_name,
+          u.email AS user_email
+        FROM password_reset_requests prr
+        LEFT JOIN \`user\` u ON u.id = prr.user_id
+        WHERE prr.token_hash = ?
+        LIMIT 1
+        FOR UPDATE`,
+        [tokenHash],
+        connection,
+      );
+      const request = rows[0];
+      if (
+        !request ||
+        !request.user_id ||
+        request.used_at ||
+        request.expires_at.getTime() <= Date.now() ||
+        !(request.user_is_active === true || request.user_is_active === 1)
+      ) {
+        return null;
+      }
+
+      await this.database.execute(
+        `UPDATE \`user\`
+        SET password = ?, updatedAt = CURRENT_TIMESTAMP(3)
+        WHERE id = ?`,
+        [passwordHash, request.user_id],
+        connection,
+      );
+      await this.database.execute(
+        `UPDATE password_reset_requests
+        SET used_at = CURRENT_TIMESTAMP(3)
+        WHERE user_id = ? AND used_at IS NULL`,
+        [request.user_id],
+        connection,
+      );
+      await this.database.execute(
+        'DELETE FROM refreshtoken WHERE userId = ?',
+        [request.user_id],
+        connection,
+      );
+      return {
+        userId: request.user_id,
+        name: request.user_name ?? 'NirmanSite user',
+        email: request.user_email ?? '',
+      };
+    });
+  }
+
+  async updatePasswordAndRevokeSessions(userId: string, password: string) {
+    await this.database.transaction(async (connection) => {
+      await this.database.execute(
+        'UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?',
+        [password, userId],
+        connection,
+      );
+      await this.database.execute(
+        'DELETE FROM refreshtoken WHERE userId = ?',
+        [userId],
+        connection,
+      );
+    });
   }
 
   async updatePassword(userId: string, password: string) {

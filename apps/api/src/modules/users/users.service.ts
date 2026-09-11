@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -15,6 +16,7 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { QueryUserDto } from "./dto/query-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { UsersRepository } from "./users.repository";
 
 @Injectable()
@@ -59,9 +61,19 @@ export class UsersService {
     return this.usersRepo.updateProfile(id, dto);
   }
 
-  async changePassword(id: string, password: string) {
-    await this.findById(id);
-    await this.usersRepo.updatePassword(id, await bcrypt.hash(password, 12));
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    const user = await this.findById(id);
+    const valid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!valid) {
+      throw new BadRequestException({
+        code: "AUTH_CURRENT_PASSWORD_INVALID",
+        message: "Current password is incorrect",
+      });
+    }
+    await this.usersRepo.updatePasswordAndRevokeSessions(
+      id,
+      await bcrypt.hash(dto.newPassword, 12),
+    );
   }
 
   async delete(id: string, actorId: string) {

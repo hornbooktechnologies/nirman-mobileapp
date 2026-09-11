@@ -1,5 +1,17 @@
 # NirmanSite Progress Ledger
 
+## 2026-09-11 — Password recovery and account security
+
+- Added role-neutral `POST /auth/forgot-password` and `POST /auth/reset-password` flows with generic request responses, 15-minute hashed single-use tokens, normalized-email/IP throttling, transactional completion, refresh-session revocation, and existing-SMTP web/mobile links. Authenticated password change now requires the current password, revokes refresh sessions, clears the Web refresh cookie, and sends a security notice when SMTP is configured. Generated passwords and OTP/2FA are not part of this slice.
+- Mobile exposes Forgot password on Login, handles reset deep links, and provides Account & Security to every customer role from Menu with en/hi/gu parity. Web has matching forgot/reset pages and current/new/confirm password controls in Profile.
+- Migration `024_password_recovery.sql` is prepared but not executed. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Database migration/runtime, real SMTP delivery, authenticated browser/device flows, and physical-device accessibility/large-text/landscape/dark-mode acceptance remain pending.
+
+## 2026-09-11 — Mobile project creation access and Web form parity
+
+- Reused the existing API/form behind a shared CreateProjectSheet on Home and Project. Added an explicit Add project entry available before the first project, clarified the Home shortcut, and included Web's address line 2. Required fields retain asterisks while optional fields use plain labels without redundant Optional suffixes. Existing organization permissions, subscription capacity, Draft/Active rules, and date validation remain authoritative.
+- Refreshes authorized session access and selects/opens the created project; a successful POST followed by failed refresh has a dedicated recovery state that does not repeat creation. Added synchronous duplicate-tap protection and blocked dismissal during save.
+- English/Hindi/Gujarati key and placeholder parity passed. `node apps/mobile/scripts/verify-project-creation.cjs` passed isolated Builder/Contractor, denied permission, rapid-submit, dismissal, create failure, refresh retry, and authorized Draft selection checks. `pnpm --filter @nirman-app/mobile type-check` and whitespace checks passed; authenticated workflows and physical-device keyboard, large-text, and accessibility acceptance unrun.
+
 ## 2026-09-10 — Mobile brand assets
 
 - Wired supplied horizontal-logo.png into Login and invitation activation with responsive contain sizing; primary-logo.png into splash; app-icon-light.png into default/Android/favicon; app-icon-dark.png into iOS dark appearance. Kept original PNGs, backgrounds, existing flows, and unrelated work intact.
@@ -109,6 +121,7 @@ Run authenticated Supervisor and Sales dashboard responses, then complete narrow
 | 48 | Project Progress Mobile integration | implementation_complete_device_acceptance_pending | permission-aware route/Menu/Home data, overall/stage cards, stage-filtered history, export, update sheet, errors/success, and en/hi/gu | 17-namespace parity, Mobile type-check, Android Expo export, and diff check passed; physical-device/accessibility/large-text/landscape/fluent review pending |
 | 49 | Notifications vertical slice | implementation_complete_device_acceptance_pending | formal contract, shared contracts/errors, migration `022`, recipient-safe list/read/summary/device APIs, transactional Expo push outbox with retry, nine customer role grants, localized Mobile inbox/badge/deep links | Remote 23/23 current; schema/grants verified; focused 5/5 and full 31-suite/164-test API passes; shared/API/Mobile checks, 18-namespace locale parity, Android Expo export, and diff check passed; authenticated real-device push/accessibility acceptance pending |
 | 50 | Role-specific Dashboards vertical slice | implementation_complete_device_acceptance_pending | shared role/profile/action contract, aggregated permission-aware API, migration `023`, nine operational role grants, single-request Expo integration, layered blueprint background, role command hero/actions, en/hi/gu | Remote 24/24 current; grants/four indexes verified; focused 2/2 API test, API build/type-check, authenticated Owner six-section smoke, Mobile type-check and locale parity passed; Supervisor/Sales and physical-device acceptance pending |
+| 51 | Password recovery and account security | implementation_complete_migration_runtime_pending | generic role-neutral email recovery, hashed expiring single-use tokens, DB-backed throttling, session revocation, SMTP web/mobile links, Mobile en/hi/gu recovery/account UI, and Web recovery/secure Profile change | Focused 2-suite/6-test API pass plus Shared/API/Mobile/Web type-checks; migration 024, real SMTP, authenticated runtime, browser/device/accessibility acceptance pending |
 
 ## 4. Verification Commands Recorded
 

@@ -11,6 +11,11 @@ interface LoginInput {
   password: string;
 }
 
+interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
+
 interface LoginResponse {
   accessToken: string;
   user: LoginUserResponse;
@@ -122,6 +127,12 @@ export const authService = {
   },
   logout() {
     return api.post<null>("/auth/logout");
+  },
+  forgotPassword(email: string) {
+    return api.post<null, { email: string }>("/auth/forgot-password", { email });
+  },
+  resetPassword(input: ResetPasswordInput) {
+    return api.post<null, ResetPasswordInput>("/auth/reset-password", input);
   },
   async getProfile(organizationId?: string | null) {
     const query = organizationId

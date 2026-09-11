@@ -1,5 +1,6 @@
 {
   "detail": {
+    "addProject": "પ્રોજેક્ટ ઉમેરો",
     "title": "પ્રોજેક્ટ",
     "chooseProject": "પ્રોજેક્ટ પસંદ કરો",
     "unavailableTitle": "પ્રોજેક્ટ ઉપલબ્ધ નથી",
@@ -22,6 +23,8 @@
     "summaryA11y": "{{name}}, {{status}}"
   },
   "form": {
+    "createdTitle": "પ્રોજેક્ટ બની ગયો",
+    "createdDescription": "{{name}} સાચવવામાં આવ્યો છે. તેને ખોલવા માટે ઍક્સેસ રિફ્રેશ કરો.",
     "newTitle": "નવો પ્રોજેક્ટ",
     "editTitle": "પ્રોજેક્ટમાં ફેરફાર કરો",
     "newDescription": "વર્કસ્પેસ બનાવો, પછી તેની ટીમ અને કામદારો ઉમેરો.",
@@ -32,6 +35,7 @@
       "details": "વિગતો"
     },
     "fields": {
+      "addressLine2": "સરનામાની બીજી લાઇન",
       "name": "નામ",
       "projectName": "પ્રોજેક્ટનું નામ",
       "code": "કોડ",
@@ -45,16 +49,17 @@
       "startDate": "શરૂઆતની તારીખ",
       "expectedCompletion": "અપેક્ષિત પૂર્ણતા",
       "description": "વર્ણન",
-      "optional": "વૈકલ્પિક",
       "dateFormat": "YYYY-MM-DD"
     },
     "actions": {
+      "openProject": "પ્રોજેક્ટ ખોલો",
       "cancel": "રદ કરો",
       "saving": "સાચવી રહ્યું છે…",
       "saveChanges": "ફેરફારો સાચવો",
       "create": "બનાવો"
     },
     "errors": {
+      "refreshFailed": "પ્રોજેક્ટ બની ગયો, પરંતુ ઍક્સેસ રિફ્રેશ થઈ શકી નથી. તેને ફરીથી ખોલવાનો પ્રયાસ કરો.",
       "nameRequired": "પ્રોજેક્ટનું નામ જરૂરી છે.",
       "completionBeforeStart": "અપેક્ષિત પૂર્ણતાની તારીખ શરૂઆતની તારીખ પહેલાં હોઈ શકે નહીં.",
       "saveFailed": "પ્રોજેક્ટ સાચવી શકાયો નથી"

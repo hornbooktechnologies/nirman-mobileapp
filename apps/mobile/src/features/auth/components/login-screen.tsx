@@ -188,6 +188,18 @@ export function LoginScreen() {
                 </FormField>
                 <Button
                   disabled={isSubmitting}
+                  fullWidth={false}
+                  label={t("login.forgotPassword")}
+                  variant="ghost"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(auth)/forgot-password",
+                      params: { email: email.trim() },
+                    })
+                  }
+                />
+                <Button
+                  disabled={isSubmitting}
                   loading={isSubmitting}
                   label={
                     isSubmitting ? t("login.signingIn") : t("login.signIn")

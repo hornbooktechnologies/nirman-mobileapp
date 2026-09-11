@@ -678,6 +678,9 @@ For MVP, `INR` is fixed organization configuration rather than a free-text onboa
 - inactive organisation denied access;
 - rate limiting;
 - secure password/OTP handling;
+- self-service email password recovery for every active user identity, independent of role or organisation membership;
+- single-use, expiring recovery links with generic request responses, request throttling, and refresh-session revocation after reset;
+- authenticated password change from account settings using the current password;
 - mobile token storage in platform-secure storage.
 
 ## 9.2 Login response
