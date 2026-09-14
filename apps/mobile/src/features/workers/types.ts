@@ -11,6 +11,7 @@ export type {
   UpdateWorkerPrimaryProjectPeriodInput,
   EndWorkerPrimaryProjectPeriodInput,
   UpdateWorkerProjectAssignmentInput,
+  UpdateWorkerAssignmentRateInput,
   EndWorkerProjectAssignmentInput,
   WorkerDetail,
   WorkerDuplicateCandidate,

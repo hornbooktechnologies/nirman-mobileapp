@@ -35,11 +35,11 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation contract approved as a Workers extension | Implement and verify primary-project-period API in Slice A1; deactivation policy remains separately blocked |
+| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation and assignment-rate history implemented in source | Apply migration 025 and verify owner/supervisor rate-change role matrix; deactivation policy remains separately blocked |
 | 8A | Work Calendar | `docs/modules/calendar/CONTRACT.md` | in_progress | Project Access | Formal contract reconciled; implement and verify Slice A1 API foundation |
 | 9 | Attendance | `docs/modules/attendance/CONTRACT.md` | in_progress | Workers primary periods + Work Calendar + Project Access | Formal exception-model contract reconciled; implement and verify Slice A1 API foundation |
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/kharchi/STATUS.md` | implementation_complete_acceptance_pending | Workers + Wages + reusable Audit Foundation | API/Mobile source, migrations, and approved grants complete; run authenticated role/concurrency and physical-device acceptance |
-| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi | Derived Calendar/Attendance generation and transactional Kharchi allocation implemented; effective-dated rate history remains |
+| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi + Audit | Effective-dated rates and audit-safe unpaid batch cancellation implemented in source; apply migrations 025/026 and run authenticated/device acceptance |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | candidate | Project Access + Audit + Notifications | Contract |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Run authenticated API and Mobile physical-device acceptance |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md`, `docs/modules/construction/progress/STATUS.md` | implementation_complete_device_acceptance_pending | Project Access + Audit; Files/Media and Offline Sync deferred | API/database/Mobile verified; run authenticated write and physical-device acceptance |
@@ -61,7 +61,7 @@ AI agents must read this file before starting new module work.
 
 ## 7. Current Recommendation
 
-Calendar/Attendance Slices A0 through C2 are complete. Wages consumes derived Calendar/Attendance results and creates traceable oldest-first Kharchi allocations during confirmation. Kharchi API/Mobile source, approved migrations, and guarded role grants are complete; authenticated role/concurrency and physical-device acceptance remain. Effective-dated Wage rate history also remains.
+Calendar/Attendance Slices A0 through C2 are complete. Wages consumes derived Calendar/Attendance results, effective-dated assignment rates, and creates traceable oldest-first Kharchi allocations during confirmation. Kharchi API/Mobile source, approved migrations, and guarded role grants are complete; migration `025`, authenticated role/concurrency, and physical-device acceptance remain.
 
 Next document:
 
@@ -71,6 +71,6 @@ docs/tasks/calendar-attendance-exception-model-implementation-plan.md
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.
 
-Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Audit, Attendance/Wages rate history, and persisted offline behavior remain explicit downstream foundation dependencies.
+Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Effective-dated rate history is source-complete but migration/runtime pending; Audit and persisted offline behavior remain downstream foundation dependencies.
 
 The mobile customer shell no longer exposes mock workflows, design-system screens, fake project/team data, or dead tabs. The approved mobile plan now makes organization switching, member invitations, project assignment, and Workers completion the next foundation sequence for Builder, Contractor, Supervisor, Project Manager, and Sales identities.

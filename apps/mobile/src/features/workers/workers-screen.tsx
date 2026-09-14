@@ -49,6 +49,7 @@ import {
   fetchWorkerDuplicateCandidates,
   fetchWorkerPrimaryProjectPeriods,
   updateWorkerPrimaryProjectPeriod,
+  updateWorkerAssignmentRate,
   updateWorkerProjectAssignment,
 } from './services';
 import type {
@@ -61,9 +62,10 @@ import type {
 } from './types';
 
 const TRADE_SUGGESTION_KEYS = ['mason', 'helper', 'carpenter', 'plumber', 'electrician', 'painter'] as const;
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => formatDateOnly(new Date());
 type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
 type PrimaryProjectErrors = Partial<Record<'workerAssignmentId' | 'effectiveDate', string>>;
+type RateChangeErrors = Partial<Record<'dailyRate' | 'effectiveDate', string>>;
 type WorkerFilter = 'all' | 'assigned_here' | 'not_on_project';
 
 function coversDate(startsOn: string, endsOn: string | null, date: string) {
@@ -109,6 +111,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const projectPermissions = activeProject?.permissions ?? getActiveProjectPermissions(session);
   const canCreate = projectPermissions.includes('workers:create');
   const canAssign = projectPermissions.includes('workers:assign-project');
+  const canUpdateRate = projectPermissions.includes('workers:update-rate');
   const [workers, setWorkers] = useState<WorkerSummary[]>([]);
   const [roster, setRoster] = useState<ProjectWorkerRosterItem[]>([]);
   const [search, setSearch] = useState('');
@@ -141,6 +144,11 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: '' });
   const [endError, setEndError] = useState('');
   const [endFieldError, setEndFieldError] = useState('');
+  const [rateWorker, setRateWorker] = useState<ProjectWorkerRosterItem | null>(null);
+  const [rateForm, setRateForm] = useState({ dailyRate: '', effectiveDate: today(), reason: '' });
+  const [rateError, setRateError] = useState('');
+  const [rateSuccess, setRateSuccess] = useState('');
+  const [rateFieldErrors, setRateFieldErrors] = useState<RateChangeErrors>({});
   const hasLoaded = useRef(false);
 
   const loadWorkers = useCallback(async () => {
@@ -222,6 +230,10 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       disabled: assignment.id === primarySourcePeriod?.workerAssignmentId,
       searchTerms: [assignment.projectName ?? '', assignment.projectId],
     }));
+  const primaryMinimumDate = (primaryWorker?.assignments ?? [])
+    .filter((assignment) => assignment.status === 'ACTIVE')
+    .map((assignment) => assignment.startsOn.slice(0, 10))
+    .sort()[0] ?? null;
   const primaryTargetAssignment = primaryWorker?.assignments.find(
     (assignment) => assignment.id === primaryForm.workerAssignmentId,
   ) ?? null;
@@ -232,6 +244,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     setWorkerDetail(null);
     setPrimaryPeriods([]);
     setDetailError('');
+    setRateSuccess('');
     setDetailLoading(true);
     try {
       const [detail, periods] = await Promise.all([
@@ -295,8 +308,6 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       nextErrors.effectiveDate = tCommon('validation.required', { field: t('primary.effectiveDate') });
     } else if (!isValidDateOnly(effectiveDate)) {
       nextErrors.effectiveDate = tCommon('validation.date');
-    } else if (effectiveDate < today()) {
-      nextErrors.effectiveDate = t('primary.pastDate');
     }
     if (
       targetAssignment
@@ -455,6 +466,69 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       await loadWorkers();
     } catch (saveError) {
       setEditError(getLocalizedErrorMessage(saveError, t('errors.generic')));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function canChangeAssignmentRate(worker: ProjectWorkerRosterItem) {
+    return worker.currentAssignment.startsOn.slice(0, 10) < today()
+      ? canUpdateRate
+      : canAssign || canUpdateRate;
+  }
+
+  function openRateChange(worker: ProjectWorkerRosterItem) {
+    setDetailWorker(null);
+    setWorkerDetail(null);
+    setRateWorker(worker);
+    setRateForm({
+      dailyRate: worker.currentAssignment.dailyRate ?? '',
+      effectiveDate: today(),
+      reason: '',
+    });
+    setRateError('');
+    setRateFieldErrors({});
+  }
+
+  async function saveRateChange() {
+    if (!session?.accessToken || !organizationId || !projectId || !rateWorker) return;
+    const nextErrors: RateChangeErrors = {};
+    if (!rateForm.dailyRate.trim() || !isValidNonNegativeNumber(rateForm.dailyRate)) {
+      nextErrors.dailyRate = t('rate.invalid');
+    }
+    if (!rateForm.effectiveDate) {
+      nextErrors.effectiveDate = tCommon('validation.required', { field: t('rate.effectiveDate') });
+    } else if (!isValidDateOnly(rateForm.effectiveDate)) {
+      nextErrors.effectiveDate = tCommon('validation.date');
+    } else if (rateForm.effectiveDate > today()) {
+      nextErrors.effectiveDate = t('rate.futureDate');
+    } else if (!coversDate(rateWorker.currentAssignment.startsOn, rateWorker.currentAssignment.endsOn, rateForm.effectiveDate)) {
+      nextErrors.effectiveDate = t('rate.outsideAssignment');
+    }
+    setRateFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    setRateError('');
+    setIsSubmitting(true);
+    try {
+      await updateWorkerAssignmentRate(
+        organizationId,
+        projectId,
+        rateWorker.id,
+        session.accessToken,
+        {
+          dailyRate: rateForm.dailyRate,
+          effectiveDate: rateForm.effectiveDate,
+          reason: rateForm.reason.trim() || null,
+        },
+      );
+      const changedWorker = rateWorker;
+      setRateWorker(null);
+      await loadWorkers();
+      await openWorkerDetails(changedWorker);
+      setRateSuccess(t('rate.success', { name: changedWorker.name }));
+    } catch (saveError) {
+      setRateError(getLocalizedErrorMessage(saveError, t('errors.generic')));
     } finally {
       setIsSubmitting(false);
     }
@@ -658,11 +732,12 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       ) : null}
 
       {detailWorker ? (
-        <BottomSheet visible scroll title={detailWorker.name} description={t('details.description', { code: detailWorker.workerCode, trade: detailWorker.trade })} onClose={() => { setDetailWorker(null); setWorkerDetail(null); setPrimaryPeriods([]); setDetailError(''); }}>
+        <BottomSheet visible scroll title={detailWorker.name} description={t('details.description', { code: detailWorker.workerCode, trade: detailWorker.trade })} onClose={() => { setDetailWorker(null); setWorkerDetail(null); setPrimaryPeriods([]); setDetailError(''); setRateSuccess(''); }}>
           {detailLoading ? <LoadingState label={t('details.loading')} /> : null}
           {detailError ? <EmptyState title={t('details.loadFailed')} description={detailError} actionLabel={t('details.retry')} onAction={() => void openWorkerDetails(detailWorker)} /> : null}
           {!detailLoading && !detailError && workerDetail ? (
             <>
+              {rateSuccess ? <Card accessibilityLiveRegion="polite" style={styles.rateSuccess}><AppText style={styles.rateSuccessText} weight={700}>{rateSuccess}</AppText></Card> : null}
               <View style={styles.detailFacts}>
                 <View style={styles.detailFact}><AppText style={styles.subtle} weight={600}>{t('details.mobile')}</AppText><AppText style={styles.body} weight={700}>{workerDetail.mobileNumber ?? t('details.noMobile')}</AppText></View>
                 <View style={styles.detailFact}><AppText style={styles.subtle} weight={600}>{t('details.baseRate')}</AppText><AppText style={styles.body} weight={700}>{displayRate(workerDetail.baseDailyRate)}</AppText></View>
@@ -685,14 +760,15 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
                 {activeDetailAssignments.length ? activeDetailAssignments.map(renderAssignmentRow) : <AppText style={styles.subtle}>{t('details.noActiveAssignments')}</AppText>}
               </View>
               {endedDetailAssignments.length ? <View style={styles.assignmentSection}><AppText style={styles.detailSectionTitle} weight={700}>{t('details.assignmentHistory', { count: endedDetailAssignments.length })}</AppText>{endedDetailAssignments.map(renderAssignmentRow)}</View> : null}
-              {canAssign ? <View style={styles.assignmentActions}>
+              {canAssign || canUpdateRate ? <View style={styles.assignmentActions}>
                 {canChangePrimary ? <ActionListItem icon="swap-horizontal" label={currentPrimaryPeriod ? t('primary.changeAction') : t('primary.setAction')} tone="info" onPress={openPrimaryProjectChange} /> : null}
                 {detailProjectWorker ? (
                   <>
-                    <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(detailProjectWorker)} />
-                    <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setEndingWorker(detailProjectWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} />
+                    {canChangeAssignmentRate(detailProjectWorker) ? <ActionListItem icon="cash-edit" label={t('rate.action')} tone="brand" onPress={() => openRateChange(detailProjectWorker)} /> : null}
+                    {canAssign ? <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(detailProjectWorker)} /> : null}
+                    {canAssign ? <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setEndingWorker(detailProjectWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} /> : null}
                   </>
-                ) : <ActionListItem icon="account-plus-outline" label={t('details.assignHere')} tone="brand" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setAssigningWorker(detailWorker); setAssignStartsOn(today()); setAssignError(''); setAssignFieldError(''); }} />}
+                ) : canAssign ? <ActionListItem icon="account-plus-outline" label={t('details.assignHere')} tone="brand" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setAssigningWorker(detailWorker); setAssignStartsOn(today()); setAssignError(''); setAssignFieldError(''); }} /> : null}
               </View> : null}
             </>
           ) : null}
@@ -716,7 +792,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
               showPickerIndicator
               accessibilityLabel={t('primary.effectiveDateA11y')}
               invalid={Boolean(primaryFieldErrors.effectiveDate)}
-              minimumDate={parseDateOnly(today()) ?? undefined}
+              minimumDate={primaryMinimumDate ? parseDateOnly(primaryMinimumDate) ?? undefined : undefined}
               value={primaryForm.effectiveDate}
               onChangeText={(effectiveDate) => {
                 const selectedAssignment = primaryWorker.assignments.find((assignment) => assignment.id === primaryForm.workerAssignmentId);
@@ -762,6 +838,9 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
                 })}
               </AppText>
             ) : null}
+            {primaryForm.effectiveDate < today() ? (
+              <AppText style={styles.primaryCorrectionWarning} weight={600}>{t('primary.retroactiveWarning')}</AppText>
+            ) : null}
           </Card>
         </BottomSheet>
       ) : null}
@@ -770,6 +849,25 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         <BottomSheet visible showCloseButton={false} title={editingWorker.name} description={t('edit.description')} onClose={() => setEditingWorker(null)} footer={<><Button label={t('edit.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEditingWorker(null)} /><Button label={isSubmitting ? t('edit.saving') : t('edit.save')} variant="brand" disabled={isSubmitting} style={styles.footerButton} onPress={() => void saveEdit()} /></>}>
           <FormError message={editError} />
           <View style={styles.dateRow}><FormField label={t('edit.startsOn')} required error={editFieldErrors.startsOn} style={styles.dateField}><DateInput accessibilityLabel={t('edit.startDateA11y')} invalid={Boolean(editFieldErrors.startsOn)} value={editForm.startsOn} onChangeText={(startsOn) => { setEditForm({ ...editForm, startsOn }); setEditFieldErrors((current) => ({ ...current, startsOn: undefined, endsOn: undefined })); }} /></FormField><FormField label={t('edit.endsOn')} error={editFieldErrors.endsOn} style={styles.dateField}><DateInput accessibilityLabel={t('edit.endDateA11y')} invalid={Boolean(editFieldErrors.endsOn)} minimumDate={parseDateOnly(editForm.startsOn) ?? undefined} value={editForm.endsOn} onChangeText={(endsOn) => { setEditForm({ ...editForm, endsOn }); setEditFieldErrors((current) => ({ ...current, endsOn: undefined })); }} /></FormField></View>
+        </BottomSheet>
+      ) : null}
+
+      {rateWorker ? (
+        <BottomSheet visible showCloseButton={false} title={t('rate.title', { name: rateWorker.name })} description={t('rate.description')} onClose={() => setRateWorker(null)} footer={<><Button label={t('rate.cancel')} variant="secondary" disabled={isSubmitting} style={styles.footerButton} onPress={() => setRateWorker(null)} /><Button label={isSubmitting ? t('rate.saving') : t('rate.save')} variant="brand" disabled={isSubmitting} style={styles.footerButton} onPress={() => void saveRateChange()} /></>}>
+          <FormError message={rateError} />
+          <Card variant="blueprint" style={styles.assignmentSummary}>
+            <AppText style={styles.subtle} weight={600}>{t('rate.current')}</AppText>
+            <AppText style={styles.assignmentRate} weight={700}>{displayRate(rateWorker.currentAssignment.dailyRate)}</AppText>
+          </Card>
+          <FormField label={t('rate.newRate')} required error={rateFieldErrors.dailyRate} helperText={t('rate.helper')}>
+            <Input accessibilityLabel={t('rate.newRateA11y')} invalid={Boolean(rateFieldErrors.dailyRate)} keyboardType="decimal-pad" value={rateForm.dailyRate} onChangeText={(dailyRate) => { setRateForm((current) => ({ ...current, dailyRate })); setRateFieldErrors((current) => ({ ...current, dailyRate: undefined })); }} />
+          </FormField>
+          <FormField label={t('rate.effectiveDate')} required error={rateFieldErrors.effectiveDate} helperText={t('rate.effectiveDateHelp')}>
+            <DateInput allowClear={false} showPickerIndicator accessibilityLabel={t('rate.effectiveDateA11y')} invalid={Boolean(rateFieldErrors.effectiveDate)} maximumDate={new Date()} minimumDate={parseDateOnly(rateWorker.currentAssignment.startsOn.slice(0, 10)) ?? undefined} value={rateForm.effectiveDate} onChangeText={(effectiveDate) => { setRateForm((current) => ({ ...current, effectiveDate })); setRateFieldErrors((current) => ({ ...current, effectiveDate: undefined })); }} />
+          </FormField>
+          <FormField label={t('rate.reason')} helperText={t('rate.reasonHelp')}>
+            <Input accessibilityLabel={t('rate.reasonA11y')} maxLength={500} value={rateForm.reason} onChangeText={(reason) => setRateForm((current) => ({ ...current, reason }))} />
+          </FormField>
         </BottomSheet>
       ) : null}
 
@@ -787,19 +885,21 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
 function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onClose, onSaving, onSaved }: { organizationId: string; projectId: string; accessToken: string; saving: boolean; onClose: () => void; onSaving: (saving: boolean) => void; onSaved: () => Promise<void> }) {
   const { t } = useTranslation('workers');
   const { t: tCommon } = useTranslation('common');
-  const [form, setForm] = useState({ name: '', trade: '', mobileNumber: '', dailyRate: '' });
+  const [form, setForm] = useState({ name: '', trade: '', mobileNumber: '', dailyRate: '', startsOn: today() });
   const [duplicates, setDuplicates] = useState<WorkerDuplicateCandidate[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate', string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate' | 'startsOn', string>>>({});
 
   async function submit() {
     setError('');
-    const nextFieldErrors: Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate', string>> = {};
+    const nextFieldErrors: Partial<Record<'name' | 'trade' | 'mobileNumber' | 'dailyRate' | 'startsOn', string>> = {};
     if (!form.name.trim()) nextFieldErrors.name = t('create.nameRequired');
     if (!form.trade.trim()) nextFieldErrors.trade = t('create.tradeRequired');
     if (form.mobileNumber.trim() && !isValidPhone(form.mobileNumber)) nextFieldErrors.mobileNumber = tCommon('validation.phone');
     if (form.dailyRate.trim() && !isValidNonNegativeNumber(form.dailyRate)) nextFieldErrors.dailyRate = tCommon('validation.number');
+    if (!form.startsOn) nextFieldErrors.startsOn = tCommon('validation.required', { field: t('create.startsOn') });
+    else if (!isValidDateOnly(form.startsOn)) nextFieldErrors.startsOn = tCommon('validation.date');
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) {
       return;
@@ -812,7 +912,7 @@ function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onC
         setError(t('create.duplicatesError'));
         return;
       }
-      await createWorker(organizationId, accessToken, { name: form.name.trim(), trade: form.trade.trim(), mobileNumber: form.mobileNumber.trim() || null, dailyRate: form.dailyRate.trim() || null, projectId, startsOn: today(), acknowledgeDuplicateWarning: acknowledged });
+      await createWorker(organizationId, accessToken, { name: form.name.trim(), trade: form.trade.trim(), mobileNumber: form.mobileNumber.trim() || null, dailyRate: form.dailyRate.trim() || null, projectId, startsOn: form.startsOn, acknowledgeDuplicateWarning: acknowledged });
       await onSaved();
     } catch (createError) {
       setError(isNetworkFailure(createError) ? t('network.onlineOnly') : getLocalizedErrorMessage(createError, t('errors.generic')));
@@ -827,6 +927,7 @@ function CreateWorkerSheet({ organizationId, projectId, accessToken, saving, onC
       <FormField label={t('create.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('create.nameA11y')} invalid={Boolean(fieldErrors.name)} maxLength={160} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); setAcknowledged(false); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
       <FormField label={t('create.trade')} required error={fieldErrors.trade}><Input accessibilityLabel={t('create.tradeA11y')} invalid={Boolean(fieldErrors.trade)} maxLength={80} value={form.trade} onChangeText={(trade) => { setForm({ ...form, trade }); if (fieldErrors.trade) setFieldErrors((current) => ({ ...current, trade: undefined })); }} /><View style={styles.suggestions}>{TRADE_SUGGESTION_KEYS.map((tradeKey) => { const trade = t(`trade.${tradeKey}`); const selected = form.trade === trade; return <Pressable key={tradeKey} accessibilityLabel={trade} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={({ pressed }) => [styles.suggestion, selected && styles.suggestionSelected, pressed && styles.controlPressed]} onPress={() => { setForm({ ...form, trade }); setFieldErrors((current) => ({ ...current, trade: undefined })); }}><AppText style={[styles.suggestionText, selected && styles.suggestionTextSelected]} weight={600}>{trade}</AppText></Pressable>; })}</View></FormField>
       <FormField label={t('create.mobile')} error={fieldErrors.mobileNumber}><Input accessibilityLabel={t('create.mobileA11y')} invalid={Boolean(fieldErrors.mobileNumber)} keyboardType="phone-pad" maxLength={10} value={form.mobileNumber} onBlur={() => setFieldErrors((current) => ({ ...current, mobileNumber: form.mobileNumber && !isValidPhone(form.mobileNumber) ? tCommon('validation.phone') : undefined }))} onChangeText={(value) => { const mobileNumber = sanitizePhoneInput(value); setForm({ ...form, mobileNumber }); setAcknowledged(false); setFieldErrors((current) => ({ ...current, mobileNumber: mobileNumber.length === 10 && !isValidPhone(mobileNumber) ? tCommon('validation.phone') : undefined })); }} /></FormField>
+      <FormField label={t('create.startsOn')} required helperText={t('create.startsOnHelp')} error={fieldErrors.startsOn}><DateInput allowClear={false} showPickerIndicator accessibilityLabel={t('create.startsOnA11y')} invalid={Boolean(fieldErrors.startsOn)} value={form.startsOn} onChangeText={(startsOn) => { setForm({ ...form, startsOn }); if (fieldErrors.startsOn) setFieldErrors((current) => ({ ...current, startsOn: undefined })); }} /></FormField>
       <FormField label={t('create.rate')} helperText={t('create.rateHelp')} error={fieldErrors.dailyRate}><Input accessibilityLabel={t('create.rateA11y')} invalid={Boolean(fieldErrors.dailyRate)} keyboardType="decimal-pad" value={form.dailyRate} onChangeText={(dailyRate) => { setForm({ ...form, dailyRate }); if (fieldErrors.dailyRate) setFieldErrors((current) => ({ ...current, dailyRate: undefined })); }} /></FormField>
       {duplicates.length ? <Card variant="blueprint" style={styles.duplicates}><AppText style={styles.name} weight={700}>{t('create.duplicatesTitle')}</AppText>{duplicates.map((candidate) => <AppText key={candidate.id} style={styles.body}>{candidate.workerCode} · {candidate.name} · {candidate.trade}</AppText>)}<Pressable accessibilityRole="checkbox" accessibilityState={{ checked: acknowledged }} style={[styles.acknowledge, acknowledged && styles.acknowledgeSelected]} onPress={() => setAcknowledged((current) => !current)}><AppIcon name={acknowledged ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={22} color={acknowledged ? mobileTheme.color.text.inverse : mobileTheme.color.text.primary} /><AppText style={[styles.body, acknowledged && styles.acknowledgeText]} weight={500}>{t('create.continue')}</AppText></Pressable></Card> : null}
     </BottomSheet>
@@ -864,12 +965,15 @@ const styles = StyleSheet.create({
   primaryCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
   primaryImpact: { gap: mobileTheme.spacing[1] },
   primaryImpactText: { ...mobileText.body, color: mobileTheme.color.status.info.foreground, paddingTop: mobileTheme.spacing[1] },
+  primaryCorrectionWarning: { ...mobileText.caption, color: mobileTheme.color.status.warning.foreground, paddingTop: mobileTheme.spacing[2] },
   primaryScheduled: { ...mobileText.caption, color: mobileTheme.color.status.info.foreground },
   assignmentRow: { alignItems: 'flex-start', borderBottomColor: mobileTheme.color.border.subtle, borderBottomWidth: 1, flexDirection: 'row', gap: mobileTheme.spacing[3], paddingVertical: mobileTheme.spacing[3] },
   assignmentCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
   assignmentProject: { ...mobileText.body, color: mobileTheme.color.text.primary },
   assignmentActions: { gap: mobileTheme.spacing[2], paddingTop: mobileTheme.spacing[2] },
   assignmentSummary: { gap: mobileTheme.spacing[2] },
+  rateSuccess: { padding: mobileTheme.spacing[3], backgroundColor: mobileTheme.color.status.success.background, borderColor: mobileTheme.color.status.success.border },
+  rateSuccessText: { ...mobileText.body, color: mobileTheme.color.status.success.foreground },
   assignmentRate: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
   footerButton: { flex: 1 },
   dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },

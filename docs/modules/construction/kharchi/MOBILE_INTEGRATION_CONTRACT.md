@@ -245,7 +245,7 @@ Response `data` is `KharchiAdvanceDetail`, including:
 - immutable original advance;
 - derived totals and balance status;
 - `adjustments` in recorded order;
-- `deductionAllocations` in recorded order.
+- `deductionAllocations` in recorded order, including nullable `reversedAt`, `reversedBy`, and `reversalReason` when an unpaid Wage batch was cancelled.
 
 ### 8.4 Record Paid Advance
 
@@ -439,7 +439,7 @@ Show:
 - notes when present;
 - recorded and paid timestamps;
 - immutable adjustment history;
-- Wage deduction allocations with deduction amount and timestamp.
+- Wage deduction allocations with deduction amount and timestamp; reversed allocations remain in history and must be visibly labelled with their reversal reason.
 
 Do not render edit, cancel, or delete actions.
 

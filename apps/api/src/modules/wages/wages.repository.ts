@@ -12,6 +12,7 @@ import type {
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
+import { AuditService } from "../audit/audit.service";
 import { KharchiRepository } from "../kharchi/kharchi.repository";
 
 type BatchRow = {
@@ -26,6 +27,7 @@ type BatchRow = {
   confirmed_at: Date | string | null;
   cancelled_by: string | null;
   cancelled_at: Date | string | null;
+  cancellation_reason: string | null;
   created_at: Date | string;
   updated_at: Date | string;
   gross_amount: string | null;
@@ -44,6 +46,7 @@ type ItemRow = {
   worker_name: string;
   trade: string;
   daily_rate: string;
+  rate_breakdown: unknown;
   present_days: string | number;
   half_days: string | number;
   holiday_days: string | number;
@@ -104,6 +107,7 @@ export class WagesRepository {
   constructor(
     private readonly database: DatabaseService,
     private readonly kharchiRepository: KharchiRepository,
+    private readonly audit: AuditService,
   ) {}
 
   async findBatches(
@@ -206,9 +210,9 @@ export class WagesRepository {
         await this.database.execute(
           `INSERT INTO wage_items (
             id, wage_batch_id, organization_id, project_id, worker_assignment_id, worker_id,
-            daily_rate, present_days, half_days, holiday_days, absent_days,
+            daily_rate, rate_breakdown, present_days, half_days, holiday_days, absent_days,
             gross_amount, kharchi_deduction, adjustment_amount, net_amount, paid_amount, payment_status, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'UNPAID', ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'UNPAID', ?)`,
           [
             wageItemId,
             batchId,
@@ -217,6 +221,7 @@ export class WagesRepository {
             item.workerAssignmentId,
             item.workerId,
             item.dailyRate,
+            JSON.stringify(item.rateBreakdown ?? []),
             item.presentDays,
             item.halfDays,
             item.holidayDays,
@@ -332,6 +337,80 @@ export class WagesRepository {
       await this.recalculateBatchStatus(batchId, connection);
     });
     return this.findBatchDetail(organizationId, projectId, batchId);
+  }
+
+  async cancelBatch(
+    organizationId: string,
+    projectId: string,
+    batchId: string,
+    reason: string,
+    actorId: string,
+  ) {
+    let found = false;
+    await this.database.transaction(async (connection) => {
+      await this.database.query<{ id: string } & any>(
+        `SELECT id FROM wage_items
+         WHERE wage_batch_id = ? AND organization_id = ? AND project_id = ?
+         ORDER BY id
+         FOR UPDATE`,
+        [batchId, organizationId, projectId],
+        connection,
+      );
+      const batches = await this.database.query<
+        { id: string; status: WageBatchStatus } & any
+      >(
+        `SELECT id, status FROM wage_batches
+         WHERE id = ? AND organization_id = ? AND project_id = ?
+         LIMIT 1 FOR UPDATE`,
+        [batchId, organizationId, projectId],
+        connection,
+      );
+      const batch = batches[0];
+      if (!batch) return;
+      found = true;
+      if (batch.status === "CANCELLED") return;
+
+      const payments = await this.database.query<{ id: string } & any>(
+        `SELECT id FROM wage_payments
+         WHERE wage_batch_id = ? AND organization_id = ? AND project_id = ?
+         LIMIT 1 FOR UPDATE`,
+        [batchId, organizationId, projectId],
+        connection,
+      );
+      if (payments[0]) throw new Error("WAGE_BATCH_HAS_PAYMENTS");
+
+      const reversedAllocationCount =
+        await this.kharchiRepository.reverseAllocationsForWageBatch(
+          { organizationId, projectId, wageBatchId: batchId, reason, actorId },
+          connection,
+        );
+      await this.database.execute(
+        `UPDATE wage_batches
+         SET status = 'CANCELLED', cancelled_by = ?,
+             cancelled_at = CURRENT_TIMESTAMP(3), cancellation_reason = ?,
+             updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ? AND organization_id = ? AND project_id = ?`,
+        [actorId, reason, batchId, organizationId, projectId],
+        connection,
+      );
+      await this.audit.record(
+        {
+          organizationId,
+          projectId,
+          actorUserId: actorId,
+          action: "wages.batch-cancelled",
+          entityType: "wage_batch",
+          entityId: batchId,
+          oldValues: { status: batch.status },
+          newValues: { status: "CANCELLED", reason },
+          metadata: { reversedKharchiAllocationCount: reversedAllocationCount },
+        },
+        connection,
+      );
+    });
+    return found
+      ? this.findBatchDetail(organizationId, projectId, batchId)
+      : null;
   }
 
   async updateWageItem(
@@ -495,6 +574,7 @@ export class WagesRepository {
       confirmedAt: serializeDate(row.confirmed_at),
       cancelledBy: row.cancelled_by,
       cancelledAt: serializeDate(row.cancelled_at),
+      cancellationReason: row.cancellation_reason,
       createdAt: serializeDate(row.created_at) ?? "",
       updatedAt: serializeDate(row.updated_at) ?? "",
       totals: {
@@ -528,7 +608,19 @@ export class WagesRepository {
       paidAmount: String(row.paid_amount),
       paymentStatus: row.payment_status,
       notes: row.notes,
+      rateBreakdown: this.parseRateBreakdown(row.rate_breakdown),
     };
+  }
+
+  private parseRateBreakdown(value: unknown) {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string" || !value) return undefined;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private mapPayment(row: PaymentRow): WagePayment {

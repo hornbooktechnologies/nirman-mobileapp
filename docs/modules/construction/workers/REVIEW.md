@@ -70,7 +70,7 @@ Migration `010_backfill_worker_delete_owner_permission.sql` was applied to the c
 
 - Deactivating a worker currently preserves active assignment rows while the default active roster filters the inactive worker. The owner must approve or replace this rule.
 - The `MAX + 1` worker-code allocator is protected by the unique key and bounded retry, but was not tested under live database concurrency.
-- Audit persistence, Attendance-aware rate rules, Wages rate history, and persisted offline behavior do not exist yet and must remain owned by their generic/downstream modules.
+- Attendance-aware rate permission enforcement and Wages rate history are now implemented in source through migration `025`; runtime acceptance remains migration-gated. Audit persistence and persisted offline behavior remain owned by their generic foundations.
 
 ## 9. Required Fix Before Verification
 

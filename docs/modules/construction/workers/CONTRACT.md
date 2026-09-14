@@ -190,6 +190,7 @@ Action:
 - If no confirmed existing worker is selected, system creates a worker master.
 - System generates a unique immutable `worker_code` inside the organization.
 - System creates a project assignment for the current project.
+- System creates the first primary-Project period in the same transaction, beginning on the assignment start date.
 
 Validation:
 
@@ -199,6 +200,7 @@ Validation:
 - Worker code is generated server-side, unique within organization, immutable, and ignored/rejected if supplied by the client.
 - Daily rate is optional at creation, but must be present before wage generation.
 - Start date cannot be after end date.
+- The assignment start date may be earlier than the record-creation date when the Worker already started on site.
 - Project must belong to active organization.
 - Actor must have project access.
 
@@ -206,6 +208,7 @@ Resulting state:
 
 - Worker master is `ACTIVE`.
 - Project assignment is `ACTIVE`.
+- The selected Project is primary for Attendance from the same assignment start date; no separate initial primary-selection action is required.
 
 Notifications:
 
@@ -227,6 +230,7 @@ Reversal/correction:
 - Edit worker details with `workers:update`.
 - End assignment instead of deleting it.
 - Deactivate worker only when historical data remains preserved.
+- A permitted user may correct a primary-Project effective date into the past when the referenced active assignment covers that date and no primary period overlaps.
 
 Offline behavior:
 
@@ -336,14 +340,15 @@ Validation:
 - Daily rate must be non-negative and should be greater than zero if set.
 - Effective date is required for every rate change.
 - Effective date must be inside or after the assignment start date.
+- Effective date cannot be in the future in the current online correction flow.
 - The system must not silently reinterpret past attendance, wages, Kharchi, or reports.
 - Before Attendance exists, the current assignment `daily_rate` may be updated by authorized users.
 - After Attendance exists, rate change requires elevated `workers:update-rate`.
 
 Result:
 
-- Workers MVP updates the assignment's current `daily_rate` and records an audit event.
-- A complete effective-dated rate-history entity remains owned by the Wages domain and must be introduced before or during Wages implementation.
+- The assignment's current `daily_rate` is updated and an effective-dated `worker_assignment_rate_periods` entry is created or corrected transactionally.
+- Wages resolves the applicable rate for each working date and snapshots the resulting rate breakdown when a batch is confirmed.
 
 Audit event:
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { PermissionKey } from "@nirman-app/shared";
-import { Pencil, Plus, UserMinus } from "lucide-react";
+import { BadgeIndianRupee, Pencil, Plus, UserMinus } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import { useMemo, useState, type FormEvent } from "react";
 import {
@@ -26,6 +26,7 @@ import {
   useEndWorkerAssignment,
   useProjectWorkers,
   useUpdateWorkerAssignment,
+  useUpdateWorkerRate,
   useWorkers,
 } from "@/features/workers/hooks/use-workers";
 import type {
@@ -33,7 +34,13 @@ import type {
   WorkerSummary,
 } from "@/features/workers/types/workers.types";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export function ProjectWorkersPanel({
   organizationId,
@@ -51,6 +58,7 @@ export function ProjectWorkersPanel({
       : hasPermission(permission);
   const canCreate = hasAccess("workers:create");
   const canAssign = hasAccess("workers:assign-project");
+  const canUpdateRate = hasAccess("workers:update-rate");
   const [workerSearch, setWorkerSearch] = useState("");
   const roster = useProjectWorkers(organizationId, projectId, {
     pageSize: 100,
@@ -66,6 +74,13 @@ export function ProjectWorkersPanel({
   const assignWorker = useAssignWorker(organizationId, projectId);
   const updateAssignment = useUpdateWorkerAssignment(organizationId, projectId);
   const endAssignment = useEndWorkerAssignment(organizationId, projectId);
+  const [rateWorker, setRateWorker] =
+    useState<ProjectWorkerRosterItem | null>(null);
+  const updateRate = useUpdateWorkerRate(
+    organizationId,
+    projectId,
+    rateWorker?.id ?? "",
+  );
   const rosterRows = useMemo(
     () => roster.data?.data ?? [],
     [roster.data?.data],
@@ -89,6 +104,12 @@ export function ProjectWorkersPanel({
     useState<ProjectWorkerRosterItem | null>(null);
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: "" });
   const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
+  const [rateForm, setRateForm] = useState({
+    dailyRate: "",
+    effectiveDate: today(),
+    reason: "",
+  });
 
   async function submitAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -159,6 +180,57 @@ export function ProjectWorkersPanel({
     }
   }
 
+  function canChangeRate(worker: ProjectWorkerRosterItem) {
+    return worker.currentAssignment.startsOn.slice(0, 10) < today()
+      ? canUpdateRate
+      : canAssign || canUpdateRate;
+  }
+
+  function openRate(worker: ProjectWorkerRosterItem) {
+    setActionError("");
+    setActionSuccess("");
+    setRateWorker(worker);
+    setRateForm({
+      dailyRate: worker.currentAssignment.dailyRate ?? "",
+      effectiveDate: today(),
+      reason: "",
+    });
+  }
+
+  async function submitRate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!rateWorker) return;
+    const dailyRate = Number(rateForm.dailyRate);
+    if (!Number.isFinite(dailyRate) || dailyRate < 0) {
+      setActionError("Enter a valid non-negative daily rate.");
+      return;
+    }
+    if (
+      !rateForm.effectiveDate ||
+      rateForm.effectiveDate > today() ||
+      rateForm.effectiveDate < rateWorker.currentAssignment.startsOn.slice(0, 10) ||
+      (rateWorker.currentAssignment.endsOn &&
+        rateForm.effectiveDate > rateWorker.currentAssignment.endsOn.slice(0, 10))
+    ) {
+      setActionError("Choose today or an earlier date covered by this assignment.");
+      return;
+    }
+    setActionError("");
+    try {
+      await updateRate.mutateAsync({
+        dailyRate,
+        effectiveDate: rateForm.effectiveDate,
+        reason: rateForm.reason.trim() || null,
+      });
+      setRateWorker(null);
+      setActionSuccess(`${rateWorker.name}'s daily rate was changed.`);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Unable to change daily rate",
+      );
+    }
+  }
+
   return (
     <Card className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -180,8 +252,11 @@ export function ProjectWorkersPanel({
         ) : null}
       </div>
 
-      {actionError ? (
-        <p className="text-[13px] text-red-600">{actionError}</p>
+      {actionError && !rateWorker ? (
+        <p className="text-[13px] text-red-600" role="alert">{actionError}</p>
+      ) : null}
+      {actionSuccess ? (
+        <p className="text-[13px] font-medium text-success" role="status">{actionSuccess}</p>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -215,9 +290,9 @@ export function ProjectWorkersPanel({
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Trade</TableHead>
-              <TableHead>Daily Rate</TableHead>
+              <TableHead>Project Daily Rate</TableHead>
               <TableHead>Project Status</TableHead>
-              {canAssign ? <TableHead>Actions</TableHead> : null}
+              {canAssign || canUpdateRate ? <TableHead>Actions</TableHead> : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -234,31 +309,39 @@ export function ProjectWorkersPanel({
                   </TableCell>
                   <TableCell>{worker.name}</TableCell>
                   <TableCell>{worker.trade}</TableCell>
-                  <TableCell>{worker.baseDailyRate ?? "-"}</TableCell>
+                  <TableCell>
+                    {assignedWorker?.currentAssignment.dailyRate ??
+                      worker.baseDailyRate ??
+                      "-"}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge tone={assignedWorker ? "active" : "inactive"}>
                       {assignedWorker ? "ASSIGNED" : "UNASSIGNED"}
                     </StatusBadge>
                   </TableCell>
-                  {canAssign ? (
+                  {canAssign || canUpdateRate ? (
                     <TableCell>
                       {assignedWorker ? (
                         <RowActionMenu
                           actions={[
-                            {
+                            ...(canChangeRate(assignedWorker) ? [{
+                              label: "Change daily rate",
+                              icon: <BadgeIndianRupee size={15} aria-hidden="true" />,
+                              onSelect: () => openRate(assignedWorker),
+                            }] : []),
+                            ...(canAssign ? [{
                               label: "Edit assignment dates",
                               icon: <Pencil size={15} />,
                               onSelect: () => openEdit(assignedWorker),
-                            },
-                            {
+                            }, {
                               label: "End assignment",
                               icon: <UserMinus size={15} />,
                               destructive: true,
                               onSelect: () => setEndingWorker(assignedWorker),
-                            },
+                            }] : []),
                           ]}
                         />
-                      ) : (
+                      ) : canAssign ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -270,7 +353,7 @@ export function ProjectWorkersPanel({
                         >
                           Assign
                         </Button>
-                      )}
+                      ) : null}
                     </TableCell>
                   ) : null}
                 </TableRow>
@@ -279,6 +362,42 @@ export function ProjectWorkersPanel({
           </TableBody>
         </Table>
       )}
+
+      <Dialog
+        open={Boolean(rateWorker)}
+        title={`Change ${rateWorker?.name ?? "worker"}'s daily rate`}
+        description="Use an effective date so earlier Attendance and Wage calculations retain the rate that applied then."
+        onOpenChange={(open) => !open && setRateWorker(null)}
+      >
+        <form className="space-y-4" onSubmit={submitRate}>
+          <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-body">
+            Current Project rate: {rateWorker?.currentAssignment.dailyRate ?? "Not set"}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">New daily rate</span>
+              <Input type="number" inputMode="decimal" min="0" step="0.01" value={rateForm.dailyRate} onChange={(event) => setRateForm({ ...rateForm, dailyRate: event.target.value })} required />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Effective date</span>
+              <Input type="date" min={rateWorker?.currentAssignment.startsOn.slice(0, 10)} max={today()} value={rateForm.effectiveDate} onChange={(event) => setRateForm({ ...rateForm, effectiveDate: event.target.value })} required />
+            </label>
+          </div>
+          <label className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Reason (optional)</span>
+            <Input maxLength={500} value={rateForm.reason} onChange={(event) => setRateForm({ ...rateForm, reason: event.target.value })} />
+          </label>
+          {actionError ? (
+            <p className="text-[13px] text-red-600" role="alert">
+              {actionError}
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setRateWorker(null)}>Cancel</Button>
+            <Button type="submit" disabled={updateRate.isPending}>{updateRate.isPending ? "Changing" : "Change Rate"}</Button>
+          </div>
+        </form>
+      </Dialog>
 
       <Dialog
         open={Boolean(assigningWorker)}

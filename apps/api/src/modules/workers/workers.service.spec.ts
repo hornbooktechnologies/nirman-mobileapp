@@ -29,6 +29,7 @@ describe("WorkersService", () => {
     assignWorker: jest.fn(),
     findAssignment: jest.fn(),
     findActiveAssignment: jest.fn(),
+    hasAttendanceOrWageHistory: jest.fn(),
     findAssignmentById: jest.fn(),
     findPrimaryProjectPeriods: jest.fn(),
     findPrimaryProjectPeriodById: jest.fn(),
@@ -75,6 +76,7 @@ describe("WorkersService", () => {
     workersRepo.findAssignmentById.mockResolvedValue(assignment());
     workersRepo.duplicateCandidates.mockResolvedValue([]);
     workersRepo.hasActiveAssignment.mockResolvedValue(false);
+    workersRepo.hasAttendanceOrWageHistory.mockResolvedValue(false);
   });
 
   it("denies a user without the required Workers permission", async () => {
@@ -407,6 +409,49 @@ describe("WorkersService", () => {
         actor,
       ),
     ).resolves.toEqual(expect.objectContaining({ dailyRate: "825.00" }));
+    expect(workersRepo.updateAssignmentRate).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      workerId,
+      825,
+      "2026-08-10",
+      null,
+      actor.id,
+    );
+  });
+
+  it("requires elevated rate permission after an assignment has started", async () => {
+    projectAccess.resolveProjectAccess.mockResolvedValueOnce({
+      ...projectAccessResult(),
+      permissions: ["workers:read", "workers:assign-project"],
+    });
+
+    await expect(
+      service.updateAssignmentRate(
+        organizationId,
+        projectId,
+        workerId,
+        { dailyRate: 825, effectiveDate: "2026-08-10" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_RATE_CHANGE_ELEVATED_PERMISSION_REQUIRED" },
+    });
+    expect(workersRepo.updateAssignmentRate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a future rate effective date", async () => {
+    await expect(
+      service.updateAssignmentRate(
+        organizationId,
+        projectId,
+        workerId,
+        { dailyRate: 825, effectiveDate: "2999-01-01" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_RATE_CHANGE_FUTURE_DATE" },
+    });
   });
 
   it("rejects a rate effective date before assignment start", async () => {
@@ -532,6 +577,7 @@ function organizationAccess(organizationWideProjectAccess: boolean) {
       "workers:create",
       "workers:update",
       "workers:assign-project",
+      "workers:update-rate",
       "workers:deactivate",
       "workers:delete",
     ],

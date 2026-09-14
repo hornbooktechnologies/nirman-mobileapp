@@ -1,5 +1,15 @@
 # Workers Decisions
 
+## 2026-09-14: Backdated Worker Onboarding And Initial Primary Project
+
+- Mobile create-and-assign collects the Worker's actual Project start date, defaulting to today while allowing an earlier valid date.
+- Creating a new Worker for the selected Project creates the Project assignment and the initial primary-Project period atomically from the same start date.
+- The builder does not perform a separate initial “Set primary project” step when the new Worker has only the selected-Project assignment.
+- Later primary-Project corrections may use a previous date when an active assignment covers that date; assignment-window and primary-period overlap validation remain authoritative.
+- A retroactive primary correction warns that earlier Attendance totals can change. Wages locking and paid-period adjustment policy remain governed by the Wages domain.
+
+> Status: explicitly approved by the product owner.
+
 ## 2026-08-25: Organization Owner Permanent Deletion
 
 - Organization Owner, Builder Admin, and Independent Contractor Owner receive the organization-wide `workers:delete` permission through their role template.

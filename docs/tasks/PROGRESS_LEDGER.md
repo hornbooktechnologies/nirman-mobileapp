@@ -1,5 +1,26 @@
 # NirmanSite Progress Ledger
 
+## 2026-09-14 — Backdated Worker Onboarding And Primary Allocation
+
+- Mobile Worker creation now collects the actual selected-Project start date instead of hardcoding today.
+- API create-and-assign atomically creates the assignment and its initial primary-Project period from the same date, so the builder does not repeat the primary-selection step.
+- Mobile primary-Project correction now permits prior dates covered by an active assignment, retains API overlap/window validation, and warns that earlier Attendance totals can change.
+- No migration, seed, database execution, Attendance UI, Web, Wages, Kharchi, dependency, or lockfile change belongs to this slice.
+- Verification passed: 18-namespace en/hi/gu locale parity, shared build, API type-check, focused Workers service/repository suites (46 tests), Mobile type-check, and `git diff --check`. Authenticated API/database and physical-device acceptance were not run.
+
+## 2026-09-14 — Unpaid Wage Batch Cancellation
+
+- Added owner-only `wages:cancel` and `POST .../wages/batches/:batchId/cancel` with mandatory reason and stable paid-batch conflict handling.
+- Cancellation retains the immutable Wage snapshot, blocks after any payment, releases Kharchi through append-only allocation reversals, records same-transaction audit events, and unlocks the period for regeneration.
+- Added Mobile cancellation confirmation/read-only states and reversed Kharchi history in English, Hindi, and Gujarati.
+- Shared/API/Mobile type-checks, API production build, 16 focused tests, locale parity, and whitespace checks pass. Focused lint remains blocked by pre-existing Wages `any` debt. Migration/preflight `026_wage_batch_cancellation.sql` are prepared only; database/runtime, authenticated concurrency, and physical-device acceptance remain pending.
+
+## 2026-09-14 — Worker assignment rate security and history
+
+- Replaced the stale `workers:assign-project`-only rate guard with attendance-aware RBAC: started/history-bearing assignments require `workers:update-rate`, while unstarted assignments retain the normal assignment permission. Effective dates must be within the assignment and no later than today.
+- Added migration `025_worker_assignment_rate_history.sql` and its read-only preflight. New assignments create a baseline rate event; changes upsert the effective-date event transactionally. Derived Attendance/Wages now resolves the applicable per-date rate, calculates multi-rate periods correctly, and snapshots the breakdown on confirmed Wage items.
+- Added Mobile Worker-detail and Web Project-Team rate forms using existing sheets/dialogs, inline validation, loading states, and effective Project permissions. Mobile en/hi/gu keys and API-error mappings are included. Migration execution, authenticated role/runtime, browser, and physical-device acceptance remain pending.
+
 ## 2026-09-11 — Password recovery and account security
 
 - Added role-neutral `POST /auth/forgot-password` and `POST /auth/reset-password` flows with generic request responses, 15-minute hashed single-use tokens, normalized-email/IP throttling, transactional completion, refresh-session revocation, and existing-SMTP web/mobile links. Authenticated password change now requires the current password, revokes refresh sessions, clears the Web refresh cookie, and sends a security notice when SMTP is configured. Generated passwords and OTP/2FA are not part of this slice.

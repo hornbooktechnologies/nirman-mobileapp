@@ -1,6 +1,9 @@
 {
   "screen": { "title": "મજૂરી", "chooseProject": "પ્રોજેક્ટ પસંદ કરો" },
-  "empty": { "noProjectTitle": "કોઈ પ્રોજેક્ટ પસંદ નથી", "noProjectDescription": "મજૂરી ખોલતા પહેલાં ઉપલબ્ધ પ્રોજેક્ટ પસંદ કરો." },
+  "empty": {
+    "noProjectTitle": "કોઈ પ્રોજેક્ટ પસંદ નથી",
+    "noProjectDescription": "મજૂરી ખોલતા પહેલાં ઉપલબ્ધ પ્રોજેક્ટ પસંદ કરો."
+  },
   "generator": {
     "title": "મજૂરીની ગણતરી",
     "description": "સમયગાળો પસંદ કરો, પૂર્વાવલોકન તપાસો અને પછી બેચની પુષ્ટિ કરો.",
@@ -34,9 +37,26 @@
     "open": "બેચની વિગતો ખોલો",
     "openA11y": "{{start}} થી {{end}} સુધીનો મજૂરી બેચ ખોલો, કુલ {{amount}}"
   },
-  "batchStatus": { "DRAFT": "ડ્રાફ્ટ", "CONFIRMED": "પુષ્ટિ થયેલ", "PARTIALLY_PAID": "આંશિક ચૂકવેલ", "PAID": "ચૂકવેલ", "CANCELLED": "રદ" },
-  "paymentStatus": { "UNPAID": "ચૂકવવાનું બાકી", "PARTIALLY_PAID": "આંશિક ચૂકવેલ", "PAID": "ચૂકવેલ", "KHARCHI_SETTLED": "ખર્ચી સામે સમાયોજિત" },
-  "paymentMethod": { "CASH": "રોકડ", "UPI": "UPI", "BANK_TRANSFER": "બેંક", "CHEQUE": "ચેક", "OTHER": "અન્ય" },
+  "batchStatus": {
+    "DRAFT": "ડ્રાફ્ટ",
+    "CONFIRMED": "પુષ્ટિ થયેલ",
+    "PARTIALLY_PAID": "આંશિક ચૂકવેલ",
+    "PAID": "ચૂકવેલ",
+    "CANCELLED": "રદ"
+  },
+  "paymentStatus": {
+    "UNPAID": "ચૂકવવાનું બાકી",
+    "PARTIALLY_PAID": "આંશિક ચૂકવેલ",
+    "PAID": "ચૂકવેલ",
+    "KHARCHI_SETTLED": "ખર્ચી સામે સમાયોજિત"
+  },
+  "paymentMethod": {
+    "CASH": "રોકડ",
+    "UPI": "UPI",
+    "BANK_TRANSFER": "બેંક",
+    "CHEQUE": "ચેક",
+    "OTHER": "અન્ય"
+  },
   "detail": {
     "title": "બેચની વિગતો",
     "workerCount_one": "આ બેચમાં {{count}} મજૂર",
@@ -105,7 +125,29 @@
     "failedTitle": "અપડેટ નિષ્ફળ",
     "failedMessage": "સમાયોજન તપાસીને ફરી પ્રયાસ કરો."
   },
-  "export": { "title": "મજૂરી નિકાસ", "action": "મજૂરી નિકાસ કરો", "failedTitle": "નિકાસ નિષ્ફળ", "failedMessage": "કનેક્શન મળે ત્યારે ફરી પ્રયાસ કરો." },
+  "export": {
+    "title": "મજૂરી નિકાસ",
+    "action": "મજૂરી નિકાસ કરો",
+    "failedTitle": "નિકાસ નિષ્ફળ",
+    "failedMessage": "કનેક્શન મળે ત્યારે ફરી પ્રયાસ કરો."
+  },
+  "cancellation": {
+    "title": "મજૂરી બેચ રદ કરવો?",
+    "description": "બેચ ઇતિહાસમાં રહેશે. તેની ખર્ચી કપાતો ફરી ઉપલબ્ધ થશે જેથી સુધારેલો બેચ બનાવી શકાય.",
+    "action": "બેચ રદ કરો",
+    "reason": "રદ કરવાનું કારણ",
+    "reasonHelper": "ઓડિટ ઇતિહાસ માટે જરૂરી છે.",
+    "reasonPlaceholder": "શું સુધારવું છે?",
+    "confirm": "મજૂરી બેચ રદ કરો",
+    "cancelling": "બેચ રદ થઈ રહ્યો છે",
+    "paymentBlocked": "ચુકવણી નોંધાઈ હોવાથી આ બેચ રદ કરી શકાતો નથી.",
+    "cancelledReason": "રદ કરવાનું કારણ: {{reason}}",
+    "reasonUnavailable": "કારણ ઉપલબ્ધ નથી",
+    "successTitle": "બેચ રદ થયો",
+    "successMessage": "ખર્ચી કપાતો ફરી ઉપલબ્ધ થઈ. હવે સુધારેલા સમયગાળાનો બેચ બનાવી શકો છો.",
+    "failedTitle": "રદ કરવું નિષ્ફળ",
+    "failedMessage": "બેચ રિફ્રેશ કરીને ફરી પ્રયાસ કરો."
+  },
   "errors": {
     "unavailableTitle": "મજૂરી ઉપલબ્ધ નથી",
     "tryAgain": "પછીથી ફરી પ્રયાસ કરો.",

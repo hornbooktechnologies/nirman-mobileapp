@@ -63,6 +63,9 @@ type AllocationRow = {
   deduction_amount: string;
   deducted_at: Date | string;
   recorded_by: string;
+  reversed_at: Date | string | null;
+  reversed_by: string | null;
+  reversal_reason: string | null;
 };
 
 type AssignmentRow = {
@@ -80,6 +83,14 @@ export type AllocateKharchiInput = {
   wageItemId: string;
   wageBatchId: string;
   maximumDeduction: string;
+  actorId: string;
+};
+
+export type ReverseKharchiAllocationsInput = {
+  organizationId: string;
+  projectId: string;
+  wageBatchId: string;
+  reason: string;
   actorId: string;
 };
 
@@ -234,11 +245,14 @@ export class KharchiRepository {
         [organizationId, projectId, kharchiId],
       ),
       this.database.query<AllocationRow & RowDataPacket>(
-        `SELECT id, kharchi_advance_id, wage_item_id, wage_batch_id,
-                deduction_amount, deducted_at, recorded_by
-         FROM kharchi_deduction_allocations
-         WHERE organization_id = ? AND project_id = ? AND kharchi_advance_id = ?
-         ORDER BY deducted_at ASC, id ASC`,
+        `SELECT kda.id, kda.kharchi_advance_id, kda.wage_item_id, kda.wage_batch_id,
+                kda.deduction_amount, kda.deducted_at, kda.recorded_by,
+                kdar.reversed_at, kdar.reversed_by, kdar.reason AS reversal_reason
+         FROM kharchi_deduction_allocations kda
+         LEFT JOIN kharchi_deduction_allocation_reversals kdar
+           ON kdar.allocation_id = kda.id
+         WHERE kda.organization_id = ? AND kda.project_id = ? AND kda.kharchi_advance_id = ?
+         ORDER BY kda.deducted_at ASC, kda.id ASC`,
         [organizationId, projectId, kharchiId],
       ),
     ]);
@@ -413,7 +427,10 @@ export class KharchiRepository {
         >(
           `SELECT ka.amount,
           COALESCE((SELECT SUM(amount) FROM kharchi_adjustments WHERE kharchi_advance_id = ka.id), 0) AS adjustment_amount,
-          COALESCE((SELECT SUM(deduction_amount) FROM kharchi_deduction_allocations WHERE kharchi_advance_id = ka.id), 0) AS deducted_amount
+          COALESCE((SELECT SUM(kda.deduction_amount)
+                    FROM kharchi_deduction_allocations kda
+                    LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+                    WHERE kda.kharchi_advance_id = ka.id AND kdar.id IS NULL), 0) AS deducted_amount
          FROM kharchi_advances ka
          WHERE ka.id = ? AND ka.organization_id = ? AND ka.project_id = ?
          LIMIT 1 FOR UPDATE`,
@@ -500,8 +517,10 @@ export class KharchiRepository {
     const existing = await this.database.query<
       { deduction_amount: string } & RowDataPacket
     >(
-      `SELECT deduction_amount FROM kharchi_deduction_allocations
-       WHERE wage_item_id = ?`,
+      `SELECT kda.deduction_amount
+       FROM kharchi_deduction_allocations kda
+       LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+       WHERE kda.wage_item_id = ? AND kdar.id IS NULL`,
       [input.wageItemId],
       connection,
     );
@@ -532,7 +551,10 @@ export class KharchiRepository {
       >(
         `SELECT ka.amount,
           COALESCE((SELECT SUM(amount) FROM kharchi_adjustments WHERE kharchi_advance_id = ka.id), 0) AS adjustment_amount,
-          COALESCE((SELECT SUM(deduction_amount) FROM kharchi_deduction_allocations WHERE kharchi_advance_id = ka.id), 0) AS deducted_amount
+          COALESCE((SELECT SUM(kda.deduction_amount)
+                    FROM kharchi_deduction_allocations kda
+                    LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+                    WHERE kda.kharchi_advance_id = ka.id AND kdar.id IS NULL), 0) AS deducted_amount
          FROM kharchi_advances ka WHERE ka.id = ?`,
         [advance.id],
         connection,
@@ -584,6 +606,72 @@ export class KharchiRepository {
       remainingCapacity -= deduction;
     }
     return formatMoney(allocated);
+  }
+
+  async reverseAllocationsForWageBatch(
+    input: ReverseKharchiAllocationsInput,
+    connection: DatabaseConnection,
+  ) {
+    const allocations = await this.database.query<
+      {
+        id: string;
+        kharchi_advance_id: string;
+        wage_item_id: string;
+        deduction_amount: string;
+      } & RowDataPacket
+    >(
+      `SELECT kda.id, kda.kharchi_advance_id, kda.wage_item_id, kda.deduction_amount
+       FROM kharchi_deduction_allocations kda
+       LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+       WHERE kda.organization_id = ? AND kda.project_id = ?
+         AND kda.wage_batch_id = ? AND kdar.id IS NULL
+       ORDER BY kda.id
+       FOR UPDATE`,
+      [input.organizationId, input.projectId, input.wageBatchId],
+      connection,
+    );
+
+    for (const allocation of allocations) {
+      const reversalId = randomUUID();
+      await this.database.execute(
+        `INSERT INTO kharchi_deduction_allocation_reversals (
+          id, allocation_id, wage_batch_id, organization_id, project_id,
+          reason, reversed_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          reversalId,
+          allocation.id,
+          input.wageBatchId,
+          input.organizationId,
+          input.projectId,
+          input.reason,
+          input.actorId,
+        ],
+        connection,
+      );
+      await this.audit.record(
+        {
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          actorUserId: input.actorId,
+          action: "kharchi.deduction-reversed",
+          entityType: "kharchi_deduction_allocation_reversal",
+          entityId: reversalId,
+          oldValues: {
+            allocationId: allocation.id,
+            deductionAmount: String(allocation.deduction_amount),
+          },
+          newValues: {
+            kharchiAdvanceId: allocation.kharchi_advance_id,
+            wageItemId: allocation.wage_item_id,
+            wageBatchId: input.wageBatchId,
+            reason: input.reason,
+          },
+        },
+        connection,
+      );
+    }
+    return allocations.length;
   }
 
   fingerprint(value: unknown) {
@@ -661,8 +749,11 @@ export class KharchiRepository {
       FROM kharchi_adjustments GROUP BY kharchi_advance_id
     ) adj ON adj.kharchi_advance_id = ka.id
     LEFT JOIN (
-      SELECT kharchi_advance_id, SUM(deduction_amount) AS deducted_amount
-      FROM kharchi_deduction_allocations GROUP BY kharchi_advance_id
+      SELECT kda.kharchi_advance_id, SUM(kda.deduction_amount) AS deducted_amount
+      FROM kharchi_deduction_allocations kda
+      LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+      WHERE kdar.id IS NULL
+      GROUP BY kda.kharchi_advance_id
     ) ded ON ded.kharchi_advance_id = ka.id`;
   }
 
@@ -723,6 +814,9 @@ export class KharchiRepository {
       deductionAmount: formatMoney(toCents(row.deduction_amount)),
       deductedAt: serializeDate(row.deducted_at) ?? "",
       recordedBy: row.recorded_by,
+      reversedAt: serializeDate(row.reversed_at),
+      reversedBy: row.reversed_by,
+      reversalReason: row.reversal_reason,
     };
   }
 

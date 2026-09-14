@@ -64,6 +64,7 @@ export const PERMISSION_ACTIONS = [
   "book",
   "archive",
   "restore",
+  "cancel",
   "export",
   "upload",
   "update-rate",
@@ -291,6 +292,7 @@ export const WAGE_PERMISSIONS = [
   "wages:update",
   "wages:mark-paid",
   "wages:export",
+  "wages:cancel",
 ] as const satisfies readonly PermissionKey[];
 
 export type WagePermissionKey = (typeof WAGE_PERMISSIONS)[number];
@@ -602,6 +604,7 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "wages:update": "Update wage batches and wage item adjustments.",
   "wages:mark-paid": "Record wage payments.",
   "wages:export": "Export wage summaries and payment history.",
+  "wages:cancel": "Cancel unpaid wage batches and release Kharchi deductions.",
 
   "kharchi:read": "Read Project Worker advances and balances.",
   "kharchi:create": "Record a paid Worker advance.",

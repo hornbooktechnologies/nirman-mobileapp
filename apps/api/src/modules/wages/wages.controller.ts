@@ -15,6 +15,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { CancelWageBatchDto } from "./dto/cancel-wage-batch.dto";
 import { CreateWageBatchDto } from "./dto/create-wage-batch.dto";
 import { RecordWagePaymentDto } from "./dto/record-wage-payment.dto";
 import { UpdateWageItemDto } from "./dto/update-wage-item.dto";
@@ -113,6 +114,25 @@ export class WagesController {
       user,
     );
     return { success: true, message: "Wage batch confirmed", data };
+  }
+
+  @Post("batches/:batchId/cancel")
+  @RequirePermissions("wages:cancel")
+  async cancelBatch(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Param("batchId", new ParseUUIDPipe()) batchId: string,
+    @Body() dto: CancelWageBatchDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.wagesService.cancelBatch(
+      organizationId,
+      projectId,
+      batchId,
+      dto,
+      user,
+    );
+    return { success: true, message: "Wage batch cancelled", data };
   }
 
   @Post("items/:wageItemId/payments")

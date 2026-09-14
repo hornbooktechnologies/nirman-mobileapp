@@ -147,6 +147,41 @@ describe("WorkersRepository", () => {
     expect(database.transaction).toHaveBeenCalledTimes(1);
   });
 
+  it("creates the selected-project assignment and initial primary period from the same backdated start", async () => {
+    database.query.mockImplementation((sql: string) => {
+      if (sql.includes("AS nextNumber")) {
+        return Promise.resolve([{ nextNumber: 1 }] as never);
+      }
+      if (sql.includes("FROM workers w")) {
+        return Promise.resolve([workerRow("WRK-00001")] as never);
+      }
+      return Promise.resolve([] as never);
+    });
+    database.execute.mockResolvedValue(result(1));
+
+    await repository.create(
+      "organization-id",
+      {
+        name: "Ravi",
+        trade: "Mason",
+        projectId: "project-id",
+        startsOn: "2026-09-11",
+      },
+      "actor-id",
+    );
+
+    const assignmentCall = database.execute.mock.calls.find(([sql]) =>
+      sql.includes("INSERT INTO worker_project_assignments"),
+    );
+    const primaryCall = database.execute.mock.calls.find(([sql]) =>
+      sql.includes("INSERT INTO worker_primary_project_periods"),
+    );
+    expect(assignmentCall?.[1]?.[6]).toBe("2026-09-11");
+    expect(primaryCall?.[1]?.[3]).toBe(assignmentCall?.[1]?.[0]);
+    expect(primaryCall?.[1]?.[4]).toBe("2026-09-11");
+    expect(database.transaction).toHaveBeenCalledTimes(1);
+  });
+
   it("serializes assignment creation and rejects a concurrent active duplicate", async () => {
     database.query
       .mockResolvedValueOnce([{ id: "worker-id" }] as never)
@@ -187,6 +222,43 @@ describe("WorkersRepository", () => {
     expect(assignmentParams?.[4]).toBeNull();
     expect(assignmentParams?.[5]).toBe("750.00");
     expect(assignmentParams?.[6]).toBe("2026-08-17");
+    expect(database.execute.mock.calls[1]?.[0]).toContain(
+      "INSERT INTO worker_assignment_rate_periods",
+    );
+    expect(database.execute.mock.calls[1]?.[1]?.[5]).toBe("750.00");
+  });
+
+  it("keeps the assignment daily rate aligned with the latest effective rate after a retroactive change", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "assignment-id",
+          starts_on: "2026-08-01",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    database.execute.mockResolvedValue(result(1));
+
+    await repository.updateAssignmentRate(
+      "organization-id",
+      "project-id",
+      "worker-id",
+      900,
+      "2026-08-20",
+      "Correction",
+      "actor-id",
+    );
+
+    const updateSql = database.execute.mock.calls[1]?.[0];
+    const updateParams = database.execute.mock.calls[1]?.[1];
+    expect(updateSql).toContain("ORDER BY rate_period.effective_from DESC");
+    expect(updateParams).toEqual([
+      "assignment-id",
+      "actor-id",
+      "assignment-id",
+      "organization-id",
+    ]);
   });
 
   it("rejects assignment dates that would leave a primary period outside the assignment", async () => {

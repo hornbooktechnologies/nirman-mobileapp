@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import type { WageBatchDetail } from "@nirman-app/shared";
 import { AttendanceService } from "../attendance/attendance.service";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { WagesRepository } from "./wages.repository";
@@ -12,6 +13,7 @@ describe("WagesService", () => {
     findActiveBatchForPeriod: jest.fn(),
     createBatch: jest.fn(),
     recordPayment: jest.fn(),
+    cancelBatch: jest.fn(),
     updateWageItem: jest.fn(),
   } as unknown as jest.Mocked<WagesRepository>;
 
@@ -38,6 +40,27 @@ describe("WagesService", () => {
   };
   const organizationId = "00000000-0000-4000-8000-000000000010";
   const projectId = "00000000-0000-4000-8000-000000000020";
+  const cancelledDetail = {
+    id: "batch-id",
+    organizationId,
+    projectId,
+    periodStart: "2026-09-01",
+    periodEnd: "2026-09-14",
+    status: "CANCELLED",
+    generatedBy: actor.id,
+    cancellationReason: "Attendance correction",
+    createdAt: "2026-09-14T00:00:00.000Z",
+    updatedAt: "2026-09-14T00:00:00.000Z",
+    totals: {
+      grossAmount: "0.00",
+      kharchiDeduction: "0.00",
+      adjustmentAmount: "0.00",
+      netAmount: "0.00",
+      paidAmount: "0.00",
+    },
+    items: [],
+    payments: [],
+  } satisfies WageBatchDetail;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -87,6 +110,50 @@ describe("WagesService", () => {
       projectId,
       "2026-08-01",
       "2026-08-05",
+    );
+  });
+
+  it("uses effective-dated rate segments without rewriting earlier days", async () => {
+    attendanceService.calculateWagePeriod.mockResolvedValue([
+      {
+        workerAssignmentId: "assignment-id",
+        workerId: "worker-id",
+        workerCode: "WRK-001",
+        workerName: "Ravi Worker",
+        trade: "Mason",
+        dailyRate: "1000.00",
+        presentDays: 2,
+        halfDays: 1,
+        absentDays: 0,
+        rateSegments: [
+          { dailyRate: "800.00", presentDays: 1, halfDays: 0, absentDays: 0 },
+          { dailyRate: "1000.00", presentDays: 1, halfDays: 1, absentDays: 0 },
+        ],
+      },
+    ]);
+
+    const preview = await service.preview(
+      organizationId,
+      projectId,
+      { start: "2026-08-01", end: "2026-08-05" },
+      actor,
+    );
+
+    expect(preview.items[0]).toEqual(
+      expect.objectContaining({
+        dailyRate: "1000.00",
+        grossAmount: "2300.00",
+        rateBreakdown: [
+          expect.objectContaining({
+            dailyRate: "800.00",
+            grossAmount: "800.00",
+          }),
+          expect.objectContaining({
+            dailyRate: "1000.00",
+            grossAmount: "1500.00",
+          }),
+        ],
+      }),
     );
   });
 
@@ -193,6 +260,48 @@ describe("WagesService", () => {
     );
   });
 
+  it("cancels an unpaid batch with the dedicated permission", async () => {
+    wagesRepo.cancelBatch.mockResolvedValue(cancelledDetail);
+
+    await service.cancelBatch(
+      organizationId,
+      projectId,
+      "00000000-0000-4000-8000-000000000040",
+      { reason: " Attendance correction " },
+      actor,
+    );
+
+    expect(projectAccess.resolveProjectAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      projectId,
+      "wages:cancel",
+    );
+    expect(wagesRepo.cancelBatch).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      "00000000-0000-4000-8000-000000000040",
+      "Attendance correction",
+      actor.id,
+    );
+  });
+
+  it("returns a stable conflict when a batch already has a payment", async () => {
+    wagesRepo.cancelBatch.mockRejectedValue(
+      new Error("WAGE_BATCH_HAS_PAYMENTS"),
+    );
+
+    await expect(
+      service.cancelBatch(
+        organizationId,
+        projectId,
+        "00000000-0000-4000-8000-000000000040",
+        { reason: "Attendance correction" },
+        actor,
+      ),
+    ).rejects.toMatchObject({ response: { code: "WAGE_BATCH_HAS_PAYMENTS" } });
+  });
+
   it("updates a wage item adjustment through the repository", async () => {
     wagesRepo.updateWageItem.mockResolvedValue({ id: "batch-id" } as any);
 
@@ -236,7 +345,7 @@ describe("WagesService", () => {
           netAmount: "1949.50",
           paidAmount: "500.00",
           paymentStatus: "PARTIALLY_PAID",
-          notes: "Site \"A\"",
+          notes: 'Site "A"',
         },
       ],
       payments: [
@@ -260,7 +369,9 @@ describe("WagesService", () => {
       actor,
     );
 
-    expect(result.filename).toBe(`wages-${projectId}-2026-08-01-2026-08-20.csv`);
+    expect(result.filename).toBe(
+      `wages-${projectId}-2026-08-01-2026-08-20.csv`,
+    );
     expect(result.csv).toContain('"Worker Code","Worker Name"');
     expect(result.csv).toContain('"WRK-001","Rajesh Patel"');
     expect(result.csv).toContain('"Payment History"');

@@ -4,7 +4,7 @@
 >
 > Implementation status: `PARTIAL — REQUIRES OWNER DECISION`.
 >
-> Last reconciled: 2026-08-11 against the current checkout.
+> Last reconciled: 2026-09-14 against the current checkout.
 
 ## Source Of Truth
 
@@ -21,8 +21,8 @@ Desired behavior is governed by `MVP_REQUIREMENTS.md`, approved decisions, and t
 | Worker-code concurrency | Bounded retry on the organization/code unique key | Repository tests passed | A live concurrent database smoke was not run |
 | Worker deactivation | Soft deactivation implemented; default active roster excludes inactive workers | Service tests passed | Owner must choose how active assignments are handled at deactivation |
 | Active/current project roster | API filters worker and assignment status plus assignment dates | Repository tests passed | None |
-| Assign existing worker and create-and-assign | Web Project Team lists assigned/unassigned Organization workers with row-level Assign; assignment inherits Worker trade/base rate. Mobile supports current-project create-and-assign | Service/repository tests, web/mobile type-checks passed | Mobile existing-worker assignment is outside approved quick-flow scope |
-| Update/end assignment and update current rate | Standard web assignment editing changes dates only; legacy assignment rate snapshots and the rate API remain available | Service tests and web build passed | Attendance-aware elevated rule and effective-dated history depend on Attendance/Wages |
+| Assign existing worker and create-and-assign | Web Project Team lists assigned/unassigned Organization workers with row-level Assign; assignment inherits Worker trade/base rate. Mobile create-and-assign accepts the actual start date and the API atomically creates the selected Project's initial primary period from that date. | Focused repository test, API/Mobile type-checks, shared build, and en/hi/gu locale parity passed | Mobile existing-worker assignment is outside approved quick-flow scope; authenticated physical-device acceptance remains pending |
+| Update/end assignment and effective-dated rate change | API enforces `workers:update-rate` after work has started, records rate history transactionally, and rejects future/out-of-assignment dates. Mobile Worker detail and Web Project Team expose permission-gated rate forms. | Focused Workers/Attendance/Wages tests and API/Mobile/Web type-checks passed | Migration `025` and authenticated role/browser/device acceptance pending |
 | Permission plus organization/project scope | API uses permission guard, membership/project access, and worker visibility checks; clients gate actions | Service tests passed | Full live role/scope matrix needs approved disposable data |
 | Stable API errors | Global filter emits canonical nested error plus legacy compatibility fields; Workers emits stable codes | Filter and service tests passed | Other modules may still use compatibility fields |
 | Web loading, empty, error, forbidden, read-only, and action states | Implemented for list, detail, assignment, rate, end, and deactivate workflows | Focused lint, type-check, and production build passed | Authenticated browser interaction was not run |
@@ -46,10 +46,9 @@ Permanent deletion is a separate approved 2026-08-25 workflow. It intentionally 
 ## Deferred Foundation Boundaries
 
 - Audit persistence and audit review UI: Audit Foundation.
-- Attendance-aware rate permissions: Attendance.
-- Effective-dated rate history and financial interpretation: Wages.
+- Effective-dated rate migration/runtime verification: migration `025` is prepared but not executed.
 - Persisted offline roster, connectivity status, queued writes, idempotency, sync, and conflict handling: Offline Sync Foundation.
-- Attendance, Wages, Kharchi, bulk import, documents/photos, agencies, and worker notifications were not implemented.
+- Bulk import, documents/photos, agencies, worker notifications, and persisted offline writes remain outside this slice.
 
 ## Verification Evidence
 

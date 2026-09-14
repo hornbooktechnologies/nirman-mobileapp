@@ -4,7 +4,7 @@
 >
 > Implementation status: `IMPLEMENTATION COMPLETE — AUTHENTICATED AND DEVICE ACCEPTANCE PENDING`.
 >
-> Last reconciled: 2026-09-01 against the current checkout and recorded remote rollout evidence.
+> Last reconciled: 2026-09-14 against the current checkout and recorded remote rollout evidence.
 
 ## Source Of Truth
 
@@ -19,10 +19,10 @@ concurrent-database, or physical-device acceptance.
 | --- | --- | --- |
 | Shared contract | Canonical permissions, payment methods, balance statuses, errors, and API types | Shared/API compilation and focused tests were recorded during the API slice |
 | Audit foundation | Durable audit events share the financial transaction for advance, adjustment, and Wage allocation writes | Source and mocked transaction tests passed; live rollback fault injection remains pending |
-| Database | `012_audit_foundation.sql` and `013_kharchi.sql` define Audit and Kharchi persistence | Separately approved migrations applied to `md-in-30.webhostbox.net / vishwlt9_nirmansite`; four Kharchi/Audit tables and migration rows were verified |
+| Database | `012_audit_foundation.sql` and `013_kharchi.sql` define Audit and Kharchi persistence; draft `026_wage_batch_cancellation.sql` adds immutable allocation reversals | `012`/`013` were separately applied and verified; `026` is not executed and requires separate exact-target approval |
 | Authorization | Project-scoped `kharchi:read`, `create`, `adjust`, and `export`; approved default grants | 22 approved live grants were verified; authenticated role/project matrix remains pending |
 | API | List, summary, detail, record-paid advance, immutable adjustment, CSV export, idempotency, assignment-date validation, and tenant/project scope | API/database health returned `200`; unauthenticated Kharchi route returned `401 AUTH_SESSION_REQUIRED`; authenticated and concurrency acceptance remains pending |
-| Wages integration | Wage confirmation allocates oldest outstanding Kharchi first and records traceable allocations without making net wages negative | Source/tests recorded; authenticated end-to-end Wage/Kharchi confirmation remains pending |
+| Wages integration | Wage confirmation allocates oldest outstanding Kharchi first; unpaid batch cancellation preserves and reverses those allocations so balances become outstanding again | Source, focused tests, and Mobile history states pass; migration/runtime and authenticated end-to-end acceptance remain pending |
 | Mobile navigation | Permission-aware Menu destination and routes use active Project permissions | Source and Mobile type-check passed; physical role/device matrix remains pending |
 | Mobile list | Project context, server summary, paginated list, refresh, search, export, empty/error/read-only states, and operational cards | Mobile type-check and Android Expo export passed |
 | Mobile filters | Shared search/filter toolbar, active count, labelled bottom-sheet groups, 48dp radio rows, Apply/Clear actions, and removable applied filters | Locale/type/export checks passed; Clear all immediately removes applied filters and chips; device/Dynamic Type review remains pending |
@@ -46,6 +46,7 @@ packages/shared/src/constants/kharchi.ts
 packages/shared/src/types/kharchi.ts
 apps/api/src/database/sql/migrations/012_audit_foundation.sql
 apps/api/src/database/sql/migrations/013_kharchi.sql
+apps/api/src/database/sql/migrations/026_wage_batch_cancellation.sql
 apps/api/src/modules/audit/
 apps/api/src/modules/kharchi/
 apps/mobile/app/(app)/kharchi.tsx

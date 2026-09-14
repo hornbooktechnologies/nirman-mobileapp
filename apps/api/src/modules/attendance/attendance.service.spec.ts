@@ -1,8 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import {
-  BadRequestException,
-  ForbiddenException,
-} from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import type {
   AttendanceException,
   EffectiveWorkCalendarDay,
@@ -116,6 +113,7 @@ describe("Attendance exception derivation", () => {
 describe("AttendanceService", () => {
   const attendanceRepo = {
     findPrimaryRosterPeriods: jest.fn(),
+    findAssignmentRatePeriods: jest.fn(),
     findExceptions: jest.fn(),
     findExceptionById: jest.fn(),
     findExceptionByAssignmentDate: jest.fn(),
@@ -141,6 +139,7 @@ describe("AttendanceService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
+    attendanceRepo.findAssignmentRatePeriods.mockResolvedValue([]);
     attendanceRepo.findPrimaryAssignmentForDate.mockResolvedValue({
       id: "assignment-id",
       worker_status: "ACTIVE",
@@ -193,7 +192,9 @@ describe("AttendanceService", () => {
         },
         actor,
       ),
-    ).rejects.toMatchObject({ response: { code: "ATTENDANCE_NON_WORKING_DATE" } });
+    ).rejects.toMatchObject({
+      response: { code: "ATTENDANCE_NON_WORKING_DATE" },
+    });
   });
 
   it("returns one worker's totals and dated absence exceptions", async () => {
@@ -276,6 +277,18 @@ describe("AttendanceService", () => {
       exception("half", "2026-08-13", "HALF_DAY"),
       exception("full", "2026-08-14", "FULL_DAY"),
     ]);
+    attendanceRepo.findAssignmentRatePeriods.mockResolvedValue([
+      {
+        workerAssignmentId: "assignment-id",
+        dailyRate: "800.00",
+        effectiveFrom: "2026-08-01",
+      },
+      {
+        workerAssignmentId: "assignment-id",
+        dailyRate: "900.00",
+        effectiveFrom: "2026-08-13",
+      },
+    ]);
     calendarService.resolveDaysForAttendance.mockResolvedValue([
       day("2026-08-12", true),
       day("2026-08-13", true),
@@ -287,10 +300,76 @@ describe("AttendanceService", () => {
       service.calculateWagePeriod("org", "project", "2026-08-12", "2026-08-15"),
     ).resolves.toEqual([
       expect.objectContaining({
-        dailyRate: "800.00",
+        dailyRate: "900.00",
         presentDays: 1,
         halfDays: 1,
         absentDays: 1,
+        rateSegments: [
+          {
+            dailyRate: "800.00",
+            presentDays: 1,
+            halfDays: 0,
+            absentDays: 0,
+          },
+          {
+            dailyRate: "900.00",
+            presentDays: 0,
+            halfDays: 1,
+            absentDays: 1,
+          },
+        ],
+      }),
+    ]);
+  });
+
+  it("does not apply the first recorded rate before its effective date", async () => {
+    attendanceRepo.findPrimaryRosterPeriods.mockResolvedValue([
+      {
+        workerId: "worker-id",
+        workerCode: "WRK-001",
+        workerName: "Ravi Worker",
+        trade: "Mason",
+        workerStatus: "ACTIVE",
+        deactivatedAt: null,
+        workerAssignmentId: "assignment-id",
+        dailyRate: "900.00",
+        assignmentStartsOn: "2026-08-01",
+        assignmentEndsOn: null,
+        primaryStartsOn: "2026-08-01",
+        primaryEndsOn: null,
+      },
+    ]);
+    attendanceRepo.findExceptions.mockResolvedValue([]);
+    attendanceRepo.findAssignmentRatePeriods.mockResolvedValue([
+      {
+        workerAssignmentId: "assignment-id",
+        dailyRate: "900.00",
+        effectiveFrom: "2026-08-13",
+      },
+    ]);
+    calendarService.resolveDaysForAttendance.mockResolvedValue([
+      day("2026-08-12", true),
+      day("2026-08-13", true),
+    ]);
+
+    await expect(
+      service.calculateWagePeriod("org", "project", "2026-08-12", "2026-08-13"),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        rateSegments: [
+          {
+            dailyRate: null,
+            presentDays: 1,
+            halfDays: 0,
+            absentDays: 0,
+          },
+          {
+            dailyRate: "900.00",
+            presentDays: 1,
+            halfDays: 0,
+            absentDays: 0,
+          },
+        ],
       }),
     ]);
   });

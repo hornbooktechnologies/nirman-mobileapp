@@ -19,6 +19,7 @@ export const KHARCHI_AUDIT_ACTIONS = [
   "kharchi.advance-recorded",
   "kharchi.adjustment-recorded",
   "kharchi.deduction-allocated",
+  "kharchi.deduction-reversed",
 ] as const;
 
 export type KharchiAuditAction = (typeof KHARCHI_AUDIT_ACTIONS)[number];

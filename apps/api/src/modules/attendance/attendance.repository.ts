@@ -6,7 +6,7 @@ import type {
   UpdateAttendanceExceptionInput,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type { DatabaseConnection } from "../../database/database.types";
+import type { DatabaseConnection, DbRow } from "../../database/database.types";
 
 export type AttendanceRosterPeriodRow = {
   workerId: string;
@@ -22,6 +22,33 @@ export type AttendanceRosterPeriodRow = {
   primaryStartsOn: string;
   primaryEndsOn: string | null;
 };
+
+export type AssignmentRatePeriodRow = {
+  workerAssignmentId: string;
+  dailyRate: string;
+  effectiveFrom: string;
+};
+
+interface AssignmentRatePeriodDbRow extends DbRow {
+  worker_assignment_id: string;
+  daily_rate: string;
+  effective_from: Date | string;
+}
+
+interface AttendanceRosterPeriodDbRow extends DbRow {
+  worker_id: string;
+  worker_code: string;
+  worker_name: string;
+  trade: string;
+  worker_status: string;
+  deactivated_at: Date | string | null;
+  worker_assignment_id: string;
+  daily_rate: string | null;
+  assignment_starts_on: Date | string;
+  assignment_ends_on: Date | string | null;
+  primary_starts_on: Date | string;
+  primary_ends_on: Date | string | null;
+}
 
 function dateOnly(value: Date | string) {
   return value instanceof Date
@@ -45,7 +72,7 @@ export class AttendanceRepository {
     search?: string,
     workerId?: string,
   ): Promise<AttendanceRosterPeriodRow[]> {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<AttendanceRosterPeriodDbRow>(
       `SELECT
          w.id AS worker_id, w.worker_code, w.name AS worker_name, w.trade,
          w.status AS worker_status, w.deactivated_at,
@@ -77,12 +104,10 @@ export class AttendanceRepository {
         endDate,
         startDate,
         ...(workerId ? [workerId] : []),
-        ...(search
-          ? [`%${search}%`, `%${search}%`, `%${search}%`]
-          : []),
+        ...(search ? [`%${search}%`, `%${search}%`, `%${search}%`] : []),
       ],
     );
-    return rows.map((row: any) => ({
+    return rows.map((row) => ({
       workerId: row.worker_id,
       workerCode: row.worker_code,
       workerName: row.worker_name,
@@ -97,6 +122,30 @@ export class AttendanceRepository {
       assignmentEndsOn: nullableDateOnly(row.assignment_ends_on),
       primaryStartsOn: dateOnly(row.primary_starts_on),
       primaryEndsOn: nullableDateOnly(row.primary_ends_on),
+    }));
+  }
+
+  async findAssignmentRatePeriods(
+    organizationId: string,
+    projectId: string,
+    assignmentIds: string[],
+    endDate: string,
+  ): Promise<AssignmentRatePeriodRow[]> {
+    if (assignmentIds.length === 0) return [];
+    const placeholders = assignmentIds.map(() => "?").join(", ");
+    const rows = await this.database.query<AssignmentRatePeriodDbRow>(
+      `SELECT worker_assignment_id, daily_rate, effective_from
+       FROM worker_assignment_rate_periods
+       WHERE organization_id = ? AND project_id = ?
+         AND worker_assignment_id IN (${placeholders})
+         AND effective_from <= ?
+       ORDER BY worker_assignment_id ASC, effective_from ASC, updated_at ASC`,
+      [organizationId, projectId, ...assignmentIds, endDate],
+    );
+    return rows.map((row) => ({
+      workerAssignmentId: row.worker_assignment_id,
+      dailyRate: String(row.daily_rate),
+      effectiveFrom: dateOnly(row.effective_from),
     }));
   }
 

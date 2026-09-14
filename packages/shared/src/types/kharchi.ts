@@ -17,6 +17,9 @@ export type KharchiDeductionAllocation = {
   deductionAmount: string;
   deductedAt: string;
   recordedBy: string;
+  reversedAt?: string | null;
+  reversedBy?: string | null;
+  reversalReason?: string | null;
 };
 
 export type KharchiAdvance = {

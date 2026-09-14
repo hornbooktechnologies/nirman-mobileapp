@@ -7,6 +7,7 @@ import type {
   EndWorkerProjectAssignmentInput,
   ProjectWorkerRosterResponse,
   UpdateWorkerProjectAssignmentInput,
+  UpdateWorkerAssignmentRateInput,
   WorkerDetail,
   WorkerDuplicateCandidate,
   WorkerListResponse,
@@ -172,6 +173,21 @@ export async function updateWorkerProjectAssignment(
   const response = await apiRequest<ApiEnvelope<WorkerProjectAssignmentSummary>>(
     `/organizations/${organizationId}/projects/${projectId}/workers/${workerId}/assignment`,
     { method: 'PATCH', body: JSON.stringify(input) },
+    { accessToken },
+  );
+  return response.data;
+}
+
+export async function updateWorkerAssignmentRate(
+  organizationId: string,
+  projectId: string,
+  workerId: string,
+  accessToken: string,
+  input: UpdateWorkerAssignmentRateInput,
+) {
+  const response = await apiRequest<ApiEnvelope<WorkerProjectAssignmentSummary>>(
+    `/organizations/${organizationId}/projects/${projectId}/workers/${workerId}/assignment/rate-change`,
+    { method: 'POST', body: JSON.stringify(input) },
     { accessToken },
   );
   return response.data;

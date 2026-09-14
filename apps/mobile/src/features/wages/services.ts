@@ -69,6 +69,21 @@ export async function createWageBatch(
   return response.data;
 }
 
+export async function cancelWageBatch(
+  organizationId: string,
+  projectId: string,
+  batchId: string,
+  reason: string,
+  accessToken: string,
+) {
+  const response = await apiRequest<ApiEnvelope<WageBatchDetail>>(
+    `/organizations/${organizationId}/projects/${projectId}/wages/batches/${batchId}/cancel`,
+    { method: "POST", body: JSON.stringify({ reason }) },
+    { accessToken },
+  );
+  return response.data;
+}
+
 export async function recordWagePayment(
   organizationId: string,
   projectId: string,

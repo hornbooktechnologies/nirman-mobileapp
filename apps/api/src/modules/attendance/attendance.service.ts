@@ -50,6 +50,12 @@ export type WageAttendanceCalculationRow = {
   presentDays: number;
   halfDays: number;
   absentDays: number;
+  rateSegments?: Array<{
+    dailyRate: string | null;
+    presentDays: number;
+    halfDays: number;
+    absentDays: number;
+  }>;
 };
 
 function parseDateOnly(value: string) {
@@ -60,7 +66,8 @@ function parseDateOnly(value: string) {
     date.getUTCFullYear() !== year ||
     date.getUTCMonth() !== month - 1 ||
     date.getUTCDate() !== day
-  ) return null;
+  )
+    return null;
   return date;
 }
 
@@ -98,9 +105,8 @@ export function deriveAttendanceDailyRows(
     const roster = periods[0];
     for (const day of calendarDays) {
       if (!periods.some((period) => coversDate(period, day.date))) continue;
-      const exception = exceptionMap.get(
-        `${roster.workerAssignmentId}:${day.date}`,
-      ) ?? null;
+      const exception =
+        exceptionMap.get(`${roster.workerAssignmentId}:${day.date}`) ?? null;
       if (day.isWorking !== true) {
         result.push({
           roster,
@@ -205,9 +211,10 @@ export function deriveAttendanceSummary(
         : {}),
     });
   }
-  rows = rows.sort((a, b) =>
-    a.worker.name.localeCompare(b.worker.name) ||
-    a.worker.workerCode.localeCompare(b.worker.workerCode),
+  rows = rows.sort(
+    (a, b) =>
+      a.worker.name.localeCompare(b.worker.name) ||
+      a.worker.workerCode.localeCompare(b.worker.workerCode),
   );
   const total = rows.length;
   const page = options.page ?? 1;
@@ -215,8 +222,7 @@ export function deriveAttendanceSummary(
   const totals = rows.reduce(
     (value, row) => ({
       workers: value.workers + 1,
-      expectedWorkingDays:
-        value.expectedWorkingDays + row.expectedWorkingDays,
+      expectedWorkingDays: value.expectedWorkingDays + row.expectedWorkingDays,
       presentDays: value.presentDays + row.presentDays,
       absentDays: value.absentDays + row.absentDays,
     }),
@@ -286,6 +292,7 @@ export class AttendanceService {
       ),
     ]);
     this.assertConfigured(days);
+
     return deriveAttendanceSummary(
       organizationId,
       projectId,
@@ -391,6 +398,30 @@ export class AttendanceService {
     ]);
     this.assertConfigured(days);
 
+    const ratePeriods = await this.attendanceRepo.findAssignmentRatePeriods(
+      organizationId,
+      projectId,
+      [...new Set(roster.map((row) => row.workerAssignmentId))],
+      endDate,
+    );
+    const ratesByAssignment = new Map<string, typeof ratePeriods>();
+    for (const ratePeriod of ratePeriods) {
+      const values = ratesByAssignment.get(ratePeriod.workerAssignmentId) ?? [];
+      values.push(ratePeriod);
+      ratesByAssignment.set(ratePeriod.workerAssignmentId, values);
+    }
+    const rateForDate = (row: DerivedDailyRow) => {
+      const periods =
+        ratesByAssignment.get(row.roster.workerAssignmentId) ?? [];
+      if (periods.length === 0) return row.roster.dailyRate;
+      let effectiveRate: string | null = null;
+      for (const period of periods) {
+        if (period.effectiveFrom > row.date) break;
+        effectiveRate = period.dailyRate;
+      }
+      return effectiveRate;
+    };
+
     const grouped = new Map<string, DerivedDailyRow[]>();
     for (const row of deriveAttendanceDailyRows(roster, days, exceptions)) {
       if (!row.expectedWorking) continue;
@@ -402,16 +433,36 @@ export class AttendanceService {
     return [...grouped.values()]
       .map((values) => {
         const rosterRow = values[0].roster;
+        const segments = new Map<
+          string,
+          NonNullable<WageAttendanceCalculationRow["rateSegments"]>[number]
+        >();
+        for (const row of values) {
+          const dailyRate = rateForDate(row);
+          const key = dailyRate ?? "__MISSING__";
+          const segment = segments.get(key) ?? {
+            dailyRate,
+            presentDays: 0,
+            halfDays: 0,
+            absentDays: 0,
+          };
+          if (row.state === "PRESENT") segment.presentDays += 1;
+          if (row.state === "HALF_DAY") segment.halfDays += 1;
+          if (row.state === "ABSENT") segment.absentDays += 1;
+          segments.set(key, segment);
+        }
+        const latestRate = rateForDate(values[values.length - 1]);
         return {
           workerAssignmentId: rosterRow.workerAssignmentId,
           workerId: rosterRow.workerId,
           workerCode: rosterRow.workerCode,
           workerName: rosterRow.workerName,
           trade: rosterRow.trade,
-          dailyRate: rosterRow.dailyRate,
+          dailyRate: latestRate,
           presentDays: values.filter((row) => row.state === "PRESENT").length,
           halfDays: values.filter((row) => row.state === "HALF_DAY").length,
           absentDays: values.filter((row) => row.state === "ABSENT").length,
+          rateSegments: [...segments.values()],
         };
       })
       .sort(
@@ -520,7 +571,11 @@ export class AttendanceService {
       actor.id,
     );
     if (!removed) throw this.exceptionNotFound();
-    return { id: exceptionId, removed: true, restoredState: "PRESENT" as const };
+    return {
+      id: exceptionId,
+      removed: true,
+      restoredState: "PRESENT" as const,
+    };
   }
 
   async exportPeriod(
@@ -629,13 +684,19 @@ export class AttendanceService {
     );
     if (!dto.entries?.length) {
       throw new BadRequestException(
-        this.error("ATTENDANCE_EMPTY", "At least one Attendance entry is required"),
+        this.error(
+          "ATTENDANCE_EMPTY",
+          "At least one Attendance entry is required",
+        ),
       );
     }
     const ids = dto.entries.map((entry) => entry.workerAssignmentId);
     if (new Set(ids).size !== ids.length) {
       throw new BadRequestException(
-        this.error("ATTENDANCE_DUPLICATE_ENTRY", "Attendance entries must contain each Worker assignment once"),
+        this.error(
+          "ATTENDANCE_DUPLICATE_ENTRY",
+          "Attendance entries must contain each Worker assignment once",
+        ),
       );
     }
     for (const entry of dto.entries) {
@@ -688,7 +749,10 @@ export class AttendanceService {
         );
       }
     }
-    return { date: dto.date, data: await this.findByDate(organizationId, projectId, dto.date, actor) };
+    return {
+      date: dto.date,
+      data: await this.findByDate(organizationId, projectId, dto.date, actor),
+    };
   }
 
   /** @deprecated Sequential Web/Mobile compatibility adapter. */
@@ -699,12 +763,27 @@ export class AttendanceService {
     dto: UpdateAttendanceDto,
     actor: AuthenticatedUser,
   ) {
-    await this.projectAccess.resolveProjectAccess(actor, organizationId, projectId, "attendance:update");
-    if (dto.checkIn || dto.checkOut || dto.status === "HOLIDAY") throw this.unsupportedLegacy();
-    const existing = await this.attendanceRepo.findExceptionById(organizationId, projectId, attendanceId);
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "attendance:update",
+    );
+    if (dto.checkIn || dto.checkOut || dto.status === "HOLIDAY")
+      throw this.unsupportedLegacy();
+    const existing = await this.attendanceRepo.findExceptionById(
+      organizationId,
+      projectId,
+      attendanceId,
+    );
     if (!existing) throw this.exceptionNotFound();
     if (dto.status === "PRESENT") {
-      await this.attendanceRepo.removeException(organizationId, projectId, attendanceId, actor.id);
+      await this.attendanceRepo.removeException(
+        organizationId,
+        projectId,
+        attendanceId,
+        actor.id,
+      );
       return { ...this.toLegacyRecord(existing), status: "PRESENT" as const };
     }
     const updated = await this.attendanceRepo.updateException(
@@ -771,29 +850,57 @@ export class AttendanceService {
     if (
       assignment.worker_status !== "ACTIVE" &&
       (!assignment.deactivated_at ||
-        workDate >= new Date(assignment.deactivated_at).toISOString().slice(0, 10))
+        workDate >=
+          new Date(assignment.deactivated_at).toISOString().slice(0, 10))
     ) {
       throw new BadRequestException(
-        this.error("ATTENDANCE_WORKER_NOT_ASSIGNED", "Worker is not active for Attendance on this date"),
+        this.error(
+          "ATTENDANCE_WORKER_NOT_ASSIGNED",
+          "Worker is not active for Attendance on this date",
+        ),
       );
     }
   }
 
-  private validatePeriod(startDate: string, endDate: string, selectedDate?: string) {
+  private validatePeriod(
+    startDate: string,
+    endDate: string,
+    selectedDate?: string,
+  ) {
     const start = parseDateOnly(startDate);
     const end = parseDateOnly(endDate);
-    if (!start || !end || end < start || (selectedDate && (selectedDate < startDate || selectedDate > endDate || !parseDateOnly(selectedDate)))) {
-      throw new BadRequestException(this.error("ATTENDANCE_PERIOD_INVALID", "Attendance period is invalid"));
+    if (
+      !start ||
+      !end ||
+      end < start ||
+      (selectedDate &&
+        (selectedDate < startDate ||
+          selectedDate > endDate ||
+          !parseDateOnly(selectedDate)))
+    ) {
+      throw new BadRequestException(
+        this.error("ATTENDANCE_PERIOD_INVALID", "Attendance period is invalid"),
+      );
     }
     const days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
     if (days > MAX_ATTENDANCE_DAYS) {
-      throw new BadRequestException(this.error("ATTENDANCE_PERIOD_TOO_LARGE", `Attendance period cannot exceed ${MAX_ATTENDANCE_DAYS} days`));
+      throw new BadRequestException(
+        this.error(
+          "ATTENDANCE_PERIOD_TOO_LARGE",
+          `Attendance period cannot exceed ${MAX_ATTENDANCE_DAYS} days`,
+        ),
+      );
     }
   }
 
   private assertConfigured(days: EffectiveWorkCalendarDay[]) {
     if (days.some((day) => day.isWorking === null)) {
-      throw new BadRequestException(this.error("WORK_CALENDAR_NOT_CONFIGURED", "Organization work calendar must be configured before deriving Attendance"));
+      throw new BadRequestException(
+        this.error(
+          "WORK_CALENDAR_NOT_CONFIGURED",
+          "Organization work calendar must be configured before deriving Attendance",
+        ),
+      );
     }
   }
 
@@ -822,11 +929,21 @@ export class AttendanceService {
   }
 
   private exceptionNotFound() {
-    return new NotFoundException(this.error("ATTENDANCE_EXCEPTION_NOT_FOUND", "Attendance exception not found"));
+    return new NotFoundException(
+      this.error(
+        "ATTENDANCE_EXCEPTION_NOT_FOUND",
+        "Attendance exception not found",
+      ),
+    );
   }
 
   private unsupportedLegacy() {
-    return new BadRequestException(this.error("ATTENDANCE_LEGACY_INPUT_UNSUPPORTED", "Legacy HOLIDAY, check-in, check-out, overtime, and offline sync input cannot be translated safely"));
+    return new BadRequestException(
+      this.error(
+        "ATTENDANCE_LEGACY_INPUT_UNSUPPORTED",
+        "Legacy HOLIDAY, check-in, check-out, overtime, and offline sync input cannot be translated safely",
+      ),
+    );
   }
 
   private csvCell(value: string | number | boolean | null | undefined) {

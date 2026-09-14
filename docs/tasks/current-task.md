@@ -1,5 +1,23 @@
 # Current Task
 
+## Backdated Worker Onboarding And Primary Allocation — 2026-09-14
+
+Mobile Worker creation now accepts the Worker's actual selected-Project start date. The API creates the assignment and initial primary-Project period atomically from that date, removing the separate first-time primary step. Later primary corrections may select a previous date covered by an active assignment; the existing API assignment-window and overlap rules remain authoritative, and Mobile warns that earlier Attendance totals can change.
+
+No migration, seed, database execution, Attendance UI, Web, Wages, Kharchi, dependency, or lockfile change was authorized for this correction. Locale parity, shared build, API/Mobile type-checks, the focused 46-test Workers service/repository suites, and `git diff --check` passed. Authenticated API/database and physical-device acceptance were not run.
+
+## Unpaid Wage Batch Cancellation — 2026-09-14
+
+Implemented owner-only, audit-safe Wage batch cancellation. A batch with any payment is blocked; an unpaid batch requires a reason, remains as a read-only cancelled snapshot, releases Kharchi deductions through immutable reversal rows, and unlocks its period for regeneration. The API operation is transactionally audited and naturally retry-safe. Mobile adds a localized destructive confirmation flow and shows reversed Kharchi allocation history.
+
+Migration and preflight `026_wage_batch_cancellation.sql` are prepared but not executed. Shared/API/Mobile type-checks, API production build, 16 focused financial tests, locale parity, and whitespace checks pass. Focused lint still reports the pre-existing Wages `any` debt. Authenticated database, role, concurrency, and physical-device acceptance remain pending.
+
+## Worker Assignment Rate Security And History — 2026-09-14
+
+Corrected the stale pre-Attendance rate boundary. A Project assignment that has started or has Attendance/Wage history now requires effective `workers:update-rate`; a not-yet-started assignment may still be initialized by `workers:assign-project`. Rate changes require an in-assignment, non-future effective date and transactionally record one effective rate per assignment/date.
+
+Migration `025_worker_assignment_rate_history.sql` adds the effective-dated history plus confirmed Wage rate breakdowns and backfills each existing assignment's currently known rate as its baseline. Wages now calculates each derived working date with the applicable rate and snapshots a multi-rate breakdown. Mobile and Web expose permission-aware rate-change forms with current rate, effective date, optional reason, validation, and Mobile en/hi/gu copy. Migration/runtime and authenticated role/browser/device acceptance remain pending.
+
 ## Password Recovery And Account Security — 2026-09-11
 
 Implemented the approved email recovery mechanism for every active global user identity. The API now provides generic role-neutral forgot-password requests, hashed 15-minute single-use recovery tokens, DB-backed normalized-email/IP throttling, web/mobile reset links through the existing SMTP settings, transactional password reset, and refresh-session revocation. Authenticated password change requires the current password and also revokes refresh sessions. Permanent or generated passwords are never emailed; OTP/2FA remains separately deferred.
@@ -192,7 +210,7 @@ acceptance remain pending.
 
 ## Calendar And Attendance Implementation Status
 
-On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. The later Kharchi API source now allocates traceable deductions during confirmation, while runtime use awaits its migrations. Effective-dated wage-rate history remains an explicit completion gap.
+On 2026-08-25, the Product Owner separately authorized the initial Wages calculation implementation. Wages preview and confirmation consume the internal derived Calendar/primary-period/Attendance read and no longer query legacy explicit Attendance records. The later Kharchi API source now allocates traceable deductions during confirmation. Effective-dated wage-rate history was added in source on 2026-09-14 through migration `025`; runtime acceptance remains migration-gated.
 
 The sequential Calendar and Attendance exception-model redesign is documented in `docs/tasks/calendar-attendance-exception-model-implementation-plan.md`.
 

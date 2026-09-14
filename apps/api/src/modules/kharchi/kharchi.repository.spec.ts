@@ -98,4 +98,39 @@ describe("KharchiRepository", () => {
     expect(database.execute).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
   });
+
+  it("records immutable reversals for a cancelled Wage batch", async () => {
+    database.query.mockResolvedValueOnce([
+      {
+        id: "allocation-id",
+        kharchi_advance_id: "advance-id",
+        wage_item_id: "wage-item-id",
+        deduction_amount: "250.00",
+      },
+    ] as never);
+
+    await expect(
+      repository.reverseAllocationsForWageBatch(
+        {
+          organizationId: "organization-id",
+          projectId: "project-id",
+          wageBatchId: "wage-batch-id",
+          reason: "Attendance correction",
+          actorId: "actor-id",
+        },
+        {} as DatabaseTransaction,
+      ),
+    ).resolves.toBe(1);
+    expect(database.execute).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "INSERT INTO kharchi_deduction_allocation_reversals",
+      ),
+      expect.arrayContaining(["allocation-id", "Attendance correction"]),
+      expect.anything(),
+    );
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "kharchi.deduction-reversed" }),
+      expect.anything(),
+    );
+  });
 });

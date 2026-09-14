@@ -417,7 +417,7 @@ export class WorkersService {
       actor,
       organizationId,
       projectId,
-      "workers:assign-project",
+      "workers:read",
     );
     this.validateDailyRate(dto.dailyRate);
     if (!dto.effectiveDate) {
@@ -449,16 +449,53 @@ export class WorkersService {
         ),
       );
     }
-    void access;
-    // Attendance is not implemented. The approved pre-Attendance Workers rule
-    // therefore uses workers:assign-project. Attendance must replace this
-    // boundary with a real history check before elevated update-rate behavior
-    // can be claimed.
+    if (
+      current.endsOn &&
+      this.dateOnly(dto.effectiveDate) > this.dateOnly(current.endsOn)
+    ) {
+      throw new BadRequestException(
+        this.error(
+          "WORKER_ASSIGNMENT_INVALID_DATES",
+          "Rate effective date must be covered by the assignment",
+        ),
+      );
+    }
+    const today = this.todayInIndia();
+    if (this.dateOnly(dto.effectiveDate) > today) {
+      throw new BadRequestException(
+        this.error(
+          "WORKER_RATE_CHANGE_FUTURE_DATE",
+          "Rate effective date cannot be in the future",
+        ),
+      );
+    }
+    const hasHistoricalWork =
+      this.dateOnly(current.startsOn) < today ||
+      (await this.workersRepo.hasAttendanceOrWageHistory(
+        organizationId,
+        projectId,
+        current.id,
+      ));
+    const requiredPermission = hasHistoricalWork
+      ? "workers:update-rate"
+      : "workers:assign-project";
+    if (!access.permissions.includes(requiredPermission)) {
+      throw new ForbiddenException(
+        this.error(
+          "WORKER_RATE_CHANGE_ELEVATED_PERMISSION_REQUIRED",
+          hasHistoricalWork
+            ? "Rate changes after work has started require workers:update-rate"
+            : "Worker assignment permission is required to set this rate",
+        ),
+      );
+    }
     const assignment = await this.workersRepo.updateAssignmentRate(
       organizationId,
       projectId,
       workerId,
       dto.dailyRate,
+      this.dateOnly(dto.effectiveDate),
+      dto.reason?.trim() || null,
       actor.id,
     );
     if (!assignment) {
@@ -545,7 +582,10 @@ export class WorkersService {
       "workers:read",
     );
     const worker = await this.workersRepo.findById(organizationId, workerId);
-    if (!worker) throw new NotFoundException(this.error("WORKER_NOT_FOUND", "Worker not found"));
+    if (!worker)
+      throw new NotFoundException(
+        this.error("WORKER_NOT_FOUND", "Worker not found"),
+      );
     return this.workersRepo.findPrimaryProjectPeriods(
       organizationId,
       workerId,
@@ -560,11 +600,31 @@ export class WorkersService {
     actor: AuthenticatedUser,
   ) {
     this.validateAssignmentDates(dto.startsOn, dto.endsOn);
-    const assignment = await this.workersRepo.findAssignmentById(organizationId, workerId, dto.workerAssignmentId);
-    if (!assignment) throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
-    await this.projectAccess.resolveProjectAccess(actor, organizationId, assignment.projectId, "workers:assign-project");
+    const assignment = await this.workersRepo.findAssignmentById(
+      organizationId,
+      workerId,
+      dto.workerAssignmentId,
+    );
+    if (!assignment)
+      throw new NotFoundException(
+        this.error(
+          "WORKER_ASSIGNMENT_NOT_FOUND",
+          "Worker assignment not found",
+        ),
+      );
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      assignment.projectId,
+      "workers:assign-project",
+    );
     return this.translatePrimaryPeriodError(() =>
-      this.workersRepo.createPrimaryProjectPeriod(organizationId, workerId, dto, actor.id),
+      this.workersRepo.createPrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        dto,
+        actor.id,
+      ),
     );
   }
 
@@ -575,17 +635,53 @@ export class WorkersService {
     dto: UpdatePrimaryProjectPeriodDto,
     actor: AuthenticatedUser,
   ) {
-    const current = await this.workersRepo.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    const current = await this.workersRepo.findPrimaryProjectPeriodById(
+      organizationId,
+      workerId,
+      periodId,
+    );
     if (!current) throw this.primaryPeriodNotFound();
-    await this.projectAccess.resolveProjectAccess(actor, organizationId, current.projectId, "workers:assign-project");
-    if (dto.workerAssignmentId && dto.workerAssignmentId !== current.workerAssignmentId) {
-      const target = await this.workersRepo.findAssignmentById(organizationId, workerId, dto.workerAssignmentId);
-      if (!target) throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
-      await this.projectAccess.resolveProjectAccess(actor, organizationId, target.projectId, "workers:assign-project");
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      current.projectId,
+      "workers:assign-project",
+    );
+    if (
+      dto.workerAssignmentId &&
+      dto.workerAssignmentId !== current.workerAssignmentId
+    ) {
+      const target = await this.workersRepo.findAssignmentById(
+        organizationId,
+        workerId,
+        dto.workerAssignmentId,
+      );
+      if (!target)
+        throw new NotFoundException(
+          this.error(
+            "WORKER_ASSIGNMENT_NOT_FOUND",
+            "Worker assignment not found",
+          ),
+        );
+      await this.projectAccess.resolveProjectAccess(
+        actor,
+        organizationId,
+        target.projectId,
+        "workers:assign-project",
+      );
     }
-    this.validateAssignmentDates(dto.startsOn ?? current.startsOn, dto.endsOn === undefined ? current.endsOn : dto.endsOn);
+    this.validateAssignmentDates(
+      dto.startsOn ?? current.startsOn,
+      dto.endsOn === undefined ? current.endsOn : dto.endsOn,
+    );
     return this.translatePrimaryPeriodError(() =>
-      this.workersRepo.updatePrimaryProjectPeriod(organizationId, workerId, periodId, dto, actor.id),
+      this.workersRepo.updatePrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        periodId,
+        dto,
+        actor.id,
+      ),
     );
   }
 
@@ -596,12 +692,27 @@ export class WorkersService {
     dto: EndPrimaryProjectPeriodDto,
     actor: AuthenticatedUser,
   ) {
-    const current = await this.workersRepo.findPrimaryProjectPeriodById(organizationId, workerId, periodId);
+    const current = await this.workersRepo.findPrimaryProjectPeriodById(
+      organizationId,
+      workerId,
+      periodId,
+    );
     if (!current) throw this.primaryPeriodNotFound();
-    await this.projectAccess.resolveProjectAccess(actor, organizationId, current.projectId, "workers:assign-project");
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      current.projectId,
+      "workers:assign-project",
+    );
     this.validateAssignmentDates(current.startsOn, dto.endsOn);
     return this.translatePrimaryPeriodError(() =>
-      this.workersRepo.endPrimaryProjectPeriod(organizationId, workerId, periodId, dto.endsOn, actor.id),
+      this.workersRepo.endPrimaryProjectPeriod(
+        organizationId,
+        workerId,
+        periodId,
+        dto.endsOn,
+        actor.id,
+      ),
     );
   }
 
@@ -713,10 +824,20 @@ export class WorkersService {
     } catch (error) {
       if (!(error instanceof Error)) throw error;
       if (error.message === "WORKER_PRIMARY_PERIOD_OVERLAP") {
-        throw new ConflictException(this.error("WORKER_PRIMARY_PERIOD_OVERLAP", "Primary Project period overlaps another period for this Worker"));
+        throw new ConflictException(
+          this.error(
+            "WORKER_PRIMARY_PERIOD_OVERLAP",
+            "Primary Project period overlaps another period for this Worker",
+          ),
+        );
       }
       if (error.message === "WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT") {
-        throw new BadRequestException(this.error("WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT", "Primary Project period must stay within the assignment date window"));
+        throw new BadRequestException(
+          this.error(
+            "WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT",
+            "Primary Project period must stay within the assignment date window",
+          ),
+        );
       }
       if (error.message === "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT") {
         throw new ConflictException(
@@ -726,19 +847,32 @@ export class WorkersService {
           ),
         );
       }
-      if (error.message === "WORKER_PRIMARY_PERIOD_NOT_FOUND") throw this.primaryPeriodNotFound();
+      if (error.message === "WORKER_PRIMARY_PERIOD_NOT_FOUND")
+        throw this.primaryPeriodNotFound();
       if (error.message === "WORKER_ASSIGNMENT_NOT_FOUND") {
-        throw new NotFoundException(this.error("WORKER_ASSIGNMENT_NOT_FOUND", "Worker assignment not found"));
+        throw new NotFoundException(
+          this.error(
+            "WORKER_ASSIGNMENT_NOT_FOUND",
+            "Worker assignment not found",
+          ),
+        );
       }
       if (error.message === "WORKER_NOT_FOUND") {
-        throw new NotFoundException(this.error("WORKER_NOT_FOUND", "Worker not found"));
+        throw new NotFoundException(
+          this.error("WORKER_NOT_FOUND", "Worker not found"),
+        );
       }
       throw error;
     }
   }
 
   private primaryPeriodNotFound() {
-    return new NotFoundException(this.error("WORKER_PRIMARY_PERIOD_NOT_FOUND", "Worker primary Project period not found"));
+    return new NotFoundException(
+      this.error(
+        "WORKER_PRIMARY_PERIOD_NOT_FOUND",
+        "Worker primary Project period not found",
+      ),
+    );
   }
 
   private isWorkerCodeAllocationError(error: unknown) {
@@ -754,6 +888,18 @@ export class WorkersService {
         "uq_workers_organization_worker_code",
       )
     );
+  }
+
+  private todayInIndia() {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) =>
+      parts.find((item) => item.type === type)?.value ?? "";
+    return `${part("year")}-${part("month")}-${part("day")}`;
   }
 
   private recordAudit(

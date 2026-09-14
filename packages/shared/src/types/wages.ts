@@ -21,6 +21,15 @@ export type WagePreviewItem = {
   netAmount: string;
   isReady: boolean;
   readinessIssue?: string | null;
+  rateBreakdown?: WageRateBreakdownItem[];
+};
+
+export type WageRateBreakdownItem = {
+  dailyRate: string | null;
+  presentDays: number;
+  halfDays: number;
+  absentDays: number;
+  grossAmount: string;
 };
 
 export type WagePreview = {
@@ -47,6 +56,7 @@ export type WageBatch = {
   confirmedAt?: string | null;
   cancelledBy?: string | null;
   cancelledAt?: string | null;
+  cancellationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   totals: {
@@ -78,6 +88,7 @@ export type WageItem = {
   paidAmount: string;
   paymentStatus: WagePaymentStatus;
   notes?: string | null;
+  rateBreakdown?: WageRateBreakdownItem[];
 };
 
 export type WagePayment = {

@@ -13,6 +13,7 @@ import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { AttendanceService } from "../attendance/attendance.service";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type { CreateWageBatchDto } from "./dto/create-wage-batch.dto";
+import type { CancelWageBatchDto } from "./dto/cancel-wage-batch.dto";
 import type { RecordWagePaymentDto } from "./dto/record-wage-payment.dto";
 import type { UpdateWageItemDto } from "./dto/update-wage-item.dto";
 import type { WagePeriodQueryDto } from "./dto/wage-query.dto";
@@ -205,6 +206,50 @@ export class WagesService {
     return detail;
   }
 
+  async cancelBatch(
+    organizationId: string,
+    projectId: string,
+    batchId: string,
+    dto: CancelWageBatchDto,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveProjectAccess(
+      actor,
+      organizationId,
+      projectId,
+      "wages:cancel",
+    );
+
+    try {
+      const detail = await this.wagesRepo.cancelBatch(
+        organizationId,
+        projectId,
+        batchId,
+        dto.reason.trim(),
+        actor.id,
+      );
+      if (!detail) {
+        throw new NotFoundException(
+          this.error("WAGE_BATCH_NOT_FOUND", "Wage batch not found"),
+        );
+      }
+      return detail;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "WAGE_BATCH_HAS_PAYMENTS"
+      ) {
+        throw new ConflictException(
+          this.error(
+            "WAGE_BATCH_HAS_PAYMENTS",
+            "A wage batch cannot be cancelled after any payment is recorded",
+          ),
+        );
+      }
+      throw error;
+    }
+  }
+
   async updateWageItem(
     organizationId: string,
     projectId: string,
@@ -241,7 +286,11 @@ export class WagesService {
     input: Parameters<WagesRepository["recordPayment"]>[2],
   ) {
     try {
-      return await this.wagesRepo.recordPayment(organizationId, projectId, input);
+      return await this.wagesRepo.recordPayment(
+        organizationId,
+        projectId,
+        input,
+      );
     } catch (error) {
       if (error instanceof Error && error.message === "WAGE_ITEM_NOT_FOUND") {
         throw new NotFoundException(
@@ -280,7 +329,11 @@ export class WagesService {
     input: Parameters<WagesRepository["updateWageItem"]>[2],
   ) {
     try {
-      return await this.wagesRepo.updateWageItem(organizationId, projectId, input);
+      return await this.wagesRepo.updateWageItem(
+        organizationId,
+        projectId,
+        input,
+      );
     } catch (error) {
       if (error instanceof Error && error.message === "WAGE_ITEM_NOT_FOUND") {
         throw new NotFoundException(
@@ -327,15 +380,39 @@ export class WagesService {
     );
     const items = rows.map((row) => {
       const dailyRate = row.dailyRate;
-      const rateCents = dailyRate === null ? null : this.toCents(dailyRate);
       const presentDays = row.presentDays;
       const halfDays = row.halfDays;
       const holidayDays = 0;
       const absentDays = row.absentDays;
-      const grossCents =
-        rateCents === null
-          ? 0
-          : rateCents * presentDays + Math.round(rateCents * 0.5 * halfDays);
+      const rateBreakdown = (
+        row.rateSegments ?? [
+          {
+            dailyRate,
+            presentDays,
+            halfDays,
+            absentDays,
+          },
+        ]
+      ).map((segment) => {
+        const rateCents =
+          segment.dailyRate === null ? null : this.toCents(segment.dailyRate);
+        const grossCents =
+          rateCents === null
+            ? 0
+            : rateCents * segment.presentDays +
+              Math.round(rateCents * 0.5 * segment.halfDays);
+        return {
+          ...segment,
+          grossAmount: this.formatMoney(grossCents),
+        };
+      });
+      const hasMissingRate = rateBreakdown.some(
+        (segment) => segment.dailyRate === null,
+      );
+      const grossCents = rateBreakdown.reduce(
+        (total, segment) => total + this.toCents(segment.grossAmount),
+        0,
+      );
       const kharchiDeductionCents = 0;
       const adjustmentCents = 0;
       const netCents = grossCents - kharchiDeductionCents + adjustmentCents;
@@ -354,8 +431,9 @@ export class WagesService {
         kharchiDeduction: this.formatMoney(kharchiDeductionCents),
         adjustmentAmount: this.formatMoney(adjustmentCents),
         netAmount: this.formatMoney(netCents),
-        isReady: rateCents !== null,
-        readinessIssue: rateCents === null ? "Daily rate is required" : null,
+        isReady: !hasMissingRate,
+        readinessIssue: hasMissingRate ? "Daily rate is required" : null,
+        rateBreakdown,
       } satisfies WagePreviewItem;
     });
 
@@ -385,7 +463,8 @@ export class WagesService {
 
   private sumMoney(
     items: WagePreviewItem[],
-    field: "grossAmount" | "kharchiDeduction" | "adjustmentAmount" | "netAmount",
+    field:
+      "grossAmount" | "kharchiDeduction" | "adjustmentAmount" | "netAmount",
   ) {
     return this.formatMoney(
       items.reduce((sum, item) => sum + this.toCents(item[field]), 0),
@@ -397,7 +476,9 @@ export class WagesService {
     const sign = trimmed.startsWith("-") ? -1 : 1;
     const unsigned = trimmed.replace(/^[+-]/, "");
     const [rupees = "0", paise = ""] = unsigned.split(".");
-    return sign * (Number(rupees) * 100 + Number(paise.padEnd(2, "0").slice(0, 2)));
+    return (
+      sign * (Number(rupees) * 100 + Number(paise.padEnd(2, "0").slice(0, 2)))
+    );
   }
 
   private formatMoney(cents: number) {
@@ -406,7 +487,9 @@ export class WagesService {
     return `${sign}${Math.trunc(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
   }
 
-  private toCsv(detail: Awaited<ReturnType<WagesRepository["findBatchDetail"]>>) {
+  private toCsv(
+    detail: Awaited<ReturnType<WagesRepository["findBatchDetail"]>>,
+  ) {
     if (!detail) return "";
     const itemHeaders = [
       "Worker Code",
@@ -465,7 +548,9 @@ export class WagesService {
       this.csvCell("Payment History"),
       paymentHeaders.map((header) => this.csvCell(header)).join(","),
       ...detail.payments.map((payment) => {
-        const item = detail.items.find((candidate) => candidate.id === payment.wageItemId);
+        const item = detail.items.find(
+          (candidate) => candidate.id === payment.wageItemId,
+        );
         return [
           item?.workerCode ?? "",
           item?.workerName ?? "",

@@ -695,7 +695,7 @@ export class WorkersRepository {
           );
 
           if (dto.projectId) {
-            await this.insertAssignment(
+            const assignment = await this.insertAssignment(
               organizationId,
               dto.projectId,
               workerId,
@@ -704,6 +704,21 @@ export class WorkersRepository {
                 startsOn: dto.startsOn,
               },
               actorId,
+              connection,
+            );
+            await this.database.execute(
+              `INSERT INTO worker_primary_project_periods
+                (id, organization_id, worker_id, worker_assignment_id, starts_on, ends_on, created_by, updated_by)
+               VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+              [
+                randomUUID(),
+                organizationId,
+                workerId,
+                assignment.id,
+                assignment.startsOn,
+                actorId,
+                actorId,
+              ],
               connection,
             );
           }
@@ -1033,18 +1048,98 @@ export class WorkersRepository {
     projectId: string,
     workerId: string,
     dailyRate: number,
+    effectiveDate: string,
+    reason: string | null,
     actorId: string,
   ) {
-    const result = await this.database.execute(
-      `UPDATE worker_project_assignments
-      SET daily_rate = ?,
-        updated_by = ?,
-        updated_at = CURRENT_TIMESTAMP(3)
-      WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'`,
-      [dailyRate, actorId, organizationId, projectId, workerId],
-    );
-    if (result.affectedRows === 0) return null;
+    const updated = await this.database.transaction(async (connection) => {
+      const assignments = await this.database.query<AssignmentWindowRow>(
+        `SELECT id, starts_on, ends_on
+        FROM worker_project_assignments
+        WHERE organization_id = ? AND project_id = ? AND worker_id = ? AND status = 'ACTIVE'
+        LIMIT 1 FOR UPDATE`,
+        [organizationId, projectId, workerId],
+        connection,
+      );
+      const assignment = assignments[0];
+      if (!assignment) return false;
+
+      await this.database.execute(
+        `INSERT INTO worker_assignment_rate_periods
+          (id, organization_id, project_id, worker_assignment_id, worker_id,
+           daily_rate, effective_from, reason, changed_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          daily_rate = VALUES(daily_rate),
+          reason = VALUES(reason),
+          changed_by = VALUES(changed_by),
+          updated_at = CURRENT_TIMESTAMP(3)`,
+        [
+          randomUUID(),
+          organizationId,
+          projectId,
+          assignment.id,
+          workerId,
+          dailyRate,
+          effectiveDate,
+          reason,
+          actorId,
+        ],
+        connection,
+      );
+      const result = await this.database.execute(
+        `UPDATE worker_project_assignments
+        SET daily_rate = (
+              SELECT rate_period.daily_rate
+              FROM worker_assignment_rate_periods rate_period
+              WHERE rate_period.worker_assignment_id = ?
+              ORDER BY rate_period.effective_from DESC
+              LIMIT 1
+            ),
+            updated_by = ?,
+            updated_at = CURRENT_TIMESTAMP(3)
+        WHERE id = ? AND organization_id = ? AND status = 'ACTIVE'`,
+        [assignment.id, actorId, assignment.id, organizationId],
+        connection,
+      );
+      return result.affectedRows > 0;
+    });
+    if (!updated) return null;
     return this.findActiveAssignment(organizationId, projectId, workerId);
+  }
+
+  async hasAttendanceOrWageHistory(
+    organizationId: string,
+    projectId: string,
+    assignmentId: string,
+  ) {
+    const rows = await this.database.query<{ has_history: number } & DbRow>(
+      `SELECT EXISTS(
+        SELECT 1 FROM attendance_exceptions ae
+        WHERE ae.organization_id = ? AND ae.project_id = ?
+          AND ae.worker_assignment_id = ? AND ae.deleted_at IS NULL
+        UNION ALL
+        SELECT 1 FROM attendance_records ar
+        WHERE ar.organization_id = ? AND ar.project_id = ?
+          AND ar.worker_assignment_id = ? AND ar.deleted_at IS NULL
+        UNION ALL
+        SELECT 1 FROM wage_items wi
+        WHERE wi.organization_id = ? AND wi.project_id = ?
+          AND wi.worker_assignment_id = ?
+      ) AS has_history`,
+      [
+        organizationId,
+        projectId,
+        assignmentId,
+        organizationId,
+        projectId,
+        assignmentId,
+        organizationId,
+        projectId,
+        assignmentId,
+      ],
+    );
+    return Number(rows[0]?.has_history ?? 0) === 1;
   }
 
   async endAssignment(
@@ -1144,24 +1239,47 @@ export class WorkersRepository {
     actorId: string,
     connection?: DatabaseConnection,
   ) {
+    const assignmentId = randomUUID();
+    const startsOn = dto.startsOn ?? new Date().toISOString().slice(0, 10);
     await this.database.execute(
       `INSERT INTO worker_project_assignments
         (id, organization_id, project_id, worker_id, role_label, daily_rate, starts_on, ends_on, created_by, updated_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        randomUUID(),
+        assignmentId,
         organizationId,
         projectId,
         workerId,
         null,
         dto.dailyRate ?? null,
-        dto.startsOn ?? new Date().toISOString().slice(0, 10),
+        startsOn,
         dto.endsOn ?? null,
         actorId,
         actorId,
       ],
       connection,
     );
+    if (dto.dailyRate !== undefined && dto.dailyRate !== null) {
+      await this.database.execute(
+        `INSERT INTO worker_assignment_rate_periods
+          (id, organization_id, project_id, worker_assignment_id, worker_id,
+           daily_rate, effective_from, reason, changed_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          randomUUID(),
+          organizationId,
+          projectId,
+          assignmentId,
+          workerId,
+          dto.dailyRate,
+          startsOn,
+          "Initial assignment rate",
+          actorId,
+        ],
+        connection,
+      );
+    }
+    return { id: assignmentId, startsOn };
   }
 
   private async lockWorker(

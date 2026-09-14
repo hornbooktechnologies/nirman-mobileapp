@@ -85,7 +85,7 @@ Effective amount:
 original amount + sum of signed adjustments
 ```
 
-Deduction allocation: an immutable link between part of an outstanding advance and a confirmed Wage Item.
+Deduction allocation: an immutable link between part of an outstanding advance and a confirmed Wage Item. Cancelling an entirely unpaid Wage batch preserves this row and appends one reversal row so the amount becomes outstanding again.
 
 Outstanding balance:
 
@@ -164,8 +164,16 @@ The creation response is already paid. There is no submission, approval, rejecti
 4. Allocation stops when either the outstanding Kharchi reaches zero or the Wage Item's pre-deduction net payable reaches zero.
 5. The total deduction can never make the Wage Item net amount negative.
 6. Each allocation links the source advance and target Wage Item.
-7. Retrying wage confirmation must not duplicate allocations.
+7. Retrying wage confirmation must not duplicate active allocations.
 8. The wage snapshot stores the allocated total in `wage_items.kharchi_deduction`.
+
+### Reverse Allocations During Unpaid Wage Batch Cancellation
+
+1. Wages may cancel only a batch with no payment rows.
+2. The cancellation transaction appends one unique reversal for every active allocation in the batch; it never edits or deletes the original allocation.
+3. Reversed allocations remain visible in history with actor, timestamp, reason, source advance, Wage Item, and batch.
+4. Balance, summary, adjustment safety, and future FIFO allocation calculations exclude reversed allocations.
+5. Retrying cancellation cannot create a duplicate reversal.
 
 ### Read History And Balance
 
@@ -250,6 +258,10 @@ Required database behavior:
 - indexes for advance balance, Wage detail, Worker history, and Project reporting;
 - allocation is insert-only and is created only by the Wages confirmation transaction;
 - allocation amount may not exceed the locked source outstanding balance or target Wage capacity.
+
+### `kharchi_deduction_allocation_reversals`
+
+Each row is an immutable, unique reversal of one allocation and records Wage batch, Organization, Project, mandatory cancellation reason, actor, and server timestamp. A reversal is created only by unpaid Wage batch cancellation. Active deducted totals are the sum of allocations without a reversal.
 
 ### Financial Precision
 
@@ -392,6 +404,7 @@ Required immutable events:
 - `kharchi.advance-recorded`
 - `kharchi.adjustment-recorded`
 - `kharchi.deduction-allocated`
+- `kharchi.deduction-reversed`
 
 Each event records Organization, Project, actor, entity, relevant old/new financial values, idempotency metadata without exposing secrets, source Wage Item when applicable, and server timestamp.
 

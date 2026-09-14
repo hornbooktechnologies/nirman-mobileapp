@@ -1,6 +1,9 @@
 {
   "screen": { "title": "Wages", "chooseProject": "Choose a project" },
-  "empty": { "noProjectTitle": "No project selected", "noProjectDescription": "Choose an accessible project before opening Wages." },
+  "empty": {
+    "noProjectTitle": "No project selected",
+    "noProjectDescription": "Choose an accessible project before opening Wages."
+  },
   "generator": {
     "title": "Calculate wages",
     "description": "Choose a wage period, review the preview, then confirm it as a batch.",
@@ -34,9 +37,26 @@
     "open": "Open batch details",
     "openA11y": "Open wage batch from {{start}} to {{end}}, total {{amount}}"
   },
-  "batchStatus": { "DRAFT": "Draft", "CONFIRMED": "Confirmed", "PARTIALLY_PAID": "Partially paid", "PAID": "Paid", "CANCELLED": "Cancelled" },
-  "paymentStatus": { "UNPAID": "Unpaid", "PARTIALLY_PAID": "Partially paid", "PAID": "Paid", "KHARCHI_SETTLED": "Adjusted by Kharchi" },
-  "paymentMethod": { "CASH": "Cash", "UPI": "UPI", "BANK_TRANSFER": "Bank", "CHEQUE": "Cheque", "OTHER": "Other" },
+  "batchStatus": {
+    "DRAFT": "Draft",
+    "CONFIRMED": "Confirmed",
+    "PARTIALLY_PAID": "Partially paid",
+    "PAID": "Paid",
+    "CANCELLED": "Cancelled"
+  },
+  "paymentStatus": {
+    "UNPAID": "Unpaid",
+    "PARTIALLY_PAID": "Partially paid",
+    "PAID": "Paid",
+    "KHARCHI_SETTLED": "Adjusted by Kharchi"
+  },
+  "paymentMethod": {
+    "CASH": "Cash",
+    "UPI": "UPI",
+    "BANK_TRANSFER": "Bank",
+    "CHEQUE": "Cheque",
+    "OTHER": "Other"
+  },
   "detail": {
     "title": "Batch details",
     "workerCount_one": "{{count}} worker in this batch",
@@ -105,7 +125,29 @@
     "failedTitle": "Update failed",
     "failedMessage": "Check the adjustment and try again."
   },
-  "export": { "title": "Wage export", "action": "Export wages", "failedTitle": "Export failed", "failedMessage": "Try again when connected." },
+  "export": {
+    "title": "Wage export",
+    "action": "Export wages",
+    "failedTitle": "Export failed",
+    "failedMessage": "Try again when connected."
+  },
+  "cancellation": {
+    "title": "Cancel wage batch?",
+    "description": "The batch will remain in history. Its Kharchi deductions will be released so a corrected batch can be generated.",
+    "action": "Cancel batch",
+    "reason": "Cancellation reason",
+    "reasonHelper": "Required for the audit history.",
+    "reasonPlaceholder": "What needs to be corrected?",
+    "confirm": "Cancel wage batch",
+    "cancelling": "Cancelling batch",
+    "paymentBlocked": "This batch cannot be cancelled because a payment has been recorded.",
+    "cancelledReason": "Cancellation reason: {{reason}}",
+    "reasonUnavailable": "Reason unavailable",
+    "successTitle": "Batch cancelled",
+    "successMessage": "Kharchi deductions were released. You can now generate the corrected period again.",
+    "failedTitle": "Cancellation failed",
+    "failedMessage": "Refresh the batch and try again."
+  },
   "errors": {
     "unavailableTitle": "Wages unavailable",
     "tryAgain": "Try again later.",
