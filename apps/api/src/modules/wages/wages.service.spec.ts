@@ -2,6 +2,7 @@
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import type { WageBatchDetail } from "@nirman-app/shared";
 import { AttendanceService } from "../attendance/attendance.service";
+import { CalendarRepository } from "../calendar/calendar.repository";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { WagesRepository } from "./wages.repository";
 import { WagesService } from "./wages.service";
@@ -25,7 +26,16 @@ describe("WagesService", () => {
     calculateWagePeriod: jest.fn(),
   } as unknown as jest.Mocked<AttendanceService>;
 
-  const service = new WagesService(wagesRepo, projectAccess, attendanceService);
+  const calendarRepo = {
+    findOrganizationWorkingTimezone: jest.fn(),
+  } as unknown as jest.Mocked<CalendarRepository>;
+
+  const service = new WagesService(
+    wagesRepo,
+    projectAccess,
+    attendanceService,
+    calendarRepo,
+  );
 
   const actor: AuthenticatedUser = {
     id: "00000000-0000-4000-8000-000000000001",
@@ -64,8 +74,53 @@ describe("WagesService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-09-15T18:45:00.000Z"));
     projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
     attendanceService.calculateWagePeriod.mockResolvedValue([]);
+    calendarRepo.findOrganizationWorkingTimezone.mockResolvedValue(
+      "Asia/Kolkata",
+    );
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("uses the Organization working timezone and rejects future wage periods", async () => {
+    await expect(
+      service.preview(
+        organizationId,
+        projectId,
+        { start: "2026-09-16", end: "2026-09-16" },
+        actor,
+      ),
+    ).resolves.toEqual(expect.objectContaining({ periodEnd: "2026-09-16" }));
+
+    await expect(
+      service.preview(
+        organizationId,
+        projectId,
+        { start: "2026-09-16", end: "2026-09-17" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WAGE_PERIOD_END_IN_FUTURE" },
+    });
+    await expect(
+      service.createBatch(
+        organizationId,
+        projectId,
+        { periodStart: "2026-09-16", periodEnd: "2026-09-17" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WAGE_PERIOD_END_IN_FUTURE" },
+    });
+    expect(calendarRepo.findOrganizationWorkingTimezone).toHaveBeenCalledWith(
+      organizationId,
+    );
+    expect(wagesRepo.createBatch).not.toHaveBeenCalled();
   });
 
   it("builds wage preview from derived Calendar and Attendance results", async () => {

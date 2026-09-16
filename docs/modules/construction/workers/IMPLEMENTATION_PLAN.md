@@ -194,6 +194,7 @@ Implementation details:
 - Never silently change historical attendance or financial meaning.
 - Document rate-history handoff to Wages in service comments or module docs, not as a Workers-owned final model.
 - Preserve history on deactivate/end assignment.
+- End a confirmed current primary period and its assignment atomically on the same date; continue blocking unconfirmed or future-primary-period conflicts.
 - Permanently delete all current Worker dependencies only through organization-wide `workers:delete` and one rollback-safe transaction.
 
 Tests:
@@ -315,6 +316,7 @@ Implementation details:
 - Support worker-code search.
 - Show warning-only duplicate mobile/name panel with explicit acknowledgement before continuing.
 - Add daily-rate change UI with effective date and elevated-permission handling.
+- Add a header refresh action that refetches the current filtered Worker query and indicates progress without clearing loaded rows.
 - Use established web UI components.
 - Do not copy mobile UI patterns into desktop tables.
 
@@ -394,8 +396,10 @@ Implementation details:
 - Show generated worker code on worker cards/details where useful.
 - Use free-text trade input with common suggestions such as Mason, Helper, Carpenter, Plumber, Electrician, and Painter.
 - Show duplicate warning acknowledgement before create continues.
-- Distinguish `Assigned here`, `Assigned elsewhere`, and `Not assigned` in the selected-Project list; provide `Assigned to this project` and `Not on this project` filters.
+- Derive selected-date primary status in the Project roster response and distinguish `Working Here`, `Assigned Here`, `Assigned Elsewhere`, and `Not Assigned` in the selected-Project list; provide `Assigned to this project` and `Not on this project` filters without per-row primary-period requests.
 - Open a permission-safe Worker detail bottom sheet from every readable Worker card and show accessible active and ended Project assignments by Project name.
+- When ending a primary assignment, show a localized impact explanation and require explicit confirmation before sending the atomic primary-period end command.
+- Add pull-to-refresh to the standalone roster and a localized refresh action to embedded Worker rosters, preserving loaded rows while refreshing.
 - Disable create, edit, assign, deactivate, and rate-change actions while offline with a clear user-facing message.
 - Show loading, empty, error, forbidden, and offline read-only states.
 - Use large controls and mobile tokens.

@@ -154,6 +154,7 @@
     "periodTitle": "Check wage period",
     "periodMessage": "Choose a valid start and end date.",
     "endBeforeStart": "End date cannot be before start date.",
+    "futureEnd": "End date must be today or earlier.",
     "previewTitle": "Preview failed",
     "previewMessage": "Unable to generate the wage preview.",
     "confirmTitle": "Confirmation failed",

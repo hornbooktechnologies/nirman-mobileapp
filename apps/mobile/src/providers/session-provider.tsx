@@ -4,16 +4,19 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
+import { AppState } from 'react-native';
 
-import { apiRequest } from '../lib/api';
+import { apiRequest, setApiUnauthorizedHandler } from '../lib/api';
 import {
   clearStoredSession,
   createMobileSession,
   getStoredActiveProjectId,
   getStoredSession,
+  isMobileSessionExpired,
   mergeSessionPayload,
   normalizeStoredSession,
   saveStoredActiveProjectId,
@@ -50,6 +53,37 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [session, setSession] = useState<MobileSession | null>(null);
+  const sessionRef = useRef<MobileSession | null>(null);
+
+  sessionRef.current = session;
+
+  const expireSession = useCallback(async (rejectedAccessToken?: string) => {
+    if (
+      rejectedAccessToken &&
+      sessionRef.current?.accessToken !== rejectedAccessToken
+    ) {
+      return;
+    }
+
+    try {
+      await clearStoredSession();
+    } finally {
+      if (
+        !rejectedAccessToken ||
+        sessionRef.current?.accessToken === rejectedAccessToken
+      ) {
+        sessionRef.current = null;
+        setSession(null);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    setApiUnauthorizedHandler((rejectedAccessToken) =>
+      expireSession(rejectedAccessToken),
+    );
+    return () => setApiUnauthorizedHandler(() => undefined);
+  }, [expireSession]);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,10 +94,15 @@ export function SessionProvider({ children }: PropsWithChildren) {
     }, 1200);
 
     Promise.all([getStoredSession(), getStoredActiveProjectId()])
-      .then(([storedSession, storedProjectId]) => {
+      .then(async ([storedSession, storedProjectId]) => {
         if (isMounted) {
           if (storedSession) {
             const normalizedSession = normalizeStoredSession(storedSession);
+            if (isMobileSessionExpired(normalizedSession)) {
+              await clearStoredSession();
+              if (isMounted) setSession(null);
+              return;
+            }
             const hydratedSession = {
               ...normalizedSession,
               activeProjectId:
@@ -121,6 +160,27 @@ export function SessionProvider({ children }: PropsWithChildren) {
       clearTimeout(loadingFallback);
     };
   }, []);
+
+  useEffect(() => {
+    if (!session?.accessTokenExpiresAt) return;
+    const accessToken = session.accessToken;
+    const expiresAt = Date.parse(session.accessTokenExpiresAt);
+    if (!Number.isFinite(expiresAt)) return;
+
+    const expireIfNeeded = () => {
+      if (Date.now() >= expiresAt) void expireSession(accessToken);
+    };
+    expireIfNeeded();
+    const timeout = setTimeout(expireIfNeeded, Math.max(0, expiresAt - Date.now()));
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') expireIfNeeded();
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.remove();
+    };
+  }, [expireSession, session?.accessToken, session?.accessTokenExpiresAt]);
 
   const signIn = useCallback(async (credentials: SignInCredentials) => {
     const response = await apiRequest<ApiEnvelope<LoginResponseData>>(
@@ -227,9 +287,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
   );
 
   const signOut = useCallback(async () => {
-    await clearStoredSession();
-    setSession(null);
-  }, []);
+    await expireSession();
+  }, [expireSession]);
 
   const value = useMemo(
     () => ({

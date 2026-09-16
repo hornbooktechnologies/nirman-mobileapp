@@ -2,6 +2,7 @@ import { memo, type ReactNode } from 'react';
 import {
   Image,
   Animated,
+  Platform,
   StyleSheet,
   View,
   type StyleProp,
@@ -64,6 +65,9 @@ export function NirmanScreenBackground({
       <SafeAreaView style={styles.safeArea}>
         {scroll ? (
           <Animated.ScrollView
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
             scrollEventThrottle={scrollY ? 16 : undefined}
             contentContainerStyle={[styles.content, contentInset, style]}

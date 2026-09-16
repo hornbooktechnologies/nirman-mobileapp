@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AppText, Button, Card, FormError, FormField, Input } from '../../../components/ui';
+import { AppText, Button, Card, FormError, FormField, PasswordInput } from '../../../components/ui';
 import { getLocalizedErrorMessage } from '../../../i18n';
 import { mobileText, mobileTheme } from '../../../theme';
 import { resetPassword } from '../services';
@@ -48,10 +48,10 @@ export function ResetPasswordScreen() {
           <FormError message={error ? getLocalizedErrorMessage(error, t('failure.resetPassword')) : null} />
           {!token ? <FormError message={t('recovery.invalidLink')} /> : null}
           <FormField label={t('recovery.newPassword')} required error={fieldError}>
-            <Input accessibilityLabel={t('recovery.newPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" secureTextEntry value={password} onChangeText={(value) => { setPassword(value); setFieldError(''); }} />
+            <PasswordInput accessibilityLabel={t('recovery.newPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={password} onChangeText={(value) => { setPassword(value); setFieldError(''); }} />
           </FormField>
           <FormField label={t('activation.confirmPassword')} required>
-            <Input accessibilityLabel={t('activation.confirmPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" returnKeyType="go" secureTextEntry value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
+            <PasswordInput accessibilityLabel={t('activation.confirmPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" returnKeyType="go" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
           </FormField>
           <Button label={working ? t('recovery.resetting') : t('recovery.reset')} loading={working} disabled={working || !token} onPress={() => void submit()} />
         </>

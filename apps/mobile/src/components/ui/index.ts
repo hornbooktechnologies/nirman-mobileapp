@@ -27,6 +27,7 @@ export * from './language-picker';
 export * from './modal';
 export * from './nirman-screen-background';
 export * from './operational-entity-card';
+export * from './password-input';
 export * from './progress-ring';
 export * from './quick-action-grid';
 export * from './search-field';

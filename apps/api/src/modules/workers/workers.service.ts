@@ -524,12 +524,24 @@ export class WorkersService {
     dto: EndWorkerAssignmentDto,
     actor: AuthenticatedUser,
   ) {
-    await this.projectAccess.resolveProjectAccess(
+    const access = await this.projectAccess.resolveProjectAccess(
       actor,
       organizationId,
       projectId,
       "workers:assign-project",
     );
+    const workingTimezone =
+      access.organization.workingTimezone ??
+      access.organization.timezone ??
+      "Asia/Kolkata";
+    if (dto.endsOn > this.todayInTimezone(workingTimezone)) {
+      throw new BadRequestException(
+        this.error(
+          "WORKER_ASSIGNMENT_END_FUTURE_DATE",
+          "End assignment date must be today or earlier; edit the assignment to schedule a future end",
+        ),
+      );
+    }
     const current = await this.workersRepo.findActiveAssignment(
       organizationId,
       projectId,
@@ -551,6 +563,7 @@ export class WorkersService {
         workerId,
         dto.endsOn,
         actor.id,
+        dto.endPrimaryPeriod === true,
       ),
     );
     if (!assignment) {
@@ -567,6 +580,11 @@ export class WorkersService {
       organizationId,
       workerId,
       projectId,
+      {
+        endsOn: dto.endsOn,
+        reason: dto.reason ?? null,
+        endPrimaryPeriod: dto.endPrimaryPeriod === true,
+      },
     );
     return assignment;
   }
@@ -847,6 +865,16 @@ export class WorkersService {
           ),
         );
       }
+      if (
+        error.message === "WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT"
+      ) {
+        throw new ConflictException(
+          this.error(
+            "WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT",
+            "A future primary Project period must be changed before ending this assignment",
+          ),
+        );
+      }
       if (error.message === "WORKER_PRIMARY_PERIOD_NOT_FOUND")
         throw this.primaryPeriodNotFound();
       if (error.message === "WORKER_ASSIGNMENT_NOT_FOUND") {
@@ -891,8 +919,12 @@ export class WorkersService {
   }
 
   private todayInIndia() {
+    return this.todayInTimezone("Asia/Kolkata");
+  }
+
+  private todayInTimezone(timeZone: string) {
     const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Kolkata",
+      timeZone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

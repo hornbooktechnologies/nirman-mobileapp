@@ -272,6 +272,7 @@ No feature should recreate generic buttons, inputs, action rows, choice cards, s
 - Validate most fields on blur and again on submit.
 - Put specific recovery text beside the invalid field.
 - Use correct keyboards and autofill metadata for email, phone, numeric, and password inputs.
+- On phones and tablets, keyboard presentation must resize or inset the form exactly once; the focused field remains reachable through the form scroll container, and long bottom-sheet forms remain scrollable without moving the entire application off-screen.
 - Keep entered data after validation or network failure.
 - Disable duplicate submissions and show progress inside the primary action.
 - Show brief success confirmation after completed mutations.

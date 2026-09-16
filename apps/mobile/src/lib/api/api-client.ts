@@ -4,6 +4,8 @@ type ApiClientOptions = {
   accessToken?: string;
 };
 
+type UnauthorizedHandler = (rejectedAccessToken: string) => void | Promise<void>;
+
 type ApiErrorEnvelope = {
   error?: {
     code?: string;
@@ -20,6 +22,29 @@ export class ApiRequestError extends Error {
   ) {
     super(message);
     this.name = 'ApiRequestError';
+  }
+}
+
+let unauthorizedHandler: UnauthorizedHandler = () => undefined;
+const unauthorizedRequests = new Map<string, Promise<void>>();
+
+export function setApiUnauthorizedHandler(handler: UnauthorizedHandler) {
+  unauthorizedHandler = handler;
+}
+
+async function notifyUnauthorized(rejectedAccessToken: string) {
+  let request = unauthorizedRequests.get(rejectedAccessToken);
+  if (!request) {
+    request = Promise.resolve(unauthorizedHandler(rejectedAccessToken));
+    unauthorizedRequests.set(rejectedAccessToken, request);
+  }
+
+  try {
+    await request;
+  } finally {
+    if (unauthorizedRequests.get(rejectedAccessToken) === request) {
+      unauthorizedRequests.delete(rejectedAccessToken);
+    }
   }
 }
 
@@ -43,6 +68,9 @@ export async function apiRequest<TResponse>(path: string, init: RequestInit = {}
   const payload = (await response.json().catch(() => null)) as TResponse | ApiErrorEnvelope | null;
 
   if (!response.ok) {
+    if (response.status === 401 && options.accessToken) {
+      await notifyUnauthorized(options.accessToken);
+    }
     const message =
       payload && typeof payload === 'object'
         ? 'error' in payload && payload.error?.message

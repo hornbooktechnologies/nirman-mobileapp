@@ -8,9 +8,16 @@ import type {
   WorkCalendarOverride,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type { DatabaseConnection } from "../../database/database.types";
+import type {
+  DatabaseConnection,
+  DbRow,
+} from "../../database/database.types";
 
 type CalendarRow = Record<string, any>;
+
+interface WorkingTimezoneRow extends DbRow {
+  timezone: string;
+}
 
 function dateOnly(value: Date | string) {
   if (typeof value === "string") return value.slice(0, 10);
@@ -24,6 +31,21 @@ export class CalendarRepository {
   async findOrganizationTimezone(organizationId: string) {
     const rows = await this.database.query<CalendarRow & any>(
       "SELECT timezone FROM organizations WHERE id = ? LIMIT 1",
+      [organizationId],
+    );
+    return rows[0]?.timezone ?? "Asia/Kolkata";
+  }
+
+  async findOrganizationWorkingTimezone(
+    organizationId: string,
+  ): Promise<string> {
+    const rows = await this.database.query<WorkingTimezoneRow>(
+      `SELECT COALESCE(owc.timezone, o.timezone) AS timezone
+       FROM organizations o
+       LEFT JOIN organization_work_calendars owc
+         ON owc.organization_id = o.id
+       WHERE o.id = ?
+       LIMIT 1`,
       [organizationId],
     );
     return rows[0]?.timezone ?? "Asia/Kolkata";

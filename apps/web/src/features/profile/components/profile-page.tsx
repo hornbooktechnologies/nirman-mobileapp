@@ -8,6 +8,7 @@ import {
   Card,
   Input,
   PageHeader,
+  PasswordInput,
   SectionHeader,
 } from "@/components/ui";
 import {
@@ -126,8 +127,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
               >
                 <label className="mb-3 block space-y-1.5">
                   <span className="text-[12px] font-medium text-sub">Current password</span>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="current-password"
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
@@ -135,8 +135,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 </label>
                 <label className="mb-3 block space-y-1.5">
                   <span className="text-[12px] font-medium text-sub">New password</span>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
@@ -145,8 +144,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 </label>
                 <label className="mb-3 block space-y-1.5">
                   <span className="text-[12px] font-medium text-sub">Confirm password</span>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}

@@ -20,6 +20,7 @@ import {
   GlassCard,
   Input,
   LanguagePicker,
+  PasswordInput,
 } from "../../../components/ui";
 import { getLocalizedErrorMessage } from "../../../i18n";
 import { isValidEmail } from "../../../lib/validation";
@@ -29,6 +30,7 @@ import { mobileShadows, mobileText, mobileTheme } from "../../../theme";
 export function LoginScreen() {
   const { t } = useTranslation("auth");
   const { t: tCommon } = useTranslation("common");
+  const useAutomaticKeyboardInsets = Platform.OS === "ios" && Platform.isPad;
   const params = useLocalSearchParams<{ email?: string }>();
   const { signIn } = useSession();
   const [email, setEmail] = useState(
@@ -85,9 +87,10 @@ export function LoginScreen() {
       <SafeAreaView style={styles.flex}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" && !useAutomaticKeyboardInsets ? "padding" : undefined}
         >
           <ScrollView
+            automaticallyAdjustKeyboardInsets={useAutomaticKeyboardInsets}
             contentContainerStyle={styles.screen}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -162,7 +165,7 @@ export function LoginScreen() {
                   required
                   error={fieldErrors.password}
                 >
-                  <Input
+                  <PasswordInput
                     accessibilityLabel={t("login.password")}
                     editable={!isSubmitting}
                     autoCapitalize="none"
@@ -182,7 +185,8 @@ export function LoginScreen() {
                         }));
                     }}
                     placeholder={t("login.password")}
-                    secureTextEntry
+                    showPasswordLabel={t("passwordVisibility.show")}
+                    hidePasswordLabel={t("passwordVisibility.hide")}
                     value={password}
                   />
                 </FormField>

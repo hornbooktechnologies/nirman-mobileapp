@@ -215,10 +215,22 @@ function StageCard({ item, selected, onPress }: { item: ProjectProgressSummary['
       onPress={onPress}
       style={({ pressed }) => [styles.stageCard, selected && styles.stageCardSelected, pressed && styles.pressed]}
     >
-      <View style={styles.stageIcon}><AppIcon name={item.percentage === 100 ? 'check' : 'hammer-wrench'} size={20} color={item.percentage === 100 ? mobileTheme.color.status.success.foreground : mobileTheme.color.action.primary} /></View>
-      <AppText style={styles.stageName} numberOfLines={2} weight={700}>{t(`stage.${item.stage}`)}</AppText>
-      <AppText style={styles.stageValue} weight={700}>{item.percentage}%</AppText>
-      <View style={styles.track}><View style={[styles.fill, { width: `${item.percentage}%` }]} /></View>
+      <View style={[styles.stageIcon, selected && styles.stageIconSelected]}>
+        <AppIcon
+          name={item.percentage === 100 ? 'check' : 'hammer-wrench'}
+          size={20}
+          color={selected
+            ? mobileTheme.color.text.primary
+            : item.percentage === 100
+              ? mobileTheme.color.status.success.foreground
+              : mobileTheme.color.action.primary}
+        />
+      </View>
+      <AppText style={[styles.stageName, selected && styles.stageTextSelected]} numberOfLines={2} weight={700}>{t(`stage.${item.stage}`)}</AppText>
+      <AppText style={[styles.stageValue, selected && styles.stageTextSelected]} weight={700}>{item.percentage}%</AppText>
+      <View style={[styles.track, selected && styles.trackSelected]}>
+        <View style={[styles.fill, selected && styles.fillSelected, { width: `${item.percentage}%` }]} />
+      </View>
     </Pressable>
   );
 }
@@ -241,12 +253,16 @@ const styles = StyleSheet.create({
   sectionCaption: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
   stageCards: { gap: mobileTheme.spacing[3], paddingRight: mobileTheme.spacing[5] },
   stageCard: { backgroundColor: mobileTheme.color.surface.raised, borderColor: mobileTheme.color.border.subtle, borderRadius: mobileTheme.radius.lg, borderWidth: 1, gap: mobileTheme.spacing[2], minHeight: 154, padding: mobileTheme.spacing[4], width: 148 },
-  stageCardSelected: { backgroundColor: mobileTheme.color.surface.selected, borderColor: mobileTheme.color.border.selected },
+  stageCardSelected: { backgroundColor: mobileTheme.color.action.primaryHover, borderColor: mobileTheme.color.action.primaryHover },
   stageIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.status.info.background, borderRadius: mobileTheme.radius.full, height: 40, justifyContent: 'center', width: 40 },
+  stageIconSelected: { backgroundColor: mobileTheme.color.surface.raised },
   stageName: { ...mobileText.label, flex: 1, fontSize: 15, lineHeight: 20 },
   stageValue: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
+  stageTextSelected: { color: mobileTheme.color.text.inverse },
   track: { backgroundColor: mobileTheme.color.brand.primarySoft, borderRadius: mobileTheme.radius.full, height: 6, overflow: 'hidden' },
+  trackSelected: { backgroundColor: mobileTheme.color.border.inverse },
   fill: { backgroundColor: mobileTheme.color.action.primary, borderRadius: mobileTheme.radius.full, height: 6 },
+  fillSelected: { backgroundColor: mobileTheme.color.text.inverse },
   pressed: { opacity: 0.78 },
   historyHeading: { alignItems: 'flex-end', flexDirection: 'row', gap: mobileTheme.spacing[3], justifyContent: 'space-between' },
   historyCopy: { flex: 1, gap: mobileTheme.spacing[1] },

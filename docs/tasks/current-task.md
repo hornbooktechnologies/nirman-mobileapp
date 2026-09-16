@@ -1,5 +1,11 @@
 # Current Task
 
+## Database Migrations 024-026 — 2026-09-15
+
+The Product Owner authorized the pending migration rollout to the configured remote development database `md-in-30.webhostbox.net / vishwlt9_nirmansite`. Read-only preflights for migrations `025` and `026` found 44 Worker assignments (43 with rates), zero negative assignment/Wage rates, nine Wage batches, four Kharchi allocations across three batches, and no existing cancellation grants.
+
+Migrations `024_password_recovery.sql`, `025_worker_assignment_rate_history.sql`, and `026_wage_batch_cancellation.sql` applied successfully. The migration ledger is 27/27 current with zero pending or draft migrations. Read-only verification confirmed all three new tables, both added Wage columns, 43 assignment-rate baseline rows, and exactly one `wages:cancel` grant for Organization Owner, Builder Admin, and Independent Contractor Owner. No seed, password reset, Worker rate mutation, Wage cancellation, authenticated API flow, browser flow, or physical-device acceptance was run.
+
 ## Backdated Worker Onboarding And Primary Allocation — 2026-09-14
 
 Mobile Worker creation now accepts the Worker's actual selected-Project start date. The API creates the assignment and initial primary-Project period atomically from that date, removing the separate first-time primary step. Later primary corrections may select a previous date covered by an active assignment; the existing API assignment-window and overlap rules remain authoritative, and Mobile warns that earlier Attendance totals can change.
@@ -10,19 +16,19 @@ No migration, seed, database execution, Attendance UI, Web, Wages, Kharchi, depe
 
 Implemented owner-only, audit-safe Wage batch cancellation. A batch with any payment is blocked; an unpaid batch requires a reason, remains as a read-only cancelled snapshot, releases Kharchi deductions through immutable reversal rows, and unlocks its period for regeneration. The API operation is transactionally audited and naturally retry-safe. Mobile adds a localized destructive confirmation flow and shows reversed Kharchi allocation history.
 
-Migration and preflight `026_wage_batch_cancellation.sql` are prepared but not executed. Shared/API/Mobile type-checks, API production build, 16 focused financial tests, locale parity, and whitespace checks pass. Focused lint still reports the pre-existing Wages `any` debt. Authenticated database, role, concurrency, and physical-device acceptance remain pending.
+Migration and preflight `026_wage_batch_cancellation.sql` were prepared in this slice and later applied on 2026-09-15. Shared/API/Mobile type-checks, API production build, 16 focused financial tests, locale parity, and whitespace checks pass. Focused lint still reports the pre-existing Wages `any` debt. Authenticated role/concurrency and physical-device acceptance remain pending.
 
 ## Worker Assignment Rate Security And History — 2026-09-14
 
 Corrected the stale pre-Attendance rate boundary. A Project assignment that has started or has Attendance/Wage history now requires effective `workers:update-rate`; a not-yet-started assignment may still be initialized by `workers:assign-project`. Rate changes require an in-assignment, non-future effective date and transactionally record one effective rate per assignment/date.
 
-Migration `025_worker_assignment_rate_history.sql` adds the effective-dated history plus confirmed Wage rate breakdowns and backfills each existing assignment's currently known rate as its baseline. Wages now calculates each derived working date with the applicable rate and snapshots a multi-rate breakdown. Mobile and Web expose permission-aware rate-change forms with current rate, effective date, optional reason, validation, and Mobile en/hi/gu copy. Migration/runtime and authenticated role/browser/device acceptance remain pending.
+Migration `025_worker_assignment_rate_history.sql` adds the effective-dated history plus confirmed Wage rate breakdowns and backfills each existing assignment's currently known rate as its baseline. Wages now calculates each derived working date with the applicable rate and snapshots a multi-rate breakdown. Mobile and Web expose permission-aware rate-change forms with current rate, effective date, optional reason, validation, and Mobile en/hi/gu copy. Migration `025` was applied and verified read-only on 2026-09-15; authenticated role/browser/device acceptance remains pending.
 
 ## Password Recovery And Account Security — 2026-09-11
 
 Implemented the approved email recovery mechanism for every active global user identity. The API now provides generic role-neutral forgot-password requests, hashed 15-minute single-use recovery tokens, DB-backed normalized-email/IP throttling, web/mobile reset links through the existing SMTP settings, transactional password reset, and refresh-session revocation. Authenticated password change requires the current password and also revokes refresh sessions. Permanent or generated passwords are never emailed; OTP/2FA remains separately deferred.
 
-Mobile now exposes Forgot password on Login, handles Expo/deep-link resets, and provides Account & Security from the shared Menu for every customer role with en/hi/gu parity. Web now exposes matching forgot/reset pages and upgrades Profile to current/new/confirm password. Migration `024_password_recovery.sql` is prepared but not executed. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Database/runtime, real SMTP, authenticated browser/device, and physical-device acceptance remain pending.
+Mobile now exposes Forgot password on Login, handles Expo/deep-link resets, and provides Account & Security from the shared Menu for every customer role with en/hi/gu parity. Web now exposes matching forgot/reset pages and upgrades Profile to current/new/confirm password. Migration `024_password_recovery.sql` was applied and verified read-only on 2026-09-15. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Real SMTP, authenticated browser/device, and physical-device acceptance remain pending.
 
 ## Mobile Project Creation — 2026-09-11
 

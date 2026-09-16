@@ -368,7 +368,11 @@ Validation:
 
 - Assignment must be active.
 - End date cannot be before start date.
-- Ending the assignment must not leave a linked primary-Project period open or ending after the assignment end date; reject with `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT` until the primary allocation is changed or ended.
+- The dedicated End Assignment action accepts only today or an earlier date in the Organization working timezone. A future planned end remains available through assignment date editing and must not be represented as an already-ended assignment.
+- Ending the assignment must not leave a linked primary-Project period open or ending after the assignment end date.
+- Without explicit `endPrimaryPeriod` confirmation, reject with `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT` until the primary allocation is changed or ended.
+- With explicit confirmation, end each linked primary period that covers the requested assignment end date on that same inclusive date, then end the assignment in the same transaction.
+- Never silently remove or shorten a primary period whose start date is after the requested assignment end date; reject with `WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT` until that future allocation is changed.
 
 Result:
 
@@ -597,6 +601,7 @@ Error codes:
 - `WORKER_HAS_HISTORY`
 - `WORKER_PROJECT_ACCESS_REQUIRED`
 - `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT`
+- `WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT`
 - `WORKER_PRIMARY_PERIOD_NOT_FOUND`
 - `WORKER_PRIMARY_PERIOD_OVERLAP`
 - `WORKER_PRIMARY_PERIOD_OUTSIDE_ASSIGNMENT`
@@ -676,8 +681,10 @@ All routes are under `/api/v1`.
 - Method: `GET`
 - Route: `/organizations/:organizationId/projects/:projectId/workers`
 - Permission: `workers:read`
-- Response: project roster.
+- Optional query: `date`; when omitted, primary status is evaluated using the database current date.
+- Response: project roster. Every `ProjectWorkerRosterItem` includes `isPrimaryForDate`, which is true only when that row's selected-Project assignment is the Worker's effective primary assignment for the evaluated date.
 - Project enforcement: `resolveProjectAccess` with `workers:read`.
+- The primary flag is derived in the bounded roster query; clients must not issue one primary-period request per Worker row.
 
 ### Assign Worker To Project
 
@@ -713,9 +720,11 @@ All routes are under `/api/v1`.
 - Method: `POST`
 - Route: `/organizations/:organizationId/projects/:projectId/workers/:workerId/end-assignment`
 - Permission: `workers:assign-project`
-- Body: end date and optional reason.
+- Body: end date, optional reason, and optional boolean `endPrimaryPeriod` confirmation.
+- Date boundary: `endsOn` must be today or earlier; use assignment editing to schedule a future `endsOn` value.
 - Response: assignment summary.
 - Audit: `worker-project-assignments.ended`.
+- Transaction: when `endPrimaryPeriod` is confirmed, the linked primary period and assignment end together or both roll back.
 
 ### Duplicate Search
 
@@ -809,7 +818,9 @@ List/cards:
 
 - Card-first roster, not dense tables.
 - Show name, trade, daily rate if available, assignment status, and sync status.
+- In the open-Project context, show `Working Here` when its assignment is primary for the evaluated date, `Assigned Here` when the Worker is assigned there but it is not primary, `Assigned Elsewhere` when the Worker has an active assignment only outside the open Project, and `Not Assigned` when no readable active assignment exists.
 - Search/filter should be simple and thumb-friendly.
+- Provide pull-to-refresh on the standalone roster and a refresh action wherever the roster is embedded; preserve the loaded list while the latest data is requested.
 
 Forms:
 
@@ -820,6 +831,8 @@ Forms:
 - Optional mobile and notes.
 - Worker code is shown after sync/server create, not entered by the user.
 - Assignment daily rate can be captured inline when adding to current project.
+- Ending a primary assignment shows its Attendance/Wages impact and requires an explicit toggle before the primary period and assignment are ended together.
+- The End Assignment date picker stops at today. Future planned contract ends remain in Edit Assignment Dates.
 
 Offline states:
 
@@ -1011,11 +1024,14 @@ Web:
 
 - Admin can list, create, update, deactivate, permanently delete, assign, and end assignments when permitted.
 - Admin can search by worker code.
+- Admin can manually refresh the current filtered Worker list without reloading the whole application.
 - Permission-restricted state appears when required.
 
 Mobile:
 
 - Field user can view current project workers.
+- Worker cards distinguish `Working Here`, `Assigned Here`, `Assigned Elsewhere`, and `Not Assigned` from server-derived assignment and primary-period data.
+- Field users can pull to refresh the standalone roster or use the refresh action in an embedded Project Team roster.
 - Permitted field user can add worker to current project with few steps.
 - Mobile disables write actions while offline with a clear message.
 - UI uses mobile-native cards and large controls.
@@ -1061,6 +1077,7 @@ Unit tests:
 - duplicate candidate normalization
 - worker-code generation
 - rate-change permission rules
+- selected-date primary-assignment roster mapping
 
 Service tests:
 

@@ -11,6 +11,7 @@ import type {
 } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { AttendanceService } from "../attendance/attendance.service";
+import { CalendarRepository } from "../calendar/calendar.repository";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type { CreateWageBatchDto } from "./dto/create-wage-batch.dto";
 import type { CancelWageBatchDto } from "./dto/cancel-wage-batch.dto";
@@ -27,6 +28,7 @@ export class WagesService {
     private readonly wagesRepo: WagesRepository,
     private readonly projectAccess: ProjectAccessService,
     private readonly attendanceService: AttendanceService,
+    private readonly calendarRepo: CalendarRepository,
   ) {}
 
   async preview(
@@ -41,7 +43,7 @@ export class WagesService {
       projectId,
       "wages:read",
     );
-    this.validatePeriod(query.start, query.end);
+    await this.validatePeriod(organizationId, query.start, query.end);
     return this.buildPreview(organizationId, projectId, query.start, query.end);
   }
 
@@ -125,7 +127,7 @@ export class WagesService {
       projectId,
       "wages:generate",
     );
-    this.validatePeriod(dto.periodStart, dto.periodEnd);
+    await this.validatePeriod(organizationId, dto.periodStart, dto.periodEnd);
     const existing = await this.wagesRepo.findActiveBatchForPeriod(
       organizationId,
       projectId,
@@ -450,7 +452,11 @@ export class WagesService {
     };
   }
 
-  private validatePeriod(periodStart: string, periodEnd: string) {
+  private async validatePeriod(
+    organizationId: string,
+    periodStart: string,
+    periodEnd: string,
+  ) {
     if (periodEnd < periodStart) {
       throw new BadRequestException(
         this.error(
@@ -459,6 +465,29 @@ export class WagesService {
         ),
       );
     }
+
+    const timezone =
+      await this.calendarRepo.findOrganizationWorkingTimezone(organizationId);
+    if (periodEnd > this.dateInTimezone(new Date(), timezone)) {
+      throw new BadRequestException(
+        this.error(
+          "WAGE_PERIOD_END_IN_FUTURE",
+          "Wage period end date must be today or earlier",
+        ),
+      );
+    }
+  }
+
+  private dateInTimezone(date: Date, timezone: string): string {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const part = (type: string) =>
+      parts.find((item) => item.type === type)?.value ?? "";
+    return `${part("year")}-${part("month")}-${part("day")}`;
   }
 
   private sumMoney(

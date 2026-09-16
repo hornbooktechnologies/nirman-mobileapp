@@ -179,7 +179,11 @@
     "pickerTitle": "પ્રોજેક્ટ બદલો",
     "pickerDescription": "મેનેજમેન્ટ અથવા ફીલ્ડ કામ માટે પ્રોજેક્ટ પસંદ કરો. સક્રિય ન થાય ત્યાં સુધી ડ્રાફ્ટ પ્રોજેક્ટ માત્ર મેનેજમેન્ટ માટે ઉપલબ્ધ રહે છે.",
     "projectAccess": "પ્રોજેક્ટ ઍક્સેસ",
-    "selected": "પસંદ કરેલો"
+    "selected": "પસંદ કરેલો",
+    "dateRange": "{{start}} – {{end}}",
+    "startOnly": "{{start}} થી",
+    "endOnly": "{{end}} સુધી",
+    "datesNotSet": "પ્રોજેક્ટની તારીખો સેટ નથી"
   },
   "projectStatus": {
     "DRAFT": "ડ્રાફ્ટ",

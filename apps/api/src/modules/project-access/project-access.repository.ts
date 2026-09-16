@@ -11,6 +11,8 @@ interface AccessibleProjectRow extends DbRow {
   id: string;
   name: string;
   project_code: string | null;
+  start_date: string | null;
+  expected_completion_date: string | null;
   status: 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
   role_label: string | null;
   project_member_id: string | null;
@@ -54,12 +56,14 @@ export class ProjectAccessRepository {
   ) {
     const rows = await this.database.query<AccessibleProjectRow>(
       organizationWideProjectAccess
-        ? `SELECT p.id, p.name, p.project_code, p.status, NULL AS role_label,
+        ? `SELECT p.id, p.name, p.project_code, p.start_date,
+            p.expected_completion_date, p.status, NULL AS role_label,
             NULL AS project_member_id, NULL AS permission_mode
           FROM projects p
           WHERE p.organization_id = ?
           ORDER BY FIELD(p.status, 'ACTIVE', 'DRAFT', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'), p.name ASC`
-        : `SELECT p.id, p.name, p.project_code, p.status, pm.role_label,
+        : `SELECT p.id, p.name, p.project_code, p.start_date,
+            p.expected_completion_date, p.status, pm.role_label,
             pm.id AS project_member_id, pm.permission_mode
           FROM project_members pm
           INNER JOIN projects p ON p.id = pm.project_id AND p.organization_id = pm.organization_id

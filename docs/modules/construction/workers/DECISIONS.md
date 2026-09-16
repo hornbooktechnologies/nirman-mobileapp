@@ -1,5 +1,28 @@
 # Workers Decisions
 
+## 2026-09-16: Atomic End For A Primary Assignment
+
+- Ending an assignment that still owns a primary-Project period requires explicit user confirmation.
+- With confirmation, the API ends the linked primary period and Project assignment on the same inclusive end date in one transaction.
+- Attendance and wage history through that date remains unchanged; the Project stops being primary after that date.
+- Without confirmation, the existing `WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT` safeguard remains.
+- A primary period scheduled to start after the requested assignment end date is never removed silently; the user must change that future allocation first.
+- This flow does not automatically transfer primary ownership to another Project.
+
+> Status: explicitly approved by the product owner as the primary-assignment end-flow correction.
+
+## 2026-09-16: Selected-Project Worker Status Semantics
+
+- The Mobile Worker list evaluates status in the context of the Project currently open in the app.
+- `Working Here` means that Project is the Worker's effective primary Project for the evaluated date.
+- `Assigned Here` means the Worker has an active assignment to that Project, but that assignment is not primary for the evaluated date.
+- `Assigned Elsewhere` means the Worker is not assigned to the open Project but has an active assignment to another readable Project.
+- `Not Assigned` means the Worker has no active assignment in the actor's readable Project scope.
+- The API derives whether the open-Project assignment is primary. Mobile must not issue one primary-period request per list row.
+- The roster uses the requested `date` when supplied and the database current date otherwise.
+
+> Status: explicitly approved by the product owner as a Worker-listing correction.
+
 ## 2026-09-14: Backdated Worker Onboarding And Initial Primary Project
 
 - Mobile create-and-assign collects the Worker's actual Project start date, defaulting to today while allowing an earlier valid date.

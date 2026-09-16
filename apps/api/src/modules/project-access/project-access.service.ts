@@ -116,6 +116,10 @@ export class ProjectAccessService {
             name: activeMembership.organization.name,
             type: activeMembership.organization.type,
             status: activeMembership.organization.status,
+            timezone: activeMembership.organization.timezone,
+            workingTimezone:
+              activeMembership.organization.workingTimezone ??
+              activeMembership.organization.timezone,
             branding: {
               logoUrl: null,
               primaryColor: null,
@@ -205,6 +209,8 @@ export class ProjectAccessService {
         id: project.id,
         name: project.name,
         projectCode: project.project_code,
+        startDate: project.start_date,
+        expectedCompletionDate: project.expected_completion_date,
         status: project.status,
         roleLabel: project.role_label,
         permissionMode: project.permissionMode,

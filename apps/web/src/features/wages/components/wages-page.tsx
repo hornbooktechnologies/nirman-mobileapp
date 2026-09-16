@@ -18,13 +18,20 @@ import { wagesService } from "@/features/wages/services/wages.service";
 import type { WageItem, WagePaymentMethod } from "@/features/wages/types/wages.types";
 import { WAGE_PAYMENT_METHODS } from "@nirman-app/shared";
 
-const today = () => {
-  const now = new Date();
-  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return localDate.toISOString().slice(0, 10);
+const DEFAULT_WORKING_TIMEZONE = "Asia/Kolkata";
+
+const todayInTimezone = (timezone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: timezone,
+    year: "numeric",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 };
 
-const monthStart = () => `${today().slice(0, 8)}01`;
+const monthStart = (date: string) => `${date.slice(0, 8)}01`;
 
 const currency = (value: string | number | null | undefined) =>
   new Intl.NumberFormat("en-IN", {
@@ -53,15 +60,16 @@ const remainingAmount = (item: WageItem) =>
   Math.max(0, Number(item.netAmount) - Number(item.paidAmount)).toFixed(2);
 
 export function WagesPage({ projectId }: { projectId: string }) {
-  const { activeOrganizationId, hasPermission } = useAuth();
+  const { activeOrganizationId, activeOrganizationTimezone, hasPermission } = useAuth();
   const organizationId = activeOrganizationId ?? "";
-  const [periodStart, setPeriodStart] = useState(monthStart);
-  const [periodEnd, setPeriodEnd] = useState(today);
+  const wageToday = todayInTimezone(activeOrganizationTimezone ?? DEFAULT_WORKING_TIMEZONE);
+  const [periodStart, setPeriodStart] = useState(() => monthStart(wageToday));
+  const [periodEnd, setPeriodEnd] = useState(wageToday);
   const [previewRequested, setPreviewRequested] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [amount, setAmount] = useState("");
-  const [paymentDate, setPaymentDate] = useState(today);
+  const [paymentDate, setPaymentDate] = useState(wageToday);
   const [paymentMethod, setPaymentMethod] = useState<WagePaymentMethod>("CASH");
   const [reference, setReference] = useState("");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
@@ -73,7 +81,14 @@ export function WagesPage({ projectId }: { projectId: string }) {
   const canPay = hasPermission("wages:mark-paid");
   const canUpdate = hasPermission("wages:update");
   const canExport = hasPermission("wages:export");
-  const preview = useWagePreview(organizationId, projectId, periodStart, periodEnd, previewRequested);
+  const invalidRange = periodEnd < periodStart;
+  const futurePeriodEnd = periodEnd > wageToday;
+  const periodError = invalidRange
+    ? "End date cannot be before start date."
+    : futurePeriodEnd
+      ? "End date must be today or earlier."
+      : "";
+  const preview = useWagePreview(organizationId, projectId, periodStart, periodEnd, previewRequested && !periodError);
   const batches = useWageBatches(organizationId, projectId);
   const createBatch = useCreateWageBatch(organizationId, projectId);
   const detail = useWageBatchDetail(organizationId, projectId, selectedBatchId);
@@ -162,18 +177,19 @@ export function WagesPage({ projectId }: { projectId: string }) {
           <div className="grid gap-3 md:grid-cols-[180px_180px_auto] md:items-end">
             <label className="grid gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-sub">
               Period start
-              <Input type="date" value={periodStart} onChange={(event) => setPeriodStart(event.target.value)} />
+              <Input type="date" max={periodEnd < wageToday ? periodEnd : wageToday} value={periodStart} onChange={(event) => { setPeriodStart(event.target.value); setPreviewRequested(false); }} />
             </label>
             <label className="grid gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-sub">
               Period end
-              <Input type="date" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} />
+              <Input type="date" min={periodStart} max={wageToday} invalid={Boolean(periodError)} aria-describedby={periodError ? "wage-period-error" : undefined} value={periodEnd} onChange={(event) => { setPeriodEnd(event.target.value); setPreviewRequested(false); }} />
             </label>
-            <Button onClick={() => setPreviewRequested(true)} disabled={!organizationId || preview.isFetching}>
+            <Button onClick={() => setPreviewRequested(true)} disabled={!organizationId || Boolean(periodError) || preview.isFetching}>
               <CalendarDays size={16} />
               {preview.isFetching ? "Generating" : "Generate preview"}
             </Button>
           </div>
-          {preview.isError ? <p className="text-[13px] text-red-600">Unable to generate wage preview.</p> : null}
+          {periodError ? <p id="wage-period-error" role="alert" className="text-[13px] text-red-600">{periodError}</p> : null}
+          {preview.isError ? <p className="text-[13px] text-red-600">{preview.error instanceof Error ? preview.error.message : "Unable to generate wage preview."}</p> : null}
         </Card>
 
         {preview.data ? (
@@ -207,7 +223,7 @@ export function WagesPage({ projectId }: { projectId: string }) {
                 </tbody>
               </table>
             </div>
-            {canGenerate ? <Button onClick={confirmBatch} disabled={!previewReady || createBatch.isPending}><Check size={16} /> {createBatch.isPending ? "Confirming" : "Confirm wage batch"}</Button> : null}
+            {canGenerate ? <Button onClick={confirmBatch} disabled={!previewReady || Boolean(periodError) || createBatch.isPending}><Check size={16} /> {createBatch.isPending ? "Confirming" : "Confirm wage batch"}</Button> : null}
           </Card>
         ) : null}
 
