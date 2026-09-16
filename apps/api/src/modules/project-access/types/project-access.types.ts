@@ -17,6 +17,8 @@ export interface AccessibleProjectSummary {
   id: string;
   name: string;
   projectCode: string | null;
+  startDate: string | null;
+  expectedCompletionDate: string | null;
   status: ProjectStatus;
   roleLabel: string | null;
   permissionMode: 'ROLE_DEFAULT' | 'CUSTOM';

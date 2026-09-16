@@ -63,6 +63,7 @@
     },
     "android": {
       "package": "com.nirmansite.mobile",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icon-light.png",
         "backgroundColor": "#FAF8F5"

@@ -11,6 +11,7 @@
     "assignedCount_one": "{{count}} assigned to this project",
     "assignedCount_other": "{{count}} assigned to this project",
     "addA11y": "Add new worker",
+    "refreshA11y": "Refresh workers",
     "searchA11y": "Search organization workers",
     "searchPlaceholder": "Search code, name or trade",
     "filterDescription": "Filter workers by their assignment to this project.",
@@ -36,9 +37,10 @@
   "card": {
     "assigned": "Assigned",
     "unassigned": "Unassigned",
-    "assignedHere": "Assigned here",
-    "assignedElsewhere": "Assigned elsewhere",
-    "notAssigned": "Not assigned",
+    "workingHere": "Working Here",
+    "assignedHere": "Assigned Here",
+    "assignedElsewhere": "Assigned Elsewhere",
+    "notAssigned": "Not Assigned",
     "assignedHereOther_one": "Also assigned to {{count}} other project",
     "assignedHereOther_other": "Also assigned to {{count}} other projects",
     "otherProjectCount_one": "Assigned to {{count}} other project",
@@ -161,7 +163,14 @@
     "endsOn": "Ends on",
     "endDateA11y": "Assignment end date",
     "reason": "Reason",
-    "dateFormat": "YYYY-MM-DD"
+    "dateFormat": "YYYY-MM-DD",
+    "primaryImpactTitle": "Primary project will also end",
+    "primaryImpact": "This Project remains primary through {{date}}. Attendance and wage history stay unchanged.",
+    "confirmPrimaryEnd": "Also end the primary allocation on {{date}}",
+    "primaryConfirmationHint": "Ends the primary allocation and Project assignment together.",
+    "primaryConfirmationRequired": "Confirm that the primary allocation should end with this assignment.",
+    "futurePrimaryConflict": "A primary allocation is scheduled after this end date. Change that allocation before ending the assignment.",
+    "futureDate": "Choose today or an earlier date. Use assignment editing to schedule a future end."
   },
   "create": {
     "title": "New worker",

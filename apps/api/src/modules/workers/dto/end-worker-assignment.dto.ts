@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class EndWorkerAssignmentDto {
   @IsDateString()
@@ -8,4 +8,8 @@ export class EndWorkerAssignmentDto {
   @IsString()
   @MaxLength(500)
   reason?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  endPrimaryPeriod?: boolean;
 }

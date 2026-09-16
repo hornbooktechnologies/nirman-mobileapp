@@ -162,6 +162,10 @@ export function ProjectWorkersPanel({
 
   async function submitEnd() {
     if (!endingWorker) return;
+    if (endForm.endsOn > today()) {
+      setActionError("End assignment can use only today or an earlier date. Use Edit assignment dates to schedule a future end.");
+      return;
+    }
     setActionError("");
     try {
       await endAssignment.mutateAsync({
@@ -507,6 +511,8 @@ export function ProjectWorkersPanel({
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             type="date"
+            min={endingWorker?.currentAssignment.startsOn.slice(0, 10)}
+            max={today()}
             value={endForm.endsOn}
             onChange={(event) =>
               setEndForm({ ...endForm, endsOn: event.target.value })

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, PasswordInput } from "@/components/ui";
 import { ApiError } from "@/lib/api/api-client";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useLogin } from "@/features/auth/hooks/use-login";
@@ -85,7 +85,7 @@ function LoginPageContent() {
                 <label className="text-[12px] font-semibold text-body">Password</label>
                 <Link className="text-[12px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Forgot password?</Link>
               </div>
-              <Input type="password" {...form.register("password")} />
+              <PasswordInput autoComplete="current-password" {...form.register("password")} />
               {form.formState.errors.password ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.password.message}</p>
               ) : null}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, PasswordInput } from "@/components/ui";
 import { authService } from "@/features/auth/services/auth.service";
 import { ApiError } from "@/lib/api/api-client";
 import { brandAssets } from "@/theme";
@@ -54,11 +54,11 @@ function ResetPasswordContent() {
             <form className="space-y-4" onSubmit={submit}>
               <label className="block space-y-2">
                 <span className="text-[12px] font-semibold text-body">New password</span>
-                <Input required minLength={8} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+                <PasswordInput required minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
               </label>
               <label className="block space-y-2">
                 <span className="text-[12px] font-semibold text-body">Confirm password</span>
-                <Input required minLength={8} type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                <PasswordInput required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
               </label>
               {error ? <p className="text-[12px] text-danger" role="alert">{error}</p> : null}
               <Button className="w-full" size="lg" type="submit" disabled={working || !token}>{working ? "Resetting password" : "Reset password"}</Button>

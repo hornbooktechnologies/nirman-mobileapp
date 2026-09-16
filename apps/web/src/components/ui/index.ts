@@ -11,6 +11,7 @@ export * from "./lottie-loader";
 export * from "./icon-button";
 export * from "./input";
 export * from "./notification";
+export * from "./password-input";
 export * from "./radio";
 export * from "./select";
 export * from "./states";

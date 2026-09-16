@@ -23,6 +23,8 @@ describe('ProjectAccessRepository assignment date windows', () => {
     expect(sql).toContain("pm.status = 'ACTIVE'");
     expect(sql).toContain('pm.starts_on <= CURRENT_DATE');
     expect(sql).toContain('pm.ends_on >= CURRENT_DATE');
+    expect(sql).toContain('p.start_date');
+    expect(sql).toContain('p.expected_completion_date');
   });
 
   it('requires an active assignment whose date window includes today', async () => {

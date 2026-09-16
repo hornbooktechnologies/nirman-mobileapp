@@ -66,6 +66,10 @@ describe("WorkersRepository", () => {
         "(wpa.ends_on IS NULL OR wpa.ends_on >= CURRENT_DATE())",
       );
     }
+    expect(rosterSql).toContain(
+      "FROM worker_primary_project_periods current_wpp",
+    );
+    expect(rosterSql).toContain("current_wpp.starts_on <= CURRENT_DATE()");
   });
 
   it("includes scheduled active assignments for the management roster", async () => {
@@ -92,11 +96,42 @@ describe("WorkersRepository", () => {
     const rosterParams = database.query.mock.calls[0]?.[1];
     expect(rosterSql).toContain("wpa.starts_on <= ?");
     expect(rosterSql).toContain("wpa.ends_on >= ?");
+    expect(rosterSql).toContain("current_wpp.starts_on <= ?");
+    expect(rosterSql).toContain("current_wpp.ends_on >= ?");
     expect(rosterSql).not.toContain("CURRENT_DATE()");
-    expect(rosterParams).toEqual(
-      expect.arrayContaining(["2026-07-15", "2026-07-15"]),
-    );
+    expect(
+      rosterParams?.filter((value) => value === "2026-07-15"),
+    ).toHaveLength(4);
   });
+
+  it.each([
+    [1, true],
+    [0, false],
+  ])(
+    "maps primary-for-date value %s to %s",
+    async (databaseValue, expectedValue) => {
+      database.query
+        .mockResolvedValueOnce([rosterRow(databaseValue)] as never)
+        .mockResolvedValueOnce([{ total: 1 }] as never);
+
+      const result = await repository.findProjectRoster(
+        "organization-id",
+        "project-id",
+        {},
+      );
+
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          id: "worker-id",
+          isPrimaryForDate: expectedValue,
+          currentAssignment: expect.objectContaining({
+            id: "assignment-id",
+            projectId: "project-id",
+          }),
+        }),
+      );
+    },
+  );
 
   it("retries a worker-code collision and returns the created worker", async () => {
     let allocation = 0;
@@ -314,8 +349,86 @@ describe("WorkersRepository", () => {
         "worker-id",
         "2026-09-22",
         "actor-id",
+        false,
       ),
     ).rejects.toThrow("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    expect(database.execute).not.toHaveBeenCalled();
+  });
+
+  it("ends a linked primary period and assignment in one transaction after confirmation", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "assignment-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "primary-period-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        assignmentRow({ status: "ENDED", ends_on: "2026-09-22" }),
+      ] as never);
+    database.execute.mockResolvedValue(result(1));
+
+    const ended = await repository.endAssignment(
+      "organization-id",
+      "project-id",
+      "worker-id",
+      "2026-09-22",
+      "actor-id",
+      true,
+    );
+
+    expect(database.transaction).toHaveBeenCalledTimes(1);
+    expect(database.execute.mock.calls[0]?.[0]).toContain(
+      "UPDATE worker_primary_project_periods",
+    );
+    expect(database.execute.mock.calls[0]?.[1]).toEqual([
+      "2026-09-22",
+      "actor-id",
+      "actor-id",
+      "primary-period-id",
+      "organization-id",
+    ]);
+    expect(database.execute.mock.calls[1]?.[0]).toContain(
+      "UPDATE worker_project_assignments",
+    );
+    expect(ended).toEqual(expect.objectContaining({ status: "ENDED" }));
+  });
+
+  it("does not remove a future primary period when ending an assignment", async () => {
+    database.query
+      .mockResolvedValueOnce([
+        {
+          id: "assignment-id",
+          starts_on: "2026-08-20",
+          ends_on: null,
+        },
+      ] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "future-primary-period-id",
+          starts_on: "2026-10-01",
+          ends_on: null,
+        },
+      ] as never);
+
+    await expect(
+      repository.endAssignment(
+        "organization-id",
+        "project-id",
+        "worker-id",
+        "2026-09-22",
+        "actor-id",
+        true,
+      ),
+    ).rejects.toThrow("WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT");
     expect(database.execute).not.toHaveBeenCalled();
   });
 
@@ -407,5 +520,48 @@ function workerRow(workerCode: string) {
     deactivated_at: null,
     deactivated_by: null,
     activeAssignmentCount: 0,
+  };
+}
+
+function rosterRow(isPrimaryForDate: number) {
+  return {
+    ...workerRow("WRK-00001"),
+    activeAssignmentCount: 1,
+    assignment_id: "assignment-id",
+    assignment_organization_id: "organization-id",
+    assignment_project_id: "project-id",
+    assignment_worker_id: "worker-id",
+    assignment_project_name: "Project One",
+    assignment_role_label: "Mason",
+    assignment_daily_rate: "750.00",
+    assignment_status: "ACTIVE",
+    assignment_starts_on: "2026-08-01",
+    assignment_ends_on: null,
+    assignment_created_at: "2026-08-01T00:00:00.000Z",
+    assignment_updated_at: "2026-08-01T00:00:00.000Z",
+    assignment_ended_at: null,
+    is_primary_for_date: isPrimaryForDate,
+  };
+}
+
+function assignmentRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "assignment-id",
+    organization_id: "organization-id",
+    project_id: "project-id",
+    worker_id: "worker-id",
+    project_name: "Project One",
+    role_label: "Mason",
+    daily_rate: "750.00",
+    status: "ACTIVE",
+    starts_on: "2026-08-20",
+    ends_on: null,
+    created_by: "actor-id",
+    updated_by: "actor-id",
+    created_at: "2026-08-20T00:00:00.000Z",
+    updated_at: "2026-08-20T00:00:00.000Z",
+    ended_at: null,
+    ended_by: null,
+    ...overrides,
   };
 }

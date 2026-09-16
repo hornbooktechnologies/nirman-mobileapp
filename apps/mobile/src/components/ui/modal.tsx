@@ -37,12 +37,13 @@ export function BottomSheet({
   ...props
 }: BottomSheetProps) {
   const { t } = useTranslation('common');
+  const useAutomaticKeyboardInsets = Platform.OS === 'ios' && Platform.isPad && scroll;
   const content = <View style={styles.content}>{children}</View>;
 
   return (
     <NativeModal transparent={transparent} animationType={animationType} onRequestClose={onClose} {...props}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' && !useAutomaticKeyboardInsets ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         <Pressable accessibilityRole="button" accessibilityLabel={t('actions.close')} style={styles.scrim} onPress={onClose} />
@@ -54,7 +55,9 @@ export function BottomSheet({
           </View>
           {scroll ? (
             <ScrollView
+              automaticallyAdjustKeyboardInsets={useAutomaticKeyboardInsets}
               contentContainerStyle={styles.scrollContent}
+              keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={styles.scrollView}

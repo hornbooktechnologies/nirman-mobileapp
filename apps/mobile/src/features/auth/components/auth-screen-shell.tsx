@@ -11,12 +11,14 @@ type AuthScreenShellProps = PropsWithChildren<{
 }>;
 
 export function AuthScreenShell({ title, description, children }: AuthScreenShellProps) {
+  const useAutomaticKeyboardInsets = Platform.OS === 'ios' && Platform.isPad;
+
   return (
     <View style={styles.root}>
       <Image accessible={false} source={require('../../../../assets/brand/background.png')} resizeMode="cover" style={styles.background} />
       <SafeAreaView style={styles.flex}>
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' && !useAutomaticKeyboardInsets ? 'padding' : undefined}>
+          <ScrollView automaticallyAdjustKeyboardInsets={useAutomaticKeyboardInsets} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
             <View style={styles.content}>
               <Image accessibilityLabel="NirmanSite" accessible source={require('../../../../assets/brand/horizontal-logo.png')} resizeMode="contain" style={styles.logo} />
               <GlassCard variant="strong" style={styles.card}>

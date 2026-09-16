@@ -100,6 +100,7 @@ Not included in this contract:
 The web admin portal owns back-office identity administration:
 
 - Login, refresh, logout, profile, and password change.
+- Every password entry field provides an accessible show/hide toggle without changing validation, submission, paste, autocomplete, or password-manager behavior.
 - Organisation settings and branding.
 - Member list, invite, activation/deactivation, and role assignment.
 - Role template and permission management.
@@ -121,6 +122,7 @@ Web must not:
 The mobile app owns field-friendly identity flows:
 
 - Login and secure token/session storage.
+- Every password entry field provides a localized accessible show/hide toggle while preserving secure-entry, autofill, paste, and keyboard behavior.
 - Active organisation selection when the user has more than one membership.
 - Active project selection when the user has more than one project.
 - Permission-aware home/menu.
@@ -473,6 +475,8 @@ Target contract:
       "name": "string",
       "type": "BUILDER",
       "status": "ACTIVE",
+      "timezone": "Asia/Kolkata",
+      "workingTimezone": "Asia/Kolkata",
       "branding": {
         "logoUrl": "string|null",
         "primaryColor": "string|null"
@@ -502,6 +506,8 @@ Target contract:
           "id": "uuid",
           "name": "string",
           "status": "ACTIVE",
+          "startDate": "2026-01-01|null",
+          "expectedCompletionDate": "2026-12-31|null",
           "roleLabel": "Supervisor",
           "isDefault": true
         }
@@ -993,6 +999,8 @@ Required UI behavior:
 - Active organisation and active project are visible where context matters.
 - Mobile must avoid ERP terminology in primary flows.
 - Web may expose advanced administration only where permitted.
+- Mobile persists the API-provided access-token expiry as an absolute timestamp and clears the secure session when that timestamp is reached, when the app resumes after expiry, or when any authenticated API request returns `401`.
+- Network failures and `403` authorization failures do not clear the Mobile session. Mobile refresh-token rotation remains a separate open decision; until then, an expired Mobile access token requires sign-in again.
 
 ## 23. Offline And Poor Network Behavior
 

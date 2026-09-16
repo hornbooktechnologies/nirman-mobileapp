@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, UsersRound } from "lucide-react";
+import { Plus, RefreshCw, UsersRound } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
 import {
   Button,
   Card,
+  IconButton,
   Input,
   NotificationBanner,
   PageHeader,
@@ -56,18 +57,33 @@ export function WorkerListPage() {
         <PageHeader
           title="Workers"
           description="Manage labour records, project rosters, and wage-readiness details."
-          actions={
-            hasPermission("workers:create") ? (
-              <Link
-                href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
+          actions={(
+            <div className="flex items-center gap-2">
+              <IconButton
+                aria-label="Refresh workers"
+                title="Refresh workers"
+                variant="outline"
+                disabled={!organizationId || workers.isFetching}
+                onClick={() => void workers.refetch()}
               >
-                <Button>
-                  <Plus size={16} />
-                  New Worker
-                </Button>
-              </Link>
-            ) : undefined
-          }
+                <RefreshCw
+                  aria-hidden="true"
+                  className={workers.isFetching ? "animate-spin" : undefined}
+                  size={17}
+                />
+              </IconButton>
+              {hasPermission("workers:create") ? (
+                <Link
+                  href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
+                >
+                  <Button>
+                    <Plus size={16} />
+                    New Worker
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
+          )}
         />
 
         {deletedWorker ? (
@@ -118,7 +134,7 @@ export function WorkerListPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card aria-busy={workers.isFetching}>
           {!organizationId ? (
             <p className="text-[13px] text-body">
               Select an organization to view workers.

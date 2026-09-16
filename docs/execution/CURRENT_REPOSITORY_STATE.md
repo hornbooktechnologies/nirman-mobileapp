@@ -74,7 +74,7 @@ Evidence:
 - Session payload includes user, active organization, memberships, permissions, project access, feature flags, server time, and active project.
 - Mobile project switching exists in `apps/mobile/src/features/projects/components/project-switcher.tsx`.
 - Mobile UI primitives exist under `apps/mobile/src/components/ui`, including sync/offline display primitives.
-- Mobile currently stores the access-token session payload. A mobile refresh-token rotation strategy is not implemented.
+- Mobile stores the access-token session payload and its absolute expiry. It clears the secure session on expiry, foreground resume after expiry, or an authenticated `401`. A mobile refresh-token rotation strategy is not implemented, so expiry currently requires sign-in again.
 
 Evidence:
 

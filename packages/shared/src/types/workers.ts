@@ -87,6 +87,7 @@ export type WorkerDetail = WorkerSummary & {
 
 export type ProjectWorkerRosterItem = WorkerSummary & {
   currentAssignment: WorkerProjectAssignmentSummary;
+  isPrimaryForDate: boolean;
 };
 
 export type WorkerListResponse = {
@@ -183,4 +184,5 @@ export type WorkerDeletionResult = {
 export type EndWorkerProjectAssignmentInput = {
   endsOn: string;
   reason?: string | null;
+  endPrimaryPeriod?: boolean;
 };

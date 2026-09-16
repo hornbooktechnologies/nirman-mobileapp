@@ -22,6 +22,7 @@ export function mapOrganizationRow(row: OrganizationRow): OrganizationEntity {
     status: row.status,
     operatingProfile: row.operating_profile,
     timezone: row.timezone,
+    workingTimezone: row.timezone,
     currency: row.currency,
     logoFileId: row.logo_file_id,
     createdBy: row.created_by,
@@ -165,6 +166,7 @@ export class OrganizationsRepository {
         organization_status: OrganizationRow["status"];
         organization_operating_profile: OrganizationRow["operating_profile"];
         organization_timezone: string;
+        organization_working_timezone: string;
         organization_currency: string;
         organization_logo_file_id: string | null;
         organization_created_at: Date;
@@ -185,12 +187,14 @@ export class OrganizationsRepository {
         o.status AS organization_status,
         o.operating_profile AS organization_operating_profile,
         o.timezone AS organization_timezone,
+        COALESCE(owc.timezone, o.timezone) AS organization_working_timezone,
         o.currency AS organization_currency,
         o.logo_file_id AS organization_logo_file_id,
         o.created_at AS organization_created_at,
         o.updated_at AS organization_updated_at
       FROM organization_members om
       INNER JOIN organizations o ON o.id = om.organization_id
+      LEFT JOIN organization_work_calendars owc ON owc.organization_id = o.id
       INNER JOIN \`user\` u ON u.id = om.user_id
       INNER JOIN \`role\` r ON r.id = om.role_id
       WHERE om.user_id = ?
@@ -207,6 +211,7 @@ export class OrganizationsRepository {
         status: row.organization_status,
         operatingProfile: row.organization_operating_profile,
         timezone: row.organization_timezone,
+        workingTimezone: row.organization_working_timezone,
         currency: row.organization_currency,
         logoFileId: row.organization_logo_file_id,
         createdBy: null,

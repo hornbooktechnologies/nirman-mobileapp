@@ -24,9 +24,16 @@ Wages must not calculate from legacy `attendance_records`.
 
 The preview reports full Present-day count, Half-day count, Full-absence count, and a rate breakdown when the period spans multiple rates. A confirmed wage item snapshots these counts, the representative latest rate, the complete rate breakdown, and calculated money values so later source changes do not rewrite the batch.
 
+## Period Safety Boundary
+
+- Wage preview and wage-batch generation require `periodEnd` to be today or earlier in the effective Organization Work Calendar timezone.
+- The API enforces this boundary for both preview and confirmation and returns `WAGE_PERIOD_END_IN_FUTURE` when violated; client date-picker limits are convenience controls, not the authority.
+- Existing start/end ordering, maximum-range, rate-readiness, and active-batch overlap validation remains unchanged.
+- Attendance may derive future roster states for planning, but Wages must never convert future derived Present days into payable wages.
+
 ## Initial Flow
 
-1. Select Project and period.
+1. Select Project and a period ending today or earlier.
 2. Generate preview.
 3. Resolve missing daily rates or Calendar configuration.
 4. Confirm a batch only when it does not overlap another active Project batch.
@@ -55,4 +62,4 @@ Cancelled batches are never hard-deleted. Their Wage Item snapshot remains visib
 
 Effective-dated assignment-rate history is implemented through `worker_assignment_rate_periods`. Wages resolves the rate independently for each derived working date and stores `rate_breakdown` on confirmation. Migration `025_worker_assignment_rate_history.sql` must be applied before this behavior can be accepted at runtime. The migration treats each existing assignment's current rate as the only known baseline from its assignment start because undocumented earlier changes cannot be reconstructed.
 
-Migration `026_wage_batch_cancellation.sql` adds the cancellation reason, immutable Kharchi allocation reversals, and the owner-role `wages:cancel` grants. It must be reviewed and applied to the intended database separately; source/static verification does not prove runtime acceptance.
+Migration `026_wage_batch_cancellation.sql` adds the cancellation reason, immutable Kharchi allocation reversals, and the owner-role `wages:cancel` grants. It was applied to the configured remote development database on 2026-09-15 and verified read-only; authenticated runtime acceptance remains separate from source/schema verification.

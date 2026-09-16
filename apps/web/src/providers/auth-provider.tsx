@@ -52,12 +52,14 @@ interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
   activeOrganizationId: string | null;
+  activeOrganizationTimezone: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   setSession: (session: {
     user: AuthUser;
     accessToken: string;
     activeOrganizationId?: string | null;
+    activeOrganizationTimezone?: string | null;
   }) => void;
   clearSession: () => void;
   refreshUser: (organizationId?: string | null) => Promise<AuthUser | null>;
@@ -70,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
+  const [activeOrganizationTimezone, setActiveOrganizationTimezone] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const accessTokenRef = useRef<string | null>(null);
 
@@ -96,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiAccessTokenSetter((token) => storeAccessToken(token));
     setApiSessionClearer(() => {
       setUser(null);
+      setActiveOrganizationTimezone(null);
       storeAccessToken(null);
       storeActiveOrganization(null);
       setIsLoading(false);
@@ -113,10 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profile = await authService.getProfile(preferredOrganizationId);
       setUser(profile.user);
       storeActiveOrganization(profile.activeOrganizationId);
+      setActiveOrganizationTimezone(profile.activeOrganizationTimezone);
       setIsLoading(false);
       return profile.user;
     } catch {
       setUser(null);
+      setActiveOrganizationTimezone(null);
       storeAccessToken(null);
       storeActiveOrganization(null);
       setIsLoading(false);
@@ -144,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         if (isMounted) {
           setUser(null);
+          setActiveOrganizationTimezone(null);
           storeAccessToken(null);
         }
       } finally {
@@ -162,10 +169,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: AuthUser;
       accessToken: string;
       activeOrganizationId?: string | null;
+      activeOrganizationTimezone?: string | null;
     }) => {
       setUser(session.user);
       storeAccessToken(session.accessToken);
       storeActiveOrganization(session.activeOrganizationId ?? null);
+      setActiveOrganizationTimezone(session.activeOrganizationTimezone ?? null);
       setIsLoading(false);
     },
     [storeAccessToken, storeActiveOrganization],
@@ -173,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearSession = useCallback(() => {
     setUser(null);
+    setActiveOrganizationTimezone(null);
     storeAccessToken(null);
     storeActiveOrganization(null);
     setIsLoading(false);
@@ -208,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       accessToken,
       activeOrganizationId,
+      activeOrganizationTimezone,
       isAuthenticated: Boolean(user && accessToken),
       isLoading,
       setSession,
@@ -218,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       accessToken,
       activeOrganizationId,
+      activeOrganizationTimezone,
       clearSession,
       hasPermission,
       isLoading,

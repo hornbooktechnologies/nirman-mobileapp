@@ -263,7 +263,7 @@ Attendance clients separate three questions:
 2. Daily marking: “Who was absent or half day on this date?”
 3. Worker history: “On which exact dates was this Worker absent or half day, and why?”
 
-The period summary must not require a selected Attendance date and must not become a full-roster edit form. Daily marking shows the historical-date roster with derived Present and writes only absence exceptions. Worker history uses the worker-period endpoint for totals and dated exception details.
+The period summary must not require a selected Attendance date and must not become a full-roster edit form. Daily marking shows the historical-date roster with derived Present and writes only absence exceptions. On the single-date daily-marking screen, totals must use Worker-oriented labels such as `Workers per day`, `Workers present`, and `Workers absent`; period and Worker-history screens retain day-oriented labels. The underlying values remain worked-day equivalents, so a Half Day contributes `0.5` to both the present and absent daily totals. Worker history uses the worker-period endpoint for totals and dated exception details.
 
 Web implements these as `/attendance`, `/attendance/mark`, and the existing Worker detail Attendance tab. Mobile Slice C2 will align `/(app)/attendance` and add separate daily-marking and Worker-history routes as specified in `docs/tasks/mobile-attendance-ux-alignment-plan.md`.
 
