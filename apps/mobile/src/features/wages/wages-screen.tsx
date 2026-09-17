@@ -15,7 +15,7 @@ import {
   NirmanScreenBackground,
   OperationalEntityCard,
 } from '../../components/ui';
-import { formatDate, formatInr } from '../../i18n';
+import { formatDate, formatInr, getLocalizedErrorMessage } from '../../i18n';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
@@ -24,13 +24,20 @@ import { ProjectContextCard } from '../projects';
 import type { WageBatch, WagePreview } from './types';
 import { createWageBatch, fetchWageBatches, fetchWagePreview } from './services';
 
-const today = () => {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
+const DEFAULT_WORKING_TIMEZONE = 'Asia/Kolkata';
+
+const todayInTimezone = (timezone: string) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: timezone,
+    year: 'numeric',
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 };
 
-const monthStart = () => `${today().slice(0, 8)}01`;
+const monthStart = (date: string) => `${date.slice(0, 8)}01`;
 
 const isDate = (value: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(value) &&
@@ -47,8 +54,13 @@ export function WagesScreen() {
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
   const canGenerate = permissions.includes('wages:generate');
-  const [periodStart, setPeriodStart] = useState(monthStart());
-  const [periodEnd, setPeriodEnd] = useState(today());
+  const wageToday = todayInTimezone(
+    session?.activeOrganization?.workingTimezone
+      ?? session?.activeOrganization?.timezone
+      ?? DEFAULT_WORKING_TIMEZONE,
+  );
+  const [periodStart, setPeriodStart] = useState(() => monthStart(wageToday));
+  const [periodEnd, setPeriodEnd] = useState(wageToday);
   const [preview, setPreview] = useState<WagePreview | null>(null);
   const [batches, setBatches] = useState<WageBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,13 +87,14 @@ export function WagesScreen() {
   }, [loadBatches]);
 
   const invalidRange = periodStart > periodEnd;
+  const futurePeriodEnd = periodEnd > wageToday;
   const previewReady = useMemo(
     () => Boolean(preview?.items.length) && !preview?.items.some((item) => !item.isReady),
     [preview],
   );
 
   async function generatePreview() {
-    if (!organizationId || !projectId || !session?.accessToken || !isDate(periodStart) || !isDate(periodEnd) || invalidRange) {
+    if (!organizationId || !projectId || !session?.accessToken || !isDate(periodStart) || !isDate(periodEnd) || invalidRange || futurePeriodEnd) {
       Alert.alert(t('errors.periodTitle'), t('errors.periodMessage'));
       return;
     }
@@ -89,7 +102,7 @@ export function WagesScreen() {
     try {
       setPreview(await fetchWagePreview(organizationId, projectId, periodStart, periodEnd, session.accessToken));
     } catch (error) {
-      Alert.alert(t('errors.previewTitle'), error instanceof Error ? error.message : t('errors.previewMessage'));
+      Alert.alert(t('errors.previewTitle'), getLocalizedErrorMessage(error, t('errors.previewMessage')));
     } finally {
       setIsBusy(false);
     }
@@ -104,7 +117,7 @@ export function WagesScreen() {
       await loadBatches();
       router.push({ pathname: '/(app)/wage-batch', params: { batchId: created.id } } as Href);
     } catch (error) {
-      Alert.alert(t('errors.confirmTitle'), error instanceof Error ? error.message : t('errors.confirmMessage'));
+      Alert.alert(t('errors.confirmTitle'), getLocalizedErrorMessage(error, t('errors.confirmMessage')));
     } finally {
       setIsBusy(false);
     }
@@ -133,7 +146,7 @@ export function WagesScreen() {
                 <DateInput
                   allowClear={false}
                   accessibilityLabel={t('generator.selectStartDate')}
-                  maximumDate={dateValue(periodEnd)}
+                  maximumDate={dateValue(periodEnd < wageToday ? periodEnd : wageToday)}
                   value={periodStart}
                   onChangeText={(value) => {
                     if (value) {
@@ -143,10 +156,12 @@ export function WagesScreen() {
                   }}
                 />
               </FormField>
-              <FormField label={t('generator.endDate')} required error={invalidRange ? t('errors.endBeforeStart') : undefined} style={styles.dateField}>
+              <FormField label={t('generator.endDate')} required error={invalidRange ? t('errors.endBeforeStart') : futurePeriodEnd ? t('errors.futureEnd') : undefined} style={styles.dateField}>
                 <DateInput
                   allowClear={false}
                   accessibilityLabel={t('generator.selectEndDate')}
+                  invalid={invalidRange || futurePeriodEnd}
+                  maximumDate={dateValue(wageToday)}
                   minimumDate={dateValue(periodStart)}
                   value={periodEnd}
                   onChangeText={(value) => {
@@ -161,7 +176,7 @@ export function WagesScreen() {
             <Button
               label={isBusy ? t('generator.working') : t('generator.generate')}
               leadingIcon="calendar-range"
-              disabled={isBusy || invalidRange}
+              disabled={isBusy || invalidRange || futurePeriodEnd}
               onPress={() => void generatePreview()}
             />
           </Card>

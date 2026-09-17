@@ -387,7 +387,7 @@ describe("WorkersService", () => {
         organizationId,
         projectId,
         workerId,
-        { endsOn: "2026-09-22" },
+        { endsOn: "2026-08-11" },
         actor,
       ),
     ).rejects.toMatchObject({
@@ -480,6 +480,14 @@ describe("WorkersService", () => {
         actor,
       ),
     ).resolves.toEqual(expect.objectContaining({ status: "ENDED" }));
+    expect(workersRepo.endAssignment).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      workerId,
+      "2026-08-11",
+      actor.id,
+      false,
+    );
 
     workersRepo.findActiveAssignment.mockResolvedValueOnce(null);
     await expect(
@@ -503,12 +511,70 @@ describe("WorkersService", () => {
         organizationId,
         projectId,
         workerId,
-        { endsOn: "2026-09-22" },
+        { endsOn: "2026-08-11" },
         actor,
       ),
     ).rejects.toMatchObject({
       response: { code: "WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT" },
     });
+  });
+
+  it("passes explicit primary-period confirmation into the atomic assignment end", async () => {
+    workersRepo.endAssignment.mockResolvedValueOnce(
+      assignment({ status: "ENDED", endsOn: "2026-08-11" }),
+    );
+
+    await service.endAssignment(
+      organizationId,
+      projectId,
+      workerId,
+      { endsOn: "2026-08-11", endPrimaryPeriod: true },
+      actor,
+    );
+
+    expect(workersRepo.endAssignment).toHaveBeenCalledWith(
+      organizationId,
+      projectId,
+      workerId,
+      "2026-08-11",
+      actor.id,
+      true,
+    );
+  });
+
+  it("returns a stable conflict when a future primary period blocks assignment end", async () => {
+    workersRepo.endAssignment.mockRejectedValueOnce(
+      new Error("WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT"),
+    );
+
+    await expect(
+      service.endAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        { endsOn: "2026-08-11", endPrimaryPeriod: true },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: "WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT",
+      },
+    });
+  });
+
+  it("rejects a future date from the dedicated end-assignment action", async () => {
+    await expect(
+      service.endAssignment(
+        organizationId,
+        projectId,
+        workerId,
+        { endsOn: "2999-01-01" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "WORKER_ASSIGNMENT_END_FUTURE_DATE" },
+    });
+    expect(workersRepo.endAssignment).not.toHaveBeenCalled();
   });
 
   it("rejects overlapping primary Project periods transactionally", async () => {

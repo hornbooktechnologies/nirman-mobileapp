@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
+import { periodError, workMonthRange, workToday } from "@/features/attendance/date-utils";
 import { RefreshCw } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { AttendanceException, WorkerProjectAssignmentSummary } from "@nirman-app/shared";
 import {
   Button,
@@ -22,22 +26,13 @@ import {
 import { useWorkerAttendancePeriod } from "@/features/attendance/hooks/use-attendance";
 import { ApiError } from "@/lib/api/api-client";
 
-function currentMonthRange() {
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return {
-    startDate: `${month}-01`,
-    endDate: `${month}-${String(lastDay).padStart(2, "0")}`,
-  };
-}
-
 function displayDate(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function errorMessage(error: unknown) {
@@ -48,10 +43,7 @@ function errorMessage(error: unknown) {
 
 function reasonLabel(value: string | null) {
   if (!value) return "Not provided";
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/^./, (letter) => letter.toUpperCase());
+  return value;
 }
 
 export function WorkerAttendancePanel({
@@ -61,60 +53,58 @@ export function WorkerAttendancePanel({
 }: {
   organizationId: string;
   workerId: string;
-  assignments: WorkerProjectAssignmentSummary[];
+  assignments?: WorkerProjectAssignmentSummary[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const projects = Array.from(
-    new Map(
-      assignments.map((assignment) => [
-        assignment.projectId,
-        {
-          id: assignment.projectId,
-          name: assignment.projectName ?? assignment.projectId,
-        },
-      ]),
-    ).values(),
-  );
+  const pathname = usePathname();
+  const { activeOrganizationTimezone, refreshUser } = useAuth();
+  const access = useProjectAccess(organizationId);
+  const projects = (access.data?.projects ?? []).filter(project => project.permissions.includes("attendance:read") && (!assignments || assignments.some(assignment => assignment.projectId === project.id)));
   const requestedProjectId = searchParams.get("projectId") ?? "";
-  const projectId = projects.some((project) => project.id === requestedProjectId)
-    ? requestedProjectId
-    : (projects[0]?.id ?? "");
-  const defaults = currentMonthRange();
+  const projectId = requestedProjectId ? projects.find(project => project.id === requestedProjectId)?.id ?? "" : projects[0]?.id ?? "";
+  const defaults = workMonthRange(activeOrganizationTimezone ? workToday(activeOrganizationTimezone).slice(0, 7) : "2000-01");
   const startDate = searchParams.get("startDate") ?? defaults.startDate;
   const endDate = searchParams.get("endDate") ?? defaults.endDate;
+  const invalidPeriod = periodError(startDate, endDate);
   const attendance = useWorkerAttendancePeriod(
     organizationId,
     projectId,
     workerId,
     startDate,
     endDate,
+    access.isSuccess && Boolean(activeOrganizationTimezone),
   );
 
   function replaceQuery(updates: Record<string, string>) {
     const next = new URLSearchParams(searchParams.toString());
-    next.set("tab", "attendance");
+    if (pathname.startsWith("/workers/")) next.set("tab", "attendance");
+    else next.set("workerId", workerId);
     Object.entries(updates).forEach(([key, value]) => next.set(key, value));
-    router.replace(`/workers/${workerId}?${next.toString()}`, { scroll: false });
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
+  if (access.isLoading) return <LoadingState label="Checking attendance access" />;
+  if (access.isError) return <NotificationBanner variant="danger" title="Attendance access could not be loaded" action={<Button onClick={() => void access.refetch()}>Retry</Button>} />;
+  if (!activeOrganizationTimezone) return <NotificationBanner variant="warning" title="Organization timezone unavailable" description="Refresh access before selecting attendance dates." action={<Button onClick={() => void refreshUser()}>Refresh access</Button>} />;
+  if (requestedProjectId && !projectId) return <NotificationBanner variant="warning" title="Project attendance access required" description="This project is unavailable with your current effective permissions." />;
   if (projects.length === 0) {
     return (
       <EmptyState
         title="No project attendance"
-        description="Attendance becomes available after this worker has a project assignment."
+        description="No worker assignment is available with your current attendance permissions."
       />
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-base [&_button]:min-h-11 [&_button]:text-sm [&_input]:min-h-11 [&_select]:min-h-11 [&_td]:text-sm [&_th]:text-sm">
       <Card padding="compact">
         <div className="grid gap-3 md:grid-cols-3">
           <label className="grid gap-1.5 font-semibold">
             Project
             <Select
-              className="text-base sm:text-[13px]"
+              className="text-base"
               value={projectId}
               onChange={(event) => replaceQuery({ projectId: event.target.value })}
             >
@@ -126,9 +116,10 @@ export function WorkerAttendancePanel({
             </Select>
           </label>
           <label className="grid gap-1.5 font-semibold">
-            Start date
+            Start date *
             <Input
-              className="text-base sm:text-[13px]"
+              className="text-base"
+              required
               type="date"
               value={startDate}
               max={endDate}
@@ -136,9 +127,10 @@ export function WorkerAttendancePanel({
             />
           </label>
           <label className="grid gap-1.5 font-semibold">
-            End date
+            End date *
             <Input
-              className="text-base sm:text-[13px]"
+              className="text-base"
+              required
               type="date"
               value={endDate}
               min={startDate}
@@ -148,7 +140,11 @@ export function WorkerAttendancePanel({
         </div>
       </Card>
 
-      {attendance.data ? (
+      <p className="text-sm text-sub">Working timezone: {activeOrganizationTimezone}. Totals include only eligible primary-project working dates.</p>
+      {invalidPeriod ? <p role="alert" className="text-danger">{invalidPeriod}</p> : null}
+      <Link className="inline-flex min-h-11 items-center underline" href={`/attendance?${new URLSearchParams({ projectId, startDate, endDate, search: searchParams.get("search") ?? "", exceptionsOnly: searchParams.get("exceptionsOnly") ?? "", page: searchParams.get("page") ?? "1" })}`}>Attendance summary</Link>
+      <Link className="inline-flex min-h-11 items-center px-3 underline" href={`/attendance/mark?${new URLSearchParams({ projectId, date: endDate, returnTo: `${pathname}?${searchParams}` })}`}>Daily attendance</Link>
+      {attendance.data && !attendance.isError && !invalidPeriod ? (
         <section aria-label="Worker attendance totals" className="grid grid-cols-3 gap-2">
           <Metric label="Expected days" value={attendance.data.totals.expectedWorkingDays} />
           <Metric label="Present days" value={attendance.data.totals.presentDays} />
@@ -156,7 +152,7 @@ export function WorkerAttendancePanel({
         </section>
       ) : null}
 
-      {attendance.isLoading ? (
+      {invalidPeriod ? null : attendance.isLoading ? (
         <LoadingState label="Loading worker attendance" />
       ) : attendance.isError ? (
         <NotificationBanner
@@ -172,11 +168,11 @@ export function WorkerAttendancePanel({
         />
       ) : attendance.data?.exceptions.length === 0 ? (
         <EmptyState
-          title="No absences in this period"
-          description="The worker is derived as present on every expected working day."
+          title={attendance.data.totals.expectedWorkingDays === 0 ? "No expected working days" : "No absences in this period"}
+          description={attendance.data.totals.expectedWorkingDays === 0 ? "There are no eligible primary-project working dates in this period. Non-working dates do not count as absences." : "The worker is derived as present on every expected working day."}
         />
       ) : (
-        <AbsenceList exceptions={attendance.data?.exceptions ?? []} />
+        <AbsenceList exceptions={attendance.data?.exceptions ?? []} projectId={projectId} returnTo={`${pathname}?${searchParams}`} />
       )}
     </div>
   );
@@ -185,18 +181,19 @@ export function WorkerAttendancePanel({
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <Card padding="compact">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-sub">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-sub">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
     </Card>
   );
 }
 
-function AbsenceList({ exceptions }: { exceptions: AttendanceException[] }) {
+function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: AttendanceException[]; projectId: string; returnTo: string }) {
+  const dailyHref = (date: string) => `/attendance/mark?${new URLSearchParams({ projectId, date, returnTo })}`;
   return (
     <Card className="space-y-4" padding="compact">
       <div>
         <h2 className="text-[17px] font-semibold text-body">Absence details</h2>
-        <p className="text-[13px] text-sub">Full-day and half-day exceptions in the selected period.</p>
+        <p className="text-sm text-sub">Full-day and half-day exceptions in the selected period.</p>
       </div>
       <div className="hidden md:block">
         <Table>
@@ -211,7 +208,7 @@ function AbsenceList({ exceptions }: { exceptions: AttendanceException[] }) {
           <TableBody>
             {exceptions.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-semibold">{displayDate(item.workDate)}</TableCell>
+                <TableCell className="font-semibold"><Link className="underline" href={dailyHref(item.workDate)}>{displayDate(item.workDate)}</Link></TableCell>
                 <TableCell>
                   <StatusBadge tone={item.duration === "FULL_DAY" ? "danger" : "warning"}>
                     {item.duration === "FULL_DAY" ? "Absent" : "Half day"}
@@ -230,12 +227,12 @@ function AbsenceList({ exceptions }: { exceptions: AttendanceException[] }) {
         {exceptions.map((item) => (
           <div key={item.id} className="rounded-xl border border-hairline p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-semibold">{displayDate(item.workDate)}</p>
+              <Link className="font-semibold underline" href={dailyHref(item.workDate)}>{displayDate(item.workDate)}</Link>
               <StatusBadge tone={item.duration === "FULL_DAY" ? "danger" : "warning"}>
                 {item.duration === "FULL_DAY" ? "Absent" : "Half day"}
               </StatusBadge>
             </div>
-            <dl className="mt-3 grid gap-2 text-[13px]">
+            <dl className="mt-3 grid gap-2 text-sm">
               <div><dt className="text-sub">Reason</dt><dd>{reasonLabel(item.reasonCode)}</dd></div>
               <div><dt className="text-sub">Notes</dt><dd>{item.notes || "—"}</dd></div>
             </dl>

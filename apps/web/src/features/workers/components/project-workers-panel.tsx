@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { workerError, workerToday, workerRate } from "../worker-utils";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
 import type { PermissionKey } from "@nirman-app/shared";
 import { BadgeIndianRupee, Pencil, Plus, UserMinus } from "lucide-react";
 import { LoadingState } from "@/components/ui";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Button,
   Card,
+  Checkbox,
   ConfirmDialogActions,
   Dialog,
   Input,
@@ -23,6 +26,7 @@ import { RowActionMenu } from "@/components/common/row-action-menu";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useAssignWorker,
+  useWorkerPrimaryPeriods,
   useEndWorkerAssignment,
   useProjectWorkers,
   useUpdateWorkerAssignment,
@@ -34,15 +38,12 @@ import type {
   WorkerSummary,
 } from "@/features/workers/types/workers.types";
 
-const today = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+export function ProjectWorkersPanel(props: { organizationId: string; projectId: string; effectivePermissions?: PermissionKey[] }) {
+  const { user } = useAuth();
+  return <ProjectWorkersContent key={`${user?.id}:${props.organizationId}:${props.projectId}`} {...props} />;
+}
 
-export function ProjectWorkersPanel({
+function ProjectWorkersContent({
   organizationId,
   projectId,
   effectivePermissions,
@@ -51,21 +52,24 @@ export function ProjectWorkersPanel({
   projectId: string;
   effectivePermissions?: PermissionKey[];
 }) {
-  const { hasPermission } = useAuth();
-  const hasAccess = (permission: PermissionKey) =>
-    effectivePermissions
-      ? effectivePermissions.includes(permission)
-      : hasPermission(permission);
+  const { activeOrganizationTimezone } = useAuth();
+  const today = () => workerToday(activeOrganizationTimezone ?? undefined);
+  const access = useProjectAccess(organizationId);
+  const project = access.data?.projects.find(item => item.id === projectId);
+  const hasAccess = (permission: PermissionKey) => Boolean(project && project.status !== "ARCHIVED" && project.permissions.includes(permission) && (!effectivePermissions || effectivePermissions.includes(permission)));
+  const busy = useRef(false);
   const canCreate = hasAccess("workers:create");
   const canAssign = hasAccess("workers:assign-project");
   const canUpdateRate = hasAccess("workers:update-rate");
+  const [page, setPage] = useState(1);
   const [workerSearch, setWorkerSearch] = useState("");
-  const roster = useProjectWorkers(organizationId, projectId, {
+  const roster = useProjectWorkers(project?.permissions.includes("workers:read") ? organizationId : null, projectId, {
     pageSize: 100,
     assignmentScope: "ALL_ACTIVE",
   });
-  const workers = useWorkers(organizationId, {
+  const workers = useWorkers(project?.permissions.includes("workers:read") ? organizationId : null, {
     search: workerSearch,
+    page,
     status: "ACTIVE",
     pageSize: 100,
     sortBy: "name",
@@ -103,6 +107,11 @@ export function ProjectWorkersPanel({
   const [endingWorker, setEndingWorker] =
     useState<ProjectWorkerRosterItem | null>(null);
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: "" });
+  const primaryPeriods = useWorkerPrimaryPeriods(organizationId, endingWorker?.id ?? "");
+  const [endPrimaryPeriod, setEndPrimaryPeriod] = useState(false);
+  const linkedPeriods = (primaryPeriods.data ?? []).filter(period => period.workerAssignmentId === endingWorker?.currentAssignment.id);
+  const futurePrimaryConflict = linkedPeriods.some(period => period.startsOn.slice(0, 10) > endForm.endsOn);
+  const requiresPrimaryEnd = linkedPeriods.some(period => period.startsOn.slice(0, 10) <= endForm.endsOn && (!period.endsOn || period.endsOn.slice(0, 10) > endForm.endsOn));
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
   const [rateForm, setRateForm] = useState({
@@ -113,7 +122,8 @@ export function ProjectWorkersPanel({
 
   async function submitAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!assigningWorker) return;
+    if (!assigningWorker || busy.current || !canAssign) return;
+    busy.current = true;
     setActionError("");
     try {
       await assignWorker.mutateAsync({
@@ -122,13 +132,14 @@ export function ProjectWorkersPanel({
           startsOn: assignStartsOn,
         },
       });
+      setActionSuccess("Worker assigned to this project. Set its primary allocation from worker details when needed.");
       setAssigningWorker(null);
       setAssignStartsOn(today());
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to assign worker",
+        workerError(error),
       );
-    }
+    } finally { busy.current = false; }
   }
 
   function openEdit(worker: ProjectWorkerRosterItem) {
@@ -142,7 +153,8 @@ export function ProjectWorkersPanel({
 
   async function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editingWorker) return;
+    if (!editingWorker || busy.current || !canAssign) return;
+    busy.current = true;
     setActionError("");
     try {
       await updateAssignment.mutateAsync({
@@ -152,36 +164,46 @@ export function ProjectWorkersPanel({
           endsOn: editForm.endsOn || null,
         },
       });
+      setActionSuccess("Assignment dates saved.");
       setEditingWorker(null);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to update assignment",
+        workerError(error),
       );
-    }
+    } finally { busy.current = false; }
   }
 
   async function submitEnd() {
-    if (!endingWorker) return;
+    if (!endingWorker || busy.current || !canAssign) return;
+    if (!endForm.endsOn || endForm.endsOn < endingWorker.currentAssignment.startsOn.slice(0, 10)) { setActionError("Choose an end date on or after the assignment start."); return; }
+    if (primaryPeriods.isPending || primaryPeriods.isError || futurePrimaryConflict || (requiresPrimaryEnd && !endPrimaryPeriod)) { setActionError("Review the linked primary periods before ending this assignment."); return; }
+    if (endForm.endsOn > today()) {
+      setActionError("End assignment can use only today or an earlier date. Use Edit assignment dates to schedule a future end.");
+      return;
+    }
     setActionError("");
+    busy.current = true;
     try {
       await endAssignment.mutateAsync({
         workerId: endingWorker.id,
         input: {
           endsOn: endForm.endsOn,
-          reason: endForm.reason || null,
+          reason: endForm.reason.trim() || null,
+          endPrimaryPeriod: requiresPrimaryEnd && endPrimaryPeriod,
         },
       });
+      setActionSuccess("Assignment ended. History remains available.");
       setEndingWorker(null);
       setEndForm({ endsOn: today(), reason: "" });
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to end assignment",
+        workerError(error),
       );
-    }
+    } finally { busy.current = false; }
   }
 
   function canChangeRate(worker: ProjectWorkerRosterItem) {
-    return worker.currentAssignment.startsOn.slice(0, 10) < today()
+    return worker.currentAssignment.startsOn.slice(0, 10) > workerToday() ? false : worker.currentAssignment.startsOn.slice(0, 10) < workerToday()
       ? canUpdateRate
       : canAssign || canUpdateRate;
   }
@@ -192,22 +214,22 @@ export function ProjectWorkersPanel({
     setRateWorker(worker);
     setRateForm({
       dailyRate: worker.currentAssignment.dailyRate ?? "",
-      effectiveDate: today(),
+      effectiveDate: workerToday(),
       reason: "",
     });
   }
 
   async function submitRate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!rateWorker) return;
+    if (!rateWorker || busy.current || !canChangeRate(rateWorker)) return;
     const dailyRate = Number(rateForm.dailyRate);
-    if (!Number.isFinite(dailyRate) || dailyRate < 0) {
+    if (!rateForm.dailyRate.trim() || !Number.isFinite(dailyRate) || dailyRate < 0) {
       setActionError("Enter a valid non-negative daily rate.");
       return;
     }
     if (
       !rateForm.effectiveDate ||
-      rateForm.effectiveDate > today() ||
+      rateForm.effectiveDate > workerToday() ||
       rateForm.effectiveDate < rateWorker.currentAssignment.startsOn.slice(0, 10) ||
       (rateWorker.currentAssignment.endsOn &&
         rateForm.effectiveDate > rateWorker.currentAssignment.endsOn.slice(0, 10))
@@ -216,6 +238,7 @@ export function ProjectWorkersPanel({
       return;
     }
     setActionError("");
+    busy.current = true;
     try {
       await updateRate.mutateAsync({
         dailyRate,
@@ -226,17 +249,21 @@ export function ProjectWorkersPanel({
       setActionSuccess(`${rateWorker.name}'s daily rate was changed.`);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to change daily rate",
+        workerError(error),
       );
-    }
+    } finally { busy.current = false; }
   }
+
+  if (access.isPending) return <LoadingState label="Checking worker project access" />;
+  if (access.isError) return <Card><p role="alert">{access.error.message}</p><Button onClick={() => void access.refetch()}>Retry access</Button></Card>;
+  if (!project?.permissions.includes("workers:read")) return <Card><p role="alert">You do not have permission to view workers in this project.</p></Card>;
 
   return (
     <Card className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[17px] font-semibold text-body">Workers</h2>
-          <p className="text-[13px] text-sub">
+          <p className="text-sm text-sub">
             Active project roster used later by Attendance, Wages, and Kharchi.
           </p>
         </div>
@@ -252,11 +279,12 @@ export function ProjectWorkersPanel({
         ) : null}
       </div>
 
-      {actionError && !rateWorker ? (
-        <p className="text-[13px] text-red-600" role="alert">{actionError}</p>
+      {project.status === "ARCHIVED" ? <p role="status">This archived project is read-only.</p> : null}
+      {actionError && !rateWorker && !assigningWorker && !editingWorker && !endingWorker ? (
+        <p className="text-sm text-red-600" role="alert">{actionError}</p>
       ) : null}
       {actionSuccess ? (
-        <p className="text-[13px] font-medium text-success" role="status">{actionSuccess}</p>
+        <p className="text-sm font-medium text-success" role="status">{actionSuccess}</p>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -266,7 +294,7 @@ export function ProjectWorkersPanel({
           placeholder="Search organization workers"
           aria-label="Search organization workers"
           value={workerSearch}
-          onChange={(event) => setWorkerSearch(event.target.value)}
+          onChange={(event) => { setWorkerSearch(event.target.value); setPage(1); }}
         />
         <p className="text-[12px] text-sub">
           {rosterByWorkerId.size} assigned to this Project
@@ -276,11 +304,9 @@ export function ProjectWorkersPanel({
       {roster.isLoading || workers.isLoading ? (
         <LoadingState label="Loading organization workers" />
       ) : roster.isError || workers.isError ? (
-        <p className="text-[13px] text-red-600">
-          Unable to load organization workers
-        </p>
+        <div role="alert"><p>Unable to load workers.</p><Button onClick={() => { void roster.refetch(); void workers.refetch(); }}>Retry</Button></div>
       ) : workerRows.length === 0 ? (
-        <p className="text-[13px] text-body">
+        <p className="text-sm text-body">
           No active workers are available in this organization.
         </p>
       ) : (
@@ -310,9 +336,7 @@ export function ProjectWorkersPanel({
                   <TableCell>{worker.name}</TableCell>
                   <TableCell>{worker.trade}</TableCell>
                   <TableCell>
-                    {assignedWorker?.currentAssignment.dailyRate ??
-                      worker.baseDailyRate ??
-                      "-"}
+                    {workerRate(assignedWorker ? assignedWorker.currentAssignment.dailyRate : worker.baseDailyRate)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge tone={assignedWorker ? "active" : "inactive"}>
@@ -337,7 +361,7 @@ export function ProjectWorkersPanel({
                               label: "End assignment",
                               icon: <UserMinus size={15} />,
                               destructive: true,
-                              onSelect: () => setEndingWorker(assignedWorker),
+                              onSelect: () => { setActionError(""); setActionSuccess(""); setEndPrimaryPeriod(false); setEndForm({ endsOn: today(), reason: "" }); setEndingWorker(assignedWorker); },
                             }] : []),
                           ]}
                         />
@@ -363,58 +387,65 @@ export function ProjectWorkersPanel({
         </Table>
       )}
 
+      {workers.data && workers.data.meta.pageCount > 1 ? <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-sub">Page {page} of {workers.data.meta.pageCount} · {workers.data.meta.total} workers</p><div className="flex gap-2"><Button variant="outline" disabled={page <= 1 || workers.isFetching} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" disabled={page >= workers.data.meta.pageCount || workers.isFetching} onClick={() => setPage(page + 1)}>Next</Button></div></div> : null}
+
       <Dialog
         open={Boolean(rateWorker)}
         title={`Change ${rateWorker?.name ?? "worker"}'s daily rate`}
         description="Use an effective date so earlier Attendance and Wage calculations retain the rate that applied then."
-        onOpenChange={(open) => !open && setRateWorker(null)}
+        onOpenChange={(open) => { if (!open && !busy.current && window.confirm("Discard rate changes?")) setRateWorker(null); }}
       >
         <form className="space-y-4" onSubmit={submitRate}>
-          <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-body">
-            Current Project rate: {rateWorker?.currentAssignment.dailyRate ?? "Not set"}
+          <fieldset className="space-y-4" disabled={updateRate.isPending}>
+          <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-sm text-body">
+            Current Project rate: {workerRate(rateWorker?.currentAssignment.dailyRate)}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">New daily rate</span>
+              <span className="text-base font-medium text-body">New daily rate *</span>
               <Input type="number" inputMode="decimal" min="0" step="0.01" value={rateForm.dailyRate} onChange={(event) => setRateForm({ ...rateForm, dailyRate: event.target.value })} required />
             </label>
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Effective date</span>
-              <Input type="date" min={rateWorker?.currentAssignment.startsOn.slice(0, 10)} max={today()} value={rateForm.effectiveDate} onChange={(event) => setRateForm({ ...rateForm, effectiveDate: event.target.value })} required />
+              <span className="text-base font-medium text-body">Effective date *</span>
+              <Input type="date" min={rateWorker?.currentAssignment.startsOn.slice(0, 10)} max={rateWorker?.currentAssignment.endsOn && rateWorker.currentAssignment.endsOn.slice(0, 10) < workerToday() ? rateWorker.currentAssignment.endsOn.slice(0, 10) : workerToday()} value={rateForm.effectiveDate} onChange={(event) => setRateForm({ ...rateForm, effectiveDate: event.target.value })} required />
             </label>
           </div>
           <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Reason (optional)</span>
+            <span className="text-base font-medium text-body">Reason</span>
             <Input maxLength={500} value={rateForm.reason} onChange={(event) => setRateForm({ ...rateForm, reason: event.target.value })} />
           </label>
           {actionError ? (
-            <p className="text-[13px] text-red-600" role="alert">
+            <p className="text-sm text-red-600" role="alert">
               {actionError}
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setRateWorker(null)}>Cancel</Button>
+            <Button type="button" variant="outline" disabled={updateRate.isPending} onClick={() => { if (window.confirm("Discard rate changes?")) setRateWorker(null); }}>Cancel</Button>
             <Button type="submit" disabled={updateRate.isPending}>{updateRate.isPending ? "Changing" : "Change Rate"}</Button>
           </div>
+        
+          </fieldset>
         </form>
       </Dialog>
 
       <Dialog
         open={Boolean(assigningWorker)}
         title={`Assign ${assigningWorker?.name ?? "worker"}?`}
-        description="Trade and daily rate come from the Worker record. Choose only when this Project assignment starts."
-        onOpenChange={(open) => !open && setAssigningWorker(null)}
+        description="The starting rate is copied from the Worker record. Choose the actual assignment start date; primary allocation is managed separately."
+        onOpenChange={(open) => { if (!open && !busy.current && window.confirm("Discard assignment changes?")) setAssigningWorker(null); }}
       >
         <form className="space-y-4" onSubmit={submitAssignment}>
-          <div className="grid gap-2 rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-body sm:grid-cols-2">
+          <fieldset className="space-y-4" disabled={assignWorker.isPending}>
+          {actionError ? <p role="alert" className="text-danger">{actionError}</p> : null}
+          <div className="grid gap-2 rounded-inner border border-hairline bg-sunken/40 p-3 text-sm text-body sm:grid-cols-2">
             <span>Trade: {assigningWorker?.trade ?? "-"}</span>
             <span>
-              Daily rate: {assigningWorker?.baseDailyRate ?? "Not set"}
+              Daily rate: {workerRate(assigningWorker?.baseDailyRate)}
             </span>
           </div>
           <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
-              Assignment start date
+            <span className="text-base font-medium text-body">
+              Assignment start date *
             </span>
             <Input
               type="date"
@@ -427,7 +458,7 @@ export function ProjectWorkersPanel({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setAssigningWorker(null)}
+              disabled={assignWorker.isPending} onClick={() => setAssigningWorker(null)}
             >
               Cancel
             </Button>
@@ -435,20 +466,24 @@ export function ProjectWorkersPanel({
               {assignWorker.isPending ? "Assigning" : "Assign Worker"}
             </Button>
           </div>
+        
+          </fieldset>
         </form>
       </Dialog>
 
       <Dialog
         open={Boolean(editingWorker)}
         title={`Update ${editingWorker?.name ?? "worker"} assignment`}
-        description="Update only the Project assignment dates. Trade and daily rate come from the Worker record."
-        onOpenChange={(open) => !open && setEditingWorker(null)}
+        description="Update assignment dates. Linked primary periods must remain inside this range. Rates are changed separately using an effective date."
+        onOpenChange={(open) => { if (!open && !busy.current && window.confirm("Discard assignment changes?")) setEditingWorker(null); }}
       >
         <form className="space-y-3" onSubmit={submitEdit}>
+          <fieldset className="space-y-4" disabled={updateAssignment.isPending}>
+          {actionError ? <p role="alert" className="text-danger">{actionError}</p> : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
-                Start date
+              <span className="text-base font-medium text-body">
+                Start date *
               </span>
               <Input
                 type="date"
@@ -460,7 +495,7 @@ export function ProjectWorkersPanel({
               />
             </label>
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+              <span className="text-base font-medium text-body">
                 End date
               </span>
               <Input
@@ -477,7 +512,7 @@ export function ProjectWorkersPanel({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setEditingWorker(null)}
+              disabled={updateAssignment.isPending} onClick={() => setEditingWorker(null)}
             >
               Cancel
             </Button>
@@ -485,6 +520,8 @@ export function ProjectWorkersPanel({
               {updateAssignment.isPending ? "Saving" : "Save Assignment"}
             </Button>
           </div>
+        
+          </fieldset>
         </form>
       </Dialog>
 
@@ -492,35 +529,44 @@ export function ProjectWorkersPanel({
         open={Boolean(endingWorker)}
         title={`End ${endingWorker?.name ?? "worker"} assignment?`}
         description="The assignment history remains available and the worker stays active in the organization."
-        onOpenChange={(open) => !open && setEndingWorker(null)}
+        onOpenChange={(open) => { if (!open && !busy.current) setEndingWorker(null); }}
         footer={
           <ConfirmDialogActions
             confirmLabel={endAssignment.isPending ? "Ending" : "End Assignment"}
-            onCancel={() => setEndingWorker(null)}
+            onCancel={() => { if (!busy.current) setEndingWorker(null); }}
             confirmProps={{
-              disabled: endAssignment.isPending || !endForm.endsOn,
+              disabled: endAssignment.isPending || !endForm.endsOn || primaryPeriods.isPending || primaryPeriods.isError || futurePrimaryConflict || (requiresPrimaryEnd && !endPrimaryPeriod),
               onClick: () => void submitEnd(),
             }}
           />
         }
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Input
+        {actionError ? <p role="alert" className="mb-3 text-danger">{actionError}</p> : null}
+        {primaryPeriods.isPending ? <LoadingState label="Checking primary periods" /> : primaryPeriods.isError ? <div role="alert"><p>{workerError(primaryPeriods.error)}</p><Button onClick={() => void primaryPeriods.refetch()}>Retry period check</Button></div> : null}
+        {futurePrimaryConflict ? <p role="alert" className="mb-3 text-danger">A primary period starts after this end date. Correct that period from worker details first.</p> : null}
+        {requiresPrimaryEnd ? <div className="mb-4 space-y-2"><p>Ending the assignment also requires closing its overlapping primary allocation on {endForm.endsOn}.</p><Checkbox label="End the linked primary period on this date" checked={endPrimaryPeriod} disabled={endAssignment.isPending} onChange={event => setEndPrimaryPeriod(event.target.checked)} /></div> : null}
+        <Link className="mb-3 block underline" href={`/workers/${endingWorker?.id}?organizationId=${organizationId}`}>Review worker allocation history</Link>
+        <fieldset disabled={endAssignment.isPending} className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1">End date *<Input
             type="date"
+            min={endingWorker?.currentAssignment.startsOn.slice(0, 10)}
+            max={today()}
             value={endForm.endsOn}
             onChange={(event) =>
-              setEndForm({ ...endForm, endsOn: event.target.value })
+              (setEndPrimaryPeriod(false), setEndForm({ ...endForm, endsOn: event.target.value }))
             }
             required
           />
-          <Input
-            placeholder="Reason (optional)"
+          </label>
+          <label className="grid gap-1">Reason<Input
+            maxLength={500}
+            placeholder="Reason"
             value={endForm.reason}
             onChange={(event) =>
               setEndForm({ ...endForm, reason: event.target.value })
             }
-          />
-        </div>
+          /></label>
+        </fieldset>
       </Dialog>
     </Card>
   );

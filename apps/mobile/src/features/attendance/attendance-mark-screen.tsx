@@ -27,7 +27,7 @@ import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import { AttendanceExceptionSheet, emptyAttendanceExceptionDraft, type AttendanceExceptionDraft } from './attendance-exception-sheet';
-import { AttendanceTotals } from './attendance-ui';
+import { DailyAttendanceTotals } from './attendance-ui';
 import { todayDateOnly } from './date-utils';
 import { createAttendanceException, fetchAttendanceSummary, removeAttendanceException, updateAttendanceException } from './services';
 
@@ -319,7 +319,7 @@ export function AttendanceMarkScreen() {
           <DateInput allowClear={false} accessibilityLabel={t('period.selectDate')} maximumDate={new Date(`${todayDateOnly()}T12:00:00`)} value={date} onChangeText={(value) => value && setDate(value)} />
         </FormField>
       </Card>
-      {canRead && summary ? <AttendanceTotals locale={locale} totals={summary.totals} /> : null}
+      {canRead && summary ? <DailyAttendanceTotals locale={locale} totals={summary.totals} /> : null}
       {success ? (
         <Card accessibilityLiveRegion="polite" style={styles.successCard}>
           <AppText style={styles.successText} weight={600}>{success}</AppText>

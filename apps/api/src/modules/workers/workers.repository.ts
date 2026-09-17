@@ -40,6 +40,7 @@ type RosterRow = WorkerRow & {
   assignment_created_at: Date | string;
   assignment_updated_at: Date | string;
   assignment_ended_at: Date | string | null;
+  is_primary_for_date: number | boolean;
 };
 
 type AssignmentInsertInput = {
@@ -257,6 +258,10 @@ export class WorkersRepository {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 100;
     const params: QueryParam[] = [organizationId, projectId];
+    const primaryDateExpression = query.date ? "?" : "CURRENT_DATE()";
+    const primaryDateParams: QueryParam[] = query.date
+      ? [query.date, query.date]
+      : [];
     const where = [
       "w.organization_id = ?",
       "wpa.project_id = ?",
@@ -313,7 +318,16 @@ export class WorkersRepository {
           wpa.ends_on AS assignment_ends_on,
           wpa.created_at AS assignment_created_at,
           wpa.updated_at AS assignment_updated_at,
-          wpa.ended_at AS assignment_ended_at
+          wpa.ended_at AS assignment_ended_at,
+          EXISTS (
+            SELECT 1
+            FROM worker_primary_project_periods current_wpp
+            WHERE current_wpp.organization_id = w.organization_id
+              AND current_wpp.worker_id = w.id
+              AND current_wpp.worker_assignment_id = wpa.id
+              AND current_wpp.starts_on <= ${primaryDateExpression}
+              AND (current_wpp.ends_on IS NULL OR current_wpp.ends_on >= ${primaryDateExpression})
+          ) AS is_primary_for_date
         FROM worker_project_assignments wpa
         INNER JOIN workers w ON w.id = wpa.worker_id AND w.organization_id = wpa.organization_id
         INNER JOIN projects p ON p.id = wpa.project_id AND p.organization_id = wpa.organization_id
@@ -325,7 +339,7 @@ export class WorkersRepository {
         GROUP BY w.id, wpa.id
         ORDER BY w.name ASC
         LIMIT ? OFFSET ?`,
-        [...params, pageSize, (page - 1) * pageSize],
+        [...primaryDateParams, ...params, pageSize, (page - 1) * pageSize],
       ),
       this.database.query<{ total: number } & WorkerRow>(
         `SELECT COUNT(DISTINCT wpa.id) AS total
@@ -340,6 +354,7 @@ export class WorkersRepository {
       return {
         ...mapWorkerRow(row, currentAssignment),
         currentAssignment,
+        isPrimaryForDate: Number(row.is_primary_for_date) === 1,
       } satisfies ProjectWorkerRosterItem;
     });
     const total = Number(totalRows[0]?.total ?? 0);
@@ -1148,6 +1163,7 @@ export class WorkersRepository {
     workerId: string,
     endsOn: string,
     actorId: string,
+    endPrimaryPeriod: boolean,
   ) {
     const ended = await this.database.transaction(async (connection) => {
       const rows = await this.database.query<AssignmentWindowRow>(
@@ -1159,11 +1175,12 @@ export class WorkersRepository {
       );
       const current = rows[0];
       if (!current) return false;
-      await this.assertAssignmentCoversPrimaryPeriods(
+      await this.reconcilePrimaryPeriodsForAssignmentEnd(
         organizationId,
         current.id,
-        dateOnlyValue(current.starts_on),
         endsOn,
+        actorId,
+        endPrimaryPeriod,
         connection,
       );
       const result = await this.database.execute(
@@ -1346,6 +1363,50 @@ export class WorkersRepository {
     });
     if (fallsOutsideAssignment) {
       throw new Error("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    }
+  }
+
+  private async reconcilePrimaryPeriodsForAssignmentEnd(
+    organizationId: string,
+    assignmentId: string,
+    endsOn: string,
+    actorId: string,
+    endPrimaryPeriod: boolean,
+    connection: DatabaseConnection,
+  ) {
+    const periods = await this.database.query<PrimaryPeriodWindowRow>(
+      `SELECT id, starts_on, ends_on FROM worker_primary_project_periods
+       WHERE organization_id = ? AND worker_assignment_id = ?
+       FOR UPDATE`,
+      [organizationId, assignmentId],
+      connection,
+    );
+    const futurePeriodExists = periods.some(
+      (period) => dateOnlyValue(period.starts_on) > endsOn,
+    );
+    const periodsToEnd = periods.filter((period) => {
+      const periodStart = dateOnlyValue(period.starts_on);
+      const periodEnd = nullableDateOnly(period.ends_on);
+      return periodStart <= endsOn && (periodEnd === null || periodEnd > endsOn);
+    });
+    if (futurePeriodExists) {
+      throw new Error("WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT");
+    }
+    if (periodsToEnd.length > 0 && !endPrimaryPeriod) {
+      throw new Error("WORKER_ASSIGNMENT_PRIMARY_PERIOD_CONFLICT");
+    }
+    for (const period of periodsToEnd) {
+      const result = await this.database.execute(
+        `UPDATE worker_primary_project_periods
+         SET ends_on = ?, ended_by = ?, ended_at = CURRENT_TIMESTAMP(3),
+           updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
+         WHERE id = ? AND organization_id = ?`,
+        [endsOn, actorId, actorId, period.id, organizationId],
+        connection,
+      );
+      if (result.affectedRows === 0) {
+        throw new Error("WORKER_PRIMARY_PERIOD_NOT_FOUND");
+      }
     }
   }
 

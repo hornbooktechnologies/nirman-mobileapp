@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { isPlatformSystemRoleName } from "@nirman-app/shared";
-import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
+import { Button, Card, Input, PageHeader, PasswordInput, Select } from "@/components/ui";
 import { ApiError } from "@/lib/api/api-client";
 import {
   useCreateUser,
@@ -64,9 +64,9 @@ export function UserFormPage() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
-            <Input
+            <PasswordInput
               placeholder="Password"
-              type="password"
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required

@@ -18,25 +18,17 @@ export function AttendanceMetric({ label, value, compact = false }: { label: str
   );
 }
 
-export function AttendanceTotals({ locale, totals, includeWorkers = false }: {
+export function DailyAttendanceTotals({ locale, totals }: {
   locale: string;
-  totals: AttendanceSummaryResponse['totals'] | {
-    expectedWorkingDays: number;
-    presentDays: number;
-    absentDays: number;
-  };
-  includeWorkers?: boolean;
+  totals: AttendanceSummaryResponse['totals'];
 }) {
   const { t } = useTranslation('attendance');
 
   return (
     <View style={styles.grid}>
-      {includeWorkers && 'workers' in totals ? (
-        <AttendanceMetric label={t('summary.workers')} value={formatAttendanceNumber(locale, totals.workers)} />
-      ) : null}
-      <AttendanceMetric label={t('summary.expectedDays')} value={formatAttendanceNumber(locale, totals.expectedWorkingDays)} />
-      <AttendanceMetric label={t('summary.presentDays')} value={formatAttendanceNumber(locale, totals.presentDays)} />
-      <AttendanceMetric label={t('summary.absentDays')} value={formatAttendanceNumber(locale, totals.absentDays)} />
+      <AttendanceMetric label={t('dailyTotals.expectedWorkers')} value={formatAttendanceNumber(locale, totals.expectedWorkingDays)} />
+      <AttendanceMetric label={t('dailyTotals.presentWorkers')} value={formatAttendanceNumber(locale, totals.presentDays)} />
+      <AttendanceMetric label={t('dailyTotals.absentWorkers')} value={formatAttendanceNumber(locale, totals.absentDays)} />
     </View>
   );
 }

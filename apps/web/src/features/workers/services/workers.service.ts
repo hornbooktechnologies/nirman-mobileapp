@@ -1,5 +1,9 @@
 import { api } from "@/lib/api/api-client";
 import type {
+  WorkerPrimaryProjectPeriod,
+  CreateWorkerPrimaryProjectPeriodInput,
+  UpdateWorkerPrimaryProjectPeriodInput,
+  EndWorkerPrimaryProjectPeriodInput,
   AssignWorkerToProjectInput,
   CreateWorkerInput,
   EndWorkerProjectAssignmentInput,
@@ -75,6 +79,18 @@ function normalizeRosterResponse(
 }
 
 export const workersService = {
+  primaryPeriods(organizationId: string, workerId: string) {
+    return api.get<WorkerPrimaryProjectPeriod[]>(`/organizations/${organizationId}/workers/${workerId}/primary-project-periods`);
+  },
+  createPrimaryPeriod(organizationId: string, workerId: string, input: CreateWorkerPrimaryProjectPeriodInput) {
+    return api.post<WorkerPrimaryProjectPeriod>(`/organizations/${organizationId}/workers/${workerId}/primary-project-periods`, input);
+  },
+  updatePrimaryPeriod(organizationId: string, workerId: string, periodId: string, input: UpdateWorkerPrimaryProjectPeriodInput) {
+    return api.patch<WorkerPrimaryProjectPeriod>(`/organizations/${organizationId}/workers/${workerId}/primary-project-periods/${periodId}`, input);
+  },
+  endPrimaryPeriod(organizationId: string, workerId: string, periodId: string, input: EndWorkerPrimaryProjectPeriodInput) {
+    return api.post<WorkerPrimaryProjectPeriod>(`/organizations/${organizationId}/workers/${workerId}/primary-project-periods/${periodId}/end`, input);
+  },
   async workers(organizationId: string, query?: WorkerListFilter) {
     const response = await api.get<WorkerListResponse | WorkerListResponse["data"]>(
       `/organizations/${organizationId}/workers${queryString(query)}`,

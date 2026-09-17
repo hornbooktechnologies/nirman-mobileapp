@@ -1,4 +1,8 @@
 export type {
+  WorkerPrimaryProjectPeriod,
+  CreateWorkerPrimaryProjectPeriodInput,
+  UpdateWorkerPrimaryProjectPeriodInput,
+  EndWorkerPrimaryProjectPeriodInput,
   AssignWorkerToProjectInput,
   CreateWorkerInput,
   EndWorkerProjectAssignmentInput,

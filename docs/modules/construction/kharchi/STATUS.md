@@ -1,5 +1,9 @@
 # Kharchi / Worker Advances Module Status
 
+## Web W2 update — 2026-09-17
+
+Web functionality is implemented using the existing API. Focused financial/retry/permission tests pass; whole-Web checks have unrelated failures, and authenticated browser/cross-client acceptance is pending. See [Web parity and review](../../../tasks/web-w2-kharchi-parity.md). This update does not re-verify historical database rollout evidence below.
+
 > Contract status: approved.
 >
 > Implementation status: `IMPLEMENTATION COMPLETE â€” AUTHENTICATED AND DEVICE ACCEPTANCE PENDING`.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, UsersRound } from "lucide-react";
+import { Plus, RefreshCw, UsersRound } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
 import {
   Button,
   Card,
+  IconButton,
   Input,
   NotificationBanner,
   PageHeader,
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
+import { WorkerWorkspace } from "./worker-workspace";
 import { OrganizationContextSelect } from "@/features/projects/components/organization-context-select";
 import { useWorkers } from "@/features/workers/hooks/use-workers";
 
@@ -33,12 +34,12 @@ const statusTone = {
 } as const;
 
 export function WorkerListPage() {
+  return <WorkerWorkspace permission="workers:read">{organizationId => <WorkerList organizationId={organizationId} />}</WorkerWorkspace>;
+}
+
+function WorkerList({ organizationId }: { organizationId: string }) {
   const searchParams = useSearchParams();
-  const { hasPermission } = useAuth();
-  const organizations = useOrganizations();
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
-  const organizationId =
-    selectedOrganizationId || organizations.data?.[0]?.id || "";
+  const { hasPermission, refreshUser } = useAuth();
   const [query, setQuery] = useState<{
     search: string;
     status: WorkerStatus | "";
@@ -56,18 +57,33 @@ export function WorkerListPage() {
         <PageHeader
           title="Workers"
           description="Manage labour records, project rosters, and wage-readiness details."
-          actions={
-            hasPermission("workers:create") ? (
-              <Link
-                href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
+          actions={(
+            <div className="flex items-center gap-2">
+              <IconButton
+                aria-label="Refresh workers"
+                title="Refresh workers"
+                variant="outline"
+                disabled={!organizationId || workers.isFetching}
+                onClick={() => void workers.refetch()}
               >
-                <Button>
-                  <Plus size={16} />
-                  New Worker
-                </Button>
-              </Link>
-            ) : undefined
-          }
+                <RefreshCw
+                  aria-hidden="true"
+                  className={workers.isFetching ? "animate-spin" : undefined}
+                  size={17}
+                />
+              </IconButton>
+              {hasPermission("workers:create") ? (
+                <Link
+                  href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
+                >
+                  <Button>
+                    <Plus size={16} />
+                    New Worker
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
+          )}
         />
 
         {deletedWorker ? (
@@ -80,19 +96,16 @@ export function WorkerListPage() {
 
         <Card>
           <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_180px_180px]">
-            <OrganizationContextSelect
-              organizationId={organizationId}
-              onChange={setSelectedOrganizationId}
-            />
+            <OrganizationContextSelect organizationId={organizationId} onChange={id => { void refreshUser(id); }} />
             <Input
-              placeholder="Search code, name, or mobile"
+              aria-label="Search code, name, or mobile" placeholder="Search code, name, or mobile"
               value={query.search}
               onChange={(event) =>
                 setQuery({ ...query, search: event.target.value, page: 1 })
               }
             />
             <Select
-              value={query.status}
+              aria-label="Worker status" value={query.status}
               onChange={(event) =>
                 setQuery({
                   ...query,
@@ -109,7 +122,7 @@ export function WorkerListPage() {
               ))}
             </Select>
             <Input
-              placeholder="Trade"
+              aria-label="Trade" placeholder="Trade"
               value={query.trade}
               onChange={(event) =>
                 setQuery({ ...query, trade: event.target.value, page: 1 })
@@ -118,7 +131,7 @@ export function WorkerListPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card aria-busy={workers.isFetching}>
           {!organizationId ? (
             <p className="text-[13px] text-body">
               Select an organization to view workers.

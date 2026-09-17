@@ -1,5 +1,41 @@
 # Current Task
 
+## 2026-09-17 � W2 Web Kharchi
+
+Implemented project-scoped Kharchi list/summary/filter/pagination/CSV, eligible Worker selection, record-paid advances, immutable corrections, and complete deduction/reversal history using existing APIs. Effective permissions, isolated context caches and stable uncertain retries are included. Five focused tests passed; whole-Web checks expose unrelated existing errors, and authenticated/cross-client acceptance remains pending. See [W2 Kharchi parity and review](web-w2-kharchi-parity.md). No Mobile/backend/database changes, commit, push or deployment.
+
+
+## 2026-09-17 - W1 Web Work Calendar and Attendance parity
+
+Extended existing Web Calendar/Attendance with effective CUSTOM Project permission guards, authorized selectors/navigation, Organization working-timezone defaults, selectable Calendar day details and explicit week presets, server daily totals and supported filters, Attendance-only Worker history via the existing panel, context-preserving links, safer form/error handling, and Calendar-to-Attendance cache invalidation. Existing calendar/absence CRUD, summaries, pagination, history and CSV export remain in place. Only Web and implementation documentation changed.
+
+Current API reasons/notes remain optional; locked-period correction is reserved and unsupported. Mobile's daily future-date cap and fixed/device-local timezone assumptions differ from API behavior; Web keeps the API authoritative. See [W1 Calendar and Attendance parity](web-w1-calendar-attendance-parity.md) for endpoint traceability, limitations, and pending acceptance.
+
+**Verification was not run as explicitly requested:** no tests, type-checks, lint, builds, browser/runtime checks, diff checks, or other verification commands. Source inspection only; implementation is not marked verified or accepted. No commit, push, or deployment. Other W1 slices retain their own status.
+
+
+## 2026-09-17 - W1 Web Workers functional parity
+
+Extended existing Web Workers with primary-project history/create/correct/end and effective-date transfer, actual-start onboarding, explicit linked-period ending consent, effective project permissions, preserved form input and mutation feedback, project roster pagination, and attendance links. Existing worker CRUD, duplicate warnings, filters, rate changes and destructive confirmations are preserved. Only Web and implementation documentation changed. Detailed rate history is blocked because Workers exposes no history read endpoint; the smallest proposed backend addition is recorded in [W1 Workers parity](web-w1-workers-parity.md) and requires explicit authorization.
+
+**Verification was not run as explicitly requested:** no tests, type-checks, lint, builds, browser/runtime checks, or other verification commands. Implementation is not marked verified or accepted; W1 as a whole remains incomplete.
+
+
+## 2026-09-17 — W1 Web Wages functional parity
+
+Extended the existing Wages implementation with unpaid cancellation/read-only history, server rate breakdowns, payment history, paginated Kharchi allocation/reversal inspection, effective CUSTOM project access, isolated workspace cache/state, and stable uncertain payment retries. Existing preview/confirmation/adjustments/export and unrelated dirty work are preserved. Only Web and documentation changed. See [W1 Wages checklist and verification](web-w1-wages-parity.md); authenticated browser/device/cross-client acceptance remains pending. This does not mark all of W1 or W0 complete.
+
+
+## Web Module Completion Plan — 2026-09-17
+
+The Web audit and Product Owner directions are captured in [web-app-implementation-plan.md](web-app-implementation-plan.md). Web is English-only and must match implemented Mobile business functionality using existing APIs and shared vocabulary. API-ready modules do not need new business contracts. The plan applies ui-ux-pro-max guidance through existing NirmanSite tokens/components and covers foundation work, existing-module parity, Kharchi, Materials, Expenses, Progress, Gallery, Sales, Notifications, and the live Dashboard. Backend changes require a demonstrated Web need and explicit authorization; no backend or application implementation was performed in this planning step. Start implementation with W0, then W1.
+
+## Database Migrations 024-026 — 2026-09-15
+
+The Product Owner authorized the pending migration rollout to the configured remote development database `md-in-30.webhostbox.net / vishwlt9_nirmansite`. Read-only preflights for migrations `025` and `026` found 44 Worker assignments (43 with rates), zero negative assignment/Wage rates, nine Wage batches, four Kharchi allocations across three batches, and no existing cancellation grants.
+
+Migrations `024_password_recovery.sql`, `025_worker_assignment_rate_history.sql`, and `026_wage_batch_cancellation.sql` applied successfully. The migration ledger is 27/27 current with zero pending or draft migrations. Read-only verification confirmed all three new tables, both added Wage columns, 43 assignment-rate baseline rows, and exactly one `wages:cancel` grant for Organization Owner, Builder Admin, and Independent Contractor Owner. No seed, password reset, Worker rate mutation, Wage cancellation, authenticated API flow, browser flow, or physical-device acceptance was run.
+
 ## Backdated Worker Onboarding And Primary Allocation — 2026-09-14
 
 Mobile Worker creation now accepts the Worker's actual selected-Project start date. The API creates the assignment and initial primary-Project period atomically from that date, removing the separate first-time primary step. Later primary corrections may select a previous date covered by an active assignment; the existing API assignment-window and overlap rules remain authoritative, and Mobile warns that earlier Attendance totals can change.
@@ -10,19 +46,19 @@ No migration, seed, database execution, Attendance UI, Web, Wages, Kharchi, depe
 
 Implemented owner-only, audit-safe Wage batch cancellation. A batch with any payment is blocked; an unpaid batch requires a reason, remains as a read-only cancelled snapshot, releases Kharchi deductions through immutable reversal rows, and unlocks its period for regeneration. The API operation is transactionally audited and naturally retry-safe. Mobile adds a localized destructive confirmation flow and shows reversed Kharchi allocation history.
 
-Migration and preflight `026_wage_batch_cancellation.sql` are prepared but not executed. Shared/API/Mobile type-checks, API production build, 16 focused financial tests, locale parity, and whitespace checks pass. Focused lint still reports the pre-existing Wages `any` debt. Authenticated database, role, concurrency, and physical-device acceptance remain pending.
+Migration and preflight `026_wage_batch_cancellation.sql` were prepared in this slice and later applied on 2026-09-15. Shared/API/Mobile type-checks, API production build, 16 focused financial tests, locale parity, and whitespace checks pass. Focused lint still reports the pre-existing Wages `any` debt. Authenticated role/concurrency and physical-device acceptance remain pending.
 
 ## Worker Assignment Rate Security And History — 2026-09-14
 
 Corrected the stale pre-Attendance rate boundary. A Project assignment that has started or has Attendance/Wage history now requires effective `workers:update-rate`; a not-yet-started assignment may still be initialized by `workers:assign-project`. Rate changes require an in-assignment, non-future effective date and transactionally record one effective rate per assignment/date.
 
-Migration `025_worker_assignment_rate_history.sql` adds the effective-dated history plus confirmed Wage rate breakdowns and backfills each existing assignment's currently known rate as its baseline. Wages now calculates each derived working date with the applicable rate and snapshots a multi-rate breakdown. Mobile and Web expose permission-aware rate-change forms with current rate, effective date, optional reason, validation, and Mobile en/hi/gu copy. Migration/runtime and authenticated role/browser/device acceptance remain pending.
+Migration `025_worker_assignment_rate_history.sql` adds the effective-dated history plus confirmed Wage rate breakdowns and backfills each existing assignment's currently known rate as its baseline. Wages now calculates each derived working date with the applicable rate and snapshots a multi-rate breakdown. Mobile and Web expose permission-aware rate-change forms with current rate, effective date, optional reason, validation, and Mobile en/hi/gu copy. Migration `025` was applied and verified read-only on 2026-09-15; authenticated role/browser/device acceptance remains pending.
 
 ## Password Recovery And Account Security — 2026-09-11
 
 Implemented the approved email recovery mechanism for every active global user identity. The API now provides generic role-neutral forgot-password requests, hashed 15-minute single-use recovery tokens, DB-backed normalized-email/IP throttling, web/mobile reset links through the existing SMTP settings, transactional password reset, and refresh-session revocation. Authenticated password change requires the current password and also revokes refresh sessions. Permanent or generated passwords are never emailed; OTP/2FA remains separately deferred.
 
-Mobile now exposes Forgot password on Login, handles Expo/deep-link resets, and provides Account & Security from the shared Menu for every customer role with en/hi/gu parity. Web now exposes matching forgot/reset pages and upgrades Profile to current/new/confirm password. Migration `024_password_recovery.sql` is prepared but not executed. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Database/runtime, real SMTP, authenticated browser/device, and physical-device acceptance remain pending.
+Mobile now exposes Forgot password on Login, handles Expo/deep-link resets, and provides Account & Security from the shared Menu for every customer role with en/hi/gu parity. Web now exposes matching forgot/reset pages and upgrades Profile to current/new/confirm password. Migration `024_password_recovery.sql` was applied and verified read-only on 2026-09-15. Shared/API/Mobile/Web type-checks, API/Web production builds, 6 focused API tests, locale parity, focused new API/Web lint, and whitespace checks passed. Real SMTP, authenticated browser/device, and physical-device acceptance remain pending.
 
 ## Mobile Project Creation — 2026-09-11
 
@@ -446,3 +482,7 @@ Mobile now has automatic permission/token registration, an accurate Home badge, 
 Completed the requested reference-led Mobile dashboard with 38 separate PNG assets in ten folders, including the user-approved project-card background, reusable Dashboard components, live permission-aware metrics/actions, actual Gallery previews, project location and en/hi/gu copy. Existing header, footer menu and bottom navigation are preserved. No API/schema/dependency changes were required; unrelated dirty work remains intact.
 
 Mobile TypeScript, locale parity, focused lint, PNG validation and Expo web/Android exports passed. All nine 320/375/425px language fixtures passed overflow, 50px target and tab checks. Authenticated location/Gallery reads, physical-device performance, native accessibility/large text/reduced motion and fluent-language acceptance remain pending. See [implementation report](dashboard-asset-redesign.md) and [screenshots](artifacts/dashboard-redesign/README.md).
+
+## 2026-09-17 - W3 Web Materials
+
+Implemented the full Materials Web workflow: settings, project navigation, filtered list/summary/sort/pagination/CSV, request drafts/edit/submission/approval decisions/cancellation, split purchases, partial deliveries and timeline. Effective project access, isolated caches, server actions/versions and stable uncertain retries are included. Six focused tests passed; whole-Web type-check/lint/build expose unrelated existing Workers, Attendance and foundation errors. Authenticated/browser/cross-client acceptance remains pending. See [W3 Materials parity and review](web-w3-materials-parity.md) for exact evidence, the Mobile/API/Web checklist and optional API follow-ups. Only Web and documentation changed; no backend/Mobile/database mutation, commit, push or deployment.

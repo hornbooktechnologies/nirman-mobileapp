@@ -11,7 +11,7 @@ import {
   type FormEvent,
 } from "react";
 import type { OrganizationOwnerInvitationPreview } from "@nirman-app/shared";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, PasswordInput } from "@/components/ui";
 import { authService } from "@/features/auth/services/auth.service";
 import { ApiError } from "@/lib/api/api-client";
 
@@ -153,8 +153,8 @@ function ActivateInvitationContent() {
                 <label className="text-[12px] font-semibold text-body">
                   Create password
                 </label>
-                <Input
-                  type="password"
+                <PasswordInput
+                  autoComplete="new-password"
                   minLength={8}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -165,8 +165,8 @@ function ActivateInvitationContent() {
                 <label className="text-[12px] font-semibold text-body">
                   Confirm password
                 </label>
-                <Input
-                  type="password"
+                <PasswordInput
+                  autoComplete="new-password"
                   minLength={8}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}

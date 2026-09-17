@@ -1,4 +1,5 @@
 import { api, apiClient } from "@/lib/api/api-client";
+import type { KharchiAdvanceDetail, KharchiListResponse } from "@nirman-app/shared";
 import type {
   WageBatch,
   WageBatchDetail,
@@ -7,6 +8,20 @@ import type {
 } from "@/features/wages/types/wages.types";
 
 export const wagesService = {
+  workerAdvances(organizationId: string, projectId: string, workerId: string, page: number) {
+    return api.get<KharchiListResponse>(`/organizations/${organizationId}/projects/${projectId}/kharchi`, {
+      params: { workerId, page, pageSize: 20 },
+    });
+  },
+  advanceDetail(organizationId: string, projectId: string, advanceId: string) {
+    return api.get<KharchiAdvanceDetail>(`/organizations/${organizationId}/projects/${projectId}/kharchi/${advanceId}`);
+  },
+  cancelBatch(organizationId: string, projectId: string, batchId: string, reason: string) {
+    return api.post<WageBatchDetail>(
+      `/organizations/${organizationId}/projects/${projectId}/wages/batches/${batchId}/cancel`,
+      { reason },
+    );
+  },
   preview(organizationId: string, projectId: string, start: string, end: string) {
     return api.get<WagePreview>(
       `/organizations/${organizationId}/projects/${projectId}/wages/preview?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,

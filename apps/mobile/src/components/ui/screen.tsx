@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
 
@@ -12,7 +12,14 @@ export function Screen({ scroll = false, padded = true, style, children, ...prop
   return (
     <SafeAreaView style={styles.safeArea} {...props}>
       {scroll ? (
-        <ScrollView contentContainerStyle={[styles.content, padded ? styles.padded : null, style]}>{children}</ScrollView>
+        <ScrollView
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentContainerStyle={[styles.content, padded ? styles.padded : null, style]}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
       ) : (
         <View style={[styles.content, padded ? styles.padded : null, style]}>{children}</View>
       )}

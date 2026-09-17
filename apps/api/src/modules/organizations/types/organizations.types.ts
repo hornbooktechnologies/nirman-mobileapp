@@ -13,6 +13,7 @@ export interface OrganizationEntity {
   status: OrganizationStatus;
   operatingProfile: OperatingProfile;
   timezone: string;
+  workingTimezone?: string;
   currency: string;
   logoFileId: string | null;
   createdBy: string | null;

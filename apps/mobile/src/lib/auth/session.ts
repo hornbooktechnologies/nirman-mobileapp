@@ -34,6 +34,8 @@ export type MobileOrganization = {
     primaryColor: string | null;
   };
   operatingProfile: OperatingProfile;
+  timezone?: string;
+  workingTimezone?: string;
 };
 
 export type MobileMembership = {
@@ -54,6 +56,8 @@ export type MobileProjectSummary = {
   id: string;
   name: string;
   projectCode: string | null;
+  startDate: string | null;
+  expectedCompletionDate: string | null;
   status: ProjectStatus;
   roleLabel: string | null;
   permissionMode: ProjectPermissionMode;
@@ -81,6 +85,7 @@ export type MobileSessionPayload = {
 export type MobileSession = {
   accessToken: string;
   expiresInSeconds: number | null;
+  accessTokenExpiresAt: string | null;
   activeProjectId: string | null;
 } & MobileSessionPayload;
 
@@ -111,7 +116,13 @@ function normalizeProjectAccess(
     organizationId: projectAccess?.organizationId ?? null,
     projectScope: projectAccess?.projectScope ?? 'NONE',
     activeProjectId: projectAccess?.activeProjectId ?? null,
-    projects: Array.isArray(projectAccess?.projects) ? projectAccess.projects : [],
+    projects: Array.isArray(projectAccess?.projects)
+      ? projectAccess.projects.map((project) => ({
+          ...project,
+          startDate: project.startDate ?? null,
+          expectedCompletionDate: project.expectedCompletionDate ?? null,
+        }))
+      : [],
   };
 }
 
@@ -125,6 +136,7 @@ export function createMobileSession(
   return {
     accessToken: data.accessToken,
     expiresInSeconds: data.expiresInSeconds ?? null,
+    accessTokenExpiresAt: accessTokenExpiry(data),
     user: normalizeUser(data.user),
     activeOrganization: data.activeOrganization ?? null,
     memberships: data.memberships ?? [],
@@ -218,6 +230,7 @@ export function normalizeStoredSession(session: MobileSession): MobileSession {
 
   return {
     ...session,
+    accessTokenExpiresAt: session.accessTokenExpiresAt ?? null,
     activeOrganization: session.activeOrganization ?? null,
     memberships: session.memberships ?? [],
     permissions: session.permissions ?? [],
@@ -229,6 +242,22 @@ export function normalizeStoredSession(session: MobileSession): MobileSession {
     serverTime: session.serverTime ?? new Date().toISOString(),
     activeProjectId,
   };
+}
+
+export function isMobileSessionExpired(
+  session: MobileSession,
+  now = Date.now(),
+) {
+  if (!session.accessTokenExpiresAt) return false;
+  const expiresAt = Date.parse(session.accessTokenExpiresAt);
+  return Number.isFinite(expiresAt) && expiresAt <= now;
+}
+
+function accessTokenExpiry(data: LoginResponseData) {
+  if (!data.expiresInSeconds || data.expiresInSeconds <= 0) return null;
+  const serverTime = Date.parse(data.serverTime);
+  const issuedAt = Number.isFinite(serverTime) ? serverTime : Date.now();
+  return new Date(issuedAt + data.expiresInSeconds * 1000).toISOString();
 }
 
 function normalizeUser(user: LoginResponseUser): MobileUser {

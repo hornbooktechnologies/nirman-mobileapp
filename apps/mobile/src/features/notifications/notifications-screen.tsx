@@ -1,6 +1,6 @@
 import type { NotificationItem } from '@nirman-app/shared';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, IconButton, LoadingState, NirmanScreenBackground, StatusBadge } from '../../components/ui';
@@ -46,14 +46,28 @@ export function NotificationsScreen() {
     finally { if (request === sequence.current) { setLoading(false); setRefreshing(false); setLoadingMore(false); } }
   }, [canRead, organizationId, t, token, unreadOnly]);
 
-  useEffect(() => { setItems([]); setPage(1); void load(1); return () => { sequence.current += 1; }; }, [load]);
+  useFocusEffect(useCallback(() => {
+    setPage(1);
+    void Promise.all([load(1), refreshUnreadCount()]);
+    return () => { sequence.current += 1; };
+  }, [load, refreshUnreadCount]));
 
   async function open(item: NotificationItem) {
     if (!organizationId || !token) return;
-    if (!item.readAt) {
-      try { await markNotificationRead(organizationId, item.id, token); setItems((current) => current.map((row) => row.id === item.id ? { ...row, readAt: new Date().toISOString() } : row)); setUnreadCount(Math.max(0, unreadCount - 1)); } catch { /* target remains usable if read receipt fails */ }
-    }
     const href = notificationHref(item);
+    if (!item.readAt) {
+      try {
+        await markNotificationRead(organizationId, item.id, token);
+        setUnreadCount(Math.max(0, unreadCount - 1));
+        if (!href) {
+          setItems((current) => unreadOnly
+            ? current.filter((row) => row.id !== item.id)
+            : current.map((row) => row.id === item.id
+              ? { ...row, readAt: new Date().toISOString() }
+              : row));
+        }
+      } catch { /* target remains usable if read receipt fails */ }
+    }
     if (href) router.push(href);
   }
 

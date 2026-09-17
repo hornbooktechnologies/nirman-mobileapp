@@ -1,5 +1,6 @@
 "use client";
 
+import { workerRate } from "../worker-utils";
 import { Ban, Trash2 } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,7 +24,9 @@ import {
   Tabs,
 } from "@/components/ui";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
+import { WorkerWorkspace } from "./worker-workspace";
+import { WorkerPrimaryPeriods } from "./worker-primary-periods";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import {
   WorkerForm,
@@ -44,15 +47,14 @@ const statusTone = {
 } as const;
 
 export function WorkerDetailPage({ workerId }: { workerId: string }) {
-  const { activeOrganizationId, hasPermission } = useAuth();
+  return <WorkerWorkspace permission="workers:read">{organizationId => <WorkerDetail key={`${organizationId}:${workerId}`} organizationId={organizationId} workerId={workerId} />}</WorkerWorkspace>;
+}
+
+function WorkerDetail({ workerId, organizationId }: { workerId: string; organizationId: string }) {
+  const { hasPermission } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const organizations = useOrganizations();
-  const [selectedOrganizationId] = useState(
-    searchParams.get("organizationId") ?? "",
-  );
-  const organizationId =
-    selectedOrganizationId || activeOrganizationId || organizations.data?.[0]?.id || "";
+  const access = useProjectAccess(organizationId);
   const activeTab = searchParams.get("tab") === "attendance" ? "attendance" : "profile";
   const worker = useWorker(organizationId, workerId);
   const updateWorker = useUpdateWorker(organizationId, workerId);
@@ -159,22 +161,23 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
         ) : null}
 
         {!organizationId ? (
-          <Card className="text-[13px] text-body">
+          <Card className="text-sm text-body">
             Select an organization from Workers first.
           </Card>
         ) : worker.isLoading ? (
           <LoadingState label="Loading worker" />
         ) : worker.isError || !worker.data ? (
-          <Card className="text-[13px] text-red-600">
-            Unable to load worker
+          <Card className="text-sm text-red-600">
+            <p role="alert">{worker.error?.message ?? "Unable to load worker"}</p><Button onClick={() => void worker.refetch()}>Retry</Button>
           </Card>
         ) : (
           <>
             {activeTab === "attendance" ? (
-              <WorkerAttendancePanel
+              access.isPending ? <LoadingState label="Checking attendance access" /> : access.isError ? <Card><p role="alert">{access.error.message}</p><Button onClick={() => void access.refetch()}>Retry access</Button></Card> : <WorkerAttendancePanel
+                key={`${organizationId}:${workerId}:${searchParams.get("projectId")}:${searchParams.get("startDate")}:${searchParams.get("endDate")}`}
                 organizationId={organizationId}
                 workerId={workerId}
-                assignments={worker.data.assignments}
+                assignments={worker.data.assignments.filter(assignment => access.data?.projects.some(project => project.id === assignment.projectId && project.permissions.includes("attendance:read")))}
               />
             ) : hasPermission("workers:update") ? (
               <Card>
@@ -187,27 +190,29 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
                 />
               </Card>
             ) : (
-              <Card className="grid gap-2 text-[13px] text-body sm:grid-cols-2">
+              <Card className="grid gap-2 text-sm text-body sm:grid-cols-2">
                 <span>Code: {worker.data.workerCode}</span>
                 <span>Trade: {worker.data.trade}</span>
-                <span>Daily rate: {worker.data.baseDailyRate ?? "-"}</span>
+                <span>Daily rate: {workerRate(worker.data.baseDailyRate)}</span>
                 <span>Mobile: {worker.data.mobileNumber ?? "-"}</span>
                 <span>Status: {worker.data.status}</span>
+                <span className="break-words sm:col-span-2">Notes: {worker.data.notes || "—"}</span>
               </Card>
             )}
 
+            {activeTab === "profile" ? <WorkerPrimaryPeriods organizationId={organizationId} worker={worker.data} /> : null}
             {activeTab === "profile" ? <Card className="space-y-4">
               <div>
                 <h2 className="text-[17px] font-semibold text-body">
                   Assignments
                 </h2>
-                <p className="text-[13px] text-sub">
+                <p className="text-sm text-sub">
                   Assignment history stays available for Attendance, Wages,
                   Kharchi, and reports.
                 </p>
               </div>
               {worker.data.assignments.length === 0 ? (
-                <p className="text-[13px] text-body">
+                <p className="text-sm text-body">
                   No project assignments yet.
                 </p>
               ) : (
@@ -219,15 +224,16 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
                       <TableHead>Status</TableHead>
                       <TableHead>Starts</TableHead>
                       <TableHead>Ends</TableHead>
+                      <TableHead>Related activity</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {worker.data.assignments.map((assignment) => (
                       <TableRow key={assignment.id}>
                         <TableCell>
-                          {assignment.projectName ?? assignment.projectId}
+                          <a className="underline" href={`/projects/${assignment.projectId}`}>{assignment.projectName ?? assignment.projectId}</a>
                         </TableCell>
-                        <TableCell>{assignment.dailyRate ?? "-"}</TableCell>
+                        <TableCell>{workerRate(assignment.dailyRate)}</TableCell>
                         <TableCell>
                           <StatusBadge tone={statusTone[assignment.status]}>
                             {assignment.status}
@@ -239,17 +245,21 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
                         <TableCell>
                           {assignment.endsOn?.slice(0, 10) ?? "-"}
                         </TableCell>
+                        <TableCell>
+                          {access.data?.projects.some(project => project.id === assignment.projectId && project.permissions.includes("attendance:read")) ? <a className="underline" href={`/workers/${workerId}?organizationId=${organizationId}&tab=attendance&projectId=${assignment.projectId}`}>View attendance</a> : <span className="text-sub">Attendance access unavailable</span>}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               )}
+              <p className="text-sm text-sub">Rates above are current assignment snapshots. Detailed rate-change history is not returned by the Workers API.</p>
             </Card> : null}
           </>
         )}
 
         {actionError ? (
-          <Card className="text-[13px] text-red-600">{actionError}</Card>
+          <Card className="text-sm text-red-600">{actionError}</Card>
         ) : null}
       </div>
 
@@ -257,7 +267,7 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
         open={showDeactivate}
         title={`Deactivate ${worker.data?.name ?? "worker"}?`}
         description="The worker will disappear from active rosters. Historical assignments remain available."
-        onOpenChange={setShowDeactivate}
+        onOpenChange={open => { if (!deactivateWorker.isPending) setShowDeactivate(open); }}
         footer={
           <ConfirmDialogActions
             confirmLabel={
@@ -271,11 +281,12 @@ export function WorkerDetailPage({ workerId }: { workerId: string }) {
           />
         }
       >
-        <Input
-          placeholder="Reason (optional)"
+        <label className="grid gap-1">Reason<Input
+          maxLength={500}
+          placeholder="Reason"
           value={deactivateReason}
           onChange={(event) => setDeactivateReason(event.target.value)}
-        />
+        /></label>
       </Dialog>
 
       <Dialog

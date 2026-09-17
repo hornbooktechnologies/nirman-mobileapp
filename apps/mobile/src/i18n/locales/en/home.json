@@ -179,7 +179,11 @@
     "pickerTitle": "Switch project",
     "pickerDescription": "Choose a project for management or field work. Draft projects remain management-only until activated.",
     "projectAccess": "Project access",
-    "selected": "Selected"
+    "selected": "Selected",
+    "dateRange": "{{start}} – {{end}}",
+    "startOnly": "From {{start}}",
+    "endOnly": "Until {{end}}",
+    "datesNotSet": "Project dates not set"
   },
   "projectStatus": {
     "DRAFT": "Draft",

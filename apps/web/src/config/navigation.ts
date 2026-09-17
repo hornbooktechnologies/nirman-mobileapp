@@ -4,12 +4,15 @@ import {
   HardHat,
   IdCard,
   CalendarCheck,
+  CalendarDays,
   Settings,
   ShieldCheck,
   UserCircle,
   UsersRound,
   Users,
   CreditCard,
+  Wallet,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,9 +59,18 @@ export const navGroups: NavGroup[] = [
       },
       { label: "Projects", href: "/projects", icon: HardHat, permission: "projects:read" },
       { label: "Workers", href: "/workers", icon: IdCard, permission: "workers:read" },
+      { label: "Work Calendar", href: "/work-calendar", icon: CalendarDays, permission: "work-calendar:read" },
       { label: "Attendance", href: "/attendance", icon: CalendarCheck, permission: "attendance:read" },
       { label: "Settings", href: "/settings", icon: Settings, permission: "platform-settings:read" },
     ],
+  },
+  {
+    label: "Workforce & Finance",
+    items: [{ label: "Kharchi", href: "/kharchi", icon: Wallet, permission: "kharchi:read" }],
+  },
+  {
+    label: "Project Operations",
+    items: [{ label: "Materials", href: "/materials", icon: Package, permission: "materials:read" }],
   },
   {
     label: "Account",

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button, Card, Checkbox, Input, Textarea } from "@/components/ui";
+import { workerToday, workerError } from "../worker-utils";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { workersService } from "@/features/workers/services/workers.service";
 import type {
   CreateWorkerInput,
@@ -28,7 +30,7 @@ export const emptyWorkerForm: WorkerFormState = {
   notes: "",
   projectId: "",
   dailyRate: "",
-  startsOn: new Date().toISOString().slice(0, 10),
+  startsOn: workerToday(),
   acknowledgeDuplicateWarning: false,
 };
 
@@ -39,6 +41,7 @@ export function WorkerForm({
   isSaving,
   submitLabel,
   onSubmit,
+  onBusyChange,
 }: {
   organizationId: string;
   initialWorker?: WorkerDetail | null;
@@ -46,9 +49,16 @@ export function WorkerForm({
   isSaving: boolean;
   submitLabel: string;
   onSubmit: (input: WorkerFormState) => Promise<void>;
+  onBusyChange?: (busy: boolean) => void;
 }) {
+  const { activeOrganizationTimezone } = useAuth();
+  const busy = useRef(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  const [checking, setChecking] = useState(false);
+  const [success, setSuccess] = useState("");
   const [form, setForm] = useState<WorkerFormState>({
     ...emptyWorkerForm,
+    startsOn: workerToday(activeOrganizationTimezone ?? undefined),
     projectId: initialProjectId ?? "",
     name: initialWorker?.name ?? "",
     trade: initialWorker?.trade ?? "",
@@ -78,34 +88,46 @@ export function WorkerForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    const candidates = await checkDuplicates();
-    if (candidates.length > 0 && !form.acknowledgeDuplicateWarning) {
-      setError(
-        "Review and acknowledge possible duplicate workers before saving.",
-      );
-      return;
-    }
+    if (busy.current || isSaving) return;
+    busy.current = true;
+    onBusyChange?.(true);
+    setChecking(true); setError(""); setSuccess("");
     try {
+      const candidates = await checkDuplicates();
+      if (candidates.length > 0 && !form.acknowledgeDuplicateWarning) {
+        throw new Error("Review and acknowledge possible duplicate workers before saving.");
+      }
       await onSubmit({
         ...form,
-        mobileNumber: form.mobileNumber || null,
-        notes: form.notes || null,
+        name: form.name.trim(), trade: form.trade.trim(),
+        mobileNumber: form.mobileNumber?.trim() || null,
+        notes: form.notes?.trim() || null,
         projectId: hasInitialProject ? form.projectId || null : null,
-        dailyRate: form.dailyRate || null,
+        dailyRate: form.dailyRate === "" ? null : form.dailyRate,
         startsOn: hasInitialProject ? form.startsOn || null : null,
       });
-    } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to save worker",
-      );
-    }
+      setSuccess("Worker saved.");
+    } catch (failure) {
+      setError(workerError(failure));
+      requestAnimationFrame(() => errorRef.current?.focus());
+    } finally { busy.current = false; setChecking(false); onBusyChange?.(false); }
+  }
+
+  async function inspectDuplicates() {
+    if (busy.current || isSaving) return;
+    busy.current = true; onBusyChange?.(true); setChecking(true); setError(""); setSuccess("");
+    try {
+      const candidates = await checkDuplicates();
+      if (!candidates.length) setSuccess("No possible duplicates found.");
+    } catch (failure) { setError(workerError(failure)); }
+    finally { busy.current = false; setChecking(false); onBusyChange?.(false); }
   }
 
   return (
-    <form className="space-y-4" onSubmit={submit}>
+    <form className="space-y-4 text-base" onSubmit={submit}>
+      {error ? <p ref={errorRef} tabIndex={-1} role="alert" className="text-danger">{error}</p> : null}
+      {success ? <p role="status" className="text-success">{success}</p> : null}
+      <fieldset disabled={isSaving || checking} className="space-y-4">
       {initialWorker ? (
         <div className="grid gap-1 text-[13px]">
           <span className="text-sub">Worker code</span>
@@ -116,12 +138,13 @@ export function WorkerForm({
       ) : null}
       {!initialWorker && hasInitialProject ? (
         <p className="text-[13px] text-sub">
-          This worker will also be assigned to the selected project.
+          The assignment and initial primary-project allocation will start together on the actual project start date.
         </p>
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Input
+        <label className="grid gap-1">Worker name *<Input
+          maxLength={160}
           placeholder="Worker name"
           value={form.name}
           onChange={(event) =>
@@ -133,19 +156,23 @@ export function WorkerForm({
           }
           required
         />
-        <Input
+        </label>
+        <label className="grid gap-1">Trade or worker type *<Input
+          maxLength={80}
           placeholder="Trade or worker type"
           list="worker-trade-suggestions"
           value={form.trade}
           onChange={(event) => setForm({ ...form, trade: event.target.value })}
           required
         />
+        </label>
         <datalist id="worker-trade-suggestions">
           {TRADE_SUGGESTIONS.map((trade) => (
             <option key={trade} value={trade} />
           ))}
         </datalist>
-        <Input
+        <label className="grid gap-1">Mobile number<Input
+          type="tel" maxLength={20}
           placeholder="Mobile number"
           value={form.mobileNumber ?? ""}
           onChange={(event) =>
@@ -156,20 +183,21 @@ export function WorkerForm({
             })
           }
         />
+        </label>
         <label className="space-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
+          <span className="text-base font-medium text-body">
             Daily rate
           </span>
           <Input
             placeholder="Enter daily rate"
             type="number"
-            min="0"
+            min="0" step="0.01"
             value={form.dailyRate ?? ""}
             onChange={(event) =>
               setForm({ ...form, dailyRate: event.target.value })
             }
           />
-          <span className="block text-[11px] leading-4 text-sub">
+          <span className="block text-sm leading-5 text-sub">
             Used automatically as the default when assigning this worker to a
             Project.
           </span>
@@ -177,11 +205,11 @@ export function WorkerForm({
         {!initialWorker && hasInitialProject ? (
           <>
             <label className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
-                Assignment start date
+              <span className="text-base font-medium text-body">
+                Actual project start date *
               </span>
               <Input
-                type="date"
+                type="date" required
                 value={form.startsOn ?? ""}
                 onChange={(event) =>
                   setForm({ ...form, startsOn: event.target.value })
@@ -192,12 +220,14 @@ export function WorkerForm({
         ) : null}
       </div>
 
-      <Textarea
+      <label className="grid gap-1">Notes<Textarea
+        maxLength={2000}
         placeholder="Notes"
         value={form.notes ?? ""}
         onChange={(event) => setForm({ ...form, notes: event.target.value })}
       />
 
+      </label>
       {duplicates.length > 0 ? (
         <Card
           variant="surface"
@@ -228,20 +258,21 @@ export function WorkerForm({
         </Card>
       ) : null}
 
-      {error ? <p className="text-[13px] text-red-600">{error}</p> : null}
+
 
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
-          onClick={() => void checkDuplicates()}
+          onClick={() => void inspectDuplicates()}
         >
           Check duplicates
         </Button>
         <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving" : submitLabel}
+          {isSaving || checking ? "Saving…" : submitLabel}
         </Button>
       </div>
+      </fieldset>
     </form>
   );
 }

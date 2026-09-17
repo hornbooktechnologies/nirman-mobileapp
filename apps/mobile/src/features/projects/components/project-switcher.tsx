@@ -12,8 +12,9 @@ import {
   ListItem,
   StatusBadge,
 } from "../../../components/ui";
+import { formatDate } from "../../../i18n";
 import { getActiveProject, type MobileProjectSummary } from "../../../lib/auth";
-import { useSession } from "../../../providers";
+import { useLocalization, useSession } from "../../../providers";
 import { mobileText, mobileTheme } from "../../../theme";
 import { ProjectHero } from "../../home/components/Dashboard/ProjectHero";
 
@@ -49,6 +50,7 @@ export function ProjectContextCard({
   onOpenProject,
 }: ProjectContextCardProps) {
   const { t } = useTranslation("home");
+  const { language } = useLocalization();
   const { session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const activeProject = getActiveProject(session);
@@ -77,6 +79,14 @@ export function ProjectContextCard({
       ? t("projectContext.selectProject")
       : t("projectContext.noProjectAvailable"));
   const projectScope = session.projectAccess?.projectScope ?? "NONE";
+  const projectPeriod = activeProject
+    ? formatProjectPeriod(activeProject, language, {
+        dateRange: (start, end) => t("projectContext.dateRange", { start, end }),
+        startOnly: (start) => t("projectContext.startOnly", { start }),
+        endOnly: (end) => t("projectContext.endOnly", { end }),
+        datesNotSet: t("projectContext.datesNotSet"),
+      })
+    : null;
 
   if (featured) {
     return (
@@ -115,7 +125,9 @@ export function ProjectContextCard({
   return (
     <>
       <Pressable
-        accessibilityLabel={`${organizationName}, ${projectName}`}
+        accessibilityLabel={[organizationName, projectName, projectPeriod]
+          .filter(Boolean)
+          .join(", ")}
         accessibilityRole="button"
         accessibilityState={{ disabled: !canSwitch }}
         disabled={!canSwitch}
@@ -164,6 +176,24 @@ export function ProjectContextCard({
               )
             ) : null}
           </View>
+          {activeProject && projectPeriod ? (
+            <View style={styles.projectFooter}>
+              <View style={styles.projectPeriod}>
+                <AppIcon
+                  color={mobileTheme.color.text.muted}
+                  name="calendar-range"
+                  size={mobileTheme.icon.sm}
+                />
+                <AppText style={styles.projectPeriodText} numberOfLines={1} weight={600}>
+                  {projectPeriod}
+                </AppText>
+              </View>
+              <StatusBadge
+                label={t(projectStatusTranslationKeys[activeProject.status])}
+                tone={getStatusTone(activeProject.status)}
+              />
+            </View>
+          ) : null}
           {!compact ? (
             <View style={styles.metaRow}>
               <StatusBadge
@@ -196,6 +226,29 @@ export function ProjectContextCard({
       />
     </>
   );
+}
+
+function formatProjectPeriod(
+  project: Pick<MobileProjectSummary, "startDate" | "expectedCompletionDate">,
+  language: "en" | "hi" | "gu",
+  copy: {
+    dateRange: (start: string, end: string) => string;
+    startOnly: (start: string) => string;
+    endOnly: (end: string) => string;
+    datesNotSet: string;
+  },
+) {
+  const start = project.startDate
+    ? formatDate(new Date(`${project.startDate.slice(0, 10)}T12:00:00`), language)
+    : null;
+  const end = project.expectedCompletionDate
+    ? formatDate(new Date(`${project.expectedCompletionDate.slice(0, 10)}T12:00:00`), language)
+    : null;
+
+  if (start && end) return copy.dateRange(start, end);
+  if (start) return copy.startOnly(start);
+  if (end) return copy.endOnly(end);
+  return copy.datesNotSet;
 }
 
 type ProjectSwitcherSheetProps = {
@@ -295,6 +348,24 @@ const styles = StyleSheet.create({
   compactSwitchLabel: {
     ...mobileText.label,
     color: mobileTheme.color.text.link,
+  },
+  projectFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: mobileTheme.spacing[3],
+    justifyContent: "space-between",
+  },
+  projectPeriod: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: mobileTheme.spacing[2],
+    minWidth: 0,
+  },
+  projectPeriodText: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+    flex: 1,
   },
   organization: {
     ...mobileText.caption,

@@ -179,7 +179,11 @@
     "pickerTitle": "प्रोजेक्ट बदलें",
     "pickerDescription": "प्रबंधन या फील्ड कार्य के लिए प्रोजेक्ट चुनें। सक्रिय होने तक ड्राफ्ट प्रोजेक्ट केवल प्रबंधन के लिए उपलब्ध रहते हैं।",
     "projectAccess": "प्रोजेक्ट पहुँच",
-    "selected": "चुना गया"
+    "selected": "चुना गया",
+    "dateRange": "{{start}} – {{end}}",
+    "startOnly": "{{start}} से",
+    "endOnly": "{{end}} तक",
+    "datesNotSet": "प्रोजेक्ट की तारीखें तय नहीं हैं"
   },
   "projectStatus": {
     "DRAFT": "ड्राफ्ट",

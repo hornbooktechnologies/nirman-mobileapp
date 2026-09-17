@@ -3,7 +3,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Button, Card, CompactScreenHeader, FormError, FormField, IconButton, Input, NirmanScreenBackground } from '../../../components/ui';
+import { Button, Card, CompactScreenHeader, FormError, FormField, IconButton, NirmanScreenBackground, PasswordInput } from '../../../components/ui';
 import { getLocalizedErrorMessage } from '../../../i18n';
 import { useSession } from '../../../providers';
 import { mobileTheme } from '../../../theme';
@@ -45,13 +45,13 @@ export function AccountSecurityScreen() {
       <Card style={styles.card}>
         <FormError message={error ? getLocalizedErrorMessage(error, t('failure.changePassword')) : null} />
         <FormField label={t('security.currentPassword')} required error={fieldError}>
-          <Input autoCapitalize="none" autoComplete="current-password" secureTextEntry value={currentPassword} onChangeText={(value) => { setCurrentPassword(value); setFieldError(''); }} />
+          <PasswordInput autoCapitalize="none" autoComplete="current-password" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={currentPassword} onChangeText={(value) => { setCurrentPassword(value); setFieldError(''); }} />
         </FormField>
         <FormField label={t('recovery.newPassword')} required>
-          <Input autoCapitalize="none" autoComplete="new-password" secureTextEntry value={newPassword} onChangeText={(value) => { setNewPassword(value); setFieldError(''); }} />
+          <PasswordInput autoCapitalize="none" autoComplete="new-password" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={newPassword} onChangeText={(value) => { setNewPassword(value); setFieldError(''); }} />
         </FormField>
         <FormField label={t('activation.confirmPassword')} required>
-          <Input autoCapitalize="none" autoComplete="new-password" returnKeyType="go" secureTextEntry value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
+          <PasswordInput autoCapitalize="none" autoComplete="new-password" returnKeyType="go" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
         </FormField>
         <Button label={working ? t('security.changing') : t('security.change')} loading={working} disabled={working} onPress={() => void submit()} />
       </Card>

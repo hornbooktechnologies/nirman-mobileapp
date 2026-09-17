@@ -19,7 +19,7 @@ interface ResetPasswordInput {
 interface LoginResponse {
   accessToken: string;
   user: LoginUserResponse;
-  activeOrganization: { id: string } | null;
+  activeOrganization: { id: string; timezone?: string; workingTimezone?: string } | null;
   activeRole: ActiveRoleResponse | null;
   permissions: string[];
 }
@@ -54,7 +54,7 @@ interface WorkspaceSessionResponse {
     avatarUrl: string | null;
     status: "ACTIVE" | "INACTIVE";
   };
-  activeOrganization: { id: string } | null;
+  activeOrganization: { id: string; timezone?: string; workingTimezone?: string } | null;
   activeRole: ActiveRoleResponse | null;
   permissions: string[];
 }
@@ -115,6 +115,10 @@ export const authService = {
     return {
       accessToken: response.accessToken,
       activeOrganizationId: response.activeOrganization?.id ?? null,
+      activeOrganizationTimezone:
+        response.activeOrganization?.workingTimezone ??
+        response.activeOrganization?.timezone ??
+        null,
       user: toWorkspaceAuthUser(
         response.user,
         response.activeRole,
@@ -141,6 +145,10 @@ export const authService = {
     const session = await api.get<WorkspaceSessionResponse>(`/auth/session${query}`);
     return {
       activeOrganizationId: session.activeOrganization?.id ?? null,
+      activeOrganizationTimezone:
+        session.activeOrganization?.workingTimezone ??
+        session.activeOrganization?.timezone ??
+        null,
       user: toWorkspaceAuthUser(
         session.user,
         session.activeRole,

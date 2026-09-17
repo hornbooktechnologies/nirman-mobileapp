@@ -29,6 +29,7 @@ import {
   SearchField,
   SearchableSelect,
   StatusBadge,
+  Toggle,
 } from '../../components/ui';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
@@ -67,6 +68,16 @@ type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
 type PrimaryProjectErrors = Partial<Record<'workerAssignmentId' | 'effectiveDate', string>>;
 type RateChangeErrors = Partial<Record<'dailyRate' | 'effectiveDate', string>>;
 type WorkerFilter = 'all' | 'assigned_here' | 'not_on_project';
+type WorkerAssignmentState = 'working_here' | 'assigned_here' | 'assigned_elsewhere' | 'not_assigned';
+
+function resolveWorkerAssignmentState(
+  worker: WorkerSummary,
+  selectedProjectWorker?: ProjectWorkerRosterItem,
+): WorkerAssignmentState {
+  if (selectedProjectWorker?.isPrimaryForDate) return 'working_here';
+  if (selectedProjectWorker) return 'assigned_here';
+  return worker.activeAssignmentCount > 0 ? 'assigned_elsewhere' : 'not_assigned';
+}
 
 function coversDate(startsOn: string, endsOn: string | null, date: string) {
   return startsOn.slice(0, 10) <= date && (endsOn === null || endsOn.slice(0, 10) >= date);
@@ -119,6 +130,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [draftFilter, setDraftFilter] = useState<WorkerFilter>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [availabilityMessage, setAvailabilityMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,9 +153,11 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [editError, setEditError] = useState('');
   const [editFieldErrors, setEditFieldErrors] = useState<AssignmentDateErrors>({});
   const [endingWorker, setEndingWorker] = useState<ProjectWorkerRosterItem | null>(null);
+  const [endingPrimaryPeriods, setEndingPrimaryPeriods] = useState<WorkerPrimaryProjectPeriod[]>([]);
   const [endForm, setEndForm] = useState({ endsOn: today(), reason: '' });
   const [endError, setEndError] = useState('');
   const [endFieldError, setEndFieldError] = useState('');
+  const [endPrimaryPeriodConfirmed, setEndPrimaryPeriodConfirmed] = useState(false);
   const [rateWorker, setRateWorker] = useState<ProjectWorkerRosterItem | null>(null);
   const [rateForm, setRateForm] = useState({ dailyRate: '', effectiveDate: today(), reason: '' });
   const [rateError, setRateError] = useState('');
@@ -151,9 +165,10 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [rateFieldErrors, setRateFieldErrors] = useState<RateChangeErrors>({});
   const hasLoaded = useRef(false);
 
-  const loadWorkers = useCallback(async () => {
+  const loadWorkers = useCallback(async (refresh = false) => {
     if (!session?.accessToken || !organizationId || !projectId) return;
-    setIsLoading(true);
+    if (refresh) setIsRefreshing(true);
+    else setIsLoading(true);
     setError('');
     setAvailabilityMessage('');
     try {
@@ -182,7 +197,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       if (hasLoaded.current) setAvailabilityMessage(message);
       else setError(message);
     } finally {
-      setIsLoading(false);
+      if (refresh) setIsRefreshing(false);
+      else setIsLoading(false);
     }
   }, [organizationId, projectId, refreshSession, session?.accessToken, signOut, t]);
 
@@ -237,6 +253,15 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const primaryTargetAssignment = primaryWorker?.assignments.find(
     (assignment) => assignment.id === primaryForm.workerAssignmentId,
   ) ?? null;
+  const primaryPeriodsToEnd = isValidDateOnly(endForm.endsOn)
+    ? endingPrimaryPeriods.filter((period) => (
+      period.startsOn.slice(0, 10) <= endForm.endsOn
+      && (period.endsOn === null || period.endsOn.slice(0, 10) > endForm.endsOn)
+    ))
+    : [];
+  const futurePrimaryPeriodConflict = isValidDateOnly(endForm.endsOn)
+    && endingPrimaryPeriods.some((period) => period.startsOn.slice(0, 10) > endForm.endsOn);
+  const requiresPrimaryPeriodEnd = primaryPeriodsToEnd.length > 0;
 
   async function openWorkerDetails(worker: WorkerSummary) {
     if (!session?.accessToken || !organizationId) return;
@@ -438,6 +463,28 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     });
   }
 
+  function openEndAssignment(worker: ProjectWorkerRosterItem) {
+    setDetailWorker(null);
+    setWorkerDetail(null);
+    setEndingWorker(worker);
+    setEndingPrimaryPeriods(
+      primaryPeriods.filter((period) => period.workerAssignmentId === worker.currentAssignment.id),
+    );
+    setEndForm({ endsOn: today(), reason: '' });
+    setEndError('');
+    setEndFieldError('');
+    setEndPrimaryPeriodConfirmed(false);
+  }
+
+  function closeEndAssignment() {
+    setEndingWorker(null);
+    setEndingPrimaryPeriods([]);
+    setEndForm({ endsOn: today(), reason: '' });
+    setEndError('');
+    setEndFieldError('');
+    setEndPrimaryPeriodConfirmed(false);
+  }
+
   async function saveEdit() {
     if (!session?.accessToken || !organizationId || !projectId || !editingWorker) return;
     setEditError('');
@@ -549,7 +596,19 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       setEndFieldError(t('errors.dateOrder'));
       return;
     }
+    if (endForm.endsOn > today()) {
+      setEndFieldError(t('end.futureDate'));
+      return;
+    }
     setEndFieldError('');
+    if (futurePrimaryPeriodConflict) {
+      setEndError(t('end.futurePrimaryConflict'));
+      return;
+    }
+    if (requiresPrimaryPeriodEnd && !endPrimaryPeriodConfirmed) {
+      setEndError(t('end.primaryConfirmationRequired'));
+      return;
+    }
     setIsSubmitting(true);
     try {
       await endWorkerProjectAssignment(
@@ -557,10 +616,13 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         projectId,
         endingWorker.id,
         session.accessToken,
-        { endsOn: endForm.endsOn, reason: endForm.reason.trim() || null },
+        {
+          endsOn: endForm.endsOn,
+          reason: endForm.reason.trim() || null,
+          endPrimaryPeriod: requiresPrimaryPeriodEnd && endPrimaryPeriodConfirmed,
+        },
       );
-      setEndingWorker(null);
-      setEndForm({ endsOn: today(), reason: '' });
+      closeEndAssignment();
       await loadWorkers();
     } catch (endError) {
       setEndError(getLocalizedErrorMessage(endError, t('errors.generic')));
@@ -589,16 +651,18 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   function renderWorkerCard(worker: WorkerSummary) {
     const assignedWorker = rosterByWorkerId.get(worker.id);
     const effectiveRate = assignedWorker?.currentAssignment.dailyRate ?? worker.baseDailyRate;
-    const assignmentState = assignedWorker
-      ? 'assigned_here'
-      : worker.activeAssignmentCount > 0
-        ? 'assigned_elsewhere'
-        : 'not_assigned';
-    const assignmentLabel = assignmentState === 'assigned_here'
-      ? t('card.assignedHere')
-      : assignmentState === 'assigned_elsewhere'
-        ? t('card.assignedElsewhere')
-        : t('card.notAssigned');
+    const assignmentState = resolveWorkerAssignmentState(worker, assignedWorker);
+    const assignmentLabel = {
+      working_here: t('card.workingHere'),
+      assigned_here: t('card.assignedHere'),
+      assigned_elsewhere: t('card.assignedElsewhere'),
+      not_assigned: t('card.notAssigned'),
+    }[assignmentState];
+    const assignmentTone = assignmentState === 'working_here' || assignmentState === 'assigned_here'
+      ? 'success'
+      : assignmentState === 'not_assigned'
+        ? 'warning'
+        : 'info';
     const otherAssignmentCount = Math.max(worker.activeAssignmentCount - (assignedWorker ? 1 : 0), 0);
     const supporting = assignedWorker
       ? otherAssignmentCount > 0
@@ -614,13 +678,13 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         contextLeading={worker.workerCode}
         contextTrailing={worker.trade}
         footerLeading={assignedWorker ? displayDateRange(assignedWorker.currentAssignment.startsOn, assignedWorker.currentAssignment.endsOn) : worker.activeAssignmentCount > 0 ? t('card.viewAssignments') : t('card.noCurrentProject')}
-        footerTrailing={<StatusBadge label={assignmentLabel} numberOfLines={1} tone={assignmentState === 'assigned_here' ? 'success' : assignmentState === 'assigned_elsewhere' ? 'info' : 'warning'} />}
+        footerTrailing={<StatusBadge label={assignmentLabel} numberOfLines={1} tone={assignmentTone} />}
         onPress={() => void openWorkerDetails(worker)}
         supporting={supporting}
         title={worker.name}
         value={displayRate(effectiveRate)}
         valueLabel={t('card.rate')}
-        tone={assignmentState === 'assigned_here' ? 'success' : assignmentState === 'assigned_elsewhere' ? 'info' : 'warning'}
+        tone={assignmentTone}
       />
     );
   }
@@ -657,9 +721,17 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           <AppText style={styles.sectionTitle} weight={700}>{embedded ? t('panel.projectWorkers') : t('panel.organizationWorkers')}</AppText>
           <AppText style={styles.subtle} weight={500}>{t('panel.assignedCount', { count: roster.length })}</AppText>
         </View>
-        {canCreate && canAssign ? (
-          <IconButton icon="account-hard-hat-outline" accessibilityLabel={t('panel.addA11y')} variant="primary" onPress={() => setShowCreate(true)} />
-        ) : null}
+        <View style={styles.toolbarActions}>
+          <IconButton
+            icon="refresh"
+            accessibilityLabel={t('panel.refreshA11y')}
+            disabled={isLoading || isRefreshing}
+            onPress={() => void loadWorkers(true)}
+          />
+          {canCreate && canAssign ? (
+            <IconButton icon="account-hard-hat-outline" accessibilityLabel={t('panel.addA11y')} variant="primary" onPress={() => setShowCreate(true)} />
+          ) : null}
+        </View>
       </View>
 
       {availabilityMessage ? <Card style={styles.notice}><AppText style={styles.noticeText}>{availabilityMessage}</AppText></Card> : null}
@@ -695,7 +767,9 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           ListEmptyComponent={<EmptyState title={search ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search ? t('panel.tryAnother') : t('panel.addOnline')} />}
           maxToRenderPerBatch={12}
           renderItem={({ item }) => renderWorkerCard(item)}
+          refreshing={isRefreshing}
           showsVerticalScrollIndicator={false}
+          onRefresh={() => void loadWorkers(true)}
           windowSize={7}
         />
       ) : null}
@@ -766,7 +840,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
                   <>
                     {canChangeAssignmentRate(detailProjectWorker) ? <ActionListItem icon="cash-edit" label={t('rate.action')} tone="brand" onPress={() => openRateChange(detailProjectWorker)} /> : null}
                     {canAssign ? <ActionListItem icon="calendar-edit" label={t('actions.edit')} tone="brand" onPress={() => openEdit(detailProjectWorker)} /> : null}
-                    {canAssign ? <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setEndingWorker(detailProjectWorker); setEndForm({ endsOn: today(), reason: '' }); setEndError(''); setEndFieldError(''); }} /> : null}
+                    {canAssign ? <ActionListItem icon="account-minus-outline" label={t('actions.end')} tone="danger" onPress={() => openEndAssignment(detailProjectWorker)} /> : null}
                   </>
                 ) : canAssign ? <ActionListItem icon="account-plus-outline" label={t('details.assignHere')} tone="brand" onPress={() => { setDetailWorker(null); setWorkerDetail(null); setAssigningWorker(detailWorker); setAssignStartsOn(today()); setAssignError(''); setAssignFieldError(''); }} /> : null}
               </View> : null}
@@ -872,9 +946,26 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       ) : null}
 
       {endingWorker ? (
-        <BottomSheet visible showCloseButton={false} title={t('end.title')} description={t('end.description', { name: endingWorker.name })} onClose={() => setEndingWorker(null)} footer={<><Button label={t('end.cancel')} variant="secondary" style={styles.footerButton} onPress={() => setEndingWorker(null)} /><Button label={isSubmitting ? t('end.ending') : t('end.action')} variant="danger" disabled={isSubmitting} style={styles.footerButton} onPress={() => void endAssignment()} /></>}>
+        <BottomSheet visible showCloseButton={false} title={t('end.title')} description={t('end.description', { name: endingWorker.name })} onClose={closeEndAssignment} footer={<><Button label={t('end.cancel')} variant="secondary" style={styles.footerButton} onPress={closeEndAssignment} /><Button label={isSubmitting ? t('end.ending') : t('end.action')} variant="danger" disabled={isSubmitting || futurePrimaryPeriodConflict || (requiresPrimaryPeriodEnd && !endPrimaryPeriodConfirmed)} style={styles.footerButton} onPress={() => void endAssignment()} /></>}>
           <FormError message={endError} />
-          <FormField label={t('end.endsOn')} required error={endFieldError}><DateInput accessibilityLabel={t('end.endDateA11y')} invalid={Boolean(endFieldError)} minimumDate={parseDateOnly(endingWorker.currentAssignment.startsOn.slice(0, 10)) ?? undefined} value={endForm.endsOn} onChangeText={(endsOn) => { setEndForm({ ...endForm, endsOn }); setEndFieldError(''); }} /></FormField>
+          <FormField label={t('end.endsOn')} required error={endFieldError}><DateInput accessibilityLabel={t('end.endDateA11y')} invalid={Boolean(endFieldError)} minimumDate={parseDateOnly(endingWorker.currentAssignment.startsOn.slice(0, 10)) ?? undefined} maximumDate={parseDateOnly(today()) ?? undefined} value={endForm.endsOn} onChangeText={(endsOn) => { setEndForm({ ...endForm, endsOn }); setEndFieldError(''); setEndError(''); setEndPrimaryPeriodConfirmed(false); }} /></FormField>
+          {requiresPrimaryPeriodEnd ? (
+            <Card variant="selected" style={styles.endPrimaryConfirmation}>
+              <AppText style={styles.body} weight={700}>{t('end.primaryImpactTitle')}</AppText>
+              <AppText style={styles.subtle}>{t('end.primaryImpact', { date: endForm.endsOn })}</AppText>
+              <Toggle
+                accessibilityHint={t('end.primaryConfirmationHint')}
+                disabled={isSubmitting}
+                label={t('end.confirmPrimaryEnd', { date: endForm.endsOn })}
+                value={endPrimaryPeriodConfirmed}
+                onValueChange={(value) => {
+                  setEndPrimaryPeriodConfirmed(value);
+                  setEndError('');
+                }}
+              />
+            </Card>
+          ) : null}
+          {futurePrimaryPeriodConflict ? <FormError message={t('end.futurePrimaryConflict')} /> : null}
           <FormField label={t('end.reason')}><Input accessibilityLabel={t('end.reason')} maxLength={500} value={endForm.reason} onChangeText={(reason) => setEndForm({ ...endForm, reason })} /></FormField>
         </BottomSheet>
       ) : null}
@@ -943,6 +1034,7 @@ const styles = StyleSheet.create({
   embeddedPanel: { flex: 0, paddingTop: mobileTheme.spacing[1] },
   toolbar: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3] },
   toolbarCopy: { flex: 1, gap: mobileTheme.spacing[1] },
+  toolbarActions: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
   sectionTitle: { ...mobileText.sectionTitle, fontSize: 20 },
   notice: { backgroundColor: mobileTheme.color.status.warning.background },
   noticeText: { ...mobileText.body, color: mobileTheme.color.status.warning.foreground },
@@ -972,6 +1064,7 @@ const styles = StyleSheet.create({
   assignmentProject: { ...mobileText.body, color: mobileTheme.color.text.primary },
   assignmentActions: { gap: mobileTheme.spacing[2], paddingTop: mobileTheme.spacing[2] },
   assignmentSummary: { gap: mobileTheme.spacing[2] },
+  endPrimaryConfirmation: { gap: mobileTheme.spacing[2] },
   rateSuccess: { padding: mobileTheme.spacing[3], backgroundColor: mobileTheme.color.status.success.background, borderColor: mobileTheme.color.status.success.border },
   rateSuccessText: { ...mobileText.body, color: mobileTheme.color.status.success.foreground },
   assignmentRate: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
