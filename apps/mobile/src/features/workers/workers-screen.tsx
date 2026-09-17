@@ -658,7 +658,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       assigned_elsewhere: t('card.assignedElsewhere'),
       not_assigned: t('card.notAssigned'),
     }[assignmentState];
-    const assignmentTone = assignmentState === 'working_here'
+    const assignmentTone = assignmentState === 'working_here' || assignmentState === 'assigned_here'
       ? 'success'
       : assignmentState === 'not_assigned'
         ? 'warning'

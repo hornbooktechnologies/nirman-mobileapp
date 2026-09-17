@@ -25,6 +25,8 @@ export function Dialog({
   className,
 }: DialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
+  useEffect(() => { onOpenChangeRef.current = onOpenChange; }, [onOpenChange]);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -41,7 +43,7 @@ export function Dialog({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
       if (event.key !== "Tab") return;
@@ -60,7 +62,7 @@ export function Dialog({
       document.removeEventListener("keydown", handleKeyDown);
       previouslyFocused?.focus();
     };
-  }, [onOpenChange, open]);
+  }, [open]);
 
   if (!open) {
     return null;

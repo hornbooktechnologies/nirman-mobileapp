@@ -9,6 +9,7 @@ import { navGroups } from "@/config/navigation";
 import { IconButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { brandAssets } from "@/theme";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 
 function LogoMark() {
@@ -38,7 +39,15 @@ export function Sidebar({
   variant = "desktop",
 }: SidebarProps) {
   const pathname = usePathname();
-  const { hasPermission } = useAuth();
+  const { hasPermission, activeOrganizationId } = useAuth();
+  const access = useProjectAccess(activeOrganizationId);
+  const canNavigate = (permission: string) => {
+    if (permission === "materials:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("materials:read"));
+    if (permission === "kharchi:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("kharchi:read"));
+    if (permission === "attendance:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("attendance:read"));
+    if (permission === "work-calendar:read") return hasPermission(permission) || (access.isSuccess && access.data.projects.some(project => project.permissions.includes("work-calendar:read")));
+    return hasPermission(permission);
+  };
   const isDrawer = variant === "drawer";
 
   return (
@@ -75,7 +84,7 @@ export function Sidebar({
           const visibleItems = group.items.filter(
             (item) =>
               (!item.permission && !item.permissionAnyOf) ||
-              (item.permission ? hasPermission(item.permission) : false) ||
+              (item.permission ? canNavigate(item.permission) : false) ||
               (item.permissionAnyOf?.some(hasPermission) ?? false),
           );
           if (visibleItems.length === 0) return null;

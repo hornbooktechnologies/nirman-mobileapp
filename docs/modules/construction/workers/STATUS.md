@@ -62,3 +62,10 @@ Permanent deletion is a separate approved 2026-08-25 workflow. It intentionally 
 ## Next Action
 
 Refresh the owner session and verify the Web confirmation flow. Separately, obtain the owner deactivation decision before marking the wider Workers module verified.
+
+
+## 2026-09-17 - Web W1 implementation, unverified
+
+Web now exposes primary-project period history/create/correct/end and effective-date transfer, actual project-start onboarding, explicit primary-period closure consent during assignment ending, effective project action guards, updated mutation feedback and related attendance navigation. Existing master/assignment/rate flows remain in place. See [Web W1 Workers parity](../../../tasks/web-w1-workers-parity.md) for the source/API checklist and pending gates.
+
+Detailed assignment rate history cannot be displayed from the existing Workers response; a narrowly scoped read endpoint is proposed in that checklist and requires explicit backend authorization. No backend or database change was made. Tests, type-checks, lint, builds, browser/runtime verification and other verification commands were NOT RUN at the Product Owner's request. This is source implementation, not verified or accepted completion.

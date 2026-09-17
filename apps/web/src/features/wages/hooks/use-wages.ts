@@ -12,6 +12,20 @@ export const wageKeys = {
     ["wages", organizationId, projectId, "preview", start, end] as const,
 };
 
+export function useCancelWageBatch(organizationId: string, projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: ({ batchId, reason }: { batchId: string; reason: string }) =>
+      wagesService.cancelBatch(organizationId, projectId, batchId, reason),
+    onSuccess: (detail) => {
+      queryClient.setQueryData(wageKeys.detail(organizationId, projectId, detail.id), detail);
+      void queryClient.invalidateQueries({ queryKey: ["wages", organizationId, projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["wage-kharchi", organizationId, projectId] });
+    },
+  });
+}
+
 export function useWagePreview(
   organizationId: string | null,
   projectId: string,
@@ -51,10 +65,11 @@ export function useCreateWageBatch(organizationId: string | null, projectId: str
   return useMutation({
     mutationFn: (input: { periodStart: string; periodEnd: string }) =>
       wagesService.createBatch(organizationId!, projectId, input),
-    onSuccess: () =>
-      void queryClient.invalidateQueries({
-        queryKey: wageKeys.batches(organizationId ?? "none", projectId),
-      }),
+    onSuccess: (detail) => {
+      queryClient.setQueryData(wageKeys.detail(organizationId!, projectId, detail.id), detail);
+      void queryClient.invalidateQueries({ queryKey: ["wages", organizationId, projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["wage-kharchi", organizationId, projectId] });
+    },
   });
 }
 
@@ -65,7 +80,8 @@ export function useRecordWagePayment(organizationId: string | null, projectId: s
       const { wageItemId, ...body } = input;
       return wagesService.recordPayment(organizationId!, projectId, wageItemId, body);
     },
-    onSuccess: () => {
+    onSuccess: (detail) => {
+      queryClient.setQueryData(wageKeys.detail(organizationId!, projectId, detail.id), detail);
       void queryClient.invalidateQueries({
         queryKey: wageKeys.batches(organizationId ?? "none", projectId),
       });
@@ -83,7 +99,8 @@ export function useUpdateWageItem(organizationId: string | null, projectId: stri
       const { wageItemId, ...body } = input;
       return wagesService.updateItem(organizationId!, projectId, wageItemId, body);
     },
-    onSuccess: () => {
+    onSuccess: (detail) => {
+      queryClient.setQueryData(wageKeys.detail(organizationId!, projectId, detail.id), detail);
       void queryClient.invalidateQueries({
         queryKey: ["wages", organizationId ?? "none", projectId, "batches"],
       });

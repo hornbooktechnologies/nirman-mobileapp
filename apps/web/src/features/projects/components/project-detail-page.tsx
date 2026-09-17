@@ -95,11 +95,13 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
               <Button
                 variant="outline"
                 onClick={() => router.push(`/projects/${projectId}/wages`)}
-                disabled={!organizationId || !hasPermission("wages:read")}
+                disabled={!organizationId || !project.data?.currentUserAccess?.permissions.includes("wages:read")}
               >
                 <Banknote size={16} />
                 Wages
               </Button>
+              {project.data?.currentUserAccess?.permissions.includes("kharchi:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/kharchi`)}>Kharchi</Button>}
+              {project.data?.currentUserAccess?.permissions.includes("materials:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/materials`)}>Materials</Button>}
               <Button
                 variant="outline"
                 onClick={() => archiveProject.mutate()}

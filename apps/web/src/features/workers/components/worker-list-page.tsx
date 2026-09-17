@@ -24,7 +24,7 @@ import {
 } from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useOrganizations } from "@/features/organizations/hooks/use-organizations";
+import { WorkerWorkspace } from "./worker-workspace";
 import { OrganizationContextSelect } from "@/features/projects/components/organization-context-select";
 import { useWorkers } from "@/features/workers/hooks/use-workers";
 
@@ -34,12 +34,12 @@ const statusTone = {
 } as const;
 
 export function WorkerListPage() {
+  return <WorkerWorkspace permission="workers:read">{organizationId => <WorkerList organizationId={organizationId} />}</WorkerWorkspace>;
+}
+
+function WorkerList({ organizationId }: { organizationId: string }) {
   const searchParams = useSearchParams();
-  const { hasPermission } = useAuth();
-  const organizations = useOrganizations();
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
-  const organizationId =
-    selectedOrganizationId || organizations.data?.[0]?.id || "";
+  const { hasPermission, refreshUser } = useAuth();
   const [query, setQuery] = useState<{
     search: string;
     status: WorkerStatus | "";
@@ -96,19 +96,16 @@ export function WorkerListPage() {
 
         <Card>
           <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_180px_180px]">
-            <OrganizationContextSelect
-              organizationId={organizationId}
-              onChange={setSelectedOrganizationId}
-            />
+            <OrganizationContextSelect organizationId={organizationId} onChange={id => { void refreshUser(id); }} />
             <Input
-              placeholder="Search code, name, or mobile"
+              aria-label="Search code, name, or mobile" placeholder="Search code, name, or mobile"
               value={query.search}
               onChange={(event) =>
                 setQuery({ ...query, search: event.target.value, page: 1 })
               }
             />
             <Select
-              value={query.status}
+              aria-label="Worker status" value={query.status}
               onChange={(event) =>
                 setQuery({
                   ...query,
@@ -125,7 +122,7 @@ export function WorkerListPage() {
               ))}
             </Select>
             <Input
-              placeholder="Trade"
+              aria-label="Trade" placeholder="Trade"
               value={query.trade}
               onChange={(event) =>
                 setQuery({ ...query, trade: event.target.value, page: 1 })

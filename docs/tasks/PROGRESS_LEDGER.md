@@ -1,5 +1,31 @@
 # NirmanSite Progress Ledger
 
+## 2026-09-17 � W2 Web Kharchi
+
+Implemented project-scoped Kharchi list/summary/filter/pagination/CSV, eligible Worker selection, record-paid advances, immutable corrections, and complete deduction/reversal history using existing APIs. Effective permissions, isolated context caches and stable uncertain retries are included. Five focused tests passed; whole-Web checks expose unrelated existing errors, and authenticated/cross-client acceptance remains pending. See [W2 Kharchi parity and review](web-w2-kharchi-parity.md). No Mobile/backend/database changes, commit, push or deployment.
+
+
+## 2026-09-17 - W1 Web Work Calendar and Attendance parity
+
+Extended existing Web Calendar/Attendance with effective CUSTOM Project permission guards, authorized selectors/navigation, Organization working-timezone defaults, selectable Calendar day details and explicit week presets, server daily totals and supported filters, Attendance-only Worker history via the existing panel, context-preserving links, safer form/error handling, and Calendar-to-Attendance cache invalidation. Existing calendar/absence CRUD, summaries, pagination, history and CSV export remain in place. Only Web and implementation documentation changed.
+
+Current API reasons/notes remain optional; locked-period correction is reserved and unsupported. Mobile's daily future-date cap and fixed/device-local timezone assumptions differ from API behavior; Web keeps the API authoritative. See [W1 Calendar and Attendance parity](web-w1-calendar-attendance-parity.md) for endpoint traceability, limitations, and pending acceptance.
+
+**Verification was not run as explicitly requested:** no tests, type-checks, lint, builds, browser/runtime checks, diff checks, or other verification commands. Source inspection only; implementation is not marked verified or accepted. No commit, push, or deployment. Other W1 slices retain their own status.
+
+
+## 2026-09-17 - W1 Web Workers functional parity
+
+Extended existing Web Workers with primary-project history/create/correct/end and effective-date transfer, actual-start onboarding, explicit linked-period ending consent, effective project permissions, preserved form input and mutation feedback, project roster pagination, and attendance links. Existing worker CRUD, duplicate warnings, filters, rate changes and destructive confirmations are preserved. Only Web and implementation documentation changed. Detailed rate history is blocked because Workers exposes no history read endpoint; the smallest proposed backend addition is recorded in [W1 Workers parity](web-w1-workers-parity.md) and requires explicit authorization.
+
+**Verification was not run as explicitly requested:** no tests, type-checks, lint, builds, browser/runtime checks, or other verification commands. Implementation is not marked verified or accepted; W1 as a whole remains incomplete.
+
+
+## 2026-09-17 — W1 Web Wages functional parity
+
+Extended the existing Wages implementation with unpaid cancellation/read-only history, server rate breakdowns, payment history, paginated Kharchi allocation/reversal inspection, effective CUSTOM project access, isolated workspace cache/state, and stable uncertain payment retries. Existing preview/confirmation/adjustments/export and unrelated dirty work are preserved. Only Web and documentation changed. See [W1 Wages checklist and verification](web-w1-wages-parity.md); authenticated browser/device/cross-client acceptance remains pending. This does not mark all of W1 or W0 complete.
+
+
 ## 2026-09-15 — Database migrations 024-026
 
 - Applied `024_password_recovery.sql`, `025_worker_assignment_rate_history.sql`, and `026_wage_batch_cancellation.sql` to the explicitly approved configured remote development database.
@@ -536,3 +562,7 @@ large-text, landscape, dark-mode, and fluent-language acceptance remain pending.
 Completed the requested reference-led Mobile dashboard with 38 separate PNG assets in ten folders, including the user-approved project-card background, reusable Dashboard components, live permission-aware metrics/actions, actual Gallery previews, project location and en/hi/gu copy. Existing header, footer menu and bottom navigation are preserved. No API/schema/dependency changes were required; unrelated dirty work remains intact.
 
 Mobile TypeScript, locale parity, focused lint, PNG validation and Expo web/Android exports passed. All nine 320/375/425px language fixtures passed overflow, 50px target and tab checks. Authenticated location/Gallery reads, physical-device performance, native accessibility/large text/reduced motion and fluent-language acceptance remain pending. See [implementation report](dashboard-asset-redesign.md) and [screenshots](artifacts/dashboard-redesign/README.md).
+
+## 2026-09-17 - W3 Web Materials
+
+Implemented the full Materials Web workflow: settings, project navigation, filtered list/summary/sort/pagination/CSV, request drafts/edit/submission/approval decisions/cancellation, split purchases, partial deliveries and timeline. Effective project access, isolated caches, server actions/versions and stable uncertain retries are included. Six focused tests passed; whole-Web type-check/lint/build expose unrelated existing Workers, Attendance and foundation errors. Authenticated/browser/cross-client acceptance remains pending. See [W3 Materials parity and review](web-w3-materials-parity.md) for exact evidence, the Mobile/API/Web checklist and optional API follow-ups. Only Web and documentation changed; no backend/Mobile/database mutation, commit, push or deployment.

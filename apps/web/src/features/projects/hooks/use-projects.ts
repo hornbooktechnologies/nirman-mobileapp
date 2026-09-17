@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { projectsService } from "@/features/projects/services/projects.service";
 import type { ProjectQuery } from "@/features/projects/types/projects.types";
 
@@ -42,8 +43,10 @@ export function useProjectMembers(organizationId: string | null, projectId: stri
 }
 
 export function useProjectAccess(organizationId: string | null) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: projectKeys.access(organizationId ?? "none"),
+    queryKey: [...projectKeys.access(organizationId ?? "none"), user?.id],
+    refetchOnWindowFocus: true,
     queryFn: () => projectsService.projectAccess(organizationId!),
     enabled: Boolean(organizationId),
   });
