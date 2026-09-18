@@ -2,6 +2,14 @@
 
 ## 1. Status and objective
 
+- W7a Sales Leads/Activities/Follow-ups: Web implementation and focused tests are complete; API discrepancies and pending acceptance are tracked in [W7a Sales parity](web-w7a-sales-parity.md).
+
+- W6 Gallery: implemented in source; verification, pending acceptance and standalone entry-link API requirement are tracked in [W6 Gallery parity](web-w6-gallery-parity.md).
+
+- W5 Project Progress: implemented in source; seven focused tests and scoped lint pass. Whole-Web blockers and pending acceptance are tracked in [W5 Progress parity](web-w5-progress-parity.md).
+
+- W4 Site Expenses: implemented in source; 11 focused tests and scoped lint passed. Whole-Web baseline blockers and pending authenticated/browser/cross-client acceptance are recorded in [W4 Expenses parity](web-w4-expenses-parity.md).
+
 - W3 Materials: implemented in source; focused verification and whole-Web baseline blockers are recorded in [W3 Materials parity](web-w3-materials-parity.md). Authenticated/browser/cross-client acceptance remains pending.
 
 - W2 Kharchi: implemented in source; focused tests passed, whole-Web and authenticated acceptance limitations are recorded in [W2 Kharchi parity](web-w2-kharchi-parity.md).

@@ -69,6 +69,8 @@
     "BOOKING_RESTORE_UNIT_STATUS_REQUIRED": "Choose the Unit status after cancellation.",
     "SALES_CONFLICT": "Sales information changed. Refresh and try again.",
     "IDEMPOTENCY_CONFLICT": "This booking retry does not match the original request. Refresh before trying again.",
+    "WAGE_BATCH_DUPLICATE": "An active wage batch already covers part or all of this period. Open the existing batch below, or choose dates that do not overlap.",
+    "WAGE_BATCH_NOT_READY": "This batch is not ready to confirm. Check worker daily rates and attendance, then generate a new preview.",
     "WAGE_BATCH_HAS_PAYMENTS": "This wage batch cannot be cancelled because a payment has been recorded.",
     "WAGE_PERIOD_END_IN_FUTURE": "Choose today or an earlier wage period end date.",
     "KHARCHI_NOT_FOUND": "This Kharchi record is no longer available. Refresh and try again.",

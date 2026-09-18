@@ -8,6 +8,12 @@
 
 ## Source Of Truth
 
+### 2026-09-18 — Required daily rate on creation
+
+At the owner's request, Mobile and Web creation forms require a daily rate and show a required indicator. Mobile reuses localized required-field validation in en/hi/gu. API creation rejects omitted, null, blank, non-numeric, and negative rates; explicit zero remains valid under the existing non-negative rule. Existing records and edit behavior are unchanged, and existing missing assignment rates still need correction before Wages confirmation. No database migration or data mutation is needed.
+
+Validation: API and Mobile type-checks, 63 DTO/service/repository tests (including 10 rate-validation cases), locale key/placeholder validation, and diff checks passed. Web build/browser checks, authenticated creation, and phone/tablet acceptance remain pending.
+
 Desired behavior is governed by `MVP_REQUIREMENTS.md`, approved decisions, and the Workers contract. Implemented fact is governed by the active migration and executable shared/API/web/mobile source. Documentation does not replace source or verification evidence.
 
 ## Reconciliation Matrix

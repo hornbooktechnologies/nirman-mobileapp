@@ -11,6 +11,7 @@ import type {
 } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
+import type { ResolvedProjectAccess } from "../project-access/types/project-access.types";
 import type {
   ConfigureMaterialsDto,
   CreateMaterialRequestDto,
@@ -42,11 +43,11 @@ export class MaterialsService {
     return settings
       ? { ...settings, configured: true }
       : {
-        organizationId,
-        projectId,
-        workflowMode: null,
-        configured: false,
-      };
+          organizationId,
+          projectId,
+          workflowMode: null,
+          configured: false,
+        };
   }
 
   async configure(
@@ -115,6 +116,7 @@ export class MaterialsService {
       detail,
       access.membership.id,
       access.permissions,
+      this.isBuilderOwner(access),
     );
   }
 
@@ -152,15 +154,16 @@ export class MaterialsService {
     return this.translate(async () =>
       this.withAvailableActions(
         await this.repository.create(
-        organizationId,
-        projectId,
-        this.normalizeCreate(dto),
-        actor.id,
-        access.membership.id,
-        settings.workflowMode,
+          organizationId,
+          projectId,
+          this.normalizeCreate(dto),
+          actor.id,
+          access.membership.id,
+          settings.workflowMode,
         ),
         access.membership.id,
         access.permissions,
+        this.isBuilderOwner(access),
       ),
     );
   }
@@ -188,16 +191,17 @@ export class MaterialsService {
     return this.translate(async () =>
       this.withAvailableActions(
         await this.repository.update(
-        organizationId,
-        projectId,
-        materialRequestId,
-        this.normalizeUpdate(dto),
-        actor.id,
-        access.membership.id,
-        access.permissions.includes("materials:approve-final"),
+          organizationId,
+          projectId,
+          materialRequestId,
+          this.normalizeUpdate(dto),
+          actor.id,
+          access.membership.id,
+          access.permissions.includes("materials:approve-final"),
         ),
         access.membership.id,
         access.permissions,
+        this.isBuilderOwner(access),
       ),
     );
   }
@@ -398,15 +402,16 @@ export class MaterialsService {
     return this.translate(async () =>
       this.withAvailableActions(
         await this.repository.recordPurchase(
-        organizationId,
-        projectId,
-        materialRequestId,
-        normalized,
-        actor.id,
-        access.membership.id,
+          organizationId,
+          projectId,
+          materialRequestId,
+          normalized,
+          actor.id,
+          access.membership.id,
         ),
         access.membership.id,
         access.permissions,
+        this.isBuilderOwner(access),
       ),
     );
   }
@@ -428,15 +433,16 @@ export class MaterialsService {
     return this.translate(async () =>
       this.withAvailableActions(
         await this.repository.recordDelivery(
-        organizationId,
-        projectId,
-        materialRequestId,
-        dto,
-        actor.id,
-        access.membership.id,
+          organizationId,
+          projectId,
+          materialRequestId,
+          dto,
+          actor.id,
+          access.membership.id,
         ),
         access.membership.id,
         access.permissions,
+        this.isBuilderOwner(access),
       ),
     );
   }
@@ -545,26 +551,28 @@ export class MaterialsService {
     return this.translate(async () =>
       this.withAvailableActions(
         await this.repository.transition({
-        organizationId,
-        projectId,
-        materialRequestId,
-        actorUserId: actor.id,
-        actorMemberId: access.membership.id,
-        expectedVersion: dto.expectedVersion,
-        idempotencyKey: dto.idempotencyKey,
-        comment: dto.comment,
-        allowedFrom: config.allowedFrom,
-        nextStatus,
-        eventType: config.eventType,
-        auditAction: config.auditAction,
-        preventRequesterAction: config.preventRequesterAction,
-        requireRequesterUnlessElevated: config.requireRequesterUnlessElevated,
-        actorElevated: access.permissions.includes("materials:approve-final"),
-        notificationPermission: notification?.permission,
+          organizationId,
+          projectId,
+          materialRequestId,
+          actorUserId: actor.id,
+          actorMemberId: access.membership.id,
+          expectedVersion: dto.expectedVersion,
+          idempotencyKey: dto.idempotencyKey,
+          comment: dto.comment,
+          allowedFrom: config.allowedFrom,
+          nextStatus,
+          eventType: config.eventType,
+          auditAction: config.auditAction,
+          preventRequesterAction: config.preventRequesterAction,
+          requireRequesterUnlessElevated: config.requireRequesterUnlessElevated,
+          actorElevated: access.permissions.includes("materials:approve-final"),
+          actorIsBuilderOwner: this.isBuilderOwner(access),
+          notificationPermission: notification?.permission,
           notificationType: notification?.type,
         }),
         access.membership.id,
         access.permissions,
+        this.isBuilderOwner(access),
       ),
     );
   }
@@ -578,6 +586,7 @@ export class MaterialsService {
     detail: TDetail | null,
     actorMemberId: string,
     permissions: readonly PermissionKey[],
+    isBuilderOwner: boolean,
   ) {
     if (!detail) throw this.notFound();
     return {
@@ -586,8 +595,17 @@ export class MaterialsService {
         detail.status,
         detail.requestedByMemberId === actorMemberId,
         permissions,
+        isBuilderOwner,
       ),
     };
+  }
+
+  private isBuilderOwner(access: ResolvedProjectAccess): boolean {
+    return (
+      access.organization?.type === "BUILDER" &&
+      access.membership.role?.name === "Organization Owner" &&
+      access.permissions.includes("materials:approve-final")
+    );
   }
 
   private access(
@@ -608,6 +626,7 @@ export class MaterialsService {
     status: MaterialRequestStatus,
     isRequester: boolean,
     permissions: readonly PermissionKey[],
+    isBuilderOwner: boolean,
   ) {
     const has = (permission: PermissionKey) => permissions.includes(permission);
     const actions: string[] = [];
@@ -632,8 +651,9 @@ export class MaterialsService {
       actions.push("RETURN", "REJECT");
     }
     if (
-      status === "PENDING_FINAL" &&
-      !isRequester &&
+      (status === "PENDING_FINAL" ||
+        (status === "PENDING_VERIFICATION" && isRequester && isBuilderOwner)) &&
+      (!isRequester || isBuilderOwner) &&
       has("materials:approve-final")
     ) {
       actions.push("APPROVE");

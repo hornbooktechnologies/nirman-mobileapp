@@ -1,5 +1,5 @@
 import { router, type Href } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -65,6 +65,8 @@ export function WagesScreen() {
   const [batches, setBatches] = useState<WageBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const confirmingRef = useRef(false);
 
   const loadBatches = useCallback(async () => {
     if (!organizationId || !projectId || !session?.accessToken) {
@@ -83,6 +85,7 @@ export function WagesScreen() {
 
   useEffect(() => {
     setPreview(null);
+    setConfirmationError(null);
     void loadBatches();
   }, [loadBatches]);
 
@@ -94,6 +97,7 @@ export function WagesScreen() {
   );
 
   async function generatePreview() {
+    setConfirmationError(null);
     if (!organizationId || !projectId || !session?.accessToken || !isDate(periodStart) || !isDate(periodEnd) || invalidRange || futurePeriodEnd) {
       Alert.alert(t('errors.periodTitle'), t('errors.periodMessage'));
       return;
@@ -109,7 +113,13 @@ export function WagesScreen() {
   }
 
   async function confirmBatch() {
-    if (!organizationId || !projectId || !session?.accessToken || !previewReady) return;
+    if (confirmingRef.current || isBusy) return;
+    if (!organizationId || !projectId || !session?.accessToken || !previewReady) {
+      setConfirmationError(t('errors.confirmMessage'));
+      return;
+    }
+    confirmingRef.current = true;
+    setConfirmationError(null);
     setIsBusy(true);
     try {
       const created = await createWageBatch(organizationId, projectId, periodStart, periodEnd, session.accessToken);
@@ -117,8 +127,9 @@ export function WagesScreen() {
       await loadBatches();
       router.push({ pathname: '/(app)/wage-batch', params: { batchId: created.id } } as Href);
     } catch (error) {
-      Alert.alert(t('errors.confirmTitle'), getLocalizedErrorMessage(error, t('errors.confirmMessage')));
+      setConfirmationError(getLocalizedErrorMessage(error, t('errors.confirmMessage')));
     } finally {
+      confirmingRef.current = false;
       setIsBusy(false);
     }
   }
@@ -152,6 +163,7 @@ export function WagesScreen() {
                     if (value) {
                       setPeriodStart(value);
                       setPreview(null);
+                      setConfirmationError(null);
                     }
                   }}
                 />
@@ -168,6 +180,7 @@ export function WagesScreen() {
                     if (value) {
                       setPeriodEnd(value);
                       setPreview(null);
+                      setConfirmationError(null);
                     }
                   }}
                 />
@@ -213,11 +226,16 @@ export function WagesScreen() {
               </View>
               {canGenerate ? (
                 <Button
-                  label={t('preview.confirm')}
+                  label={isBusy ? t('generator.working') : t('preview.confirm')}
                   leadingIcon="check-circle-outline"
                   disabled={!previewReady || isBusy}
                   onPress={() => void confirmBatch()}
                 />
+              ) : null}
+              {confirmationError ? (
+                <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.confirmationError}>
+                  {confirmationError}
+                </AppText>
               ) : null}
             </Card>
           ) : null}
@@ -261,6 +279,7 @@ export function WagesScreen() {
 }
 
 const styles = StyleSheet.create({
+  confirmationError: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
   section: { gap: mobileTheme.spacing[4] },
   sectionHeading: { flex: 1, gap: mobileTheme.spacing[1] },
   sectionTitle: { ...mobileText.sectionTitle },

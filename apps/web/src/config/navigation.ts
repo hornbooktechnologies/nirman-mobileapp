@@ -13,6 +13,9 @@ import {
   CreditCard,
   Wallet,
   Package,
+  Receipt,
+  ChartNoAxesCombined,
+  Images,
   type LucideIcon,
 } from "lucide-react";
 
@@ -66,11 +69,21 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Workforce & Finance",
-    items: [{ label: "Kharchi", href: "/kharchi", icon: Wallet, permission: "kharchi:read" }],
+    items: [
+      { label: "Kharchi", href: "/kharchi", icon: Wallet, permission: "kharchi:read" },
+      { label: "Site Expenses", href: "/expenses", icon: Receipt, permission: "expenses:read" },
+    ],
   },
   {
     label: "Project Operations",
-    items: [{ label: "Materials", href: "/materials", icon: Package, permission: "materials:read" }],
+    items: [{ label: "Gallery", href: "/gallery", icon: Images, permission: "gallery:read" }, { label: "Materials", href: "/materials", icon: Package, permission: "materials:read" }, { label: "Progress", href: "/progress", icon: ChartNoAxesCombined, permission: "progress:read" }],
+  },
+  {
+    label: "Sales",
+    items: [
+      { label: "Leads", href: "/sales/leads", icon: UsersRound, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
+      { label: "Follow-ups", href: "/sales/follow-ups", icon: CalendarCheck, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
+    ],
   },
   {
     label: "Account",

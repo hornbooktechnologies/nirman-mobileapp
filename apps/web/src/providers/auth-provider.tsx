@@ -10,11 +10,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { clearGalleryQueue, GALLERY_SIGNOUT_KEY } from "@/features/gallery/queue";
 import { APP_STORAGE_NAMESPACE } from "@nirman-app/shared";
 import {
   setApiAccessTokenSetter,
   setApiSessionClearer,
   setApiTokenGetter,
+  ApiError,
 } from "@/lib/api/api-client";
 import { authService } from "@/features/auth/services/auth.service";
 
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiTokenGetter(() => accessTokenRef.current);
     setApiAccessTokenSetter((token) => storeAccessToken(token));
     setApiSessionClearer(() => {
+      clearGalleryQueue();
       setUser(null);
       setActiveOrganizationTimezone(null);
       storeAccessToken(null);
@@ -105,6 +108,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
   }, [storeAccessToken, storeActiveOrganization]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === GALLERY_SIGNOUT_KEY && event.newValue) {
+        clearGalleryQueue(false);
+        setUser(null);
+        accessTokenRef.current = null;
+        setAccessToken(null);
+        setActiveOrganizationId(null);
+        setActiveOrganizationTimezone(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const refreshUser = useCallback(async (organizationId?: string | null) => {
     try {
@@ -120,7 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setActiveOrganizationTimezone(profile.activeOrganizationTimezone);
       setIsLoading(false);
       return profile.user;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && (error.statusCode === 401 || error.statusCode === 403)) clearGalleryQueue();
       setUser(null);
       setActiveOrganizationTimezone(null);
       storeAccessToken(null);
@@ -181,6 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const clearSession = useCallback(() => {
+    clearGalleryQueue();
     setUser(null);
     setActiveOrganizationTimezone(null);
     storeAccessToken(null);

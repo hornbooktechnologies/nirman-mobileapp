@@ -229,7 +229,7 @@ describe("WorkersService", () => {
 
     const result = await service.create(
       organizationId,
-      { name: "Ravi", trade: "Mason", mobileNumber: "99999 99999" },
+      { name: "Ravi", trade: "Mason", mobileNumber: "99999 99999", dailyRate: 500 },
       actor,
     );
 
@@ -239,7 +239,7 @@ describe("WorkersService", () => {
 
   it("rejects missing required worker text", async () => {
     await expect(
-      service.create(organizationId, { name: " ", trade: "Mason" }, actor),
+      service.create(organizationId, { name: " ", trade: "Mason", dailyRate: 500 }, actor),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(workersRepo.create).not.toHaveBeenCalled();
   });

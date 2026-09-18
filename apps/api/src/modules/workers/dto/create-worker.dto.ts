@@ -1,7 +1,8 @@
-import { Type } from "class-transformer";
+import { Transform } from "class-transformer";
 import {
   IsBoolean,
   IsDateString,
+  IsDefined,
   IsNumber,
   IsOptional,
   IsString,
@@ -33,11 +34,13 @@ export class CreateWorkerDto {
   @IsUUID()
   projectId?: string | null;
 
-  @IsOptional()
-  @Type(() => Number)
+  @IsDefined()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" && value.trim() !== "" ? Number(value) : value,
+  )
   @IsNumber()
   @Min(0)
-  dailyRate?: number | null;
+  dailyRate!: number;
 
   @IsOptional()
   @IsDateString()

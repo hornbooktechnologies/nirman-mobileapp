@@ -4,6 +4,10 @@
 >
 > State: implementation, database rollout, configured storage, and an authenticated real-user upload/media read are verified; the redesigned Gallery device acceptance remains pending.
 
+## Web W6 - 2026-09-18
+
+Implemented Gallery private images, filters/summary/pagination, metadata, browser upload/durable scoped queue, sign-out cleanup and compatibility review. [W6 parity and verification](../../../tasks/web-w6-gallery-parity.md) records pending acceptance and the standalone entry-link API requirement. Web is not runtime-accepted.
+
 ## Implemented
 
 - Approved Gallery and narrow Files/Media ownership contracts plus technical plan.
@@ -27,4 +31,4 @@
 
 - Authenticated direct-publish idempotent replay smoke with disposable data.
 - Physical-device confirmation of the dense grid/detail sheet/date filters, camera/library permissions, restart queue recovery, low-connectivity retry, small-screen/large-text layout, screen reader, dark mode, and fluent Hindi/Gujarati review.
-- Web review, video, thumbnails/transforms, GPS, generic sync engine, retention/deletion, and quota enforcement remain deferred.
+- Video, thumbnails/transforms, GPS, generic sync engine, retention/deletion, and quota enforcement remain deferred.
