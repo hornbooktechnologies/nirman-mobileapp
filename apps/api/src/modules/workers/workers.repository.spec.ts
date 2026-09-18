@@ -157,7 +157,7 @@ describe("WorkersRepository", () => {
 
     const created = await repository.create(
       "organization-id",
-      { name: "Ravi", trade: "Mason" },
+      { name: "Ravi", trade: "Mason", dailyRate: 500 },
       "actor-id",
     );
 
@@ -175,7 +175,7 @@ describe("WorkersRepository", () => {
     await expect(
       repository.create(
         "organization-id",
-        { name: "Ravi", trade: "Mason" },
+        { name: "Ravi", trade: "Mason", dailyRate: 500 },
         "actor-id",
       ),
     ).rejects.toEqual(expect.objectContaining({ code: "ER_DUP_ENTRY" }));
@@ -199,6 +199,7 @@ describe("WorkersRepository", () => {
       {
         name: "Ravi",
         trade: "Mason",
+        dailyRate: 500,
         projectId: "project-id",
         startsOn: "2026-09-11",
       },

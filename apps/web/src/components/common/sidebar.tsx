@@ -42,6 +42,10 @@ export function Sidebar({
   const { hasPermission, activeOrganizationId } = useAuth();
   const access = useProjectAccess(activeOrganizationId);
   const canNavigate = (permission: string) => {
+    if (permission.startsWith("leads:read-")) return access.isSuccess && access.data.projects.some(project => project.permissions.includes(permission as import("@nirman-app/shared").PermissionKey));
+    if (permission === "gallery:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("gallery:read"));
+    if (permission === "progress:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("progress:read"));
+    if (permission === "expenses:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("expenses:read"));
     if (permission === "materials:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("materials:read"));
     if (permission === "kharchi:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("kharchi:read"));
     if (permission === "attendance:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("attendance:read"));
@@ -85,7 +89,7 @@ export function Sidebar({
             (item) =>
               (!item.permission && !item.permissionAnyOf) ||
               (item.permission ? canNavigate(item.permission) : false) ||
-              (item.permissionAnyOf?.some(hasPermission) ?? false),
+              (item.permissionAnyOf?.some(canNavigate) ?? false),
           );
           if (visibleItems.length === 0) return null;
           return (

@@ -41,11 +41,13 @@ AI agents must read this file before starting new module work.
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/kharchi/STATUS.md` | implementation_complete_acceptance_pending | Workers + Wages + reusable Audit Foundation | API/Mobile source and Web W2 implemented; see `docs/tasks/web-w2-kharchi-parity.md` for static-check limitations and pending authenticated/cross-client acceptance |
 | 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi + Audit | Migrations 025/026 applied and schema/grants verified; run authenticated rate/cancellation and device acceptance |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | API/Mobile source exists; Web W3 implemented, acceptance pending | Project Access + Audit + Notifications | [Web parity and verification](../tasks/web-w3-materials-parity.md) |
-| 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Run authenticated API and Mobile physical-device acceptance |
+| 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md`, `docs/tasks/web-w4-expenses-parity.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Web W4 implemented with focused checks; resolve whole-Web baseline blockers, then authenticated API, Web/Mobile cross-client and device acceptance |
 | 14 | Progress | `docs/modules/construction/progress/CONTRACTS.md`, `docs/modules/construction/progress/STATUS.md` | implementation_complete_device_acceptance_pending | Project Access + Audit; Files/Media and Offline Sync deferred | API/database/Mobile verified; run authenticated write and physical-device acceptance |
-| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md`, `docs/modules/construction/gallery/STATUS.md` | implementation_complete_authenticated_media_verified | Files/Media + Project Access + Audit + Notifications | Verify direct-publish replay and redesigned Gallery on device |
+| 15 | Gallery / Project Diary | `docs/modules/construction/gallery/CONTRACTS.md`, `docs/modules/construction/gallery/STATUS.md` | implementation_complete_authenticated_media_verified | Files/Media + Project Access + Audit + Notifications | Web W6 implemented; see docs/tasks/web-w6-gallery-parity.md for verification, entry-link API gap and browser/device acceptance |
 
 ## 5. Sales Modules
+
+Web W7a Leads/Activities/Follow-ups is implemented with focused verification; authenticated acceptance and API gaps remain open. See [W7a Sales parity](../tasks/web-w7a-sales-parity.md). W7b/c/d Web delivery is not implied.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
@@ -74,3 +76,8 @@ Migration `003_organization_owner_invitations.sql` is applied. Owner invitation 
 Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Effective-dated rate history migration `025` is applied and schema-verified, but authenticated runtime acceptance remains pending; Audit and persisted offline behavior remain downstream foundation dependencies.
 
 The mobile customer shell no longer exposes mock workflows, design-system screens, fake project/team data, or dead tabs. The approved mobile plan now makes organization switching, member invitations, project assignment, and Workers completion the next foundation sequence for Builder, Contractor, Supervisor, Project Manager, and Sales identities.
+
+
+### 2026-09-18 Web Progress update
+
+Progress W5 is implemented in Web; see [parity and verification](../tasks/web-w5-progress-parity.md). Authenticated/browser/cross-client acceptance remains pending. Existing API/Mobile evidence is unchanged.

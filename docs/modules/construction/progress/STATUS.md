@@ -6,6 +6,8 @@
 
 ## Implemented
 
+- 2026-09-18: Web W5 summary/stages, filtered history/pagination, append update/regression, conflict/retry, CSV and authorized portfolio implemented. Seven focused tests and scoped lint pass; whole-Web and authenticated acceptance limitations are tracked in [W5 Web parity](../../../tasks/web-w5-progress-parity.md). Existing API/Mobile verification below is historical evidence, not new Web acceptance.
+
 - Approved contract and technical plan with documented equal-weight overall calculation.
 - Shared nine-stage vocabulary, response types, permissions, audit action, and stable errors.
 - Additive migration `019_project_progress.sql` with immutable history, scoped idempotency, actor identity, previous values, and Project/Organization foreign keys.

@@ -270,4 +270,108 @@ describe("MaterialsService", () => {
       memberId,
     );
   });
+  it.each([
+    ["BUILDER", "Organization Owner", true, true],
+    ["BUILDER", "Builder Admin", true, false],
+    ["CONTRACTOR", "Organization Owner", true, false],
+    ["BUILDER", "Organization Owner", false, false],
+  ])(
+    "derives owner exception from current membership: %s %s final=%s",
+    async (type, roleName, canApprove, expected) => {
+      projectAccess.resolveProjectAccess.mockResolvedValue({
+        organization: { type },
+        project: { status: "ACTIVE" },
+        membership: { id: memberId, role: { name: roleName } },
+        permissions: [
+          "materials:read",
+          "materials:update",
+          ...(canApprove ? ["materials:approve-final"] : []),
+        ],
+      } as any);
+      repository.findDetail.mockResolvedValue({
+        id: requestId,
+        status: "PENDING_FINAL",
+        requestedByMemberId: memberId,
+      } as any);
+      const result = await service.findDetail(
+        organizationId,
+        projectId,
+        requestId,
+        actor,
+      );
+      expect(result.availableActions.includes("APPROVE")).toBe(expected);
+      repository.findDetail.mockResolvedValue({
+        id: requestId,
+        status: "DRAFT",
+        workflowMode: "FINAL_APPROVAL",
+        requestedByMemberId: memberId,
+      } as any);
+      await service.submit(
+        organizationId,
+        projectId,
+        requestId,
+        { expectedVersion: 1, idempotencyKey: "owner-submit" },
+        actor,
+      );
+      expect(repository.transition).toHaveBeenCalledWith(
+        expect.objectContaining({ actorIsBuilderOwner: expected }),
+      );
+    },
+  );
+
+  it.each(["PENDING_VERIFICATION", "PENDING_FINAL"])(
+    "exposes recovery approval for owner's own %s request only",
+    async (status) => {
+      projectAccess.resolveProjectAccess.mockResolvedValue({
+        organization: { type: "BUILDER" },
+        project: { status: "ACTIVE" },
+        membership: { id: memberId, role: { name: "Organization Owner" } },
+        permissions: [
+          "materials:read",
+          "materials:approve-final",
+          "materials:approve-level-1",
+        ],
+      } as any);
+      repository.findDetail.mockResolvedValue({
+        id: requestId,
+        status,
+        requestedByMemberId: memberId,
+      } as any);
+      const own = await service.findDetail(
+        organizationId,
+        projectId,
+        requestId,
+        actor,
+      );
+      expect(own.availableActions).toContain("APPROVE");
+      expect(own.availableActions).not.toContain("VERIFY");
+      await service.approve(
+        organizationId,
+        projectId,
+        requestId,
+        { expectedVersion: 2, idempotencyKey: "owner-approve" },
+        actor,
+      );
+      expect(repository.transition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorIsBuilderOwner: true,
+          preventRequesterAction: true,
+        }),
+      );
+      repository.findDetail.mockResolvedValue({
+        id: requestId,
+        status,
+        requestedByMemberId: "another-member",
+      } as any);
+      const other = await service.findDetail(
+        organizationId,
+        projectId,
+        requestId,
+        actor,
+      );
+      expect(other.availableActions.includes("APPROVE")).toBe(
+        status === "PENDING_FINAL",
+      );
+    },
+  );
 });

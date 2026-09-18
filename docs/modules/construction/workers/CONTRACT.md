@@ -185,7 +185,7 @@ Starting condition:
 Action:
 
 - User opens current project worker list.
-- User enters name, trade/type, optional mobile number, optional notes, optional base daily rate, and assignment start date.
+- User enters name, trade/type, optional mobile number, optional notes, required base daily rate, and assignment start date.
 - System checks for similar existing workers in the organization.
 - If no confirmed existing worker is selected, system creates a worker master.
 - System generates a unique immutable `worker_code` inside the organization.
@@ -198,7 +198,7 @@ Validation:
 - Trade/type is required for MVP.
 - Mobile number is optional but must be normalized if provided.
 - Worker code is generated server-side, unique within organization, immutable, and ignored/rejected if supplied by the client.
-- Daily rate is optional at creation, but must be present before wage generation.
+- Daily rate is required at creation (Mobile, Web, and API), retaining the existing non-negative numeric validation. Missing, null, and blank rates are rejected. Existing workers with missing rates require correction before wage generation.
 - Start date cannot be after end date.
 - The assignment start date may be earlier than the record-creation date when the Worker already started on site.
 - Project must belong to active organization.
@@ -944,7 +944,7 @@ Current repository gap:
 - Users may continue after acknowledging duplicate warnings.
 - Worker name is not unique and must not be used as a unique identifier.
 - Worker code is server-generated, organization-scoped unique, immutable, and not trusted from client input.
-- Daily rate is optional at worker creation but required before wage generation.
+- Daily rate is required at worker creation and before wage generation.
 - Daily rate cannot be negative.
 - Rate changes require an effective date.
 - Rate changes after attendance exists require `workers:update-rate`.

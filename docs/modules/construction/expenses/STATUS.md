@@ -7,7 +7,8 @@
 - Migration: `018_site_expenses.sql` applied and schema-verified on the approved target.
 - Seed role defaults: synchronized with `SEED_ROLE_USERS=false` and grant counts verified.
 - Mobile: implemented and statically verified; authenticated physical-device acceptance pending.
-- Web/offline: not implemented.
+- Web: implemented on 2026-09-18; 11 focused tests and scoped lint passed. Whole-Web baseline failures and pending browser/cross-client acceptance are recorded in [W4 Web parity](../../../tasks/web-w4-expenses-parity.md).
+- Offline: deferred; no offline financial writes implemented.
 
 ## Delivered Mobile
 

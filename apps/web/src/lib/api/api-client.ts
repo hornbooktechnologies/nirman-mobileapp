@@ -59,7 +59,7 @@ interface ApiEnvelope<TData> {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_PATH ?? "/api/v1";
-
+console.log(`API_BASE_URL: ${API_BASE_URL}`);
 let getAccessToken: TokenGetter = () => null;
 let setAccessToken: TokenSetter = () => undefined;
 let clearSession: SessionClearer = () => undefined;

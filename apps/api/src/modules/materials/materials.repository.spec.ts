@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
+import { createHash } from "node:crypto";
 import { DatabaseService } from "../../database/database.service";
 import { AuditService } from "../audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -138,5 +139,205 @@ describe("MaterialsRepository transactional guards", () => {
     expect(database.execute).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
     expect(notifications.createMany).not.toHaveBeenCalled();
+  });
+  describe("Builder Owner request approval", () => {
+    function mockRow(overrides: Record<string, unknown> = {}) {
+      database.query.mockImplementation(async (sql: string) => {
+        if (sql.includes("FROM material_request_events")) return [];
+        if (sql.includes("FROM material_requests mr"))
+          return [{ ...requestRow, ...overrides }] as any;
+        return [];
+      });
+    }
+    const approval = {
+      organizationId,
+      projectId,
+      materialRequestId: requestId,
+      actorUserId,
+      actorMemberId,
+      expectedVersion: 2,
+      idempotencyKey: "owner-approval-001",
+      allowedFrom: ["PENDING_FINAL"] as const,
+      nextStatus: "APPROVED" as const,
+      eventType: "APPROVED" as const,
+      auditAction: "materials.request.approved" as const,
+      preventRequesterAction: true,
+      actorIsBuilderOwner: true,
+    };
+
+    it.each(["FINAL_APPROVAL", "VERIFY_THEN_FINAL", "DIRECT"])(
+      "approves own %s submission with creator, event and audit intact",
+      async (workflowMode) => {
+        mockRow({ status: "DRAFT", workflowMode });
+        await repository.transition({
+          ...approval,
+          allowedFrom: ["DRAFT"],
+          eventType: "SUBMITTED",
+          auditAction: "materials.request.submitted",
+          preventRequesterAction: false,
+          nextStatus:
+            workflowMode === "FINAL_APPROVAL"
+              ? "PENDING_FINAL"
+              : "PENDING_VERIFICATION",
+          notificationPermission: "materials:approve-final",
+          notificationType: "MATERIAL_FINAL_APPROVAL_REQUIRED",
+        });
+        expect(database.execute).toHaveBeenCalledWith(
+          expect.stringContaining("UPDATE material_requests"),
+          ["APPROVED", actorUserId, requestId, organizationId, projectId],
+          connection,
+        );
+        expect(database.execute).toHaveBeenCalledWith(
+          expect.stringContaining("INSERT INTO material_request_events"),
+          expect.arrayContaining([
+            "SUBMITTED",
+            "DRAFT",
+            "APPROVED",
+            actorUserId,
+            actorMemberId,
+          ]),
+          connection,
+        );
+        expect(audit.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            actorUserId,
+            newValues: { status: "APPROVED", version: 3 },
+            metadata: expect.objectContaining({
+              approvalBasis: "BUILDER_OWNER_REQUEST",
+            }),
+          }),
+          connection,
+        );
+        expect(notifications.findProjectRecipients).not.toHaveBeenCalled();
+        expect(notifications.createMany).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ type: "MATERIAL_REQUEST_APPROVED" }),
+          ]),
+          connection,
+        );
+      },
+    );
+
+    it.each(["PENDING_VERIFICATION", "PENDING_FINAL"])(
+      "recovers own existing %s request",
+      async (status) => {
+        mockRow({ status });
+        await repository.transition(approval);
+        expect(audit.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: "materials.request.approved",
+            oldValues: { status, version: 2 },
+            newValues: { status: "APPROVED", version: 3 },
+          }),
+          connection,
+        );
+      },
+    );
+
+    it.each([
+      [false, actorMemberId, "FINAL_APPROVAL", "PENDING_FINAL"],
+      [false, actorMemberId, "VERIFY_THEN_FINAL", "PENDING_VERIFICATION"],
+      [true, "another-member", "VERIFY_THEN_FINAL", "PENDING_VERIFICATION"],
+    ] as const)(
+      "preserves standard submission: owner=%s requester=%s workflow=%s",
+      async (
+        actorIsBuilderOwner,
+        requestedByMemberId,
+        workflowMode,
+        nextStatus,
+      ) => {
+        mockRow({ status: "DRAFT", workflowMode, requestedByMemberId });
+        await repository.transition({
+          ...approval,
+          actorIsBuilderOwner,
+          allowedFrom: ["DRAFT"],
+          eventType: "SUBMITTED",
+          auditAction: "materials.request.submitted",
+          preventRequesterAction: false,
+          nextStatus,
+        });
+        expect(database.execute).toHaveBeenCalledWith(
+          expect.stringContaining("UPDATE material_requests"),
+          [nextStatus, actorUserId, requestId, organizationId, projectId],
+          connection,
+        );
+        expect(audit.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metadata: {
+              idempotencyKey: approval.idempotencyKey,
+              comment: null,
+            },
+          }),
+          connection,
+        );
+      },
+    );
+
+    it("does not bypass verification for another member's request", async () => {
+      mockRow({ requestedByMemberId: "another-member" });
+      await expect(repository.transition(approval)).rejects.toThrow(
+        "MATERIAL_STATUS_TRANSITION_INVALID",
+      );
+      expect(database.execute).not.toHaveBeenCalled();
+    });
+
+    it("does not allow a non-owner to self-approve", async () => {
+      mockRow({ status: "PENDING_FINAL" });
+      await expect(
+        repository.transition({ ...approval, actorIsBuilderOwner: false }),
+      ).rejects.toThrow("MATERIAL_SELF_APPROVAL_FORBIDDEN");
+      expect(database.execute).not.toHaveBeenCalled();
+    });
+
+    it("still forbids owner self-verification", async () => {
+      mockRow();
+      await expect(
+        repository.transition({
+          ...approval,
+          allowedFrom: ["PENDING_VERIFICATION"],
+          eventType: "VERIFIED",
+          nextStatus: "PENDING_FINAL",
+          auditAction: "materials.request.verified",
+        }),
+      ).rejects.toThrow("MATERIAL_SELF_APPROVAL_FORBIDDEN");
+      expect(database.execute).not.toHaveBeenCalled();
+    });
+
+    it("still rejects stale owner approval versions", async () => {
+      mockRow();
+      await expect(
+        repository.transition({ ...approval, expectedVersion: 1 }),
+      ).rejects.toThrow("MATERIAL_VERSION_CONFLICT");
+      expect(database.execute).not.toHaveBeenCalled();
+    });
+
+    it("replays an owner approval without duplicate state, audit or notifications", async () => {
+      const fingerprint = createHash("sha256")
+        .update(
+          JSON.stringify({
+            command: "APPROVED",
+            expectedVersion: 2,
+            comment: null,
+          }),
+        )
+        .digest("hex");
+      database.query.mockImplementation(async (sql: string) => {
+        if (
+          sql.includes("FROM material_request_events") &&
+          sql.includes("idempotency_key")
+        ) {
+          return [
+            { materialRequestId: requestId, requestFingerprint: fingerprint },
+          ] as any;
+        }
+        if (sql.includes("FROM material_requests mr"))
+          return [{ ...requestRow, status: "APPROVED" }] as any;
+        return [];
+      });
+      await repository.transition(approval);
+      expect(database.execute).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+      expect(notifications.createMany).not.toHaveBeenCalled();
+    });
   });
 });

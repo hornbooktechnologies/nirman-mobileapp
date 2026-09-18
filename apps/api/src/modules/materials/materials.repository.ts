@@ -574,6 +574,7 @@ export class MaterialsRepository {
     preventRequesterAction?: boolean;
     requireRequesterUnlessElevated?: boolean;
     actorElevated?: boolean;
+    actorIsBuilderOwner?: boolean;
     notificationPermission?: PermissionKey;
     notificationType?: string;
   }) {
@@ -599,14 +600,23 @@ export class MaterialsRepository {
         input.materialRequestId,
         connection,
       );
+      const ownerRequest =
+        input.actorIsBuilderOwner === true &&
+        current.requestedByMemberId === input.actorMemberId;
+      const ownerApproval =
+        ownerRequest &&
+        (input.eventType === "SUBMITTED" || input.eventType === "APPROVED");
       this.assertVersionAndState(
         current,
         input.expectedVersion,
-        input.allowedFrom,
+        ownerRequest && input.eventType === "APPROVED"
+          ? [...input.allowedFrom, "PENDING_VERIFICATION"]
+          : input.allowedFrom,
       );
       if (
         input.preventRequesterAction &&
-        current.requestedByMemberId === input.actorMemberId
+        current.requestedByMemberId === input.actorMemberId &&
+        !(ownerRequest && input.eventType === "APPROVED")
       ) {
         throw new Error("MATERIAL_SELF_APPROVAL_FORBIDDEN");
       }
@@ -617,8 +627,9 @@ export class MaterialsRepository {
       ) {
         throw new Error("MATERIAL_ACTION_NOT_ALLOWED");
       }
-      const nextStatus =
-        typeof input.nextStatus === "function"
+      const nextStatus = ownerApproval
+        ? "APPROVED"
+        : typeof input.nextStatus === "function"
           ? input.nextStatus(current)
           : input.nextStatus;
       await this.database.execute(
@@ -662,6 +673,9 @@ export class MaterialsRepository {
           metadata: {
             idempotencyKey: input.idempotencyKey,
             comment: input.comment ?? null,
+            ...(ownerApproval
+              ? { approvalBasis: "BUILDER_OWNER_REQUEST" }
+              : {}),
           },
         },
         connection,
@@ -669,7 +683,13 @@ export class MaterialsRepository {
       await this.notifyTransition(
         connection,
         current,
-        input,
+        ownerApproval
+          ? {
+              ...input,
+              notificationPermission: undefined,
+              notificationType: undefined,
+            }
+          : input,
         eventId,
         nextStatus,
       );

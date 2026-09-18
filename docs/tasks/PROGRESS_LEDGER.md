@@ -1,5 +1,14 @@
 # NirmanSite Progress Ledger
 
+## 2026-09-18 - W6 Web Gallery
+
+Implemented project-scoped Gallery, private grouped photos, filters/summary/pagination, metadata details, browser upload/capture, durable scoped retry queue and compatibility review. See [W6 Gallery parity](web-w6-gallery-parity.md) for verification, pending acceptance and the standalone entry-link API requirement. Unrelated work preserved; no backend/Mobile/database edits or commit/push/deployment.
+
+
+## 2026-09-18 - W4 Web Site Expenses
+
+Implemented project-scoped Web settings, filtered list/summary/pagination/CSV, draft/create/edit, all server-authorized transitions, signed immutable adjustments and full history. Effective project grants, server totals/actions, expected versions, isolated caches and exact uncertain retries are preserved. Eleven focused tests and scoped lint passed. Whole-Web type-check/lint/build have existing unrelated blockers; authenticated browser, responsive/accessibility and Web/Mobile acceptance remain pending. See [W4 Expenses parity and review](web-w4-expenses-parity.md). No backend change required; no Mobile/API/database changes, commit, push or deployment.
+
 ## 2026-09-17 — W2 Web Kharchi
 
 Implemented project-scoped Kharchi list/summary/filter/pagination/CSV, eligible Worker selection, record-paid advances, immutable corrections, and complete deduction/reversal history using existing APIs. Effective permissions, isolated context caches and stable uncertain retries are included. Five focused tests passed; whole-Web checks expose unrelated existing errors, and authenticated/cross-client acceptance remains pending. See [W2 Kharchi parity and review](web-w2-kharchi-parity.md). No Mobile/backend/database changes, commit, push or deployment.
@@ -566,3 +575,20 @@ Mobile TypeScript, locale parity, focused lint, PNG validation and Expo web/Andr
 ## 2026-09-17 - W3 Web Materials
 
 Implemented the full Materials Web workflow: settings, project navigation, filtered list/summary/sort/pagination/CSV, request drafts/edit/submission/approval decisions/cancellation, split purchases, partial deliveries and timeline. Effective project access, isolated caches, server actions/versions and stable uncertain retries are included. Six focused tests passed; whole-Web type-check/lint/build expose unrelated existing Workers, Attendance and foundation errors. Authenticated/browser/cross-client acceptance remains pending. See [W3 Materials parity and review](web-w3-materials-parity.md) for exact evidence, the Mobile/API/Web checklist and optional API follow-ups. Only Web and documentation changed; no backend/Mobile/database mutation, commit, push or deployment.
+
+
+## 2026-09-18 - W5 Web Project Progress
+
+Implemented summary/stages, filtered paginated history, updates/regressions, exact retries/conflict review, CSV and authorized portfolio. Seven focused tests and scoped lint pass; whole-Web type/lint/build have existing Workers/Attendance and other baseline errors. Authenticated/browser/cross-client acceptance remains outstanding. See [W5 Progress parity](web-w5-progress-parity.md). No backend requirement or out-of-scope changes.
+
+
+## 2026-09-18 - W7a Web Sales Leads, Activities and Follow-ups
+
+Implemented project-scoped lead list/detail/create/edit/stages/assignment, activity timeline and follow-up scheduling/status updates using existing APIs. Seven focused tests and scoped lint passed; whole-Web baseline failures, pending authenticated/cross-client acceptance and exact backend visibility/transition/retry/assignee limitations are recorded in [W7a Sales parity](web-w7a-sales-parity.md). Unrelated work preserved; this slice changed Web/documentation only, with no commit/push/deployment.
+
+
+## 2026-09-18 - Materials Builder Owner approval gap
+
+Product Owner approved an exception for Builder Owner-created requests. Current Builder Organization Owner membership plus effective `materials:approve-final` permission now enables own draft/returned submissions to become `APPROVED`. Existing own pending verification/final requests expose `APPROVE` and can recover through the normal command endpoint. The repository checks ownership under its row lock, preserves creator/workflow/history/version/idempotency, and records `BUILDER_OWNER_REQUEST` in audit metadata. Other members' requests retain configured stages; self-verification remains forbidden.
+
+Mobile and Web already consume server `availableActions`; no client-side permission bypass, schema change, migration or data backfill is needed. Saving still records a draft; open it and submit, or use Final approve for an existing pending request. Materials tests: 2 suites / 29 tests passed. API type-check, build, scoped Materials ESLint and diff check passed. Authenticated API and physical-device acceptance have not been run; running API must load the updated source/build before mobile sees the fix.

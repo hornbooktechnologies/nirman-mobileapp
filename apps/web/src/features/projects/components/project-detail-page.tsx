@@ -102,6 +102,10 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
               </Button>
               {project.data?.currentUserAccess?.permissions.includes("kharchi:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/kharchi`)}>Kharchi</Button>}
               {project.data?.currentUserAccess?.permissions.includes("materials:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/materials`)}>Materials</Button>}
+              {project.data?.currentUserAccess?.permissions.includes("expenses:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/expenses`)}>Site Expenses</Button>}
+              {project.data?.currentUserAccess?.permissions.includes("progress:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/progress`)}>Progress</Button>}
+              {project.data?.currentUserAccess?.permissions.includes("gallery:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/gallery`)}>Gallery</Button>}
+              {project.data?.currentUserAccess?.permissions.some(p => ["leads:read-own", "leads:read-team", "leads:read-all"].includes(p)) && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/sales/leads`)}>Sales leads</Button>}
               <Button
                 variant="outline"
                 onClick={() => archiveProject.mutate()}

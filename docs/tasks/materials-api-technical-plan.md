@@ -13,6 +13,10 @@ The implementation uses the recommended defaults recorded in section 16 and the 
 
 ## 2. Purpose
 
+### Approved correction: Builder Owner requests (2026-09-18)
+
+Keep draft persistence and server-derived client actions. Resolve the exception from current Builder Organization membership (`Organization Owner`) and effective final-approval permission, never global actor role claims. Apply owner submission approval and pending-request recovery under the repository row lock, preserving version/idempotency checks and recording the approval basis in audit metadata. Expose `APPROVE` for the owner's existing pending requests through `availableActions`. Verify owner/non-owner, own/other request, both approval modes, retry and transaction guards. No schema migration or client-side approval rules are needed.
+
 Plan a project-scoped Materials API that supports:
 
 - material requirements;

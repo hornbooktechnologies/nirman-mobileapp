@@ -60,6 +60,12 @@ Cancelled batches are never hard-deleted. Their Wage Item snapshot remains visib
 
 ## Current Boundary
 
+### Mobile confirmation feedback — 2026-09-18
+
+Mobile maps `WAGE_BATCH_DUPLICATE` and `WAGE_BATCH_NOT_READY` to actionable English/Hindi/Gujarati messages. Confirmation failures remain visible below the confirmation button with accessibility announcements, and the button shows a working state while submitting. A synchronous submission guard prevents rapid duplicate taps. API overlap/readiness rules and wage calculations are unchanged.
+
+Verification: Mobile TypeScript check (local compiler), six executable error-mapper checks across all three languages, locale key/placeholder validation, and diff checks passed. Phone/tablet reproduction and authenticated confirmation remain pending: the reported generic error alone does not establish which API rejection occurred.
+
 Effective-dated assignment-rate history is implemented through `worker_assignment_rate_periods`. Wages resolves the rate independently for each derived working date and stores `rate_breakdown` on confirmation. Migration `025_worker_assignment_rate_history.sql` must be applied before this behavior can be accepted at runtime. The migration treats each existing assignment's current rate as the only known baseline from its assignment start because undocumented earlier changes cannot be reconstructed.
 
 Migration `026_wage_batch_cancellation.sql` adds the cancellation reason, immutable Kharchi allocation reversals, and the owner-role `wages:cancel` grants. It was applied to the configured remote development database on 2026-09-15 and verified read-only; authenticated runtime acceptance remains separate from source/schema verification.

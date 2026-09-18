@@ -93,6 +93,9 @@ export function WorkerForm({
     onBusyChange?.(true);
     setChecking(true); setError(""); setSuccess("");
     try {
+      if (!initialWorker && (form.dailyRate == null || String(form.dailyRate).trim() === "")) {
+        throw new Error("Daily rate is required.");
+      }
       const candidates = await checkDuplicates();
       if (candidates.length > 0 && !form.acknowledgeDuplicateWarning) {
         throw new Error("Review and acknowledge possible duplicate workers before saving.");
@@ -186,10 +189,11 @@ export function WorkerForm({
         </label>
         <label className="space-y-1">
           <span className="text-base font-medium text-body">
-            Daily rate
+            Daily rate{!initialWorker ? " *" : ""}
           </span>
           <Input
             placeholder="Enter daily rate"
+            required={!initialWorker}
             type="number"
             min="0" step="0.01"
             value={form.dailyRate ?? ""}

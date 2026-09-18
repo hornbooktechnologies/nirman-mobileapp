@@ -66,6 +66,8 @@ The API snapshots the configured mode onto each request. Later Project configura
 - `FINAL_APPROVAL`: submission becomes `PENDING_FINAL`.
 - `VERIFY_THEN_FINAL`: submission becomes `PENDING_VERIFICATION`; verification then becomes `PENDING_FINAL`.
 
+These routes apply except for the Builder Owner's own-request approval rule in section 7. The stored workflow snapshot remains unchanged when that exception is used.
+
 Builder Supervisor verification is never final commercial approval.
 
 ## 6. Statuses And Transitions
@@ -89,7 +91,7 @@ CANCELLED
 Rules:
 
 - Only `DRAFT` and `RETURNED_FOR_CHANGES` requests are editable.
-- Submission chooses its next state from the immutable workflow snapshot.
+- Submission chooses its next state from the immutable workflow snapshot, with the Builder Owner own-request exception in section 7.
 - Return requires a comment and permits editing/resubmission.
 - Rejection is terminal and requires a comment.
 - Cancellation requires a reason and is unavailable after purchase.
@@ -102,7 +104,9 @@ Rules:
 
 ## 7. Self-Approval And Actor Rules
 
-- In approval workflows, the requester cannot verify or finally approve their own request.
+- In approval workflows, the requester cannot verify or finally approve their own request, except for the Builder Owner rule approved on 2026-09-18 below.
+- An active `Organization Owner` in a `BUILDER` Organization with effective Project `materials:approve-final` permission may submit their own draft/returned request directly to `APPROVED`, in any workflow. Creation still records a draft and its creator; submission records the actor, status transition, and `BUILDER_OWNER_REQUEST` approval basis in the audit trail.
+- The same owner may explicitly finally approve their own existing `PENDING_VERIFICATION` or `PENDING_FINAL` request. This recovery action does not rewrite the workflow snapshot or historical events. Other members' requests still follow the configured stages, and self-verification remains forbidden.
 - Direct workflow is not considered fake self-approval; it intentionally skips approval.
 - A requester may edit their own draft/returned request.
 - Another Member may edit it only when holding final commercial approval capability.
