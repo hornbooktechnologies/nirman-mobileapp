@@ -6,6 +6,9 @@
     "noProjectDescription": "Choose a Project from Home before opening Workers."
   },
   "panel": {
+    "tradeFilterGroup": "Trade",
+    "allTrades": "All trades",
+    "workingHereFilter": "Working here {{count}}",
     "projectWorkers": "Project workers",
     "organizationWorkers": "Organization workers",
     "assignedCount_one": "{{count}} assigned to this project",

@@ -31,24 +31,29 @@ export function NotificationsScreen() {
   const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState('');
   const sequence = useRef(0);
+  const hasLoaded = useRef(false);
+  const loadedUnreadOnly = useRef<boolean | null>(null);
 
-  const load = useCallback(async (nextPage = 1, append = false) => {
+  const load = useCallback(async (nextPage = 1, append = false, quiet = false) => {
     if (!organizationId || !token || !canRead) { setLoading(false); return; }
     const request = ++sequence.current;
-    append ? setLoadingMore(true) : setLoading(true);
+    if (append) setLoadingMore(true);
+    else if (!quiet) setLoading(true);
     setError('');
     try {
       const result = await fetchNotifications(organizationId, token, nextPage, unreadOnly);
       if (request !== sequence.current) return;
       setItems((current) => append ? [...current, ...result.items.filter((item) => !current.some((row) => row.id === item.id))] : result.items);
       setPage(result.pagination.page); setTotalPages(result.pagination.totalPages);
+      hasLoaded.current = true;
+      loadedUnreadOnly.current = unreadOnly;
     } catch (loadError) { if (request === sequence.current) setError(getLocalizedErrorMessage(loadError, t('errors.load'))); }
     finally { if (request === sequence.current) { setLoading(false); setRefreshing(false); setLoadingMore(false); } }
   }, [canRead, organizationId, t, token, unreadOnly]);
 
   useFocusEffect(useCallback(() => {
     setPage(1);
-    void Promise.all([load(1), refreshUnreadCount()]);
+    void Promise.all([load(1, false, hasLoaded.current && loadedUnreadOnly.current === unreadOnly), refreshUnreadCount()]);
     return () => { sequence.current += 1; };
   }, [load, refreshUnreadCount]));
 
@@ -59,13 +64,11 @@ export function NotificationsScreen() {
       try {
         await markNotificationRead(organizationId, item.id, token);
         setUnreadCount(Math.max(0, unreadCount - 1));
-        if (!href) {
-          setItems((current) => unreadOnly
-            ? current.filter((row) => row.id !== item.id)
-            : current.map((row) => row.id === item.id
-              ? { ...row, readAt: new Date().toISOString() }
-              : row));
-        }
+        setItems((current) => unreadOnly
+          ? current.filter((row) => row.id !== item.id)
+          : current.map((row) => row.id === item.id
+            ? { ...row, readAt: new Date().toISOString() }
+            : row));
       } catch { /* target remains usable if read receipt fails */ }
     }
     if (href) router.push(href);
@@ -92,7 +95,7 @@ export function NotificationsScreen() {
   if (!canRead) return <NirmanScreenBackground><CompactScreenHeader title={t('screen.title')} leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
 
   return <NirmanScreenBackground footer={<CustomerTabBar activeKey="notifications" />} scroll={false}>
-    <FlatList data={items} keyExtractor={(item) => item.id} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}
+    <FlatList data={items} keyExtractor={(item) => item.id} removeClippedSubviews={false} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void Promise.all([load(1), refreshUnreadCount()]); }} />}
       ListEmptyComponent={loading ? <LoadingState label={t('loading')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={unreadOnly ? t('empty.unreadTitle') : t('empty.title')} description={unreadOnly ? t('empty.unreadDescription') : t('empty.description')} />}
       ListFooterComponent={loadingMore ? <LoadingState label={t('loadingMore')} /> : null}

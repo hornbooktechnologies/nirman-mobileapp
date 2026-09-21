@@ -6,6 +6,9 @@
     "noProjectDescription": "श्रमिक खोलने से पहले होम से कोई प्रोजेक्ट चुनें।"
   },
   "panel": {
+    "tradeFilterGroup": "काम का प्रकार",
+    "allTrades": "सभी काम",
+    "workingHereFilter": "यहाँ काम कर रहे {{count}}",
     "projectWorkers": "प्रोजेक्ट श्रमिक",
     "organizationWorkers": "संगठन श्रमिक",
     "assignedCount_one": "इस प्रोजेक्ट में {{count}} नियुक्त",

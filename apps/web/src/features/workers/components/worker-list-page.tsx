@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Plus, RefreshCw, UsersRound } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
 import {
   Button,
@@ -26,12 +26,15 @@ import { PermissionGuard } from "@/features/user-management/components/permissio
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { WorkerWorkspace } from "./worker-workspace";
 import { OrganizationContextSelect } from "@/features/projects/components/organization-context-select";
-import { useWorkers } from "@/features/workers/hooks/use-workers";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
+import { useProjectWorkers, useWorkers } from "@/features/workers/hooks/use-workers";
 
 const statusTone = {
   ACTIVE: "active",
   INACTIVE: "inactive",
 } as const;
+
+type ProjectAssignmentFilter = "all" | "working_here" | "assigned_here" | "not_on_project";
 
 export function WorkerListPage() {
   return <WorkerWorkspace permission="workers:read">{organizationId => <WorkerList organizationId={organizationId} />}</WorkerWorkspace>;
@@ -48,7 +51,31 @@ function WorkerList({ organizationId }: { organizationId: string }) {
     pageSize: number;
   }>({ search: "", status: "", trade: "", page: 1, pageSize: 20 });
   const workers = useWorkers(organizationId, query);
+  const projectAccess = useProjectAccess(organizationId);
+  const readableProjects = useMemo(
+    () => (projectAccess.data?.projects ?? []).filter((project) => project.permissions.includes("workers:read")),
+    [projectAccess.data?.projects],
+  );
+  const [projectId, setProjectId] = useState("");
+  const selectedProjectId = projectId || readableProjects.find((project) => project.isDefault)?.id || readableProjects[0]?.id || "";
+  const [assignmentFilter, setAssignmentFilter] = useState<ProjectAssignmentFilter>("all");
+  const roster = useProjectWorkers(
+    selectedProjectId ? organizationId : null,
+    selectedProjectId,
+    { assignmentScope: "ALL_ACTIVE", pageSize: 100 },
+  );
+  const rosterByWorkerId = useMemo(
+    () => new Map((roster.data?.data ?? []).map((worker) => [worker.id, worker])),
+    [roster.data?.data],
+  );
   const workerRows = workers.data?.data ?? [];
+  const filteredWorkerRows = workerRows.filter((worker) => {
+    if (!selectedProjectId || assignmentFilter === "all") return true;
+    const projectWorker = rosterByWorkerId.get(worker.id);
+    if (assignmentFilter === "working_here") return projectWorker?.isPrimaryForDate === true;
+    if (assignmentFilter === "assigned_here") return Boolean(projectWorker);
+    return !projectWorker;
+  });
   const deletedWorker = searchParams.get("deletedWorker");
 
   return (
@@ -95,7 +122,7 @@ function WorkerList({ organizationId }: { organizationId: string }) {
         ) : null}
 
         <Card>
-          <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_180px_180px]">
+          <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_180px_180px]">
             <OrganizationContextSelect organizationId={organizationId} onChange={id => { void refreshUser(id); }} />
             <Input
               aria-label="Search code, name, or mobile" placeholder="Search code, name, or mobile"
@@ -128,7 +155,34 @@ function WorkerList({ organizationId }: { organizationId: string }) {
                 setQuery({ ...query, trade: event.target.value, page: 1 })
               }
             />
+            <Select
+              aria-label="Project for assignment filter"
+              value={selectedProjectId}
+              disabled={projectAccess.isLoading || readableProjects.length === 0}
+              onChange={(event) => {
+                setProjectId(event.target.value);
+                setAssignmentFilter("all");
+                setQuery({ ...query, page: 1 });
+              }}
+            >
+              <option value="">Choose a project</option>
+              {readableProjects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </Select>
+            <Select
+              aria-label="Project assignment filter"
+              value={assignmentFilter}
+              disabled={!selectedProjectId || roster.isLoading}
+              onChange={(event) => setAssignmentFilter(event.target.value as ProjectAssignmentFilter)}
+            >
+              <option value="all">All workers</option>
+              <option value="working_here">Working here</option>
+              <option value="assigned_here">Assigned to this project</option>
+              <option value="not_on_project">Not on this project</option>
+            </Select>
           </div>
+          {selectedProjectId ? <p className="mt-3 text-sm text-sub">“Working here” shows workers whose primary project is this selected project today.</p> : null}
         </Card>
 
         <Card aria-busy={workers.isFetching}>
@@ -140,7 +194,7 @@ function WorkerList({ organizationId }: { organizationId: string }) {
             <LoadingState label="Loading workers" />
           ) : workers.isError ? (
             <p className="text-[13px] text-red-600">Unable to load workers</p>
-          ) : workerRows.length === 0 ? (
+          ) : filteredWorkerRows.length === 0 ? (
             <div className="flex items-center gap-3 text-[13px] text-body">
               <UsersRound size={18} />
               No workers match this view.
@@ -160,7 +214,7 @@ function WorkerList({ organizationId }: { organizationId: string }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workerRows.map((worker) => (
+                  {filteredWorkerRows.map((worker) => (
                     <TableRow key={worker.id}>
                       <TableCell>
                         <Link

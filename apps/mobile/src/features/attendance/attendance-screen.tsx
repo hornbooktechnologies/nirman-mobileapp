@@ -29,7 +29,7 @@ import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import { AttendanceTotalsTable, formatAttendanceNumber } from './attendance-ui';
-import { monthRange, monthValue } from './date-utils';
+import { monthRange, monthValue, todayDateOnly } from './date-utils';
 import { fetchAttendanceSummary } from './services';
 
 const PAGE_SIZE = 20;
@@ -77,7 +77,11 @@ export function AttendanceScreen() {
   const canRead = permissions.includes('attendance:read');
   const canMark = permissions.includes('attendance:mark') || permissions.includes('attendance:update');
   const canViewCalendar = permissions.includes('work-calendar:read');
-  const initialRange = useMemo(() => monthRange(monthValue()), []);
+  const initialRange = useMemo(() => ({
+    ...monthRange(monthValue()),
+    endDate: todayDateOnly(),
+  }), []);
+  const latestAttendanceDate = new Date(`${todayDateOnly()}T12:00:00`);
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
   const [search, setSearch] = useState('');
@@ -162,6 +166,7 @@ export function AttendanceScreen() {
   const header = (
     <View style={styles.headerContent}>
       <CompactScreenHeader
+        leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
         title={t('summaryScreen.title')}
         subtitle={activeProject?.name ?? t('project.none')}
         action={canViewCalendar ? (
@@ -198,7 +203,7 @@ export function AttendanceScreen() {
             <DateInput
               allowClear={false}
               accessibilityLabel={t('period.selectStartDate')}
-              maximumDate={new Date(`${endDate}T12:00:00`)}
+              maximumDate={new Date(Math.min(new Date(`${endDate}T12:00:00`).getTime(), latestAttendanceDate.getTime()))}
               value={startDate}
               onChangeText={(value) => value && setStartDate(value)}
             />
@@ -208,6 +213,7 @@ export function AttendanceScreen() {
               allowClear={false}
               accessibilityLabel={t('period.selectEndDate')}
               minimumDate={new Date(`${startDate}T12:00:00`)}
+              maximumDate={latestAttendanceDate}
               value={endDate}
               onChangeText={(value) => value && setEndDate(value)}
             />

@@ -7,6 +7,7 @@ import {
   type ProjectProgressStage,
 } from "@nirman-app/shared";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Image,
@@ -208,7 +209,7 @@ export function GalleryScreen() {
   if (!project || !projectId)
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="gallery" />}>
-        <CompactScreenHeader title={t("screen.title")} />
+        <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t("screen.title")} />
         <ProjectContextCard compact showSwitchAction />
         <EmptyState
           title={t("empty.noProjectTitle")}
@@ -220,6 +221,7 @@ export function GalleryScreen() {
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="gallery" />}>
         <CompactScreenHeader
+          leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
           title={t("screen.title")}
           subtitle={project.name}
         />
@@ -258,6 +260,7 @@ export function GalleryScreen() {
   const header = (
     <View style={styles.header}>
       <CompactScreenHeader
+        leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
         title={t("screen.title")}
         subtitle={project.name}
         action={
