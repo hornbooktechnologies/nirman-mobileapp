@@ -211,7 +211,7 @@ export function useSaveWorkerPrimaryPeriod(organizationId: string, workerId: str
   const queryClient = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (action:
+    mutationFn: async (action:
       | { kind: "create"; input: CreateWorkerPrimaryProjectPeriodInput }
       | { kind: "transfer"; input: CreateWorkerPrimaryProjectPeriodInput; permittedProjectIds: string[] }
       | { kind: "correct"; periodId: string; input: UpdateWorkerPrimaryProjectPeriodInput }
