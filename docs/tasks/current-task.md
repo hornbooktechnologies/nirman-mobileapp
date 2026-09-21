@@ -1,5 +1,9 @@
 # Current Task
 
+## 2026-09-21 - Web Vercel build repair
+
+Fixed the missing async modifier in the worker primary-period mutation and one invalid UTF-8 middle-dot byte in the attendance page. Shared build and full Next.js production build passed, including TypeScript and static generation; Web/shared source UTF-8 validation and git diff checks passed. Build used local environment configuration; hosted API connectivity and Vercel deployment remain unverified. No commit, push, or deployment performed.
+
 ## 2026-09-21 - W8 Web Notifications
 
 Implemented recipient-scoped inbox, unread filter/count/badge, pagination, mark one/all read and fresh authorized target navigation. Scoped cache clears on sign-out/context changes. Eight focused tests and scoped lint passed. Existing whole-Web type/lint/build blockers, Gallery exact-entry metadata API requirement and pending authenticated/browser/cross-client acceptance are recorded in [W8 Notifications parity](web-w8-notifications-parity.md). Web/docs only; concurrent work preserved; no backend/Mobile/database changes, commit, push or deployment.
