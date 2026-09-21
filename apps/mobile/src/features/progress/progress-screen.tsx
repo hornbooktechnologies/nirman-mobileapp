@@ -1,4 +1,5 @@
 import { PROJECT_PROGRESS_STAGES, type ProjectProgressStage, type ProjectProgressSummary, type ProjectProgressUpdate } from '@nirman-app/shared';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -94,7 +95,7 @@ export function ProgressScreen() {
   if (!project || !projectId) {
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="progress" />}>
-        <CompactScreenHeader title={t('screen.title')} />
+        <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} />
         <ProjectContextCard compact showSwitchAction />
         <EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} />
       </NirmanScreenBackground>
@@ -104,7 +105,7 @@ export function ProgressScreen() {
   if (!canRead) {
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="progress" />}>
-        <CompactScreenHeader title={t('screen.title')} subtitle={project.name} />
+        <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project.name} />
         <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} />
       </NirmanScreenBackground>
     );
@@ -113,6 +114,7 @@ export function ProgressScreen() {
   const header = (
     <View style={styles.header}>
       <CompactScreenHeader
+        leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
         title={t('screen.title')}
         subtitle={project.name}
         action={canUpdate ? <IconButton icon="plus" variant="primary" accessibilityLabel={t('update.openA11y')} onPress={() => setUpdateOpen(true)} /> : undefined}

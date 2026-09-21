@@ -61,7 +61,7 @@ export function MaterialsScreen() {
   }
 
   const header = <View style={styles.header}>
-    <CompactScreenHeader title={t('screen.title')} subtitle={project?.name ?? t('screen.chooseProject')} action={<View style={styles.headerActions}>{canConfigure ? <IconButton accessibilityLabel={t('settings.openA11y')} icon="cog-outline" variant="glass" onPress={() => setSettingsOpen(true)} /> : null}{canCreate ? <IconButton accessibilityLabel={t('create.openA11y')} icon="plus" variant="primary" onPress={() => settings?.configured ? setCreateOpen(true) : setSettingsOpen(true)} /> : null}</View>} />
+    <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project?.name ?? t('screen.chooseProject')} action={<View style={styles.headerActions}>{canConfigure ? <IconButton accessibilityLabel={t('settings.openA11y')} icon="cog-outline" variant="glass" onPress={() => setSettingsOpen(true)} /> : null}{canCreate ? <IconButton accessibilityLabel={t('create.openA11y')} icon="plus" variant="primary" onPress={() => settings?.configured ? setCreateOpen(true) : setSettingsOpen(true)} /> : null}</View>} />
     <ProjectContextCard compact showSwitchAction />
     {project?.status !== 'ACTIVE' ? <Card style={styles.notice}><AppText style={styles.noticeText}>{t('screen.readOnly')}</AppText></Card> : null}
     {settings && !settings.configured ? <Card style={styles.notice}><AppText style={styles.noticeText}>{t('settings.notConfigured')}</AppText>{canConfigure ? <Button label={t('settings.configureNow')} size="sm" fullWidth={false} variant="secondary" onPress={() => setSettingsOpen(true)} /> : null}</Card> : null}
@@ -70,8 +70,8 @@ export function MaterialsScreen() {
     {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-delimited-outline" disabled={exporting} onPress={() => void exportCsv()} /> : null}
   </View>;
 
-  if (!project || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
-  if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader title={t('screen.title')} subtitle={project.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
+  if (!project || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
+  if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
 
   return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />} scroll={false}>
     <FlatList data={items} keyExtractor={(item) => item.id} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}

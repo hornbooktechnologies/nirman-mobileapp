@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -67,7 +68,7 @@ const today = () => formatDateOnly(new Date());
 type AssignmentDateErrors = Partial<Record<'startsOn' | 'endsOn', string>>;
 type PrimaryProjectErrors = Partial<Record<'workerAssignmentId' | 'effectiveDate', string>>;
 type RateChangeErrors = Partial<Record<'dailyRate' | 'effectiveDate', string>>;
-type WorkerFilter = 'all' | 'assigned_here' | 'not_on_project';
+type WorkerFilter = 'all' | 'working_here' | 'assigned_here' | 'not_on_project';
 type WorkerAssignmentState = 'working_here' | 'assigned_here' | 'assigned_elsewhere' | 'not_assigned';
 
 function resolveWorkerAssignmentState(
@@ -98,12 +99,13 @@ function earliestDate(left: string | null, right: string | null) {
 
 export function WorkersScreen() {
   const { t } = useTranslation('workers');
+  const { t: tCommon } = useTranslation('common');
   const { session } = useSession();
   const activeProject = getActiveProject(session);
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="team" />} scroll={false}>
-      <CompactScreenHeader title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
+      <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
       <WorkersPanel />
     </NirmanScreenBackground>
   );
@@ -128,6 +130,8 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<WorkerFilter>('all');
   const [draftFilter, setDraftFilter] = useState<WorkerFilter>('all');
+  const [tradeFilter, setTradeFilter] = useState<string | null>(null);
+  const [draftTradeFilter, setDraftTradeFilter] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -211,7 +215,13 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     [roster],
   );
   const assignedHereCount = workers.filter((worker) => rosterByWorkerId.has(worker.id)).length;
+  const workingHereCount = workers.filter((worker) => rosterByWorkerId.get(worker.id)?.isPrimaryForDate).length;
   const notOnProjectCount = Math.max(workers.length - assignedHereCount, 0);
+  const availableTrades = useMemo(
+    () => [...new Set(workers.map((worker) => worker.trade.trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right)),
+    [workers],
+  );
+  const activeFilterCount = Number(filter !== 'all') + Number(tradeFilter !== null);
   const visibleWorkers = workers.filter((worker) => {
     const needle = search.trim().toLowerCase();
     const matchesSearch = (
@@ -221,8 +231,11 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       worker.trade.toLowerCase().includes(needle)
     );
     const isAssignedHere = rosterByWorkerId.has(worker.id);
-    const matchesFilter = filter === 'all' || (filter === 'assigned_here' ? isAssignedHere : !isAssignedHere);
-    return matchesSearch && matchesFilter;
+    const isWorkingHere = rosterByWorkerId.get(worker.id)?.isPrimaryForDate === true;
+    const matchesFilter = filter === 'all'
+      || (filter === 'working_here' ? isWorkingHere : filter === 'assigned_here' ? isAssignedHere : !isAssignedHere);
+    const matchesTrade = tradeFilter === null || worker.trade.trim() === tradeFilter;
+    return matchesSearch && matchesFilter && matchesTrade;
   });
   const detailProjectWorker = detailWorker ? rosterByWorkerId.get(detailWorker.id) : undefined;
   const activeDetailAssignments = workerDetail?.assignments.filter((assignment) => assignment.status === 'ACTIVE') ?? [];
@@ -739,24 +752,29 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         <ListFilterBar
           search={<SearchField accessibilityLabel={t('panel.searchA11y')} placeholder={t('panel.searchPlaceholder')} value={search} onChangeText={setSearch} />}
           filterLabel={tCommon('listFilters.action')}
-          filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: filter === 'all' ? 0 : 1 })}
-          activeFilterCount={filter === 'all' ? 0 : 1}
+          filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: activeFilterCount })}
+          activeFilterCount={activeFilterCount}
           expanded={filtersOpen}
-          onOpenFilters={() => { setDraftFilter(filter); setFiltersOpen(true); }}
+          onOpenFilters={() => { setDraftFilter(filter); setDraftTradeFilter(tradeFilter); setFiltersOpen(true); }}
         />
-        {filter !== 'all' ? <AppliedFilters>
-          <AppliedFilterChip
-            label={filter === 'assigned_here' ? t('panel.assignedFilter', { count: assignedHereCount }) : t('panel.unassignedFilter', { count: notOnProjectCount })}
-            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: filter === 'assigned_here' ? t('card.assignedHere') : t('panel.notOnProject') })}
+        {activeFilterCount ? <AppliedFilters>
+          {filter !== 'all' ? <AppliedFilterChip
+            label={filter === 'working_here' ? t('panel.workingHereFilter', { count: workingHereCount }) : filter === 'assigned_here' ? t('panel.assignedFilter', { count: assignedHereCount }) : t('panel.unassignedFilter', { count: notOnProjectCount })}
+            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: filter === 'working_here' ? t('card.workingHere') : filter === 'assigned_here' ? t('card.assignedHere') : t('panel.notOnProject') })}
             onRemove={() => setFilter('all')}
-          />
+          /> : null}
+          {tradeFilter ? <AppliedFilterChip
+            label={tradeFilter}
+            removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: tradeFilter })}
+            onRemove={() => setTradeFilter(null)}
+          /> : null}
         </AppliedFilters> : null}
       </ListControls>
 
       {isLoading ? <LoadingState label={t('panel.loading')} /> : null}
       {error ? <EmptyState title={t('panel.loadFailed')} description={error} actionLabel={t('panel.retry')} onAction={() => void loadWorkers()} /> : null}
       {!isLoading && !error ? embedded ? (
-        visibleWorkers.length ? <View style={styles.list}>{visibleWorkers.map((worker) => <View key={worker.id}>{renderWorkerCard(worker)}</View>)}</View> : <EmptyState title={search ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search ? t('panel.tryAnother') : t('panel.addOnline')} />
+        visibleWorkers.length ? <View style={styles.list}>{visibleWorkers.map((worker) => <View key={worker.id}>{renderWorkerCard(worker)}</View>)}</View> : <EmptyState title={search || activeFilterCount ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search || activeFilterCount ? t('panel.tryAnother') : t('panel.addOnline')} />
       ) : (
         <FlatList
           contentContainerStyle={[styles.list, !visibleWorkers.length && styles.emptyList]}
@@ -764,7 +782,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           initialNumToRender={10}
           keyboardShouldPersistTaps="handled"
           keyExtractor={(worker) => worker.id}
-          ListEmptyComponent={<EmptyState title={search ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search ? t('panel.tryAnother') : t('panel.addOnline')} />}
+          ListEmptyComponent={<EmptyState title={search || activeFilterCount ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search || activeFilterCount ? t('panel.tryAnother') : t('panel.addOnline')} />}
           maxToRenderPerBatch={12}
           renderItem={({ item }) => renderWorkerCard(item)}
           refreshing={isRefreshing}
@@ -782,16 +800,23 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
         applyLabel={tCommon('listFilters.apply')}
         onClear={() => {
           setDraftFilter('all');
+          setDraftTradeFilter(null);
           setFilter('all');
+          setTradeFilter(null);
           setFiltersOpen(false);
         }}
-        onApply={() => { setFilter(draftFilter); setFiltersOpen(false); }}
+        onApply={() => { setFilter(draftFilter); setTradeFilter(draftTradeFilter); setFiltersOpen(false); }}
         onClose={() => setFiltersOpen(false)}
       >
         <FilterGroup label={t('panel.filterGroup')}>
           <FilterOption label={t('panel.allCount', { count: workers.length })} selected={draftFilter === 'all'} onPress={() => setDraftFilter('all')} />
+          <FilterOption label={t('panel.workingHereFilter', { count: workingHereCount })} selected={draftFilter === 'working_here'} onPress={() => setDraftFilter('working_here')} />
           <FilterOption label={t('panel.assignedFilter', { count: assignedHereCount })} selected={draftFilter === 'assigned_here'} onPress={() => setDraftFilter('assigned_here')} />
           <FilterOption label={t('panel.unassignedFilter', { count: notOnProjectCount })} selected={draftFilter === 'not_on_project'} onPress={() => setDraftFilter('not_on_project')} />
+        </FilterGroup>
+        <FilterGroup label={t('panel.tradeFilterGroup')}>
+          <FilterOption label={t('panel.allTrades')} selected={draftTradeFilter === null} onPress={() => setDraftTradeFilter(null)} />
+          {availableTrades.map((trade) => <FilterOption key={trade} label={trade} selected={draftTradeFilter === trade} onPress={() => setDraftTradeFilter(trade)} />)}
         </FilterGroup>
       </ListFilterSheet>
 
