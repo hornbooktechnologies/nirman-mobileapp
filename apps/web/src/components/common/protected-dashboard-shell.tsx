@@ -6,6 +6,7 @@ import { LoadingScreen } from "@/components/common/loading-screen";
 import { Sidebar } from "@/components/common/sidebar";
 import { TopBar } from "@/components/common/top-bar";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { NotificationsProvider } from "@/features/notifications/components/notifications-provider";
 
 const MOBILE_NAVIGATION_ID = "mobile-navigation-dialog";
 const DASHBOARD_MAIN_ID = "dashboard-main-content";
@@ -158,5 +159,5 @@ export function ProtectedDashboardShell({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) return null;
 
-  return <DashboardFrame pathname={pathname}>{children}</DashboardFrame>;
+  return <NotificationsProvider><DashboardFrame pathname={pathname}>{children}</DashboardFrame></NotificationsProvider>;
 }

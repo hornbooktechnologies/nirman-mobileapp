@@ -1,5 +1,14 @@
 # Current Task
 
+## 2026-09-21 - W8 Web Notifications
+
+Implemented recipient-scoped inbox, unread filter/count/badge, pagination, mark one/all read and fresh authorized target navigation. Scoped cache clears on sign-out/context changes. Eight focused tests and scoped lint passed. Existing whole-Web type/lint/build blockers, Gallery exact-entry metadata API requirement and pending authenticated/browser/cross-client acceptance are recorded in [W8 Notifications parity](web-w8-notifications-parity.md). Web/docs only; concurrent work preserved; no backend/Mobile/database changes, commit, push or deployment.
+
+## 2026-09-21 - W7d Web Bookings
+
+Implemented project-scoped booking list/search/status/date filters, detail/linkage/history, lead conversion with or without a unit, exact uncertain retries, and cancellation with explicit restoration. Effective permissions, ownership, isolated caches and existing Sales components are preserved. Thirteen focused tests and scoped lint passed; whole-Web Workers/Attendance and other lint blockers remain. Authenticated/browser/cross-client acceptance and Sales API CUSTOM/TEAM read limitations are tracked in [W7d Bookings parity](web-w7d-bookings-parity.md). Web/docs only; no backend/Mobile/database changes, commit, push or deployment.
+
+
 ## 2026-09-18 - W6 Web Gallery
 
 Implemented project-scoped Gallery, private grouped photos, filters/summary/pagination, metadata details, browser upload/capture, durable scoped retry queue and compatibility review. See [W6 Gallery parity](web-w6-gallery-parity.md) for verification, pending acceptance and the standalone entry-link API requirement. Unrelated work preserved; no backend/Mobile/database edits or commit/push/deployment.
@@ -512,3 +521,11 @@ Implemented project-scoped lead list/detail/create/edit/stages/assignment, activ
 Product Owner approved an exception for Builder Owner-created requests. Current Builder Organization Owner membership plus effective `materials:approve-final` permission now enables own draft/returned submissions to become `APPROVED`. Existing own pending verification/final requests expose `APPROVE` and can recover through the normal command endpoint. The repository checks ownership under its row lock, preserves creator/workflow/history/version/idempotency, and records `BUILDER_OWNER_REQUEST` in audit metadata. Other members' requests retain configured stages; self-verification remains forbidden.
 
 Mobile and Web already consume server `availableActions`; no client-side permission bypass, schema change, migration or data backfill is needed. Saving still records a draft; open it and submit, or use Final approve for an existing pending request. Materials tests: 2 suites / 29 tests passed. API type-check, build, scoped Materials ESLint and diff check passed. Authenticated API and physical-device acceptance have not been run; running API must load the updated source/build before mobile sees the fix.
+
+## 2026-09-21 - W7b Web Site Visits
+
+Implemented Web scheduling, scoped list/detail/filters, reschedule/outcomes and history integration. Twelve focused Sales tests and scoped lint passed. Whole-Web baseline failures, pending authenticated cross-client acceptance and API concurrency/retry/effective-scope requirements are recorded in [W7b Site Visits parity](web-w7b-site-visits-parity.md). Web/task documentation only; Mobile/EAS work preserved; no commit/push/deployment.
+
+## 2026-09-21 - W7c Web Unit Inventory / Import / Holds / Blocking
+
+Implemented Inventory list/detail/create/edit, total/per-area pricing, CSV preview/import, Lead interests, hold requests/decisions, direct blocking/release and server expiry refresh. Eight focused tests and scoped Sales lint pass; whole-Web baseline errors and authenticated acceptance remain open. See [W7c Inventory parity](web-w7c-inventory-parity.md) for the Mobile/API/Web checklist and backend concurrency/idempotency/CUSTOM requirements. Existing concurrent work preserved; no Mobile/API/database edits, commit, push or deployment.

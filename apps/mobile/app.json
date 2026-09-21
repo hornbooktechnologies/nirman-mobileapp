@@ -62,7 +62,7 @@
       }
     },
     "android": {
-      "package": "com.nirmansite.mobile",
+      "package": "com.hornbook.nirmansite",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icon-light.png",

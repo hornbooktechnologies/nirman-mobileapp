@@ -22,7 +22,14 @@ import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { Failure, Status, dateTime, money } from "./sales-ui";
 import { LeadForm, assigneeField, useAssignees } from "./lead-form";
 import { SalesForm } from "./sales-form";
-import type { SalesLead, ActivityInput } from "../types/sales.types";
+import type {
+  SalesLead,
+  ActivityInput,
+  SiteVisitInput,
+} from "../types/sales.types";
+import { SiteVisitForm } from "./site-visit-form";
+import { BookingCreate } from "./booking-create";
+import { LeadInventory } from "./lead-inventory";
 function LeadDetail({
   c,
   id,
@@ -38,7 +45,7 @@ function LeadDetail({
   const assignees = useAssignees(c);
   const cache = useQueryClient();
   const [dialog, setDialog] = useState<
-    "edit" | "stage" | "assign" | "activity" | "follow-up" | null
+    "edit" | "stage" | "assign" | "activity" | "follow-up" | "visit" | null
   >(null);
   const [success, setSuccess] = useState(
     created ? "Lead created successfully." : "",
@@ -124,6 +131,12 @@ function LeadDetail({
       </header>
       {success && <p role="status">{success}</p>}
       <div className="flex flex-wrap gap-3">
+        <BookingCreate c={c} lead={l} />
+        {can("site-visits:manage") && (
+          <Button variant="outline" onClick={() => open("visit")}>
+            Schedule site visit
+          </Button>
+        )}
         {can("leads:update") && (
           <>
             <Button onClick={() => open("edit")}>Edit lead</Button>
@@ -159,6 +172,7 @@ function LeadDetail({
           ))}
         </dl>
       </Card>
+      {c.permissions.includes("inventory:read") && <LeadInventory c={c} lead={l} />}
       <section className="space-y-3" aria-labelledby="timeline">
         <h2 id="timeline" className="text-xl font-semibold">
           Activity timeline
@@ -201,6 +215,23 @@ function LeadDetail({
           </>
         )}
       </section>
+      {dialog === "visit" && (
+        <SiteVisitForm
+          c={c}
+          close={() => setDialog(null)}
+          refresh={refresh}
+          save={(input) =>
+            execute(() =>
+              salesService.createSiteVisit(
+                c.org,
+                c.project,
+                id,
+                input as SiteVisitInput,
+              ),
+            )
+          }
+        />
+      )}
       {dialog === "edit" && (
         <LeadForm
           c={c}

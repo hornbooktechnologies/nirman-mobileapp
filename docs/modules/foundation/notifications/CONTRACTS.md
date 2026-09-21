@@ -47,7 +47,7 @@ All routes require authentication and active membership. Device tokens never app
 
 ## H. Web-Admin Experience
 
-No Web inbox is included in this slice. Future Web work must use these APIs and contracts, never read tenant tables directly.
+The later W8 Web slice implements the English-only inbox, unread badge/filter, pagination, mark one/all read and authorized target navigation using these existing APIs. See [W8 Web parity](../../../tasks/web-w8-notifications-parity.md) for verification, pending acceptance and the exact Gallery entry metadata lookup limitation. Browser push remains deferred. Web never reads tenant tables directly.
 
 ## I. Mobile Experience
 

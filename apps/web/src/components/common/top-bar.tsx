@@ -6,6 +6,7 @@ import { IconButton, Select } from "@/components/ui";
 import { getRouteTitle } from "@/config/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { authService } from "@/features/auth/services/auth.service";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import {
   useOrganizations,
   useSwitchOrganization,
@@ -71,6 +72,7 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
 
       {/* Right: user identity + logout */}
       <div className="flex items-center gap-2">
+        <NotificationBell />
         {organizations.data?.length === 1 && activeOrganization ? (
           <div className="hidden max-w-52 items-center gap-2 rounded-sub border border-hairline bg-sunken/60 px-2.5 py-1.5 text-[11px] font-medium text-body md:flex">
             <Building2 size={14} className="shrink-0 text-muted" aria-hidden="true" />

@@ -1,5 +1,7 @@
 # Notifications Status
 
+Web update (2026-09-21): W8 inbox/badge/read actions and authorized destination routing implemented. Eight focused Web tests and scoped lint passed; whole-Web baseline failures, Gallery exact-entry metadata gap and pending authenticated/browser/cross-client acceptance are recorded in [W8 Web parity](../../../tasks/web-w8-notifications-parity.md). This does not change API/Mobile evidence below or mark Web accepted.
+
 Current classification: implementation complete; authenticated device acceptance pending (2026-09-03).
 
 Implemented source scope: formal contract, shared types/errors, migration 022, expanded API, device registration, transactional push outbox, localized Expo delivery worker, operational role seed grants, and localized Mobile inbox/badge/deep-link integration.

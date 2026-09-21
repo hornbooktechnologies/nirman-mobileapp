@@ -20,6 +20,70 @@ function adapter(transport) {
   }, exports);
   return exports.salesService;
 }
+test("visits preserve scoped filters, abort signals and exact workflow payloads", async () => {
+  const calls = [];
+  const service = adapter({
+    api: Object.fromEntries(
+      ["get", "post", "patch"].map((method) => [
+        method,
+        async (...args) => {
+          calls.push([method, ...args]);
+          return [];
+        },
+      ]),
+    ),
+  });
+  const signal = new AbortController().signal;
+  const filters = {
+    status: "RESCHEDULED",
+    assignedSalesperson: "u",
+    scheduledFrom: "2026-09-21T00:00:00Z",
+  };
+  const input = {
+    status: "COMPLETED",
+    attendeeCount: 1000,
+    customerFeedback: "Good",
+    objectionsConcerns: "Price",
+    nextAction: "Call",
+  };
+  await service.siteVisits("org", "project", filters, signal);
+  await service.createSiteVisit("org", "project", "lead", {
+    scheduledAt: filters.scheduledFrom,
+  });
+  await service.updateSiteVisit("org", "project", "lead", "visit", input);
+  assert.deepEqual(calls, [
+    [
+      "get",
+      "/organizations/org/projects/project/sales/site-visits",
+      { params: filters, signal },
+    ],
+    [
+      "post",
+      "/organizations/org/projects/project/sales/leads/lead/site-visits",
+      { scheduledAt: filters.scheduledFrom },
+    ],
+    [
+      "patch",
+      "/organizations/org/projects/project/sales/leads/lead/site-visits/visit",
+      input,
+    ],
+  ]);
+  let attempts = 0;
+  const failed = adapter({
+    api: {
+      post: async () => {
+        attempts++;
+        throw new Error("Timeout");
+      },
+    },
+  });
+  await assert.rejects(
+    failed.createSiteVisit("o", "p", "l", {
+      scheduledAt: filters.scheduledFrom,
+    }),
+  );
+  assert.equal(attempts, 1);
+});
 test("lead list retains top-level meta and passes filters and cancellation", async () => {
   const payload = {
     success: true,

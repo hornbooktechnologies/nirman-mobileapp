@@ -42,6 +42,7 @@ export function Sidebar({
   const { hasPermission, activeOrganizationId } = useAuth();
   const access = useProjectAccess(activeOrganizationId);
   const canNavigate = (permission: string) => {
+    if (permission === "inventory:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("inventory:read"));
     if (permission.startsWith("leads:read-")) return access.isSuccess && access.data.projects.some(project => project.permissions.includes(permission as import("@nirman-app/shared").PermissionKey));
     if (permission === "gallery:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("gallery:read"));
     if (permission === "progress:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("progress:read"));

@@ -44,7 +44,7 @@ function Access({
   children,
 }: {
   projectId?: string;
-  section: "leads" | "follow-ups";
+  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings";
   children: (c: SalesContext) => ReactNode;
 }) {
   const {
@@ -62,13 +62,24 @@ function Access({
   if (access.isError)
     return <Failure error={access.error} retry={() => void access.refetch()} />;
   const projects = access.data.projects.filter((p) =>
-    canReadSales(p.permissions),
+    section === "inventory"
+      ? p.permissions.includes("inventory:read")
+      : canReadSales(p.permissions),
   );
   if (!projectId)
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold">
-          Sales {section === "leads" ? "leads" : "follow-ups"}
+          Sales{" "}
+          {section === "inventory"
+            ? "inventory"
+            : section === "leads"
+              ? "leads"
+              : section === "site-visits"
+                ? "site visits"
+                : section === "bookings"
+                  ? "bookings"
+                  : "follow-ups"}
         </h1>
         <p>Select a project.</p>
         {!projects.length && <Card>No projects with Sales access.</Card>}
@@ -106,41 +117,70 @@ function Access({
           Change project
         </Link>
       </header>
-      <nav aria-label="Sales" className="flex gap-5">
-        <Link
-          aria-current={section === "leads" ? "page" : undefined}
-          className="underline"
-          href={`/projects/${project.id}/sales/leads`}
-        >
-          Leads
-        </Link>
-        <Link
-          aria-current={section === "follow-ups" ? "page" : undefined}
-          className="underline"
-          href={`/projects/${project.id}/sales/follow-ups`}
-        >
-          Follow-ups
-        </Link>
+      <nav aria-label="Sales" className="flex flex-wrap gap-5">
+        {project.permissions.includes("inventory:read") && (
+          <Link
+            className="underline"
+            aria-current={section === "inventory" ? "page" : undefined}
+            href={`/projects/${project.id}/sales/inventory`}
+          >
+            Inventory
+          </Link>
+        )}
+        {canReadSales(project.permissions) && (
+          <>
+            <Link
+              className="underline"
+              aria-current={section === "bookings" ? "page" : undefined}
+              href={`/projects/${project.id}/sales/bookings`}
+            >
+              Bookings
+            </Link>
+            <Link
+              aria-current={section === "leads" ? "page" : undefined}
+              className="underline"
+              href={`/projects/${project.id}/sales/leads`}
+            >
+              Leads
+            </Link>
+            <Link
+              aria-current={section === "follow-ups" ? "page" : undefined}
+              className="underline"
+              href={`/projects/${project.id}/sales/follow-ups`}
+            >
+              Follow-ups
+            </Link>
+            <Link
+              aria-current={section === "site-visits" ? "page" : undefined}
+              className="underline"
+              href={`/projects/${project.id}/sales/site-visits`}
+            >
+              Site Visits
+            </Link>
+          </>
+        )}
       </nav>
       {project.status !== "ACTIVE" && (
         <Card>
           This project is {project.status.toLowerCase()}. Sales is read-only.
         </Card>
       )}
-      {children({
-        org,
-        project: project.id,
-        permissions: project.permissions,
-        active: project.status === "ACTIVE",
-        timezone,
-        user: user.id,
-      })}
+      <Cache key={JSON.stringify([project.permissions, project.status])}>
+        {children({
+          org,
+          project: project.id,
+          permissions: project.permissions,
+          active: project.status === "ACTIVE",
+          timezone,
+          user: user.id,
+        })}
+      </Cache>
     </div>
   );
 }
 export function SalesWorkspace(props: {
   projectId?: string;
-  section: "leads" | "follow-ups";
+  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings";
   children: (c: SalesContext) => ReactNode;
 }) {
   const { user, activeOrganizationId } = useAuth();

@@ -5,7 +5,41 @@ import type {
   LeadSource,
   LeadStage,
   SalesActivityType,
+  SiteVisitStatus,
 } from "@nirman-app/shared";
+export type SalesSiteVisit = {
+  id: string;
+  leadId: string;
+  scheduledAt: string;
+  assignedSalesperson: string;
+  assignedSalespersonName: string;
+  attendeeCount: number | null;
+  status: SiteVisitStatus;
+  customerFeedback: string | null;
+  objectionsConcerns: string | null;
+  nextAction: string | null;
+  completedAt: string | null;
+  customerName: string;
+};
+export type SiteVisitInput = {
+  scheduledAt: string;
+  assignedSalesperson?: string;
+  attendeeCount?: number;
+};
+export type SiteVisitUpdate = {
+  status: SiteVisitStatus;
+  scheduledAt?: string;
+  attendeeCount?: number;
+  customerFeedback?: string;
+  objectionsConcerns?: string;
+  nextAction?: string;
+};
+export type SiteVisitQuery = {
+  status?: SiteVisitStatus;
+  assignedSalesperson?: string;
+  scheduledFrom?: string;
+  scheduledTo?: string;
+};
 export type LeadInput = {
   customerName: string;
   primaryMobile: string;
