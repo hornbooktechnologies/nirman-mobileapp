@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "badfaf2c-f17d-4ad4-9694-fce04708acc9"
+      }
+    },
+    "android": {
+      "package": "com.raxitvsteam.nirmanapp"
+    }
+  }
+}

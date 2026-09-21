@@ -2,7 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { salesKey } from "../sales-rules";
 import { salesService } from "../services/sales.service";
-import type { FollowUpQuery, LeadQuery } from "../types/sales.types";
+import type {
+  FollowUpQuery,
+  LeadQuery,
+  SiteVisitQuery,
+} from "../types/sales.types";
+export const useSiteVisits = (
+  o: string,
+  p: string,
+  query: SiteVisitQuery,
+  enabled = true,
+) =>
+  useQuery({
+    queryKey: [...salesKey(o, p), "site-visits", query],
+    queryFn: ({ signal }) => salesService.siteVisits(o, p, query, signal),
+    enabled,
+  });
 export function useSalesLifetime() {
   const live = useRef(true);
   useEffect(() => {

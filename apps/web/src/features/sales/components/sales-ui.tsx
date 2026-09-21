@@ -21,9 +21,9 @@ export function Status({ value }: { value: string }) {
     <StatusBadge
       className="text-sm"
       tone={
-        ["COMPLETED", "BOOKED"].includes(value)
+        ["CONFIRMED", "COMPLETED", "BOOKED", "AVAILABLE", "APPROVED", "SELECTED"].includes(value)
           ? "success"
-          : ["LOST", "CANCELLED", "MISSED", "INVALID"].includes(value)
+          : ["LOST", "CANCELLED", "MISSED", "INVALID", "BLOCKED", "WAITLISTED", "HIGH_INTENT", "UNAVAILABLE"].includes(value)
             ? "warning"
             : "neutral"
       }

@@ -13,6 +13,8 @@ export type Field = {
   options?: readonly string[] | { value: string; label: string }[];
   help?: string;
   initial?: string;
+  showWhen?: { field: string; value: string };
+  requiredWhen?: { field: string; value: string };
 };
 export function SalesForm({
   title,
@@ -22,6 +24,7 @@ export function SalesForm({
   refresh,
   validate,
   timezone,
+  children,
 }: {
   title: string;
   fields: Field[];
@@ -29,6 +32,7 @@ export function SalesForm({
   close: () => void;
   refresh: () => Promise<unknown>;
   timezone?: string;
+  children?: React.ReactNode;
   validate?: (
     values: Record<string, string>,
   ) => Record<string, string | undefined>;
@@ -44,6 +48,9 @@ export function SalesForm({
   const dirty = useRef(false);
   const locked = useRef(false);
   const form = useRef<HTMLFormElement>(null);
+  const visibleFields = fields
+    .filter((f) => !f.showWhen || values[f.showWhen.field] === f.showWhen.value)
+    .map((f) => ({ ...f, required: f.required || Boolean(f.requiredWhen && values[f.requiredWhen.field] === f.requiredWhen.value) }));
   useEffect(() => {
     const unload = (e: BeforeUnloadEvent) => {
       if (dirty.current || locked.current) {
@@ -93,12 +100,12 @@ export function SalesForm({
           if (locked.current || review) return;
           const next: Record<string, string> = {};
           const submitted = Object.fromEntries(
-            fields.map((f) => [
+            visibleFields.map((f) => [
               f.name,
               (values[f.name] ?? f.initial ?? "").trim(),
             ]),
           );
-          for (const f of fields) {
+          for (const f of visibleFields) {
             const input = form.current?.elements.namedItem(
               f.name,
             ) as HTMLInputElement | null;
@@ -146,8 +153,9 @@ export function SalesForm({
           }
         }}
       >
+        {children}
         <div className="grid gap-4 sm:grid-cols-2">
-          {fields.map((f) => {
+          {visibleFields.map((f) => {
             const props = {
               id: `sales-${f.name}`,
               name: f.name,

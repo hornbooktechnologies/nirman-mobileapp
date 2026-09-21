@@ -1,5 +1,6 @@
 import {
   Building2,
+  Bell,
   Grid2X2,
   HardHat,
   IdCard,
@@ -35,7 +36,7 @@ export interface NavGroup {
 export const navGroups: NavGroup[] = [
   {
     label: "Main",
-    items: [{ label: "Home", href: "/dashboard", icon: Grid2X2 }],
+    items: [{ label: "Home", href: "/dashboard", icon: Grid2X2 }, { label: "Notifications", href: "/notifications", icon: Bell, permission: "notifications:read" }],
   },
   {
     label: "Administration",
@@ -81,7 +82,10 @@ export const navGroups: NavGroup[] = [
   {
     label: "Sales",
     items: [
+      { label: "Bookings", href: "/sales/bookings", icon: Receipt, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
+      { label: "Inventory", href: "/sales/inventory", icon: Building2, permission: "inventory:read" },
       { label: "Leads", href: "/sales/leads", icon: UsersRound, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
+      { label: "Site Visits", href: "/sales/site-visits", icon: CalendarCheck, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
       { label: "Follow-ups", href: "/sales/follow-ups", icon: CalendarCheck, permissionAnyOf: ["leads:read-own", "leads:read-team", "leads:read-all"] },
     ],
   },

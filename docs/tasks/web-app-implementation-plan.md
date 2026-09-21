@@ -2,6 +2,14 @@
 
 ## 1. Status and objective
 
+- W8 Notifications: inbox, badge, read actions and authorized navigation implemented; focused verification, exact Gallery entry API gap and pending acceptance are tracked in [W8 Notifications parity](web-w8-notifications-parity.md).
+
+- W7d Bookings: Web list/detail, lead conversion, exact retries and cancellation/restoration are implemented; verification, API gaps and pending acceptance are tracked in [W7d Bookings parity](web-w7d-bookings-parity.md).
+
+- W7c Unit Inventory/Import/Holds/Blocking: Web workflows implemented; focused checks and remaining API/acceptance limitations are tracked in [W7c Inventory parity](web-w7c-inventory-parity.md).
+
+- W7b Site Visits: Web scheduling, filtered list/detail, rescheduling/outcomes and history links implemented; verification and API/acceptance limitations are tracked in [W7b Site Visits parity](web-w7b-site-visits-parity.md).
+
 - W7a Sales Leads/Activities/Follow-ups: Web implementation and focused tests are complete; API discrepancies and pending acceptance are tracked in [W7a Sales parity](web-w7a-sales-parity.md).
 
 - W6 Gallery: implemented in source; verification, pending acceptance and standalone entry-link API requirement are tracked in [W6 Gallery parity](web-w6-gallery-parity.md).

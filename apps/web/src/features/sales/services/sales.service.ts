@@ -11,11 +11,43 @@ import type {
   SalesActivity,
   SalesFollowUp,
   SalesLead,
+  SalesSiteVisit,
+  SiteVisitInput,
+  SiteVisitUpdate,
+  SiteVisitQuery,
 } from "../types/sales.types";
 const base = (o: string, p: string) =>
   `/organizations/${encodeURIComponent(o)}/projects/${encodeURIComponent(p)}/sales`;
 const id = encodeURIComponent;
 export const salesService = {
+  siteVisits: (
+    o: string,
+    p: string,
+    params: SiteVisitQuery = {},
+    signal?: AbortSignal,
+  ) =>
+    api.get<SalesSiteVisit[]>(`${base(o, p)}/site-visits`, { params, signal }),
+  createSiteVisit: (
+    o: string,
+    p: string,
+    lead: string,
+    input: SiteVisitInput,
+  ) =>
+    api.post<SalesSiteVisit>(
+      `${base(o, p)}/leads/${id(lead)}/site-visits`,
+      input,
+    ),
+  updateSiteVisit: (
+    o: string,
+    p: string,
+    lead: string,
+    visit: string,
+    input: SiteVisitUpdate,
+  ) =>
+    api.patch<SalesSiteVisit>(
+      `${base(o, p)}/leads/${id(lead)}/site-visits/${id(visit)}`,
+      input,
+    ),
   async leads(o: string, p: string, params: LeadQuery, signal?: AbortSignal) {
     // Preserve top-level pagination metadata; the generic API unwrap discards it.
     return (
