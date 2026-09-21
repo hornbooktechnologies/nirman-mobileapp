@@ -90,6 +90,9 @@ export function SalesScreen() {
   const { session } = useSession();
   const project = getActiveProject(session);
   const permissions = getActiveProjectPermissions(session);
+  const organizationId = session?.activeOrganization?.id;
+  const projectId = project?.id;
+  const accessToken = session?.accessToken;
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
   const [view, setView] = useState<ViewKey>('leads');
   const [items, setItems] = useState<ListItem[]>([]);
@@ -136,16 +139,19 @@ export function SalesScreen() {
         : formatInr(value, language, { maximumFractionDigits: 0 });
 
   const canReadLeads = permissions.some((permission) => permission === 'leads:read-own' || permission === 'leads:read-team' || permission === 'leads:read-all');
-  const availableViews = useMemo(() => [...(canReadLeads ? ['leads' as const] : []), ...(permissions.includes('followups:manage') ? ['followUps' as const] : []), ...(permissions.includes('site-visits:manage') ? ['visits' as const] : []), ...(permissions.includes('inventory:read') ? ['units' as const] : []), ...(canReadLeads ? ['bookings' as const] : [])], [canReadLeads, permissions]);
+  const canManageFollowUps = permissions.includes('followups:manage');
+  const canManageSiteVisits = permissions.includes('site-visits:manage');
+  const canReadInventory = permissions.includes('inventory:read');
+  const availableViews = useMemo(() => [...(canReadLeads ? ['leads' as const] : []), ...(canManageFollowUps ? ['followUps' as const] : []), ...(canManageSiteVisits ? ['visits' as const] : []), ...(canReadInventory ? ['units' as const] : []), ...(canReadLeads ? ['bookings' as const] : [])], [canManageFollowUps, canManageSiteVisits, canReadInventory, canReadLeads]);
 
   const load = useCallback(
     async (quiet = false) => {
-      if (!session?.activeOrganization || !project) return;
+      if (!organizationId || !projectId || !accessToken) return;
       if (!availableViews.includes(view)) return;
       quiet ? setRefreshing(true) : setLoading(true);
       setError(null);
       try {
-        const args = [session.activeOrganization.id, project.id, session.accessToken] as const;
+        const args = [organizationId, projectId, accessToken] as const;
         if (view === 'leads') setItems((await fetchLeads(...args, { search: deferredSearch })).data);
         if (view === 'followUps') setItems(await fetchFollowUps(...args));
         if (view === 'visits') setItems(await fetchSiteVisits(...args, { status: visitFilter }));
@@ -164,7 +170,7 @@ export function SalesScreen() {
         setRefreshing(false);
       }
     },
-    [availableViews, bookingFilter, deferredSearch, project, session, t, view, visitFilter],
+    [accessToken, availableViews, bookingFilter, deferredSearch, organizationId, projectId, t, view, visitFilter],
   );
 
   useEffect(() => {

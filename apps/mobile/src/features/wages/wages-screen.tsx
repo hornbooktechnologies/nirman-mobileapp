@@ -11,6 +11,7 @@ import {
   DateInput,
   EmptyState,
   FormField,
+  IconButton,
   LoadingState,
   NirmanScreenBackground,
   OperationalEntityCard,
@@ -47,6 +48,7 @@ const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 
 export function WagesScreen() {
   const { t } = useTranslation('wages');
+  const { t: tCommon } = useTranslation('common');
   const { language } = useLocalization();
   const { session } = useSession();
   const activeProject = getActiveProject(session);
@@ -140,7 +142,7 @@ export function WagesScreen() {
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="wages" />}>
-      <CompactScreenHeader title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
+      <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
       <ProjectContextCard compact showSwitchAction />
 
       {!activeProject || !projectId ? (

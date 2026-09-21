@@ -24,7 +24,6 @@ import {
   StatusBadge,
   getStatusTone,
 } from '../../components/ui';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { isValidDateOnly } from '../../lib/validation';
@@ -64,10 +63,14 @@ export function ProjectTeamScreen() {
   const { t: tCommon } = useTranslation('common');
   const { refreshSession, session, signOut } = useSession();
   const params = useLocalSearchParams<{ projectId?: string; tab?: string }>();
-  const project =
-    session?.projectAccess.projects.find((candidate) => candidate.id === params.projectId) ??
-    getActiveProject(session);
-  const permissions = project?.permissions ?? getActiveProjectPermissions(session);
+  const requestedProjectId = params.projectId ?? session?.activeProjectId ?? null;
+  const project = session?.projectAccess.projects.find(
+    (candidate) => candidate.id === requestedProjectId,
+  ) ?? null;
+  const permissions = project?.permissions ?? session?.permissions ?? [];
+  const organizationId = session?.activeOrganization?.id;
+  const projectId = project?.id;
+  const accessToken = session?.accessToken;
   const canReadMembers = permissions.includes('project-members:read');
   const canAssignMembers = permissions.includes('project-members:assign');
   const canUpdateMembers = permissions.includes('project-members:update');
@@ -86,19 +89,19 @@ export function ProjectTeamScreen() {
   const [actionMember, setActionMember] = useState<ProjectMember | null>(null);
 
   const load = useCallback(async () => {
-    if (!session?.accessToken || !session.activeOrganization || !project) return;
+    if (!accessToken || !organizationId || !projectId) return;
     setLoading(true);
     setError('');
     try {
       const [projectMembers, memberRows, roleRows] = await Promise.all([
         canReadMembers
-          ? fetchProjectMembers(session.activeOrganization.id, project.id, session.accessToken)
+          ? fetchProjectMembers(organizationId, projectId, accessToken)
           : Promise.resolve([]),
         canAssignMembers
-          ? fetchOrganizationMembers(session.activeOrganization.id, session.accessToken)
+          ? fetchOrganizationMembers(organizationId, accessToken)
           : Promise.resolve([]),
         canAssignMembers || canUpdateMembers
-          ? fetchOrganizationMemberRoles(session.activeOrganization.id, session.accessToken)
+          ? fetchOrganizationMemberRoles(organizationId, accessToken)
           : Promise.resolve([]),
       ]);
       setMembers(projectMembers);
@@ -116,7 +119,7 @@ export function ProjectTeamScreen() {
     } finally {
       setLoading(false);
     }
-  }, [canAssignMembers, canReadMembers, canUpdateMembers, project, refreshSession, session?.accessToken, session?.activeOrganization, signOut, t]);
+  }, [accessToken, canAssignMembers, canReadMembers, canUpdateMembers, organizationId, projectId, refreshSession, signOut, t]);
 
   useEffect(() => {
     void load();

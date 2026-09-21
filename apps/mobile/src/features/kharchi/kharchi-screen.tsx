@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, FilterGroup, FilterOption, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, StatusBadge } from '../../components/ui';
+import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, FilterGroup, FilterOption, IconButton, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, StatusBadge } from '../../components/ui';
 import { formatDate, formatInr, getLocalizedErrorMessage } from '../../i18n';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useLocalization, useSession } from '../../providers';
@@ -109,7 +109,7 @@ export function KharchiScreen() {
   }
 
   const header = <View style={styles.headerContent}>
-    <CompactScreenHeader title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} action={canCreate ? <Button label={t('create.shortAction')} fullWidth={false} size="sm" leadingIcon="plus" onPress={() => setCreateOpen(true)} /> : undefined} />
+    <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} action={canCreate ? <Button label={t('create.shortAction')} fullWidth={false} size="sm" leadingIcon="plus" onPress={() => setCreateOpen(true)} /> : undefined} />
     <ProjectContextCard compact showSwitchAction />
     {activeProject && activeProject.status !== 'ACTIVE' ? <Card style={styles.notice}><AppText style={styles.noticeText}>{t('screen.readOnly')}</AppText></Card> : null}
     {summary ? <Card style={styles.summary}><SummaryLine label={t('summary.outstanding')} value={formatInr(Number(summary.outstandingAmount), language)} emphasis /><SummaryLine label={t('summary.advances')} value={formatInr(Number(summary.effectiveAmount), language)} /><SummaryLine label={t('summary.deducted')} value={formatInr(Number(summary.deductedAmount), language)} />{Number(summary.adjustmentAmount) !== 0 ? <SummaryLine label={t('summary.adjustments')} value={formatInr(Number(summary.adjustmentAmount), language)} /> : null}</Card> : null}
@@ -130,8 +130,8 @@ export function KharchiScreen() {
     {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-delimited-outline" disabled={exporting} onPress={() => void exportCsv()} /> : null}
   </View>;
 
-  if (!activeProject || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
-  if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader title={t('screen.title')} subtitle={activeProject.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
+  if (!activeProject || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
+  if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
 
   return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />} scroll={false}>
     <FlatList

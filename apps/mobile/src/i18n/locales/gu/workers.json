@@ -6,6 +6,9 @@
     "noProjectDescription": "કામદારો ખોલતા પહેલાં હોમમાંથી પ્રોજેક્ટ પસંદ કરો."
   },
   "panel": {
+    "tradeFilterGroup": "કામનો પ્રકાર",
+    "allTrades": "બધા કામ",
+    "workingHereFilter": "અહીં કામ કરતા {{count}}",
     "projectWorkers": "પ્રોજેક્ટ કામદારો",
     "organizationWorkers": "ઓર્ગેનાઇઝેશન કામદારો",
     "assignedCount_one": "આ પ્રોજેક્ટમાં {{count}} સોંપેલ",
