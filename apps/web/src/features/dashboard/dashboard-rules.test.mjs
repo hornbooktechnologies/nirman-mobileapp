@@ -115,6 +115,7 @@ test("shared navigation respects CUSTOM grants and retains explicit project cont
     scopedNavigationHref("/sales/leads", "p"),
     "/projects/p/sales/leads",
   );
+  assert.equal(scopedNavigationHref("/wages", "p"), "/projects/p/wages");
   assert.equal(scopedNavigationHref("/organizations", "p"), "/organizations");
   assert.equal(
     projectNavigation({

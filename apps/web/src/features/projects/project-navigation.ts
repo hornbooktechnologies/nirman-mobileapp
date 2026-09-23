@@ -72,6 +72,7 @@ export function scopedNavigationHref(href: string, projectId: string) {
     return `${href}?projectId=${id}`;
   if (
     [
+      "/wages",
       "/kharchi",
       "/expenses",
       "/gallery",
