@@ -62,18 +62,18 @@ export function ProjectFormFields({
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <Input
+      <label className="grid gap-1 text-sm font-medium">Project name<Input
         placeholder="Project name"
         value={form.name}
         onChange={(event) => setForm({ ...form, name: event.target.value })}
         required
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Project code (optional)<Input
         placeholder="Project code"
         value={form.projectCode ?? ""}
         onChange={(event) => setForm({ ...form, projectCode: event.target.value })}
-      />
-      <Select
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Project type<Select
         value={form.type}
         onChange={(event) =>
           setForm({ ...form, type: event.target.value as ProjectType })
@@ -82,8 +82,8 @@ export function ProjectFormFields({
         {PROJECT_TYPES.map((type) => (
           <option key={type} value={type}>{type}</option>
         ))}
-      </Select>
-      <Select
+      </Select></label>
+      <label className="grid gap-1 text-sm font-medium">Project status<Select
         value={form.status}
         onChange={(event) =>
           setForm({ ...form, status: event.target.value as ProjectStatus })
@@ -92,36 +92,36 @@ export function ProjectFormFields({
         {statuses.map((status) => (
           <option key={status} value={status}>{status}</option>
         ))}
-      </Select>
-      <Input
+      </Select></label>
+      <label className="grid gap-1 text-sm font-medium">Address line 1<Input
         placeholder="Address line 1"
         value={form.address?.line1 ?? ""}
         onChange={(event) =>
           setForm({ ...form, address: { ...form.address, line1: event.target.value } })
         }
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Address line 2<Input
         placeholder="Address line 2"
         value={form.address?.line2 ?? ""}
         onChange={(event) =>
           setForm({ ...form, address: { ...form.address, line2: event.target.value } })
         }
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">City<Input
         placeholder="City"
         value={form.address?.city ?? ""}
         onChange={(event) =>
           setForm({ ...form, address: { ...form.address, city: event.target.value } })
         }
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">State<Input
         placeholder="State"
         value={form.address?.state ?? ""}
         onChange={(event) =>
           setForm({ ...form, address: { ...form.address, state: event.target.value } })
         }
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Postal code<Input
         placeholder="Postal code"
         value={form.address?.postalCode ?? ""}
         onChange={(event) =>
@@ -130,25 +130,24 @@ export function ProjectFormFields({
             address: { ...form.address, postalCode: event.target.value },
           })
         }
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Start date<Input
         type="date"
         value={form.startDate ?? ""}
         onChange={(event) => setForm({ ...form, startDate: event.target.value })}
-      />
-      <Input
+      /></label>
+      <label className="grid gap-1 text-sm font-medium">Expected completion date<Input
         type="date"
         value={form.expectedCompletionDate ?? ""}
         onChange={(event) =>
           setForm({ ...form, expectedCompletionDate: event.target.value })
         }
-      />
-      <Textarea
-        className="md:col-span-2"
+      /></label>
+      <label className="grid gap-1 text-sm font-medium md:col-span-2">Description<Textarea
         placeholder="Description"
         value={form.description ?? ""}
         onChange={(event) => setForm({ ...form, description: event.target.value })}
-      />
+      /></label>
     </div>
   );
 }

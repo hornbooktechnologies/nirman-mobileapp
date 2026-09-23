@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   FOLLOW_UP_TYPES,
@@ -30,6 +31,7 @@ import type {
 import { SiteVisitForm } from "./site-visit-form";
 import { BookingCreate } from "./booking-create";
 import { LeadInventory } from "./lead-inventory";
+import { safeLeadReturn, salesDetailUrl } from "../sales-view";
 function LeadDetail({
   c,
   id,
@@ -40,6 +42,7 @@ function LeadDetail({
   created?: boolean;
 }) {
   const live = useSalesLifetime();
+  const returnTo = safeLeadReturn(useSearchParams().get("returnTo"), c.project);
   const lead = useLead(c.org, c.project, id);
   const activities = useActivities(c.org, c.project, id, lead.isSuccess);
   const assignees = useAssignees(c);
@@ -86,13 +89,9 @@ function LeadDetail({
     setDialog(value);
   }
   const rows = [
-    ["Primary mobile", l.primaryMobile],
-    ["Alternate mobile", l.alternateMobile],
-    ["Email", l.email],
     ["Source", label(l.source)],
     ["Source detail", l.sourceDetail],
     ["Priority", label(l.priority)],
-    ["Assigned to", l.assignedToName ?? l.assignedTo],
     ["Created by", l.createdByName ?? l.createdBy],
     ["Preferred unit type", l.preferredUnitType],
     ["Interested unit", l.interestedUnitNumber ?? l.interestedUnitId],
@@ -108,8 +107,8 @@ function LeadDetail({
   ];
   return (
     <div className="space-y-5">
-      <Link className="underline" href={`/projects/${c.project}/sales/leads`}>
-        Back to leads
+      <Link className="underline" href={returnTo}>
+        Back to {returnTo.includes("/follow-ups") ? "follow-ups" : returnTo.includes("/site-visits") ? "site visits" : returnTo.includes("/inventory/") ? "unit" : returnTo.includes("/bookings/") ? "booking" : "leads"}
       </Link>
       <header className="flex flex-wrap justify-between gap-3">
         <div>
@@ -130,8 +129,18 @@ function LeadDetail({
         </Button>
       </header>
       {success && <p role="status">{success}</p>}
-      <div className="flex flex-wrap gap-3">
-        <BookingCreate c={c} lead={l} />
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Customer and owner</h2>
+        <dl className="grid gap-4 sm:grid-cols-3">
+          {[["Primary mobile", l.primaryMobile], ["Alternate mobile", l.alternateMobile], ["Email", l.email], ["Owner", l.assignedToName ?? l.assignedTo]].map(([name, value]) => (
+            <div key={name}><dt className="text-sm text-sub">{name}</dt><dd className="break-words font-medium">{value || "Not provided"}</dd></div>
+          ))}
+        </dl>
+      </Card>
+      <section className="space-y-3" aria-label="Customer actions">
+        <h2 className="text-lg font-semibold">Next actions</h2>
+        <div className="flex flex-wrap gap-3">
+        <BookingCreate c={c} lead={l} returnTo={salesDetailUrl(`/projects/${c.project}/sales/leads/${id}`, returnTo)} />
         {can("site-visits:manage") && (
           <Button variant="outline" onClick={() => open("visit")}>
             Schedule site visit
@@ -139,28 +148,27 @@ function LeadDetail({
         )}
         {can("leads:update") && (
           <>
-            <Button onClick={() => open("edit")}>Edit lead</Button>
-            <Button variant="outline" onClick={() => open("stage")}>
-              Change stage
-            </Button>
             <Button variant="outline" onClick={() => open("activity")}>
               Record activity
             </Button>
           </>
         )}
-        {c.active &&
-          c.permissions.includes(assignmentPermission(l.assignedTo)) && (
-            <Button variant="outline" onClick={() => open("assign")}>
-              {l.assignedTo ? "Reassign lead" : "Assign lead"}
-            </Button>
-          )}
         {can("followups:manage") && (
           <Button variant="outline" onClick={() => open("follow-up")}>
             Schedule follow-up
           </Button>
         )}
-      </div>
-      <Card>
+        </div>
+      </section>
+      <section className="space-y-3" aria-label="Lead administration">
+        <h2 className="text-lg font-semibold">Lead administration</h2>
+        <div className="flex flex-wrap gap-3">
+          {can("leads:update") && <><Button variant="outline" onClick={() => open("edit")}>Edit lead</Button><Button variant="outline" onClick={() => open("stage")}>Change stage</Button></>}
+          {c.active && c.permissions.includes(assignmentPermission(l.assignedTo)) && <Button variant="outline" onClick={() => open("assign")}>{l.assignedTo ? "Reassign lead" : "Assign lead"}</Button>}
+        </div>
+      </section>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Lead preferences and history</h2>
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map(([name, value]) => (
             <div key={name} className="min-w-0">
@@ -389,8 +397,10 @@ export function LeadDetailPage({
   created?: boolean;
 }) {
   return (
-    <SalesWorkspace projectId={projectId} section="leads">
-      {(c) => <LeadDetail key={leadId} c={c} id={leadId} created={created} />}
-    </SalesWorkspace>
+    <Suspense fallback={<LoadingState label="Loading lead" />}>
+      <SalesWorkspace projectId={projectId} section="leads">
+        {(c) => <LeadDetail key={leadId} c={c} id={leadId} created={created} />}
+      </SalesWorkspace>
+    </Suspense>
   );
 }

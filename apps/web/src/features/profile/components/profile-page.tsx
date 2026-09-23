@@ -102,6 +102,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                   {updateProfile.isPending ? "Saving" : "Save Profile"}
                 </Button>
               </div>
+              {updateProfile.isSuccess && <p role="status" className="mt-2 text-sm text-success">Profile saved.</p>}
+              {updateProfile.isError && <p role="alert" className="mt-2 text-sm text-danger">{updateProfile.error instanceof Error ? updateProfile.error.message : "Unable to save profile."}</p>}
             </form>
           </Card>
 
@@ -121,6 +123,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                   <p className="text-[14px] text-body">{profile.role.name}</p>
                 </div>
               </div>
+              <p className="mt-4 text-sm text-sub">Changing your password signs you out. Sign in again with the new password.</p>
               <form
                 className="mt-6 flex flex-1 flex-col"
                 onSubmit={handlePasswordSubmit}

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -35,18 +36,48 @@ export class MaterialsService {
     projectId: string,
     actor: AuthenticatedUser,
   ) {
-    await this.access(actor, organizationId, projectId, "materials:read");
+    const access = await this.access(
+      actor,
+      organizationId,
+      projectId,
+      "materials:read",
+    );
+    const members = await this.repository.approvalMembers(
+      organizationId,
+      projectId,
+    );
+    const responsibility = {
+      canManageApprovers: this.isOrganizationOwner(access),
+      approvalMembers: members.map((member) => ({
+        memberId: member.memberId,
+        name: member.name,
+        roleName: member.roleName,
+        isOwner: Boolean(member.isOwner),
+        delegated: Boolean(member.delegated),
+        canApprove: Boolean(member.canApprove),
+      })),
+    };
     const settings = await this.repository.findSettings(
       organizationId,
       projectId,
     );
     return settings
-      ? { ...settings, configured: true }
+      ? {
+          ...settings,
+          workflowMode:
+            settings.workflowMode === "VERIFY_THEN_FINAL"
+              ? "FINAL_APPROVAL"
+              : settings.workflowMode,
+          ...responsibility,
+          configured: true,
+        }
       : {
           organizationId,
           projectId,
           workflowMode: null,
           configured: false,
+          version: 0,
+          ...responsibility,
         };
   }
 
@@ -63,13 +94,18 @@ export class MaterialsService {
       "materials:configure",
     );
     this.assertActiveProject(access.project.status);
-    const settings = await this.repository.upsertSettings(
-      organizationId,
-      projectId,
-      dto,
-      actor.id,
+    if (
+      dto.approverMemberIds !== undefined &&
+      !this.isOrganizationOwner(access)
+    ) {
+      throw new ForbiddenException(
+        "Only the organization owner may delegate Materials approval",
+      );
+    }
+    await this.translate(() =>
+      this.repository.upsertSettings(organizationId, projectId, dto, actor.id),
     );
-    return { ...settings, configured: true };
+    return this.findSettings(organizationId, projectId, actor);
   }
 
   async findMany(
@@ -116,7 +152,7 @@ export class MaterialsService {
       detail,
       access.membership.id,
       access.permissions,
-      this.isBuilderOwner(access),
+      this.isOrganizationOwner(access),
     );
   }
 
@@ -159,11 +195,13 @@ export class MaterialsService {
           this.normalizeCreate(dto),
           actor.id,
           access.membership.id,
-          settings.workflowMode,
+          settings.workflowMode === "VERIFY_THEN_FINAL"
+            ? "FINAL_APPROVAL"
+            : settings.workflowMode,
         ),
         access.membership.id,
         access.permissions,
-        this.isBuilderOwner(access),
+        this.isOrganizationOwner(access),
       ),
     );
   }
@@ -201,7 +239,7 @@ export class MaterialsService {
         ),
         access.membership.id,
         access.permissions,
-        this.isBuilderOwner(access),
+        this.isOrganizationOwner(access),
       ),
     );
   }
@@ -223,54 +261,36 @@ export class MaterialsService {
       {
         allowedFrom: ["DRAFT", "RETURNED_FOR_CHANGES"],
         nextStatus: (row) =>
-          row.workflowMode === "DIRECT"
-            ? "APPROVED"
-            : row.workflowMode === "FINAL_APPROVAL"
-              ? "PENDING_FINAL"
-              : "PENDING_VERIFICATION",
+          row.workflowMode === "DIRECT" ? "APPROVED" : "PENDING_FINAL",
+        requireRequesterUnlessElevated: true,
         eventType: "SUBMITTED",
         auditAction: "materials.request.submitted",
         notification: (nextStatus) =>
-          nextStatus === "PENDING_VERIFICATION"
+          nextStatus === "PENDING_FINAL"
             ? {
-                permission: "materials:approve-level-1" as const,
-                type: "MATERIAL_VERIFICATION_REQUIRED",
+                permission: "materials:approve-final" as const,
+                type: "MATERIAL_FINAL_APPROVAL_REQUIRED",
               }
-            : nextStatus === "PENDING_FINAL"
-              ? {
-                  permission: "materials:approve-final" as const,
-                  type: "MATERIAL_FINAL_APPROVAL_REQUIRED",
-                }
-              : null,
+            : null,
       },
     );
   }
 
-  verify(
+  async verify(
     organizationId: string,
     projectId: string,
     materialRequestId: string,
     dto: MaterialCommandDto,
     actor: AuthenticatedUser,
   ) {
-    return this.command(
-      organizationId,
-      projectId,
-      materialRequestId,
-      dto,
-      actor,
-      "materials:approve-level-1",
-      {
-        allowedFrom: ["PENDING_VERIFICATION"],
-        nextStatus: "PENDING_FINAL",
-        eventType: "VERIFIED",
-        auditAction: "materials.request.verified",
-        preventRequesterAction: true,
-        notification: () => ({
-          permission: "materials:approve-final",
-          type: "MATERIAL_FINAL_APPROVAL_REQUIRED",
-        }),
-      },
+    await this.access(actor, organizationId, projectId, "materials:read");
+    void materialRequestId;
+    void dto;
+    throw new BadRequestException(
+      this.error(
+        "MATERIAL_STATUS_TRANSITION_INVALID",
+        "Verification has been retired. Refresh the request for final approval.",
+      ),
     );
   }
 
@@ -288,7 +308,7 @@ export class MaterialsService {
       materialRequestId,
       dto,
       actor,
-      "materials:reject",
+      "materials:approve-final",
       {
         allowedFrom: ["PENDING_VERIFICATION", "PENDING_FINAL"],
         nextStatus: "RETURNED_FOR_CHANGES",
@@ -337,7 +357,7 @@ export class MaterialsService {
       materialRequestId,
       dto,
       actor,
-      "materials:reject",
+      "materials:approve-final",
       {
         allowedFrom: ["PENDING_VERIFICATION", "PENDING_FINAL"],
         nextStatus: "REJECTED",
@@ -411,7 +431,7 @@ export class MaterialsService {
         ),
         access.membership.id,
         access.permissions,
-        this.isBuilderOwner(access),
+        this.isOrganizationOwner(access),
       ),
     );
   }
@@ -442,7 +462,7 @@ export class MaterialsService {
         ),
         access.membership.id,
         access.permissions,
-        this.isBuilderOwner(access),
+        this.isOrganizationOwner(access),
       ),
     );
   }
@@ -566,44 +586,66 @@ export class MaterialsService {
           preventRequesterAction: config.preventRequesterAction,
           requireRequesterUnlessElevated: config.requireRequesterUnlessElevated,
           actorElevated: access.permissions.includes("materials:approve-final"),
-          actorIsBuilderOwner: this.isBuilderOwner(access),
+          actorIsOrganizationOwner: this.isOrganizationOwner(access),
           notificationPermission: notification?.permission,
           notificationType: notification?.type,
         }),
         access.membership.id,
         access.permissions,
-        this.isBuilderOwner(access),
+        this.isOrganizationOwner(access),
       ),
     );
   }
 
-  private withAvailableActions<
+  private async withAvailableActions<
     TDetail extends {
       status: MaterialRequestStatus;
       requestedByMemberId: string;
+      organizationId?: string;
+      projectId?: string;
     },
   >(
     detail: TDetail | null,
     actorMemberId: string,
     permissions: readonly PermissionKey[],
-    isBuilderOwner: boolean,
+    isOrganizationOwner: boolean,
   ) {
     if (!detail) throw this.notFound();
+    const members =
+      detail.organizationId && detail.projectId
+        ? await this.repository.approvalMembers(
+            detail.organizationId,
+            detail.projectId,
+          )
+        : [];
     return {
       ...detail,
+      approvalResponsibility: members
+        .filter(
+          (m) =>
+            m.canApprove &&
+            (m.memberId !== detail.requestedByMemberId || m.isOwner),
+        )
+        .map((m) => ({
+          memberId: m.memberId,
+          name: m.name,
+          roleName: m.roleName,
+        })),
       availableActions: this.availableActions(
         detail.status,
         detail.requestedByMemberId === actorMemberId,
         permissions,
-        isBuilderOwner,
+        isOrganizationOwner,
       ),
     };
   }
 
-  private isBuilderOwner(access: ResolvedProjectAccess): boolean {
+  private isOrganizationOwner(access: ResolvedProjectAccess): boolean {
     return (
-      access.organization?.type === "BUILDER" &&
-      access.membership.role?.name === "Organization Owner" &&
+      ((access.organization?.type === "BUILDER" &&
+        access.membership.role?.name === "Organization Owner") ||
+        (access.organization?.type === "CONTRACTOR" &&
+          access.membership.role?.name === "Independent Contractor Owner")) &&
       access.permissions.includes("materials:approve-final")
     );
   }
@@ -626,34 +668,30 @@ export class MaterialsService {
     status: MaterialRequestStatus,
     isRequester: boolean,
     permissions: readonly PermissionKey[],
-    isBuilderOwner: boolean,
+    isOrganizationOwner: boolean,
   ) {
     const has = (permission: PermissionKey) => permissions.includes(permission);
     const actions: string[] = [];
     if (
       ["DRAFT", "RETURNED_FOR_CHANGES"].includes(status) &&
-      has("materials:update")
+      has("materials:update") &&
+      (isRequester || has("materials:approve-final"))
     ) {
       actions.push("EDIT", "SUBMIT", "CANCEL");
     }
     if (
-      status === "PENDING_VERIFICATION" &&
-      !isRequester &&
-      has("materials:approve-level-1")
-    ) {
-      actions.push("VERIFY");
-    }
-    if (
       ["PENDING_VERIFICATION", "PENDING_FINAL"].includes(status) &&
       !isRequester &&
-      has("materials:reject")
+      has("materials:approve-final")
     ) {
       actions.push("RETURN", "REJECT");
     }
     if (
       (status === "PENDING_FINAL" ||
-        (status === "PENDING_VERIFICATION" && isRequester && isBuilderOwner)) &&
-      (!isRequester || isBuilderOwner) &&
+        (status === "PENDING_VERIFICATION" &&
+          isRequester &&
+          isOrganizationOwner)) &&
+      (!isRequester || isOrganizationOwner) &&
       has("materials:approve-final")
     ) {
       actions.push("APPROVE");
@@ -672,7 +710,8 @@ export class MaterialsService {
     }
     if (
       ["PENDING_VERIFICATION", "PENDING_FINAL", "APPROVED"].includes(status) &&
-      has("materials:update")
+      has("materials:update") &&
+      (isRequester || has("materials:approve-final"))
     ) {
       actions.push("CANCEL");
     }
@@ -707,6 +746,7 @@ export class MaterialsService {
       const badRequestCodes: ErrorCode[] = [
         "MATERIAL_STATUS_TRANSITION_INVALID",
         "MATERIAL_ACTION_NOT_ALLOWED",
+        "MATERIAL_APPROVER_REQUIRED",
         "MATERIAL_SELF_APPROVAL_FORBIDDEN",
         "MATERIAL_RESPONSIBLE_MEMBER_INVALID",
         "MATERIAL_PROJECT_ASSIGNMENT_INVALID",
@@ -826,6 +866,8 @@ export class MaterialsService {
 
   private message(code: string) {
     const messages: Record<string, string> = {
+      MATERIAL_APPROVER_REQUIRED:
+        "No eligible approver is available. Ask the organization owner to grant project Materials approval.",
       MATERIAL_STATUS_TRANSITION_INVALID:
         "This Materials action is not valid in the current state",
       MATERIAL_SELF_APPROVAL_FORBIDDEN:

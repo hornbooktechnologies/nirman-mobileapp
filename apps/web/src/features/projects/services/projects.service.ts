@@ -1,3 +1,4 @@
+import { normalizeProjectsResponse } from "../project-list-response";
 import { api } from "@/lib/api/api-client";
 import type {
   PaginatedProjects,
@@ -19,44 +20,6 @@ function queryString(query?: ProjectQuery) {
   });
   const serialized = params.toString();
   return serialized ? `?${serialized}` : "";
-}
-
-function normalizeProjectsResponse(
-  response: PaginatedProjects | PaginatedProjects["data"] | null | undefined,
-): PaginatedProjects {
-  if (Array.isArray(response)) {
-    return {
-      data: response,
-      meta: {
-        total: response.length,
-        page: 1,
-        pageSize: response.length,
-        pageCount: response.length > 0 ? 1 : 0,
-      },
-    };
-  }
-
-  if (!response) {
-    return {
-      data: [],
-      meta: {
-        total: 0,
-        page: 1,
-        pageSize: 0,
-        pageCount: 0,
-      },
-    };
-  }
-
-  return {
-    data: Array.isArray(response.data) ? response.data : [],
-    meta: response.meta ?? {
-      total: Array.isArray(response.data) ? response.data.length : 0,
-      page: 1,
-      pageSize: Array.isArray(response.data) ? response.data.length : 0,
-      pageCount: Array.isArray(response.data) && response.data.length > 0 ? 1 : 0,
-    },
-  };
 }
 
 export const projectsService = {

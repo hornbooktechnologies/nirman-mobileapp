@@ -3,8 +3,8 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { LoadingState } from "@/components/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import {
   Button,
   Card,
@@ -12,6 +12,7 @@ import {
   IconButton,
   NotificationBanner,
   PageHeader,
+  StatusBadge,
   Table,
   TableBody,
   TableCell,
@@ -25,9 +26,15 @@ import {
   useRoles,
 } from "@/features/user-management/hooks/use-user-management";
 import type { Role } from "@/features/user-management/types/user-management.types";
+import { AdministrationFilters } from "@/features/administration/administration-filters";
+import { administrationDetailUrl, administrationListUrl } from "@/features/administration/administration-list";
 
-export function RoleListPage() {
+function RoleList() {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const search = (params.get("search") ?? "").slice(0, 160);
+  const kind = ["system", "custom"].includes(params.get("kind") ?? "") ? params.get("kind")! : "";
   const { hasPermission } = useAuth();
   const roles = useRoles();
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
@@ -35,6 +42,10 @@ export function RoleListPage() {
   const canCreate = hasPermission("platform-roles:create");
   const canUpdate = hasPermission("platform-roles:update");
   const canDelete = hasPermission("platform-roles:delete");
+  const visible = (roles.data ?? []).filter((role) =>
+    (!kind || (kind === "system" ? role.isSystem : !role.isSystem)) &&
+    `${role.name} ${role.description ?? ""}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+  );
 
   async function confirmDelete() {
     if (!deleteTarget) return;
@@ -49,11 +60,19 @@ export function RoleListPage() {
         description="View system role templates and manage custom permission sets."
         actions={
           canCreate ? (
-            <Link href="/roles/new">
+            <Link href={administrationDetailUrl("/roles/new", administrationListUrl(pathname, params, {}))}>
               <Button>Add Role</Button>
             </Link>
           ) : undefined
         }
+      />
+      <AdministrationFilters
+        name="roles"
+        scope="System roles are protected templates. Custom role changes affect assigned users. Search and type filter the retrieved list."
+        search={{ value: search, placeholder: "Role name or description", onChange: (value) => router.replace(administrationListUrl(pathname, params, { search: value }), { scroll: false }) }}
+        value={{ kind }}
+        fields={[{ key: "kind", label: "Role type", options: [{ value: "system", label: "System template" }, { value: "custom", label: "Custom role" }] }]}
+        onApply={(value) => router.replace(administrationListUrl(pathname, params, value), { scroll: false })}
       />
 
       {deleteRole.isError ? (
@@ -72,8 +91,11 @@ export function RoleListPage() {
         {roles.isLoading ? (
           <LoadingState label="Loading roles" />
         ) : roles.isError ? (
-          "Unable to load roles"
+          <p role="alert">Unable to load roles. <Button variant="outline" onClick={() => void roles.refetch()}>Retry</Button></p>
         ) : (
+          <>
+          <p className="mb-3 text-sm text-sub">{visible.length} matching roles</p>
+          {!visible.length ? <p className="text-sm text-sub">No roles match this view.</p> :
           <Table>
             <TableHeader>
               <TableRow>
@@ -84,12 +106,13 @@ export function RoleListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {roles.data?.map((role) => {
+              {visible.map((role) => {
                 const assignedUsers = role.userCount ?? 0;
                 return (
                   <TableRow key={role.id}>
                     <TableCell>
-                      <Link href={`/roles/${role.id}`}>{role.name}</Link>
+                      <Link className="break-words underline" href={administrationDetailUrl(`/roles/${role.id}`, administrationListUrl(pathname, params, {}))}>{role.name}</Link>
+                      <div className="mt-1"><StatusBadge tone={role.isSystem ? "info" : "active"}>{role.isSystem ? "System template" : "Custom role"}</StatusBadge></div>
                     </TableCell>
                     <TableCell>{assignedUsers}</TableCell>
                     <TableCell>{role.permissionCount ?? 0}</TableCell>
@@ -101,7 +124,7 @@ export function RoleListPage() {
                             variant="ghost"
                             aria-label={`Edit ${role.name}`}
                             title={`Edit ${role.name}`}
-                            onClick={() => router.push(`/roles/${role.id}`)}
+                            onClick={() => router.push(administrationDetailUrl(`/roles/${role.id}`, administrationListUrl(pathname, params, {})))}
                           >
                             <Pencil size={15} aria-hidden="true" />
                           </IconButton>
@@ -130,6 +153,8 @@ export function RoleListPage() {
               })}
             </TableBody>
           </Table>
+          }
+          </>
         )}
       </Card>
 
@@ -162,4 +187,8 @@ export function RoleListPage() {
       </Dialog>
     </div>
   );
+}
+
+export function RoleListPage() {
+  return <Suspense fallback={<LoadingState label="Loading roles" />}><RoleList /></Suspense>;
 }

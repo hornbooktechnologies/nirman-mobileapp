@@ -1,10 +1,11 @@
 export const MATERIAL_WORKFLOW_MODES = [
   "DIRECT",
   "FINAL_APPROVAL",
-  "VERIFY_THEN_FINAL",
 ] as const;
 
 export type MaterialWorkflowMode = (typeof MATERIAL_WORKFLOW_MODES)[number];
+// Historical snapshots remain readable after verification is retired.
+export type MaterialWorkflowSnapshot = MaterialWorkflowMode | "VERIFY_THEN_FINAL";
 
 export const MATERIAL_REQUEST_STATUSES = [
   "DRAFT",
@@ -39,6 +40,7 @@ export const MATERIAL_UNITS = [
 export type MaterialUnit = (typeof MATERIAL_UNITS)[number];
 
 export const MATERIAL_EVENT_TYPES = [
+  "WORKFLOW_MIGRATED",
   "CREATED",
   "UPDATED",
   "SUBMITTED",

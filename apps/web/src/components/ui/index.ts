@@ -3,6 +3,7 @@ export * from "./button";
 export * from "./card";
 export * from "./checkbox";
 export * from "./chip";
+export * from "./collection-toolbar";
 export * from "./data-table";
 export * from "./dialog";
 export * from "./drawer";

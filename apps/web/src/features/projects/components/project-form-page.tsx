@@ -17,12 +17,18 @@ export function ProjectFormPage() {
   const { activeOrganizationId } = useAuth();
   const organizationId = activeOrganizationId ?? "";
   const [form, setForm] = useState(emptyProjectForm);
+  const [error, setError] = useState("");
   const createProject = useCreateProject(organizationId);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const project = await createProject.mutateAsync(normalizeProjectInput(form));
-    router.push(`/projects/${project.id}`);
+    setError("");
+    try {
+      const project = await createProject.mutateAsync(normalizeProjectInput(form));
+      router.push(`/projects/${project.id}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to create project.");
+    }
   }
 
   return (
@@ -36,6 +42,7 @@ export function ProjectFormPage() {
         <Card>
           <form className="space-y-4" onSubmit={submit}>
             <ProjectFormFields form={form} setForm={setForm} />
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <Button type="submit" disabled={!organizationId || createProject.isPending}>
               {createProject.isPending ? "Creating" : "Create Project"}
             </Button>

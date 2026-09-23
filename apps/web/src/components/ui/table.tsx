@@ -9,7 +9,7 @@ export const Table = forwardRef<
     <table
       ref={ref}
       className={cn(
-        "w-full min-w-[640px] border-collapse text-left text-[13.5px]",
+        "w-full min-w-[640px] border-collapse text-left text-sm leading-6",
         className,
       )}
       {...props}
@@ -44,7 +44,7 @@ export const TableRow = forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "transition-colors duration-150 hover:bg-sunken/40",
+      "transition-colors duration-150 motion-reduce:transition-none hover:bg-sunken/40",
       className,
     )}
     {...props}
@@ -60,7 +60,7 @@ export const TableHead = forwardRef<
   <th
     ref={ref}
     className={cn(
-      "whitespace-nowrap px-4 py-3 text-[11px] font-bold uppercase tracking-[0.8px] text-sub",
+      "whitespace-nowrap px-4 py-3 text-[13px] font-medium text-sub",
       className,
     )}
     {...props}

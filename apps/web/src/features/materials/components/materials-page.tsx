@@ -12,11 +12,11 @@ import {
   Button,
   Card,
   Dialog,
-  Input,
   LoadingState,
   Select,
 } from "@/components/ui";
 import { projectsService } from "@/features/projects/services/projects.service";
+import { validDate } from "@/features/attendance/date-utils";
 import {
   useMaterials,
   useMaterialSettings,
@@ -33,6 +33,8 @@ import {
   type MaterialsContext,
 } from "./materials-workspace";
 import { MaterialForm } from "./material-form";
+import { MaterialsCollectionFilters, defaultMaterialsQuery } from "./materials-collection-filters";
+import { financialListHref } from "@/features/financial-return";
 import { date, Failure, MaterialStatus, money } from "./materials-ui";
 
 export function MaterialsPage({ projectId }: { projectId?: string }) {
@@ -52,8 +54,8 @@ function List({ context }: { context: MaterialsContext }) {
     pageSize: 20,
     search: params.get("search")?.slice(0, 160) || undefined,
     status: MATERIAL_REQUEST_STATUSES.find((s) => s === params.get("status")),
-    requiredFrom: params.get("requiredFrom") || undefined,
-    requiredTo: params.get("requiredTo") || undefined,
+    requiredFrom: validDate(params.get("requiredFrom") ?? "") ? params.get("requiredFrom")! : undefined,
+    requiredTo: validDate(params.get("requiredTo") ?? "") ? params.get("requiredTo")! : undefined,
     requestedByMemberId: params.get("requestedByMemberId") || undefined,
     responsibleContractorMemberId:
       params.get("responsibleContractorMemberId") || undefined,
@@ -126,8 +128,6 @@ function List({ context }: { context: MaterialsContext }) {
       setNotice("Materials CSV downloaded.");
     },
   });
-  const filter = (key: keyof MaterialsQuery, value: string) =>
-    setQuery((q) => ({ ...q, [key]: value || undefined, page: 1 }));
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -220,172 +220,18 @@ function List({ context }: { context: MaterialsContext }) {
         </section>
       )}
       <Card className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label>
-            Search
-            <Input
-              maxLength={160}
-              value={search}
-              placeholder="Material or category"
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-          <label>
-            Status
-            <Select
-              value={query.status ?? ""}
-              onChange={(e) => filter("status", e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {MATERIAL_REQUEST_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {label(s)}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label>
-            Required from
-            <Input
-              type="date"
-              value={query.requiredFrom ?? ""}
-              onChange={(e) => filter("requiredFrom", e.target.value)}
-            />
-          </label>
-          <label>
-            Required to
-            <Input
-              type="date"
-              min={query.requiredFrom}
-              value={query.requiredTo ?? ""}
-              onChange={(e) => filter("requiredTo", e.target.value)}
-            />
-          </label>
-          <label>
-            Sort by
-            <Select
-              value={query.sortBy}
-              onChange={(e) => filter("sortBy", e.target.value)}
-            >
-              {[
-                "updatedAt",
-                "requestedOn",
-                "requiredByDate",
-                "materialName",
-              ].map((s, i) => (
-                <option key={s} value={s}>
-                  {
-                    [
-                      "Last updated",
-                      "Request date",
-                      "Required date",
-                      "Material name",
-                    ][i]
-                  }
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label>
-            Order
-            <Select
-              value={query.sortOrder}
-              onChange={(e) => filter("sortOrder", e.target.value)}
-            >
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </Select>
-          </label>
-        </div>
-        {context.permissions.includes("project-members:read") && (
-          <details>
-            <summary className="cursor-pointer py-2 font-medium">
-              Member filters
-            </summary>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label>
-                Find member
-                <Input
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                />
-              </label>
-              {(
-                [
-                  "requestedByMemberId",
-                  "responsibleContractorMemberId",
-                ] as const
-              ).map((key, i) => (
-                <label key={key}>
-                  {i === 0 ? "Requested by" : "Responsible member"}
-                  <Select
-                    value={query[key] ?? ""}
-                    onChange={(e) => filter(key, e.target.value)}
-                  >
-                    <option value="">All members</option>
-                    {query[key] &&
-                      !members.data?.some((m) => m.memberId === query[key]) && (
-                        <option value={query[key]}>
-                          Selected member ({query[key]})
-                        </option>
-                      )}
-                    {members.data
-                      ?.filter(
-                        (m) =>
-                          m.memberId === query[key] ||
-                          m.user.name
-                            .toLowerCase()
-                            .includes(memberSearch.toLowerCase()),
-                      )
-                      .map((m) => (
-                        <option key={m.memberId} value={m.memberId}>
-                          {m.user.name}
-                        </option>
-                      ))}
-                  </Select>
-                </label>
-              ))}
-            </div>
-            {members.isPending && <p role="status">Loading members…</p>}
-            {members.isError && (
-              <Failure
-                error={members.error}
-                retry={() => void members.refetch()}
-              />
-            )}
-          </details>
-        )}
+        <MaterialsCollectionFilters
+          query={query} search={search} onSearch={setSearch}
+          onApply={setQuery} members={members.data ?? []}
+          canReadMembers={context.permissions.includes("project-members:read")}
+          memberSearch={memberSearch} onMemberSearch={setMemberSearch}
+          memberState={<>{members.isPending && <p role="status">Loading members…</p>}{members.isError && <Failure error={members.error} retry={() => void members.refetch()} />}</>}
+        />
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearch("");
-              setMemberSearch("");
-              setQuery({
-                page: 1,
-                pageSize: 20,
-                sortBy: "updatedAt",
-                sortOrder: "desc",
-              });
-            }}
-          >
-            Clear filters
-          </Button>
-          {can("export") && (
-            <Button
-              variant="outline"
-              disabled={exporting.isPending}
-              onClick={() => exporting.mutate()}
-            >
-              {exporting.isPending ? "Preparing CSV…" : "Export filtered CSV"}
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => { setSearch(""); setMemberSearch(""); setQuery(defaultMaterialsQuery); }}>Clear all</Button>
+          {can("export") && <Button variant="outline" disabled={exporting.isPending} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing CSV…" : "Export filtered CSV"}</Button>}
         </div>
-        {exporting.isError && (
-          <p role="alert" className="text-danger">
-            {exporting.error.message} Use Export filtered CSV to retry.
-          </p>
-        )}
+        {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered CSV to retry.</p>}
       </Card>
       {list.isPending ? (
         <LoadingState label="Loading requests" />
@@ -408,7 +254,7 @@ function List({ context }: { context: MaterialsContext }) {
                 <Link
                   className="block min-w-0 rounded-card focus-visible:outline-2 focus-visible:outline-lime"
                   key={item.id}
-                  href={`/projects/${context.project}/materials/${item.id}`}
+                  href={`/projects/${context.project}/materials/${item.id}?returnTo=${encodeURIComponent(financialListHref(context.project, "materials", query))}`}
                 >
                   <Card className="h-full space-y-3 hover:border-lime">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -421,11 +267,10 @@ function List({ context }: { context: MaterialsContext }) {
                       {item.category ?? "Uncategorized"} · Requested by{" "}
                       {item.requestedBy}
                     </p>
-                    <p className="font-semibold tabular-nums">
-                      {item.deliveredQuantity} / {item.requestedQuantity}{" "}
-                      {item.customUnitLabel ?? label(item.unitOfMeasure)}{" "}
-                      delivered
-                    </p>
+                    <p className="text-sm text-sub">{item.status === "PENDING_FINAL" ? "Awaiting final approval" : item.status === "APPROVED" ? "Approved; purchase can be recorded" : item.status === "ORDERED" ? "Ordered; delivery can be recorded" : item.status === "PARTIALLY_DELIVERED" ? "Partially delivered" : item.status === "DELIVERED" ? "Delivered in full" : "Open request detail for permitted actions"}</p>
+                    <dl className="grid grid-cols-2 gap-2 text-sm tabular-nums sm:grid-cols-4">
+                      {[["Requested", item.requestedQuantity], ["Ordered", item.orderedQuantity], ["Delivered", item.deliveredQuantity], ["Outstanding", item.remainingQuantity]].map(([title, value]) => <div key={title}><dt className="text-sub">{title}</dt><dd className="font-semibold">{value} {item.customUnitLabel ?? label(item.unitOfMeasure)}</dd></div>)}
+                    </dl>
                     <div className="flex flex-wrap justify-between gap-2 text-sm">
                       <span>Required: {date(item.requiredByDate)}</span>
                       <span>Purchased: {money(item.totalPurchaseCost)}</span>
@@ -510,11 +355,12 @@ function Settings({
   const [mode, setMode] = useState<MaterialWorkflowMode>(
     settings.workflowMode ?? "DIRECT",
   );
+  const [approvers, setApprovers] = useState<string[]>(settings.approvalMembers?.filter((m) => m.delegated).map((m) => m.memberId) ?? []);
   const cache = useQueryClient();
   const mutation = useMutation({
     retry: false,
     mutationFn: () =>
-      materialsService.configure(context.org, context.project, mode),
+      materialsService.configure(context.org, context.project, mode, settings.canManageApprovers ? approvers : undefined, settings.version),
     onSuccess: () => {
       void cache.invalidateQueries({
         queryKey: materialKey(context.org, context.project),
@@ -525,7 +371,7 @@ function Settings({
   const cancel = () => {
     if (
       !mutation.isPending &&
-      (mode === settings.workflowMode ||
+      ((mode === settings.workflowMode && JSON.stringify(approvers) === JSON.stringify(settings.approvalMembers?.filter((m) => m.delegated).map((m) => m.memberId) ?? [])) ||
         window.confirm("Discard workflow changes?"))
     )
       close();
@@ -534,7 +380,7 @@ function Settings({
     <Dialog
       open
       title="Materials workflow"
-      description="Applies to new requests only. Existing requests retain their workflow."
+      description="Workflow changes apply to new requests. Approval delegation applies to all pending requests in this project."
       onOpenChange={cancel}
       footer={
         <>
@@ -556,9 +402,10 @@ function Settings({
     >
       <div className="space-y-4 text-base">
         {mutation.isError && (
-          <p role="alert" className="text-danger">
-            {mutation.error.message}
-          </p>
+          <div className="space-y-2">
+            <p role="alert" className="text-danger">{mutation.error.message}</p>
+            <Button variant="outline" onClick={() => { void cache.invalidateQueries({ queryKey: materialKey(context.org, context.project) }); close(); }}>Close and refresh settings</Button>
+          </div>
         )}
         <label>
           Workflow *
@@ -577,10 +424,19 @@ function Settings({
         <p>
           {mode === "DIRECT"
             ? "Submission approves the request directly."
-            : mode === "FINAL_APPROVAL"
-              ? "Submission requires final commercial approval by another authorized member."
-              : "Submission requires verification, then final commercial approval. The requester cannot approve their own request."}
+            : "The Owner or a delegated project approver makes the final decision. The first decision completes the review. Owners can approve their own requests; delegates cannot."}
         </p>
+        <fieldset className="space-y-3" disabled={mutation.isPending || !settings.canManageApprovers}>
+          <legend className="font-semibold">Delegated project approvers</legend>
+          <p className="text-sm text-muted-foreground">Only the organization Owner can grant or revoke approval. Members need active project access and Materials read access.</p>
+          {(settings.approvalMembers ?? []).filter((m) => m.isOwner && m.canApprove).map((m) => <p key={m.memberId}>{m.name} — Owner</p>)}
+          {(settings.approvalMembers ?? []).filter((m) => !m.isOwner).map((m) => (
+            <label key={m.memberId} className="flex min-h-11 items-center gap-3">
+              <input type="checkbox" checked={approvers.includes(m.memberId)} onChange={(e) => setApprovers((current) => e.target.checked ? [...current, m.memberId] : current.filter((id) => id !== m.memberId))} />
+              <span>{m.name} · {m.roleName}</span>
+            </label>
+          ))}
+        </fieldset>
       </div>
     </Dialog>
   );

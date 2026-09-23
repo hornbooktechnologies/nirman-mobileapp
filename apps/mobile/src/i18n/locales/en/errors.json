@@ -124,6 +124,7 @@
     "NOTIFICATION_NOT_FOUND": "This notification is no longer available.",
     "NOTIFICATION_DEVICE_TOKEN_INVALID": "This device could not be registered for push notifications.",
     "NOTIFICATION_DEVICE_NOT_FOUND": "This notification device is no longer registered.",
-    "PROJECT_STATUS_INVALID": "This action requires an active Project."
+    "PROJECT_STATUS_INVALID": "This action requires an active Project.",
+    "MATERIAL_APPROVER_REQUIRED": "No eligible approver is available. Ask the organization Owner to delegate Materials approval."
   }
 }

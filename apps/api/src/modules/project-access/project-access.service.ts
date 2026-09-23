@@ -1,3 +1,4 @@
+import { withMaterialApprovalPermissions } from "./material-approval-policy";
 import {
   ForbiddenException,
   Injectable,
@@ -170,7 +171,17 @@ export class ProjectAccessService {
     );
     const projectsWithPermissions = await Promise.all(
       projects.map(async (project) => {
-        const permissionMode = project.permission_mode ?? "ROLE_DEFAULT";
+        const assignment = access.organizationWideProjectAccess
+          ? await this.accessRepo.findActiveProjectMember(
+              organizationId,
+              project.id,
+              access.membership.id,
+            )
+          : null;
+        const permissionMode =
+          assignment?.permission_mode ??
+          project.permission_mode ??
+          "ROLE_DEFAULT";
         const grantedPermissions =
           permissionMode === "CUSTOM"
             ? await this.accessRepo.findProjectMemberPermissionGrants(
@@ -182,12 +193,18 @@ export class ProjectAccessService {
         return {
           ...project,
           permissionMode,
-          permissions:
+          permissions: withMaterialApprovalPermissions(
             permissionMode === "CUSTOM"
               ? access.permissions.filter((permission) =>
                   grantedPermissions.includes(permission),
                 )
               : access.permissions,
+            await this.accessRepo.canApproveMaterials(
+              organizationId,
+              project.id,
+              access.membership.id,
+            ),
+          ),
         };
       }),
     );
@@ -231,7 +248,14 @@ export class ProjectAccessService {
       organizationId,
       projectId,
     );
-    if (!access.rolePermissions.includes(requiredPermission)) {
+    if (
+      !access.rolePermissions.includes(requiredPermission) &&
+      !(
+        ["materials:approve-final", "materials:reject"].includes(
+          requiredPermission,
+        ) && access.permissions.includes(requiredPermission)
+      )
+    ) {
       throw new ForbiddenException({
         code: "PROJECT_PERMISSION_DENIED",
         message: "Your Organization Role does not allow this action",
@@ -287,7 +311,14 @@ export class ProjectAccessService {
     return {
       ...organizationAccess,
       rolePermissions: organizationAccess.permissions,
-      permissions,
+      permissions: withMaterialApprovalPermissions(
+        permissions,
+        await this.accessRepo.canApproveMaterials(
+          organizationId,
+          projectId,
+          organizationAccess.membership.id,
+        ),
+      ),
       project: {
         id: project.id,
         organizationId: project.organization_id,

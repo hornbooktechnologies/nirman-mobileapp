@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { WEEKDAYS, type EffectiveWorkCalendarDay, type Weekday, type WorkCalendarDayType, type WorkCalendarOverride, type WorkingWeek } from "@nirman-app/shared";
 import { Button, Card, Checkbox, Dialog, EmptyState, Input, LoadingState, NotificationBanner, PageHeader, Select, StatusBadge, Textarea } from "@/components/ui";
@@ -12,6 +12,8 @@ import { validMonth, workToday } from "@/features/attendance/date-utils";
 import { ApiError } from "@/lib/api/api-client";
 import { type CalendarScope } from "@/features/calendar/services/calendar.service";
 import { useCreateCalendarOverride, useOrganizationCalendar, useProjectCalendar, useRemoveCalendarOverride, useUpdateCalendarOverride, useUpdateOrganizationCalendar } from "@/features/calendar/hooks/use-calendar";
+import { ProjectActivityNavigation } from "@/features/project-activity-navigation";
+import { activityOrigin } from "@/features/activity-query";
 
 const weekdayLabels: Record<Weekday, string> = { MONDAY: "Monday", TUESDAY: "Tuesday", WEDNESDAY: "Wednesday", THURSDAY: "Thursday", FRIDAY: "Friday", SATURDAY: "Saturday", SUNDAY: "Sunday" };
 const sourceLabels = { PROJECT_OVERRIDE: "Project override", ORGANIZATION_OVERRIDE: "Organization override", WEEKLY_PATTERN: "Weekly pattern", UNCONFIGURED: "Not configured" } as const;
@@ -91,7 +93,8 @@ function CalendarContent() {
   const organizationOverrides = organization.data?.overrides ?? [];
   const projectOverrides = projectCalendar.data?.projectOverrides ?? [];
   return <div className="space-y-4 pb-8 text-base [&_button]:min-h-11 [&_button]:text-sm [&_input]:min-h-11 [&_select]:min-h-11">
-    <PageHeader title="Work Calendar" description="Configure the normal working week once, then record only closures or special working dates." actions={selectedPermissions.includes("attendance:read") ? <Button variant="outline" onClick={() => { if (confirmDiscard()) router.push(`/attendance?projectId=${projectId}`); }}><CalendarDays size={16} aria-hidden="true" />Attendance</Button> : undefined} />
+    <PageHeader title="Work Calendar" description="Configure the normal working week once, then record only closures or special working dates." />
+    {selectedProject ? <ProjectActivityNavigation projectId={projectId} permissions={selectedPermissions} current="calendar" date={selectedDate || undefined} origin={activityOrigin("/work-calendar", new URLSearchParams(searchParams.toString()))} returnTo={searchParams.get("returnTo")} onNavigate={confirmDiscard} /> : null}
     {!validMonth(rawMonth) ? <NotificationBanner variant="warning" title="Invalid month" description="Showing the current month. Choose a valid calendar month." /> : null}
     <p className="text-sm text-sub">Working timezone: {timezone}</p>
     {selectedProject?.status === "ARCHIVED" ? <NotificationBanner variant="info" title="Archived project" description="This is an archived project calendar. The API validates permitted changes." /> : null}

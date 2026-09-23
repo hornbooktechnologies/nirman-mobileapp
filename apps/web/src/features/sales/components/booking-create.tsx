@@ -23,9 +23,11 @@ import { useSalesLifetime } from "../hooks/use-sales";
 export function BookingCreate({
   c,
   lead,
+  returnTo,
 }: {
   c: SalesContext;
   lead: SalesLead;
+  returnTo?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState<BookingInput | null>(null);
@@ -175,7 +177,7 @@ export function BookingCreate({
               queryKey: salesKey(c.org, c.project),
             });
             router.push(
-              `/projects/${c.project}/sales/bookings/${result.id}?created=1`,
+              `/projects/${c.project}/sales/bookings/${result.id}?created=1${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`,
             );
           }}
         >

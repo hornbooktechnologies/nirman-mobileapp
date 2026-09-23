@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { type HTMLAttributes, type ReactNode } from "react";
 import { IconButton } from "@/components/ui/icon-button";
+import { Description, Heading, SectionTitle } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 export interface PageHeaderProps {
@@ -23,8 +24,8 @@ export function PageHeader({
   return (
     <section className={cn("flex min-w-0 flex-col gap-3", className)}>
       {eyebrow ? <p className="text-[10px] font-bold uppercase tracking-[0.8px] text-lime">{eyebrow}</p> : null}
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 basis-[min(100%,20rem)] items-center gap-3">
           {onBack ? (
             <IconButton
               variant="outline"
@@ -37,11 +38,11 @@ export function PageHeader({
             </IconButton>
           ) : null}
           <div className="min-w-0">
-            <h1 className="break-words text-[22px] font-semibold leading-tight tracking-[-0.01em] text-body sm:text-[26px]">{title}</h1>
-            {description ? <p className="mt-1 max-w-3xl text-[13px] leading-5 text-sub">{description}</p> : null}
+            <Heading>{title}</Heading>
+            {description ? <Description className="mt-1 max-w-3xl">{description}</Description> : null}
           </div>
         </div>
-        {actions ? <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:max-w-full">{actions}</div> : null}
       </div>
     </section>
   );
@@ -49,12 +50,12 @@ export function PageHeader({
 
 export function SectionHeader({ title, description, actions, className }: { title: string; description?: string; actions?: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="min-w-0">
-        <h2 className="break-words text-[15px] font-semibold leading-6 text-body sm:text-[16px]">{title}</h2>
-        {description ? <p className="mt-0.5 text-[12.5px] leading-5 text-sub">{description}</p> : null}
+    <div className={cn("flex min-w-0 flex-wrap items-center justify-between gap-3", className)}>
+      <div className="min-w-0 flex-1 basis-[min(100%,16rem)]">
+        <SectionTitle>{title}</SectionTitle>
+        {description ? <Description className="mt-0.5">{description}</Description> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

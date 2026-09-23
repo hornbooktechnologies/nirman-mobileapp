@@ -43,9 +43,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const buttonSizes: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "min-h-8 px-3 py-1.5 text-[12px] font-semibold rounded-sub gap-1.5",
-  md: "min-h-9 px-3.5 py-2 text-[12px] font-semibold rounded-inner gap-2 sm:px-4",
-  lg: "min-h-10 px-5 py-2.5 text-[13px] font-semibold rounded-inner-lg gap-2",
+  sm: "min-h-11 sm:min-h-8 px-3 py-1.5 text-[13px] font-semibold rounded-sub gap-1.5",
+  md: "min-h-11 sm:min-h-10 px-3.5 py-2 text-sm font-semibold rounded-inner gap-2 sm:px-4",
+  lg: "min-h-11 px-5 py-2.5 text-sm font-semibold rounded-inner-lg gap-2",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -54,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center text-center capitalize leading-5 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime/40 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
+        "inline-flex cursor-pointer items-center justify-center text-center leading-6 transition-all duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:transform-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime/40 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
         buttonVariants[variant],
         buttonSizes[size],
         className,

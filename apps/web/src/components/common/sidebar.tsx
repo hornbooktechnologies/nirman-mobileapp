@@ -1,10 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { DEFAULT_APP_NAME } from "@nirman-app/shared";
+import { scopedNavigationHref } from "@/features/projects/project-navigation";
 import { navGroups } from "@/config/navigation";
 import { IconButton } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -32,25 +34,110 @@ export interface SidebarProps {
   variant?: "desktop" | "drawer";
 }
 
-export function Sidebar({
+export function Sidebar(props: SidebarProps) {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent {...props} />
+    </Suspense>
+  );
+}
+
+function SidebarContent({
   className,
   onClose,
   onNavigate,
   variant = "desktop",
 }: SidebarProps) {
   const pathname = usePathname();
+  const params = useSearchParams();
   const { hasPermission, activeOrganizationId } = useAuth();
   const access = useProjectAccess(activeOrganizationId);
+  const requestedProjectId =
+    pathname.match(/^\/projects\/([^/]+)(?:\/|$)/)?.[1] ??
+    params.get("projectId");
+  const contextProject =
+    access.isSuccess &&
+    access.data.organizationId === activeOrganizationId &&
+    (!params.get("organizationId") ||
+      params.get("organizationId") === activeOrganizationId)
+      ? access.data.projects.find(
+          (project) => project.id === requestedProjectId,
+        )
+      : undefined;
   const canNavigate = (permission: string) => {
-    if (permission === "inventory:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("inventory:read"));
-    if (permission.startsWith("leads:read-")) return access.isSuccess && access.data.projects.some(project => project.permissions.includes(permission as import("@nirman-app/shared").PermissionKey));
-    if (permission === "gallery:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("gallery:read"));
-    if (permission === "progress:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("progress:read"));
-    if (permission === "expenses:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("expenses:read"));
-    if (permission === "materials:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("materials:read"));
-    if (permission === "kharchi:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("kharchi:read"));
-    if (permission === "attendance:read") return access.isSuccess && access.data.projects.some(project => project.permissions.includes("attendance:read"));
-    if (permission === "work-calendar:read") return hasPermission(permission) || (access.isSuccess && access.data.projects.some(project => project.permissions.includes("work-calendar:read")));
+    if (
+      contextProject &&
+      /^(workers|attendance|work-calendar|kharchi|expenses|materials|progress|gallery|leads|inventory):/.test(
+        permission,
+      )
+    )
+      return contextProject.permissions.some((grant) => grant === permission);
+    if (permission === "inventory:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("inventory:read"),
+        )
+      );
+    if (permission.startsWith("leads:read-"))
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes(
+            permission as import("@nirman-app/shared").PermissionKey,
+          ),
+        )
+      );
+    if (permission === "gallery:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("gallery:read"),
+        )
+      );
+    if (permission === "progress:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("progress:read"),
+        )
+      );
+    if (permission === "expenses:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("expenses:read"),
+        )
+      );
+    if (permission === "materials:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("materials:read"),
+        )
+      );
+    if (permission === "kharchi:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("kharchi:read"),
+        )
+      );
+    if (permission === "attendance:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("attendance:read"),
+        )
+      );
+    if (permission === "work-calendar:read")
+      return (
+        hasPermission(permission) ||
+        (access.isSuccess &&
+          access.data.projects.some((project) =>
+            project.permissions.includes("work-calendar:read"),
+          ))
+      );
     return hasPermission(permission);
   };
   const isDrawer = variant === "drawer";
@@ -78,12 +165,27 @@ export function Sidebar({
           </div>
         </div>
         {isDrawer ? (
-          <IconButton variant="ghost" size="sm" aria-label="Close navigation" onClick={onClose} className="text-surface hover:bg-surface/10">
+          <IconButton
+            variant="ghost"
+            size="sm"
+            aria-label="Close navigation"
+            onClick={onClose}
+            className="text-surface hover:bg-surface/10"
+          >
             <X size={16} />
           </IconButton>
         ) : null}
       </div>
 
+      {contextProject ? (
+        <div className="mt-3 rounded-inner border border-surface/20 p-3 text-[13px]">
+          <p className="text-surface/60">Project context</p>
+          <p className="mt-1 break-words">{contextProject.name}</p>
+          {contextProject.status === "ARCHIVED" ? (
+            <p className="text-surface/60">Archived</p>
+          ) : null}
+        </div>
+      ) : null}
       <nav className="mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto pr-0.5">
         {navGroups.map((group) => {
           const visibleItems = group.items.filter(
@@ -101,12 +203,20 @@ export function Sidebar({
               <div className="space-y-1">
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
+                  const href = contextProject
+                    ? scopedNavigationHref(item.href, contextProject.id)
+                    : item.href;
+                  const target = href.split("?")[0];
                   const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    item.href === "/projects"
+                      ? pathname === "/projects" ||
+                        /^\/projects\/[^/]+(?:\/team)?$/.test(pathname)
+                      : pathname === target ||
+                        pathname.startsWith(`${target}/`);
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={href}
                       aria-current={isActive ? "page" : undefined}
                       onClick={onNavigate}
                       className={cn(
@@ -125,7 +235,9 @@ export function Sidebar({
                       <Icon
                         size={17}
                         strokeWidth={isActive ? 2 : 1.7}
-                        className={isActive ? "text-lime-pale" : "text-surface/60"}
+                        className={
+                          isActive ? "text-lime-pale" : "text-surface/60"
+                        }
                       />
                       <span className="truncate">{item.label}</span>
                     </Link>

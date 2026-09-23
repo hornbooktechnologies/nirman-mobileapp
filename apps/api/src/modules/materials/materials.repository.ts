@@ -1,3 +1,4 @@
+import { findMaterialApprovalMembers } from "../project-access/material-approval-policy";
 import { Injectable } from "@nestjs/common";
 import { createHash, randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
@@ -6,6 +7,7 @@ import type {
   MaterialEventType,
   MaterialRequestStatus,
   MaterialWorkflowMode,
+  MaterialWorkflowSnapshot,
   PermissionKey,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
@@ -25,9 +27,10 @@ export interface SettingRow extends RowDataPacket {
   id: string;
   organizationId: string;
   projectId: string;
-  workflowMode: MaterialWorkflowMode;
+  workflowMode: MaterialWorkflowSnapshot;
   createdAt: Date;
   updatedAt: Date;
+  version: number;
 }
 
 interface RequestRow extends RowDataPacket {
@@ -46,7 +49,7 @@ interface RequestRow extends RowDataPacket {
   requestedByMemberId: string;
   requestedBy: string;
   requestedByUserId: string;
-  workflowMode: MaterialWorkflowMode;
+  workflowMode: MaterialWorkflowSnapshot;
   status: MaterialRequestStatus;
   notes: string | null;
   version: number;
@@ -65,7 +68,7 @@ interface EventRow extends RowDataPacket {
   previousStatus: MaterialRequestStatus | null;
   nextStatus: MaterialRequestStatus;
   comment: string | null;
-  actorUserId: string;
+  actorUserId: string | null;
   actorName: string;
   createdAt: Date;
 }
@@ -118,12 +121,37 @@ export class MaterialsRepository {
   async findSettings(organizationId: string, projectId: string) {
     const rows = await this.database.query<SettingRow>(
       `SELECT id, organization_id organizationId, project_id projectId,
-        workflow_mode workflowMode, created_at createdAt, updated_at updatedAt
+        workflow_mode workflowMode, version, created_at createdAt, updated_at updatedAt
        FROM project_material_settings
        WHERE organization_id = ? AND project_id = ? LIMIT 1`,
       [organizationId, projectId],
     );
     return rows[0] ?? null;
+  }
+
+  approvalMembers(
+    organizationId: string,
+    projectId: string,
+    connection?: DatabaseConnection,
+  ) {
+    return findMaterialApprovalMembers(
+      this.database,
+      organizationId,
+      projectId,
+      connection,
+    );
+  }
+
+  private async lockApprovalProject(
+    organizationId: string,
+    projectId: string,
+    connection: DatabaseConnection,
+  ) {
+    await this.database.query(
+      "SELECT id FROM projects WHERE organization_id = ? AND id = ? FOR UPDATE",
+      [organizationId, projectId],
+      connection,
+    );
   }
 
   async upsertSettings(
@@ -133,19 +161,65 @@ export class MaterialsRepository {
     actorUserId: string,
   ) {
     await this.database.transaction(async (connection) => {
+      await this.lockApprovalProject(organizationId, projectId, connection);
+      const members = await this.approvalMembers(
+        organizationId,
+        projectId,
+        connection,
+      );
+      const previousGrants = await this.database.query<
+        RowDataPacket & { memberId: string }
+      >(
+        "SELECT member_id memberId FROM project_material_approvers WHERE organization_id = ? AND project_id = ? FOR UPDATE",
+        [organizationId, projectId],
+        connection,
+      );
+      const actor = members.find((member) => member.userId === actorUserId);
+      if (dto.approverMemberIds !== undefined && !actor?.isOwner)
+        throw new Error("MATERIAL_ACTION_NOT_ALLOWED");
       const existing = await this.database.query<SettingRow>(
-        `SELECT id, workflow_mode workflowMode
+        `SELECT id, workflow_mode workflowMode, version
          FROM project_material_settings
          WHERE organization_id = ? AND project_id = ? LIMIT 1 FOR UPDATE`,
         [organizationId, projectId],
         connection,
       );
+      if (
+        dto.expectedVersion !== undefined &&
+        dto.expectedVersion !== (existing[0]?.version ?? 0)
+      ) {
+        throw new Error("MATERIAL_VERSION_CONFLICT");
+      }
+      if (dto.approverMemberIds !== undefined) {
+        if (dto.expectedVersion === undefined)
+          throw new Error("MATERIAL_VERSION_CONFLICT");
+        if (
+          dto.approverMemberIds.some(
+            (id) => !members.some((m) => m.memberId === id && !m.isOwner),
+          )
+        ) {
+          throw new Error("MATERIAL_RESPONSIBLE_MEMBER_INVALID");
+        }
+        await this.database.execute(
+          "DELETE FROM project_material_approvers WHERE organization_id = ? AND project_id = ?",
+          [organizationId, projectId],
+          connection,
+        );
+        for (const memberId of dto.approverMemberIds) {
+          await this.database.execute(
+            `INSERT INTO project_material_approvers (organization_id, project_id, member_id, granted_by)
+            VALUES (?, ?, ?, ?)`,
+            [organizationId, projectId, memberId, actorUserId],
+            connection,
+          );
+        }
+      }
       const id = existing[0]?.id ?? randomUUID();
       await this.database.execute(
         `INSERT INTO project_material_settings (
           id, organization_id, project_id, workflow_mode, created_by, updated_by
         ) VALUES (?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE workflow_mode = VALUES(workflow_mode),
+        ON DUPLICATE KEY UPDATE workflow_mode = VALUES(workflow_mode), version = version + 1,
           updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP(3)`,
         [
           id,
@@ -168,10 +242,50 @@ export class MaterialsRepository {
           oldValues: existing[0]
             ? { workflowMode: existing[0].workflowMode }
             : null,
-          newValues: { workflowMode: dto.workflowMode },
+          newValues: {
+            workflowMode: dto.workflowMode,
+            approverMemberIds: dto.approverMemberIds,
+          },
+          metadata: {
+            previousApproverMemberIds: previousGrants.map((m) => m.memberId),
+          },
         },
         connection,
       );
+      if (dto.approverMemberIds !== undefined) {
+        const added = dto.approverMemberIds.filter(
+          (id) => !members.some((m) => m.memberId === id && m.delegated),
+        );
+        const pending = await this.database.query<RequestRow>(
+          `${this.requestSelect()} WHERE mr.organization_id = ? AND mr.project_id = ? AND mr.status = 'PENDING_FINAL'`,
+          [organizationId, projectId],
+          connection,
+        );
+        for (const request of pending) {
+          await this.notifications.createMany(
+            members
+              .filter(
+                (m) =>
+                  added.includes(m.memberId) &&
+                  m.memberId !== request.requestedByMemberId,
+              )
+              .map((m) => ({
+                organizationId,
+                projectId,
+                userId: m.userId,
+                type: "MATERIAL_FINAL_APPROVAL_REQUIRED",
+                title: "Material approval required",
+                message: `${request.materialName} is waiting for your review.`,
+                referenceType: "material_request",
+                referenceId: request.id,
+                deepLink: `/materials/${request.id}?projectId=${projectId}`,
+                metadata: { status: "PENDING_FINAL" },
+                dedupeKey: `materials-delegation:${request.id}:${existing[0]?.version ?? 0}`,
+              })),
+            connection,
+          );
+        }
+      }
     });
     return this.findSettings(organizationId, projectId);
   }
@@ -281,8 +395,20 @@ export class MaterialsRepository {
        FROM material_request_events mre
        INNER JOIN user u ON u.id = mre.actor_user_id
        WHERE mre.organization_id = ? AND mre.project_id = ? AND mre.material_request_id = ?
-       ORDER BY mre.created_at ASC, mre.id ASC`,
-      [organizationId, projectId, materialRequestId],
+       UNION ALL
+       SELECT CONCAT('migration-027-', material_request_id), 'WORKFLOW_MIGRATED', previous_status,
+         'PENDING_FINAL', 'Verification retired; moved to final approval.', NULL,
+         'System migration', migrated_at FROM material_workflow_migrations
+       WHERE organization_id = ? AND project_id = ? AND material_request_id = ?
+       ORDER BY createdAt ASC, id ASC`,
+      [
+        organizationId,
+        projectId,
+        materialRequestId,
+        organizationId,
+        projectId,
+        materialRequestId,
+      ],
       connection,
     );
     const purchases = await this.database.query<PurchaseRow>(
@@ -574,7 +700,7 @@ export class MaterialsRepository {
     preventRequesterAction?: boolean;
     requireRequesterUnlessElevated?: boolean;
     actorElevated?: boolean;
-    actorIsBuilderOwner?: boolean;
+    actorIsOrganizationOwner?: boolean;
     notificationPermission?: PermissionKey;
     notificationType?: string;
   }) {
@@ -584,6 +710,11 @@ export class MaterialsRepository {
       comment: input.comment ?? null,
     });
     await this.database.transaction(async (connection) => {
+      await this.lockApprovalProject(
+        input.organizationId,
+        input.projectId,
+        connection,
+      );
       if (
         await this.findEventReplay(
           input.organizationId,
@@ -600,8 +731,25 @@ export class MaterialsRepository {
         input.materialRequestId,
         connection,
       );
+      const members = await this.approvalMembers(
+        input.organizationId,
+        input.projectId,
+        connection,
+      );
+      const approver = members.find(
+        (member) =>
+          member.memberId === input.actorMemberId && member.canApprove,
+      );
+      if (
+        ["APPROVED", "RETURNED", "REJECTED"].includes(input.eventType) &&
+        !approver
+      ) {
+        throw new Error("MATERIAL_ACTION_NOT_ALLOWED");
+      }
+      if (input.eventType === "VERIFIED")
+        throw new Error("MATERIAL_STATUS_TRANSITION_INVALID");
       const ownerRequest =
-        input.actorIsBuilderOwner === true &&
+        Boolean(approver?.isOwner) &&
         current.requestedByMemberId === input.actorMemberId;
       const ownerApproval =
         ownerRequest &&
@@ -623,7 +771,7 @@ export class MaterialsRepository {
       if (
         input.requireRequesterUnlessElevated &&
         current.requestedByMemberId !== input.actorMemberId &&
-        !input.actorElevated
+        !approver
       ) {
         throw new Error("MATERIAL_ACTION_NOT_ALLOWED");
       }
@@ -632,6 +780,14 @@ export class MaterialsRepository {
         : typeof input.nextStatus === "function"
           ? input.nextStatus(current)
           : input.nextStatus;
+      if (
+        nextStatus === "PENDING_FINAL" &&
+        !members.some(
+          (m) => m.canApprove && m.memberId !== current.requestedByMemberId,
+        )
+      ) {
+        throw new Error("MATERIAL_APPROVER_REQUIRED");
+      }
       await this.database.execute(
         `UPDATE material_requests SET status = ?, version = version + 1,
           last_transition_at = CURRENT_TIMESTAMP(3), updated_by = ?,
@@ -674,7 +830,7 @@ export class MaterialsRepository {
             idempotencyKey: input.idempotencyKey,
             comment: input.comment ?? null,
             ...(ownerApproval
-              ? { approvalBasis: "BUILDER_OWNER_REQUEST" }
+              ? { approvalBasis: "ORGANIZATION_OWNER_REQUEST" }
               : {}),
           },
         },
@@ -1243,12 +1399,19 @@ export class MaterialsRepository {
     nextStatus: MaterialRequestStatus,
   ) {
     if (input.notificationPermission && input.notificationType) {
-      const recipients = await this.notifications.findProjectRecipients(
-        input.organizationId,
-        input.projectId,
-        input.notificationPermission,
-        connection,
-      );
+      const recipients = (
+        await this.approvalMembers(
+          input.organizationId,
+          input.projectId,
+          connection,
+        )
+      )
+        .filter(
+          (member) =>
+            member.canApprove &&
+            member.memberId !== current.requestedByMemberId,
+        )
+        .map((member) => member.userId);
       await this.notifications.createMany(
         recipients
           .filter((userId) => userId !== input.actorUserId)

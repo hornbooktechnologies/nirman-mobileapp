@@ -170,6 +170,8 @@
     "visitDescription": "The Lead's salesperson is assigned by default. Add the expected party size if known.",
     "assignTitle": "Assign salesperson",
     "assignDescription": "Choose an active member of this Project.",
+    "noAssignees": "No active Project members",
+    "noAssigneesDescription": "Add an active member to this Project before assigning a salesperson.",
     "interestTitle": "Record unit interest",
     "interestDescription": "Interest is non-exclusive; other customers may shortlist the same Unit.",
     "saveInterest": "Save interest",

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Card, LoadingState } from "@/components/ui";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
@@ -23,7 +24,10 @@ import {
   unitSnapshot,
 } from "../inventory-rules";
 import type { SalesUnit, SalesUnitInterest } from "../types/inventory.types";
+import { safeSalesRecordReturn, safeSalesReturn, salesDetailUrl } from "../sales-view";
 function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
+  const requestedReturn = useSearchParams().get("returnTo");
+  const returnTo = safeSalesRecordReturn(requestedReturn, c.project, ["leads", "bookings"]) ?? safeSalesReturn(requestedReturn, c.project, "inventory");
   const units = useUnits(c.org, c.project);
   const interests = useUnitInterests(c.org, c.project, id);
   const cache = useQueryClient();
@@ -145,7 +149,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
         This unit is no longer available in this project.{" "}
         <Link
           className="underline"
-          href={`/projects/${c.project}/sales/inventory`}
+          href={returnTo}
         >
           Return to inventory
         </Link>
@@ -155,9 +159,9 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
     <div className="space-y-5">
       <Link
         className="underline"
-        href={`/projects/${c.project}/sales/inventory`}
+        href={returnTo}
       >
-        Back to inventory
+        Back to {returnTo.includes("/leads/") ? "lead" : returnTo.includes("/bookings/") ? "booking" : "inventory"}
       </Link>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{unit.unitNumber}</h1>
@@ -170,7 +174,9 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
           retry={() => void refresh().catch(setRefreshError)}
         />
       )}
-      <Card>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Availability and pricing</h2>
+        <p className="text-sm text-sub">Interest is non-exclusive. Only a server-approved hold blocks an available unit.</p>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Unit type", unit.unitType],
@@ -209,7 +215,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
             {canReadSales(c.permissions) ? (
               <Link
                 className="underline"
-                href={`/projects/${c.project}/sales/leads/${unit.blockedForLeadId}`}
+                href={salesDetailUrl(`/projects/${c.project}/sales/leads/${unit.blockedForLeadId}`, `/projects/${c.project}/sales/inventory/${id}`)}
               >
                 View customer and history
               </Link>
@@ -219,7 +225,9 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
           </p>
         )}
       </Card>
-      <div className="flex flex-wrap gap-3">
+      <section className="space-y-3" aria-label="Unit actions">
+        <h2 className="text-lg font-semibold">Next actions</h2>
+        <div className="flex flex-wrap gap-3">
         <Button
           variant="outline"
           onClick={() => void refresh().catch(setRefreshError)}
@@ -227,12 +235,15 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
         >
           Refresh
         </Button>
-        {can("inventory:manage") && editableUnit(unit.status) && (
-          <Button onClick={() => open("edit")}>Edit unit</Button>
-        )}
         {leadActions && can("inventory:interest") && openUnit(unit.status) && (
           <Button onClick={() => open("interest")}>Record interest</Button>
         )}
+        </div>
+      </section>
+      <section className="space-y-3" aria-label="Inventory administration">
+        <h2 className="text-lg font-semibold">Inventory administration</h2>
+        <div className="flex flex-wrap gap-3">
+        {can("inventory:manage") && editableUnit(unit.status) && <Button variant="outline" onClick={() => open("edit")}>Edit unit</Button>}
         {leadActions &&
           can("inventory:block") &&
           unit.status === "AVAILABLE" && (
@@ -247,7 +258,8 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
               Release block
             </Button>
           )}
-      </div>
+        </div>
+      </section>
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">
           Interested customers and hold requests
@@ -295,7 +307,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
                 {canReadSales(c.permissions) && (
                   <Link
                     className="underline"
-                    href={`/projects/${c.project}/sales/leads/${i.leadId}`}
+                    href={salesDetailUrl(`/projects/${c.project}/sales/leads/${i.leadId}`, `/projects/${c.project}/sales/inventory/${id}`)}
                   >
                     Lead and history
                   </Link>
@@ -382,8 +394,10 @@ export function UnitDetailPage({
   unitId: string;
 }) {
   return (
-    <SalesWorkspace projectId={projectId} section="inventory">
-      {(c) => <UnitDetail key={unitId} c={c} id={unitId} />}
-    </SalesWorkspace>
+    <Suspense fallback={<LoadingState label="Loading unit" />}>
+      <SalesWorkspace projectId={projectId} section="inventory">
+        {(c) => <UnitDetail key={unitId} c={c} id={unitId} />}
+      </SalesWorkspace>
+    </Suspense>
   );
 }

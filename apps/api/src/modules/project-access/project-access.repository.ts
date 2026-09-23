@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import type { DbRow } from '../../database/database.types';
+import { findMaterialApprovalMembers } from "./material-approval-policy";
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../../database/database.service";
+import type { DbRow } from "../../database/database.types";
 
 interface PermissionRow extends DbRow {
   resource: string;
@@ -13,21 +14,21 @@ interface AccessibleProjectRow extends DbRow {
   project_code: string | null;
   start_date: string | null;
   expected_completion_date: string | null;
-  status: 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
+  status: "DRAFT" | "ACTIVE" | "ON_HOLD" | "COMPLETED" | "ARCHIVED";
   role_label: string | null;
   project_member_id: string | null;
-  permission_mode: 'ROLE_DEFAULT' | 'CUSTOM' | null;
+  permission_mode: "ROLE_DEFAULT" | "CUSTOM" | null;
 }
 
 interface ProjectRow extends AccessibleProjectRow {
   organization_id: string;
-  type: 'RESIDENTIAL' | 'COMMERCIAL' | 'MIXED' | 'SHED' | 'OTHER';
+  type: "RESIDENTIAL" | "COMMERCIAL" | "MIXED" | "SHED" | "OTHER";
 }
 
 interface ProjectMemberRow extends DbRow {
   id: string;
   role_label: string | null;
-  permission_mode: 'ROLE_DEFAULT' | 'CUSTOM';
+  permission_mode: "ROLE_DEFAULT" | "CUSTOM";
 }
 
 interface PermissionGrantRow extends DbRow {
@@ -37,6 +38,21 @@ interface PermissionGrantRow extends DbRow {
 @Injectable()
 export class ProjectAccessRepository {
   constructor(private readonly database: DatabaseService) {}
+
+  async canApproveMaterials(
+    organizationId: string,
+    projectId: string,
+    memberId: string,
+  ) {
+    const members = await findMaterialApprovalMembers(
+      this.database,
+      organizationId,
+      projectId,
+    );
+    return members.some(
+      (member) => member.memberId === memberId && Boolean(member.canApprove),
+    );
+  }
 
   async findPermissionsForMemberRole(roleId: string) {
     const rows = await this.database.query<PermissionRow>(
@@ -73,7 +89,9 @@ export class ProjectAccessRepository {
             AND (pm.starts_on IS NULL OR pm.starts_on <= CURRENT_DATE)
             AND (pm.ends_on IS NULL OR pm.ends_on >= CURRENT_DATE)
           ORDER BY FIELD(p.status, 'ACTIVE', 'DRAFT', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'), p.name ASC`,
-      organizationWideProjectAccess ? [organizationId] : [organizationId, memberId],
+      organizationWideProjectAccess
+        ? [organizationId]
+        : [organizationId, memberId],
     );
     return rows;
   }

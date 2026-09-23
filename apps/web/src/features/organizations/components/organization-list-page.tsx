@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Building2, Plus } from "lucide-react";
 import { LoadingState } from "@/components/ui";
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   OPERATING_PROFILES_BY_ORGANIZATION_TYPE,
+  ORGANIZATION_STATUSES,
   ORGANIZATION_TYPES,
   type OperatingProfile,
   type OrganizationType,
@@ -19,6 +21,8 @@ import { PermissionGuard } from "@/features/user-management/components/permissio
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import type { OrganizationOnboardingResponse } from "@/features/organizations/types/organizations.types";
 import { ApiError } from "@/lib/api/api-client";
+import { AdministrationFilters } from "@/features/administration/administration-filters";
+import { administrationDetailUrl, administrationListUrl } from "@/features/administration/administration-list";
 
 const statusTone = {
   ACTIVE: "active",
@@ -27,9 +31,20 @@ const statusTone = {
   ARCHIVED: "inactive",
 } as const;
 
-export function OrganizationListPage() {
+function OrganizationList() {
   const { hasPermission } = useAuth();
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const search = (params.get("search") ?? "").slice(0, 160);
+  const status = ORGANIZATION_STATUSES.find((value) => value === params.get("status")) ?? "";
+  const type = ORGANIZATION_TYPES.find((value) => value === params.get("type")) ?? "";
   const organizations = useOrganizations();
+  const visible = (organizations.data ?? []).filter((organization) =>
+    (!status || organization.status === status) &&
+    (!type || organization.type === type) &&
+    `${organization.name} ${organization.operatingProfile}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+  );
   const createOrganization = useCreateOrganization();
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({
@@ -100,6 +115,18 @@ export function OrganizationListPage() {
           ) : undefined}
         />
 
+        <AdministrationFilters
+          name="organizations"
+          scope="Showing organizations available to your account. Status, type and search filter the retrieved list."
+          search={{ value: search, placeholder: "Organization name or operating profile", onChange: (value) => router.replace(administrationListUrl(pathname, params, { search: value }), { scroll: false }) }}
+          value={{ status, type }}
+          fields={[
+            { key: "status", label: "Status", options: ORGANIZATION_STATUSES.map((value) => ({ value, label: value })) },
+            { key: "type", label: "Type", options: ORGANIZATION_TYPES.map((value) => ({ value, label: value })) },
+          ]}
+          onApply={(value) => router.replace(administrationListUrl(pathname, params, value), { scroll: false })}
+        />
+
         {createdOnboarding ? (
           <Card className="border-lime/50 bg-lime/5">
             <div className="space-y-3">
@@ -162,13 +189,13 @@ export function OrganizationListPage() {
           <PermissionGuard permission="platform-organizations:create">
             <Card>
               <form className="grid gap-3 md:grid-cols-2" onSubmit={submit}>
-                <Input
+                <label className="grid gap-1 text-sm font-medium">Organization name<Input
                   placeholder="Organization name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   required
-                />
-                <Select
+                /></label>
+                <label className="grid gap-1 text-sm font-medium">Organization type<Select
                   value={form.type}
                   onChange={(event) =>
                     setForm({
@@ -184,8 +211,8 @@ export function OrganizationListPage() {
                   {ORGANIZATION_TYPES.map((type) => (
                     <option key={type} value={type}>{type}</option>
                   ))}
-                </Select>
-                <Select
+                </Select></label>
+                <label className="grid gap-1 text-sm font-medium">Operating profile<Select
                   value={form.operatingProfile}
                   onChange={(event) =>
                     setForm({
@@ -197,12 +224,12 @@ export function OrganizationListPage() {
                   {OPERATING_PROFILES_BY_ORGANIZATION_TYPE[form.type].map((profile) => (
                     <option key={profile} value={profile}>{profile}</option>
                   ))}
-                </Select>
-                <Input
+                </Select></label>
+                <label className="grid gap-1 text-sm font-medium">Working timezone<Input
                   placeholder="Timezone"
                   value={form.timezone}
                   onChange={(event) => setForm({ ...form, timezone: event.target.value })}
-                />
+                /></label>
                 <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
                   <span className="text-sub">Default currency:</span>
                   <strong className="ml-1.5 font-semibold">INR</strong>
@@ -215,7 +242,7 @@ export function OrganizationListPage() {
                     The Owner receives an activation link and creates their own password.
                   </p>
                 </div>
-                <Input
+                <label className="grid gap-1 text-sm font-medium">Owner name<Input
                   placeholder="Owner name"
                   value={form.owner.name}
                   onChange={(event) =>
@@ -225,8 +252,8 @@ export function OrganizationListPage() {
                     })
                   }
                   required
-                />
-                <Input
+                /></label>
+                <label className="grid gap-1 text-sm font-medium">Owner email<Input
                   type="email"
                   placeholder="Owner email"
                   value={form.owner.email}
@@ -237,8 +264,8 @@ export function OrganizationListPage() {
                     })
                   }
                   required
-                />
-                <Input
+                /></label>
+                <label className="grid gap-1 text-sm font-medium">Owner mobile number<Input
                   placeholder="Owner mobile number"
                   value={form.owner.mobile}
                   onChange={(event) =>
@@ -248,8 +275,8 @@ export function OrganizationListPage() {
                     })
                   }
                   required
-                />
-                <Input
+                /></label>
+                <label className="grid gap-1 text-sm font-medium">Owner designation (optional)<Input
                   placeholder="Owner designation (optional)"
                   value={form.owner.designation}
                   onChange={(event) =>
@@ -258,7 +285,7 @@ export function OrganizationListPage() {
                       owner: { ...form.owner, designation: event.target.value },
                     })
                   }
-                />
+                /></label>
                 {formError ? (
                   <p className="md:col-span-2 text-[12px] text-red-600">{formError}</p>
                 ) : null}
@@ -282,6 +309,8 @@ export function OrganizationListPage() {
               <Building2 size={18} />
               No organizations are available for this account.
             </div>
+          ) : visible.length === 0 ? (
+            <p className="text-sm text-sub">No organizations match these filters.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -294,10 +323,10 @@ export function OrganizationListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {organizations.data?.map((organization) => (
+                {visible.map((organization) => (
                   <TableRow key={organization.id}>
                     <TableCell>
-                      <Link href={`/organizations/${organization.id}`}>
+                      <Link href={administrationDetailUrl(`/organizations/${organization.id}`, administrationListUrl(pathname, params, {}))}>
                         {organization.name}
                       </Link>
                     </TableCell>
@@ -318,6 +347,10 @@ export function OrganizationListPage() {
       </div>
     </PermissionGuard>
   );
+}
+
+export function OrganizationListPage() {
+  return <Suspense fallback={<LoadingState label="Loading organizations" />}><OrganizationList /></Suspense>;
 }
 
 function invitationDeliveryMessage(

@@ -124,6 +124,7 @@
     "NOTIFICATION_NOT_FOUND": "આ સૂચના હવે ઉપલબ્ધ નથી.",
     "NOTIFICATION_DEVICE_TOKEN_INVALID": "આ ડિવાઇસને પુશ સૂચનાઓ માટે નોંધાવી શકાયું નથી.",
     "NOTIFICATION_DEVICE_NOT_FOUND": "આ સૂચના ડિવાઇસ હવે નોંધાયેલું નથી.",
-    "PROJECT_STATUS_INVALID": "આ કાર્ય માટે સક્રિય પ્રોજેક્ટ જરૂરી છે."
+    "PROJECT_STATUS_INVALID": "આ કાર્ય માટે સક્રિય પ્રોજેક્ટ જરૂરી છે.",
+    "MATERIAL_APPROVER_REQUIRED": "કોઈ પાત્ર મંજૂરી આપનાર ઉપલબ્ધ નથી. સંસ્થાના માલિકને સામગ્રી મંજૂરીનો અધિકાર આપવા કહો."
   }
 }

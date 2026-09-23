@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { ExpenseAvailableAction } from "@nirman-app/shared";
 import { Button, Card, LoadingState } from "@/components/ui";
+import { safeFinancialReturn } from "@/features/financial-return";
 import { useExpenseDetail } from "../hooks/use-expenses";
 import { expenseActions, label } from "../expense-rules";
 import { ExpensesWorkspace, type ExpensesContext } from "./expenses-workspace";
@@ -64,7 +65,7 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
     <div className="space-y-5">
       <Link
         className="underline"
-        href={`/projects/${context.project}/expenses`}
+        href={safeFinancialReturn(search.get("returnTo"), context.project, "expenses")}
       >
         Back to Site Expenses
       </Link>
@@ -96,6 +97,11 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
       {query.isError && (
         <Failure error={query.error} retry={() => void query.refetch()} />
       )}
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Current state and next step</h2>
+        <p className="text-sm text-sub">{d.status === "PENDING_APPROVAL" ? "Awaiting a separate authorized reviewer. Only a permitted action can approve or reject this expense." : d.status === "APPROVED" ? "Recognized cost includes the approved original amount and signed adjustments." : d.status === "DRAFT" ? "Draft expense. Submit when the details are ready." : d.status === "REJECTED" ? "Rejected expense. Review the reason and available actions." : "Cancelled expense. No further changes are allowed."}</p>
+        {actions.length ? <div aria-label="Available expense actions" className="flex flex-wrap gap-3">{actions.map(value => <Button key={value} variant={value === "APPROVE" || value === "SUBMIT" ? "primary" : value === "CANCEL" || value === "REJECT" ? "danger" : "outline"} disabled={query.isFetching} onClick={() => setAction(value as ExpenseAvailableAction)}>{label(value)}</Button>)}</div> : <p className="text-sm text-sub">No actions available for this expense.</p>}
+      </Card>
       <section
         aria-label="Expense amounts"
         className="grid gap-3 sm:grid-cols-3"
@@ -126,9 +132,6 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
             ["Workflow snapshot", label(d.workflowMode)],
             ["Approved by", d.approvedBy],
             ["Approved at", timestamp(d.approvedAt)],
-            ["Created", timestamp(d.createdAt)],
-            ["Last updated", timestamp(d.updatedAt)],
-            ["Version", d.version],
           ]}
         />
         {d.rejectionReason && (
@@ -140,28 +143,6 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
           </div>
         )}
       </Card>
-      {actions.length > 0 && (
-        <section
-          aria-label="Available expense actions"
-          className="flex flex-wrap gap-3"
-        >
-          {actions.map((value) => (
-            <Button
-              key={value}
-              variant={
-                value === "APPROVE" || value === "SUBMIT"
-                  ? "primary"
-                  : value === "CANCEL" || value === "REJECT"
-                    ? "danger"
-                    : "outline"
-              }
-              onClick={() => setAction(value as ExpenseAvailableAction)}
-            >
-              {label(value)}
-            </Button>
-          ))}
-        </section>
-      )}
       {d.status === "APPROVED" && (
         <p className="text-sm text-sub">
           Approved expenses are immutable. Authorized users can record a signed
@@ -224,6 +205,8 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
           </ol>
         </Card>
       </div>
+      {context.permissions.includes("materials:read") && <Card className="space-y-2"><h2 className="text-lg font-semibold">Related project work</h2><p className="text-sm text-sub">This expense has no automatic link to a Materials purchase.</p><Link className="underline" href={`/projects/${context.project}/materials`}>View project Materials</Link></Card>}
+      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Created {timestamp(d.createdAt)} · Updated {timestamp(d.updatedAt)} · Version {d.version}</p><p className="break-all">Expense ID {d.id}</p></details>
       {action && (
         <ExpenseForm
           context={{ ...context, active: context.active && !query.isError }}

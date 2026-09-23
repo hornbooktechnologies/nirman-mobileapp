@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Suspense, useState } from "react";
 import { isPlatformSystemRoleName } from "@nirman-app/shared";
 import { Button, Card, Input, PageHeader, PasswordInput, Select } from "@/components/ui";
 import { ApiError } from "@/lib/api/api-client";
@@ -10,9 +11,11 @@ import {
   useRoles,
 } from "@/features/user-management/hooks/use-user-management";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
+import { safeAdministrationReturn } from "@/features/administration/administration-list";
 
-export function UserFormPage() {
+function UserForm() {
   const router = useRouter();
+  const returnTo = safeAdministrationReturn(useSearchParams().get("returnTo"), "users");
   const roles = useRoles();
   const createUser = useCreateUser();
   const [form, setForm] = useState({
@@ -32,7 +35,7 @@ export function UserFormPage() {
     setFormError(null);
     try {
       await createUser.mutateAsync({ ...form, isActive: true });
-      router.push("/users");
+      router.push(returnTo);
     } catch (error) {
       setFormError(
         error instanceof ApiError
@@ -51,32 +54,32 @@ export function UserFormPage() {
         />
         <Card>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-            <Input
+            <label className="grid gap-1 text-sm font-medium">Name<Input
               placeholder="Name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-            />
-            <Input
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Email<Input
               placeholder="Email"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
-            />
-            <PasswordInput
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Password<PasswordInput
               placeholder="Password"
               autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
-            />
-            <Input
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Phone (optional)<Input
               placeholder="Phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            />
-            <Select
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Platform role<Select
               value={form.roleId}
               onChange={(e) => setForm({ ...form, roleId: e.target.value })}
               required
@@ -87,13 +90,14 @@ export function UserFormPage() {
                   {role.name}
                 </option>
               ))}
-            </Select>
+            </Select></label>
             {formError ? (
               <p className="text-[13px] text-red-600 md:col-span-2">
                 {formError}
               </p>
             ) : null}
             <div className="md:col-span-2">
+              <Link className="mr-3 underline" href={returnTo}>Cancel and return to users</Link>
               <Button type="submit" disabled={createUser.isPending}>
                 {createUser.isPending ? "Creating" : "Create Platform User"}
               </Button>
@@ -103,4 +107,8 @@ export function UserFormPage() {
       </div>
     </PermissionGuard>
   );
+}
+
+export function UserFormPage() {
+  return <Suspense fallback={<Card>Loading platform user form…</Card>}><UserForm /></Suspense>;
 }

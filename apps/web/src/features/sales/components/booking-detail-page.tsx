@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { LEAD_STAGES, type LeadStage } from "@nirman-app/shared";
 import { Button, Card, LoadingState } from "@/components/ui";
@@ -13,6 +14,7 @@ import { bookingPermission } from "../booking-rules";
 import { canWriteLead, label, salesKey } from "../sales-rules";
 import { bookingService } from "../services/booking.service";
 import type { SalesBooking } from "../types/booking.types";
+import { safeSalesRecordReturn, safeSalesReturn, salesDetailUrl } from "../sales-view";
 function Cancellation({
   c,
   b,
@@ -117,6 +119,8 @@ function Detail({
   id: string;
   created?: boolean;
 }) {
+  const requestedReturn = useSearchParams().get("returnTo");
+  const returnTo = safeSalesRecordReturn(requestedReturn, c.project, ["leads"]) ?? safeSalesReturn(requestedReturn, c.project, "bookings");
   const booking = useBooking(c.org, c.project, id);
   const [cancel, setCancel] = useState(false);
   const [success, setSuccess] = useState(
@@ -130,10 +134,6 @@ function Detail({
     );
   const b = booking.data;
   const rows: [string, string | null][] = [
-    ["Customer mobile", b.customerMobile],
-    ["Booking reference", b.bookingReference],
-    ["Booking date", b.bookingDate.slice(0, 10)],
-    ["Booking amount", money(b.bookingAmount)],
     ["Lead source", label(b.leadSource)],
     ["Booked by", b.bookedByName ?? b.bookedBy],
     ["First converted by", b.convertedByName ?? b.convertedBy],
@@ -160,9 +160,9 @@ function Detail({
     <div className="space-y-5">
       <Link
         className="underline"
-        href={`/projects/${c.project}/sales/bookings`}
+        href={returnTo}
       >
-        Back to bookings
+        Back to {returnTo.includes("/leads/") ? "lead" : "bookings"}
       </Link>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -184,7 +184,23 @@ function Detail({
         </Button>
       </header>
       {success && <p role="status">{success}</p>}
-      <Card>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Customer and booking</h2>
+        <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[["Mobile", b.customerMobile], ["Reference", b.bookingReference], ["Booking date", b.bookingDate.slice(0, 10)], ["Amount", money(b.bookingAmount)], ["Booked by", b.bookedByName ?? b.bookedBy]].map(([name, value]) => (
+            <div key={name}><dt className="text-sm text-sub">{name}</dt><dd className="break-words font-medium">{value || "Not provided"}</dd></div>
+          ))}
+        </dl>
+      </Card>
+      <section className="space-y-3" aria-label="Related Sales records">
+        <h2 className="text-lg font-semibold">Related records</h2>
+        <div className="flex flex-wrap gap-4">
+          <Link className="underline" href={salesDetailUrl(`/projects/${c.project}/sales/leads/${b.leadId}`, `/projects/${c.project}/sales/bookings/${id}`)}>Open lead and activity history</Link>
+          {b.unitId && c.permissions.includes("inventory:read") && <Link className="underline" href={salesDetailUrl(`/projects/${c.project}/sales/inventory/${b.unitId}`, `/projects/${c.project}/sales/bookings/${id}`)}>Open unit {b.unitNumber}</Link>}
+        </div>
+      </section>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Conversion and record history</h2>
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map(([name, value]) => (
             <div key={name} className="min-w-0">
@@ -196,22 +212,6 @@ function Detail({
           ))}
         </dl>
       </Card>
-      <div className="flex flex-wrap gap-4">
-        <Link
-          className="underline"
-          href={`/projects/${c.project}/sales/leads/${b.leadId}`}
-        >
-          Open lead and activity history
-        </Link>
-        {b.unitId && c.permissions.includes("inventory:read") && (
-          <Link
-            className="underline"
-            href={`/projects/${c.project}/sales/inventory/${b.unitId}`}
-          >
-            Open unit
-          </Link>
-        )}
-      </div>
       {b.status === "CANCELLED" && (
         <Card>
           <h2 className="text-xl font-semibold">Cancellation history</h2>
@@ -241,7 +241,11 @@ function Detail({
       )}
       {b.status === "CONFIRMED" &&
         bookingPermission(c.permissions, c.active, Boolean(b.unitId)) && (
-          <CancellationAction c={c} b={b} open={() => setCancel(true)} />
+          <section className="space-y-3" aria-label="Booking administration">
+            <h2 className="text-lg font-semibold">Booking administration</h2>
+            <p className="text-sm text-sub">Cancellation requires a reason and explicit lead and unit restoration choices.</p>
+            <CancellationAction c={c} b={b} open={() => setCancel(true)} />
+          </section>
         )}
       {cancel && (
         <Cancellation
@@ -298,8 +302,10 @@ export function BookingDetailPage({
   created?: boolean;
 }) {
   return (
-    <SalesWorkspace projectId={projectId} section="bookings">
-      {(c) => <Detail key={bookingId} c={c} id={bookingId} created={created} />}
-    </SalesWorkspace>
+    <Suspense fallback={<LoadingState label="Loading booking" />}>
+      <SalesWorkspace projectId={projectId} section="bookings">
+        {(c) => <Detail key={bookingId} c={c} id={bookingId} created={created} />}
+      </SalesWorkspace>
+    </Suspense>
   );
 }

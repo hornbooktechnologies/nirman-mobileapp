@@ -1,5 +1,9 @@
 import { Transform, Type } from "class-transformer";
 import {
+  ValidateIf,
+  IsArray,
+  ArrayUnique,
+  ArrayMaxSize,
   IsDateString,
   IsIn,
   IsInt,
@@ -27,6 +31,18 @@ const trim = ({ value }: { value: unknown }) =>
 export class ConfigureMaterialsDto {
   @IsIn(MATERIAL_WORKFLOW_MODES)
   workflowMode!: MaterialWorkflowMode;
+
+  @ValidateIf((_, value) => value !== undefined)
+  @IsArray()
+  @ArrayUnique()
+  @ArrayMaxSize(100)
+  @IsUUID("all", { each: true })
+  approverMemberIds?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  expectedVersion?: number;
 }
 
 export class QueryMaterialsDto {

@@ -19,6 +19,7 @@ import {
   ownsNotification,
 } from "../notification-rules";
 import { notificationsService } from "../services/notifications.service";
+import { AdministrationFilters } from "@/features/administration/administration-filters";
 
 function failure(error: unknown) {
   if (error instanceof ApiError && error.statusCode === 404)
@@ -154,43 +155,14 @@ function Inbox() {
           </Button>
         </div>
       </header>
-      <div
-        className="flex flex-wrap items-center gap-3"
-        aria-label="Notification filters"
-      >
-        <Button
-          variant={!unreadOnly ? "primary" : "outline"}
-          aria-pressed={!unreadOnly}
-          disabled={Boolean(pending)}
-          onClick={() => {
-            setUnreadOnly(false);
-            setPage(1);
-          }}
-        >
-          All
-        </Button>
-        <Button
-          variant={unreadOnly ? "primary" : "outline"}
-          aria-pressed={unreadOnly}
-          disabled={Boolean(pending)}
-          onClick={() => {
-            setUnreadOnly(true);
-            setPage(1);
-          }}
-        >
-          Unread
-          {summary.data && !summary.isError
-            ? ` (${summary.data.unreadCount})`
-            : ""}
-        </Button>
-        <span className="text-sm text-sub" aria-live="polite">
-          {summary.isPending
-            ? "Loading unread count…"
-            : summary.isError
-              ? "Unread count unavailable"
-              : `${summary.data.unreadCount} unread`}
-        </span>
-      </div>
+      <AdministrationFilters
+        name="notifications"
+        scope={summary.isPending ? "Loading unread count…" : summary.isError ? "Unread count unavailable" : `${summary.data.unreadCount} unread · only notifications for this account and organization`}
+        value={{ view: unreadOnly ? "unread" : "" }}
+        fields={[{ key: "view", label: "Read state", allLabel: "All notifications", options: [{ value: "unread", label: "Unread only" }] }]}
+        disabled={Boolean(pending)}
+        onApply={(value) => { setUnreadOnly(value.view === "unread"); setPage(1); }}
+      />
       {summary.isError && (
         <Card>
           <p role="alert">

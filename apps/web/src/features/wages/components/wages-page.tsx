@@ -21,6 +21,7 @@ import {
 import { wagesService } from "@/features/wages/services/wages.service";
 import type { WageItem, WagePaymentMethod } from "@/features/wages/types/wages.types";
 import { WAGE_PAYMENT_METHODS } from "@nirman-app/shared";
+import { selectedWageItem, wageRateLabel } from "../wage-display";
 
 const DEFAULT_WORKING_TIMEZONE = "Asia/Kolkata";
 
@@ -63,11 +64,11 @@ const paymentMethods: Record<WagePaymentMethod, string> = {
 const remainingAmount = (item: WageItem | undefined) =>
   Math.max(0, Number(item?.netAmount ?? 0) - Number(item?.paidAmount ?? 0)).toFixed(2);
 
-export function WagesPage({ projectId }: { projectId: string }) {
-  return <WageWorkspace projectId={projectId}>{(permissions, archived) => <WagesContent projectId={projectId} permissions={permissions} archived={archived} />}</WageWorkspace>;
+export function WagesPage({ projectId, initialBatchId, initialWageItemId }: { projectId: string; initialBatchId?: string; initialWageItemId?: string }) {
+  return <WageWorkspace projectId={projectId}>{(permissions, archived) => <WagesContent projectId={projectId} permissions={permissions} archived={archived} initialBatchId={initialBatchId} initialWageItemId={initialWageItemId} />}</WageWorkspace>;
 }
 
-function WagesContent({ projectId, permissions, archived }: { projectId: string; permissions: string[]; archived: boolean }) {
+function WagesContent({ projectId, permissions, archived, initialBatchId, initialWageItemId }: { projectId: string; permissions: string[]; archived: boolean; initialBatchId?: string; initialWageItemId?: string }) {
   const { activeOrganizationId, activeOrganizationTimezone } = useAuth();
   const hasPermission = (permission: string) => permissions.includes(permission);
   const organizationId = activeOrganizationId ?? "";
@@ -75,7 +76,7 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
   const [periodStart, setPeriodStart] = useState(() => monthStart(wageToday));
   const [periodEnd, setPeriodEnd] = useState(wageToday);
   const [previewRequested, setPreviewRequested] = useState(false);
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(initialBatchId ?? null);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(wageToday);
@@ -151,8 +152,8 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
   }
 
   const selectedItem = useMemo(
-    () => detail.data?.items.find((item) => item.id === selectedItemId) ?? null,
-    [detail.data?.items, selectedItemId],
+    () => selectedWageItem(detail.data?.items, selectedBatchId, selectedItemId, initialBatchId, initialWageItemId),
+    [detail.data?.items, selectedItemId, selectedBatchId, initialBatchId, initialWageItemId],
   );
   const previewReady = Boolean(preview.data?.items.length) && !preview.data?.items.some((item) => !item.isReady);
 
@@ -248,12 +249,13 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
         {message ? <p role="status" className="text-sm text-success">{message}</p> : null}
         <PageHeader
           title="Wages"
-          description="Generate wage batches from attendance and record worker payments."
+          description="Choose a calculation period, review readiness, then inspect confirmed wages and payments."
           onBack={() => { if (!busy && !paymentAttempt && (!formDirty || window.confirm("Discard your unsaved wage form?"))) window.history.back(); }}
           actions={<Link href={`/projects/${projectId}`}><Button variant="outline">Project</Button></Link>}
         />
 
-        <Card className="min-w-0 space-y-4">
+        <Card className="min-w-0 space-y-4" aria-label="Step 1: calculation period">
+          <div><h2 className="font-semibold text-body">1. Calculation period</h2><p className="text-[13px] text-sub">These dates determine the wage calculation. They do not filter confirmed batches below.</p></div>
           <div className="grid gap-3 lg:grid-cols-[180px_180px_auto] md:items-end">
             <label className="grid gap-1 text-sm font-semibold text-sub">
               Period start *
@@ -276,7 +278,7 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
           <Card className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-body">Preview</p>
+                <h2 className="font-semibold text-body">2. Readiness and preview</h2>
                 <p className="text-[12px] text-sub">{preview.data.items.length} eligible workers in this period</p>
               </div>
               <div className="text-right">
@@ -288,14 +290,14 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
             <div role="region" aria-label="Wage comparison table" tabIndex={0} className="overflow-x-auto">
               <table className="min-w-[640px] w-full text-left text-[14px]">
                 <thead className="bg-sunken text-[12px] uppercase tracking-[0.12em] text-sub">
-                  <tr><th className="px-3 py-2">Worker</th><th>Days</th><th>Rate</th><th>Gross</th><th>Net</th><th>Status</th></tr>
+                  <tr><th className="px-3 py-2">Worker</th><th>Payable days</th><th>Period rate</th><th>Gross</th><th>Net payable</th><th>Readiness</th></tr>
                 </thead>
                 <tbody className="divide-y divide-hairline">
                   {preview.data.items.map((item) => (
                     <tr key={item.workerAssignmentId}>
                       <td className="px-3 py-2"><span className="font-semibold">{item.workerName}</span><span className="block text-[12px] text-sub">{item.workerCode} - {item.trade}</span><details className="mt-2"><summary className="cursor-pointer">Calculation details</summary><WageRateBreakdown item={item} /></details></td>
-                      <td>{item.presentDays} P / {item.halfDays} H / {item.absentDays} A</td>
-                      <td>{item.dailyRate ? currency(item.dailyRate) : "-"}</td>
+                      <td>{item.presentDays} full / {item.halfDays} half / {item.absentDays} absent</td>
+                      <td>{wageRateLabel(item, false)}{item.rateBreakdown?.length === 1 && item.dailyRate !== null ? ` · ${currency(item.dailyRate)}/day` : ""}</td>
                       <td>{currency(item.grossAmount)}</td>
                       <td>{currency(item.netAmount)}</td>
                       <td>{item.isReady ? <StatusBadge tone="success">Ready</StatusBadge> : <StatusBadge tone="warning">{item.readinessIssue}</StatusBadge>}</td>
@@ -305,13 +307,13 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
               </table>
             </div>
             {!preview.data.items.length ? <p>No eligible workers in this period.</p> : null}
-            {canGenerate ? <Button onClick={() => void perform(confirmBatch)} disabled={!previewReady || Boolean(periodError) || busy || preview.isFetching || Boolean(paymentAttempt)}><Check size={16} /> {createBatch.isPending ? "Confirming" : "Confirm wage batch"}</Button> : null}
+            {canGenerate ? <div className="space-y-2"><p className="text-[13px] text-sub">Confirmation saves these day counts, rate periods, earnings and deductions as a historical batch.</p><Button onClick={() => void perform(confirmBatch)} disabled={!previewReady || Boolean(periodError) || busy || preview.isFetching || Boolean(paymentAttempt)}><Check size={16} /> {createBatch.isPending ? "Confirming" : "Confirm wage batch"}</Button></div> : null}
           </Card>
         ) : null}
 
         <div className="grid gap-4 2xl:grid-cols-[320px_minmax(0,1fr)]">
           <Card className="min-w-0 space-y-3">
-            <p className="font-semibold text-body">Confirmed batches</p>
+            <h2 className="font-semibold text-body">3. Confirmed batches</h2>
             {batches.isLoading ? <LoadingState label="Loading batches" /> : null}
             {batches.isError ? <p role="alert">{batches.error.message} <Button onClick={() => void batches.refetch()}>Retry</Button></p> : null}
             {(batches.data ?? []).map((batch) => (
@@ -320,7 +322,7 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
                   <span className="font-semibold">{batch.periodStart} to {batch.periodEnd}</span>
                   <StatusBadge tone={batchTone[batch.status]}>{batch.status}</StatusBadge>
                 </div>
-                <p className="mt-1 text-[12px] text-sub">Net {currency(batch.totals.netAmount)} - Paid {currency(batch.totals.paidAmount)}</p>
+                <p className="mt-1 text-[13px] text-sub">Net payable {currency(batch.totals.netAmount)} · Paid {currency(batch.totals.paidAmount)} · Remaining {currency(Math.max(0, Number(batch.totals.netAmount) - Number(batch.totals.paidAmount)).toFixed(2))}</p>
               </button>
             ))}
             {!batches.isLoading && !batches.isError && !(batches.data ?? []).length ? <p className="text-[14px] text-sub">No wage batches yet.</p> : null}
@@ -329,7 +331,7 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
           <Card className="min-w-0 space-y-4">
             <div className="flex items-center gap-2">
               <Banknote size={18} />
-              <p className="font-semibold text-body">Batch detail</p>
+              <h2 className="font-semibold text-body">4. Batch detail and payments</h2>
             </div>
             {!selectedBatchId ? <p className="text-[14px] text-sub">Select a confirmed batch to view items and record payments.</p> : detail.isLoading ? <LoadingState label="Loading batch" /> : detail.data && !detail.isError ? (
               <>
@@ -338,20 +340,21 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
                   <div><p className="text-sub">Adjustments</p><p className="font-semibold">{currency(detail.data.totals.adjustmentAmount)}</p></div>
                   <div><p className="text-sub">Gross</p><p className="font-semibold">{currency(detail.data.totals.grossAmount)}</p></div>
                   <div><p className="text-sub">Deductions</p><p className="font-semibold">{currency(detail.data.totals.kharchiDeduction)}</p></div>
-                  <div><p className="text-sub">Net</p><p className="font-semibold">{currency(detail.data.totals.netAmount)}</p></div>
+                  <div><p className="text-sub">Net payable</p><p className="font-semibold">{currency(detail.data.totals.netAmount)}</p></div>
                   <div><p className="text-sub">Paid</p><p className="font-semibold">{currency(detail.data.totals.paidAmount)}</p></div>
+                  <div><p className="text-sub">Remaining</p><p className="font-semibold">{currency(Math.max(0, Number(detail.data.totals.netAmount) - Number(detail.data.totals.paidAmount)).toFixed(2))}</p></div>
                   </div>
                   {canExport ? <Button variant="outline" onClick={() => void perform(exportBatch)} disabled={isExporting || busy}><Download size={16} /> {isExporting ? "Exporting" : "Export"}</Button> : null}
                 </div>
                 <div role="region" aria-label="Wage comparison table" tabIndex={0} className="overflow-x-auto">
                   <table className="min-w-[640px] w-full text-left text-[14px]">
                     <thead className="bg-sunken text-[12px] uppercase tracking-[0.12em] text-sub">
-                      <tr><th className="px-3 py-2">Worker</th><th>Net</th><th>Paid</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr>
+                      <tr><th className="px-3 py-2">Worker and saved rate</th><th>Net payable</th><th>Paid</th><th>Payment status</th><th><span className="sr-only">Actions</span></th></tr>
                     </thead>
                     <tbody className="divide-y divide-hairline">
                       {detail.data.items.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-3 py-2"><span className="font-semibold">{item.workerName}</span><span className="block text-[12px] text-sub">{currency(item.dailyRate)}/day · {item.presentDays} P / {item.halfDays} H</span></td>
+                          <td className="px-3 py-2"><span className="font-semibold">{item.workerName}</span><span className="block text-[12px] text-sub">{wageRateLabel(item, true)} · {item.presentDays} full / {item.halfDays} half</span></td>
                           <td>{currency(item.netAmount)}</td>
                           <td>{currency(item.paidAmount)}</td>
                           <td><StatusBadge tone={item.paymentStatus === "PAID" ? "success" : item.paymentStatus === "PARTIALLY_PAID" ? "active" : "warning"}>{item.paymentStatus}</StatusBadge></td>
@@ -368,7 +371,7 @@ function WagesContent({ projectId, permissions, archived }: { projectId: string;
                   {canCancel && !cancelled ? !canCancelWageBatch(detail.data) ? <p>Cancellation is unavailable because this batch has payment history.</p> : <Button variant="danger" disabled={busy || Boolean(paymentAttempt)} onClick={() => setCancelOpen(true)}>Cancel batch</Button> : null}
                 </div>
                 {selectedRecordChanged ? <p role="alert" className="text-danger">This wage item changed. Select Details again to review the latest values before submitting.</p> : null}
-                {selectedItem ? <WageFinancialDetail key={selectedItem.id} item={selectedItem} detail={detail.data} organizationId={organizationId} projectId={projectId} canReadKharchi={hasPermission("kharchi:read")} /> : null}
+                {selectedItem ? <WageFinancialDetail key={selectedItem.id} item={selectedItem} detail={detail.data} organizationId={organizationId} projectId={projectId} canReadKharchi={hasPermission("kharchi:read")} canReadAttendance={hasPermission("attendance:read") && hasPermission("workers:read")} /> : null}
                 {paymentAttempt && !busy ? <p role="alert">The last payment has an uncertain result. Retry the same payment to safely recover its result. Keep this page open until resolved.</p> : null}
                 {canPay && !cancelled ? (
                   <div className="grid gap-3 border-t border-hairline pt-4 xl:grid-cols-2 md:items-end">

@@ -1,5 +1,6 @@
 import { Button, Card, StatusBadge } from "@/components/ui";
 import { failureMessage, label } from "../sales-rules";
+import { salesTone } from "../sales-view";
 export function Failure({
   error,
   retry,
@@ -20,13 +21,7 @@ export function Status({ value }: { value: string }) {
   return (
     <StatusBadge
       className="text-sm"
-      tone={
-        ["CONFIRMED", "COMPLETED", "BOOKED", "AVAILABLE", "APPROVED", "SELECTED"].includes(value)
-          ? "success"
-          : ["LOST", "CANCELLED", "MISSED", "INVALID", "BLOCKED", "WAITLISTED", "HIGH_INTENT", "UNAVAILABLE"].includes(value)
-            ? "warning"
-            : "neutral"
-      }
+      tone={salesTone(value)}
     >
       {label(value)}
     </StatusBadge>

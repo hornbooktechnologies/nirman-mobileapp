@@ -4,15 +4,17 @@ import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { SITE_VISIT_STATUSES } from "@nirman-app/shared";
-import { Button, Card, Input, LoadingState, Select } from "@/components/ui";
+import { Button, Card, LoadingState } from "@/components/ui";
 import { useSalesLifetime, useSiteVisits } from "../hooks/use-sales";
-import { canWriteLead, instant, label, salesKey } from "../sales-rules";
+import { canWriteLead, instant, salesKey } from "../sales-rules";
 import { visitActionable, visitSnapshot } from "../site-visit-rules";
 import { salesService } from "../services/sales.service";
 import type { SalesSiteVisit, SiteVisitUpdate } from "../types/sales.types";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { SiteVisitForm } from "./site-visit-form";
 import { Failure, Status, dateTime } from "./sales-ui";
+import { SalesFilters } from "./sales-filters";
+import { salesDetailUrl, salesListUrl } from "../sales-view";
 function Visits({ c }: { c: SalesContext }) {
   const params = useSearchParams(),
     router = useRouter(),
@@ -71,11 +73,7 @@ function Visits({ c }: { c: SalesContext }) {
   const detail = params.get("visit");
   const visible = detail ? rows.filter((v) => v.id === detail) : rows;
   function filter(name: string, value: string) {
-    const next = new URLSearchParams(params);
-    next.delete("visit");
-    if (value) next.set(name, value);
-    else next.delete(name);
-    router.replace(`${pathname}?${next}`, { scroll: false });
+    router.replace(salesListUrl(pathname, params, { [name]: value }, ["visit"]), { scroll: false });
   }
   return (
     <div className="space-y-5">
@@ -93,69 +91,21 @@ function Visits({ c }: { c: SalesContext }) {
         . Dates use {c.timezone}.
       </p>
       {success && <p role="status">{success}</p>}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <label>
-          Search customers or salespeople
-          <Input
-            value={search}
-            onChange={(e) => filter("search", e.target.value)}
-          />
-        </label>
-        <label>
-          Status
-          <Select
-            value={status ?? ""}
-            onChange={(e) => filter("status", e.target.value)}
-          >
-            <option value="">All statuses</option>
-            {SITE_VISIT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {label(s)}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label>
-          From date
-          <Input
-            type="date"
-            value={from}
-            onChange={(e) => filter("from", e.target.value)}
-          />
-        </label>
-        <label>
-          To date
-          <Input
-            type="date"
-            value={to}
-            onChange={(e) => filter("to", e.target.value)}
-          />
-        </label>
-        {team && (
-          <label>
-            Salesperson
-            <Select
-              value={salesperson}
-              onChange={(e) => filter("salesperson", e.target.value)}
-            >
-              <option value="">All salespeople</option>
-              {salesperson && !people.some(([id]) => id === salesperson) && (
-                <option value={salesperson}>{salesperson}</option>
-              )}
-              {people.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </Select>
-          </label>
-        )}
-      </div>
-      {params.size > 0 && (
-        <Button variant="outline" onClick={() => router.replace(pathname)}>
-          Clear filters / show all visits
-        </Button>
-      )}
+      <SalesFilters
+        name="site visits"
+        scope={`Visit dates use ${c.timezone}. Search applies to retrieved visits.`}
+        search={{ value: search, placeholder: "Customer or salesperson", onChange: (value) => filter("search", value) }}
+        value={{ status: status ?? "", from, to, ...(team ? { salesperson } : {}) }}
+        fields={[
+          { key: "status", name: "Status", options: SITE_VISIT_STATUSES },
+          { key: "from", name: "From date", type: "date" },
+          { key: "to", name: "To date", type: "date" },
+          ...(team ? [{ key: "salesperson", name: "Salesperson", options: people.map(([id]) => id), optionLabels: Object.fromEntries(people.map(([id, name]) => [id, name])) }] : []),
+        ]}
+        validate={(value) => value.from && value.to && value.from > value.to ? "End date must be on or after start date." : null}
+        onApply={(value) => router.replace(salesListUrl(pathname, params, value, ["visit"]), { scroll: false })}
+      />
+      {detail && <Link className="underline" href={salesListUrl(pathname, params, {}, ["visit"])}>Back to matching visits</Link>}
       {error ? (
         <p role="alert">{error}</p>
       ) : query.isPending ? (
@@ -182,7 +132,7 @@ function Visits({ c }: { c: SalesContext }) {
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
                       className="font-semibold underline"
-                      href={`${pathname}?visit=${encodeURIComponent(v.id)}`}
+                      href={salesListUrl(pathname, params, { visit: v.id })}
                     >
                       {v.customerName}
                     </Link>
@@ -218,7 +168,7 @@ function Visits({ c }: { c: SalesContext }) {
                   <div className="flex flex-wrap items-center gap-4">
                     <Link
                       className="underline"
-                      href={`/projects/${c.project}/sales/leads/${v.leadId}`}
+                      href={salesDetailUrl(`/projects/${c.project}/sales/leads/${v.leadId}`, salesListUrl(pathname, params, { visit: "" }))}
                     >
                       Lead and activity history
                     </Link>
