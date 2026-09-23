@@ -1,5 +1,5 @@
 import { normalizeProjectsResponse } from "../project-list-response";
-import { api } from "@/lib/api/api-client";
+import { api, apiClient } from "@/lib/api/api-client";
 import type {
   PaginatedProjects,
   Project,
@@ -24,10 +24,10 @@ function queryString(query?: ProjectQuery) {
 
 export const projectsService = {
   async projects(organizationId: string, query?: ProjectQuery) {
-    const response = await api.get<PaginatedProjects | PaginatedProjects["data"]>(
+    const response = await apiClient.get<PaginatedProjects | PaginatedProjects["data"]>(
       `/organizations/${organizationId}/projects${queryString(query)}`,
     );
-    return normalizeProjectsResponse(response);
+    return normalizeProjectsResponse(response.data);
   },
   project(organizationId: string, projectId: string) {
     return api.get<Project>(`/organizations/${organizationId}/projects/${projectId}`);
