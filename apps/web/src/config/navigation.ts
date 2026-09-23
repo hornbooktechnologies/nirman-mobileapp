@@ -12,6 +12,7 @@ import {
   UsersRound,
   Users,
   CreditCard,
+  Banknote,
   Wallet,
   Package,
   Receipt,
@@ -71,6 +72,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Workforce & Finance",
     items: [
+      { label: "Wages", href: "/wages", icon: Banknote, permission: "wages:read" },
       { label: "Kharchi", href: "/kharchi", icon: Wallet, permission: "kharchi:read" },
       { label: "Site Expenses", href: "/expenses", icon: Receipt, permission: "expenses:read" },
     ],
