@@ -12,6 +12,7 @@ import { salesService } from "../services/sales.service";
 import { canWriteLead, salesKey } from "../sales-rules";
 import { openUnit } from "../inventory-rules";
 import { useSalesLifetime } from "../hooks/use-sales";
+import { salesDetailUrl } from "../sales-view";
 export function LeadInventory({
   c,
   lead,
@@ -98,7 +99,7 @@ export function LeadInventory({
             <Card key={i.id}>
               <Link
                 className="font-semibold underline"
-                href={`/projects/${c.project}/sales/inventory/${i.unitId}`}
+                href={salesDetailUrl(`/projects/${c.project}/sales/inventory/${i.unitId}`, `/projects/${c.project}/sales/leads/${lead.id}`)}
               >
                 {i.unitNumber}
               </Link>

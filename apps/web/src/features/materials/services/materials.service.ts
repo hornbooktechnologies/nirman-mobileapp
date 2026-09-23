@@ -29,8 +29,8 @@ export type MaterialWrite =
 export const materialsService = {
   settings: (o: string, p: string, signal?: AbortSignal) =>
     api.get<MaterialSettings>(`${base(o, p)}/settings`, { signal }),
-  configure: (o: string, p: string, workflowMode: MaterialWorkflowMode) =>
-    api.put<MaterialSettings>(`${base(o, p)}/settings`, { workflowMode }),
+  configure: (o: string, p: string, workflowMode: MaterialWorkflowMode, approverMemberIds?: string[], expectedVersion?: number) =>
+    api.put<MaterialSettings>(`${base(o, p)}/settings`, { workflowMode, approverMemberIds, expectedVersion }),
   list: (o: string, p: string, query: MaterialsQuery, signal?: AbortSignal) =>
     api.get<MaterialRequestListResponse>(base(o, p), { params: query, signal }),
   summary: (

@@ -2,7 +2,7 @@ import type {
   MaterialEventType,
   MaterialRequestStatus,
   MaterialUnit,
-  MaterialWorkflowMode,
+  MaterialWorkflowSnapshot,
 } from "../constants";
 
 export type MaterialRequestEvent = {
@@ -11,7 +11,7 @@ export type MaterialRequestEvent = {
   previousStatus: MaterialRequestStatus | null;
   nextStatus: MaterialRequestStatus;
   comment: string | null;
-  actorUserId: string;
+  actorUserId: string | null;
   actorName: string;
   createdAt: string;
 };
@@ -53,7 +53,7 @@ export type MaterialRequest = {
   requiredByDate: string | null;
   estimatedCost: string | null;
   responsibleContractorMemberId: string | null;
-  workflowMode: MaterialWorkflowMode;
+  workflowMode: MaterialWorkflowSnapshot;
   status: MaterialRequestStatus;
   notes: string | null;
   requestedByMemberId: string;
@@ -69,6 +69,7 @@ export type MaterialRequest = {
 
 export type MaterialRequestDetail = MaterialRequest & {
   availableActions: string[];
+  approvalResponsibility?: { memberId: string; name: string; roleName: string }[];
   events: MaterialRequestEvent[];
   purchases: MaterialPurchase[];
   deliveries: MaterialDelivery[];

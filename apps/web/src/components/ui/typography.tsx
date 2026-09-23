@@ -8,7 +8,7 @@ export const Heading = forwardRef<
   <h1
     ref={ref}
     className={cn(
-      "min-w-0 break-words text-[30px] font-medium leading-[1.05] tracking-normal text-body sm:text-[36px] lg:text-[44px]",
+      "min-w-0 break-words text-[22px] font-semibold leading-tight tracking-[-0.01em] text-body sm:text-[26px]",
       className,
     )}
     {...props}
@@ -24,7 +24,7 @@ export const SectionTitle = forwardRef<
   <h2
     ref={ref}
     className={cn(
-      "min-w-0 break-words text-[17px] font-semibold leading-6 tracking-normal text-ink sm:text-[19px] sm:leading-7",
+      "min-w-0 break-words text-[16px] font-semibold leading-6 tracking-normal text-body sm:text-[18px] sm:leading-7",
       className,
     )}
     {...props}
@@ -40,7 +40,7 @@ export const Description = forwardRef<
   <p
     ref={ref}
     className={cn(
-      "min-w-0 break-words text-[14px] leading-6 text-sub sm:text-[15px]",
+      "min-w-0 break-words text-[13px] leading-5 text-sub",
       className,
     )}
     {...props}
@@ -56,7 +56,7 @@ export const FieldLabel = forwardRef<
   <label
     ref={ref}
     className={cn(
-      "min-w-0 break-words text-[11px] font-semibold uppercase leading-4 tracking-[1.1px] text-muted",
+      "min-w-0 break-words text-[13px] font-medium leading-5 text-sub",
       className,
     )}
     {...props}

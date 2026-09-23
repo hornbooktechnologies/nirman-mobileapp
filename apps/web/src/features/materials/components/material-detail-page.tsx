@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button, Card, LoadingState } from "@/components/ui";
+import { safeFinancialReturn } from "@/features/financial-return";
 import { useMaterialDetail } from "../hooks/use-materials";
 import { label, materialActions } from "../material-rules";
 import type { MaterialAction } from "../types/materials.types";
@@ -63,7 +64,7 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
     <div className="space-y-5">
       <Link
         className="underline"
-        href={`/projects/${context.project}/materials`}
+        href={safeFinancialReturn(search.get("returnTo"), context.project, "materials")}
       >
         Back to Materials
       </Link>
@@ -93,6 +94,14 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
       {query.isError && (
         <Failure error={query.error} retry={() => void query.refetch()} />
       )}
+      <Card className="space-y-3">
+        <h2 className="text-lg font-semibold">Current state and next step</h2>
+        <p className="text-sm text-sub">{d.status === "PENDING_FINAL" ? `Awaiting final approval from ${d.approvalResponsibility?.map(m => m.name).join(", ") || "an eligible Owner or delegate"}.` : d.status === "APPROVED" ? "Approved request. Approval is not an order or delivery." : d.status === "ORDERED" ? "Ordered material. Record delivery only when it reaches the site." : d.status === "PARTIALLY_DELIVERED" ? "Partially delivered. Outstanding quantity remains." : d.status === "DELIVERED" ? "Requested quantity delivered in full." : "Review the request and its permitted actions below."}</p>
+        {actions.length ? <div className="flex flex-wrap gap-2" aria-label="Available material actions">{actions.map(a => <Button key={a} variant={a === "APPROVE" || a === "SUBMIT" || a === "RECORD_DELIVERY" ? "primary" : a === "REJECT" || a === "CANCEL" ? "danger" : "outline"} disabled={query.isFetching} onClick={() => setAction(a as MaterialAction)}>{label(a)}</Button>)}</div> : <p className="text-sm text-sub">No actions available for this request.</p>}
+      </Card>
+      <section aria-label="Material quantities" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[["Requested", d.requestedQuantity], ["Ordered", d.orderedQuantity], ["Delivered", d.deliveredQuantity], ["Outstanding", d.remainingQuantity]].map(([title, value]) => <Card key={title}><p className="text-sm text-sub">{title}</p><p className="text-xl font-semibold tabular-nums">{value} {unit}</p></Card>)}
+      </section>
       <div className="grid gap-5 xl:grid-cols-2">
         <Card className="space-y-4">
           <h2 className="text-lg font-semibold">Request</h2>
@@ -101,14 +110,12 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
               ["Requested by", d.requestedBy],
               ["Requested on", date(d.requestedOn)],
               ["Required by", date(d.requiredByDate)],
-              ["Quantity", `${d.requestedQuantity} ${unit}`],
               ["Estimated cost", money(d.estimatedCost)],
               ["Workflow", label(d.workflowMode)],
               [
                 "Responsible member",
                 d.responsibleContractorMemberId ?? "Unassigned",
               ],
-              ["Version", d.version],
             ]}
           />
           {d.notes && (
@@ -119,27 +126,10 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
           <h2 className="text-lg font-semibold">Fulfilment</h2>
           <Facts
             rows={[
-              ["Ordered", `${d.orderedQuantity} ${unit}`],
-              ["Delivered", `${d.deliveredQuantity} ${unit}`],
-              ["Remaining", `${d.remainingQuantity} ${unit}`],
               ["Purchase cost", money(d.totalPurchaseCost)],
             ]}
           />
-          <div className="flex flex-wrap gap-2">
-            {actions.map((a) => (
-              <Button
-                key={a}
-                variant="outline"
-                disabled={query.isFetching}
-                onClick={() => setAction(a as MaterialAction)}
-              >
-                {label(a)}
-              </Button>
-            ))}
-          </div>
-          {!actions.length && (
-            <p className="text-sub">No actions available for this request.</p>
-          )}
+          <p className="text-sm text-sub">Purchase cost reflects recorded orders. Delivery is tracked by quantity; no Site Expense is created automatically.</p>
         </Card>
       </div>
       <section className="space-y-3">
@@ -236,6 +226,8 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
           ))}
         </ol>
       </section>
+      {context.permissions.includes("expenses:read") && <Card className="space-y-2"><h2 className="text-lg font-semibold">Related project work</h2><p className="text-sm text-sub">Material purchases do not automatically create Site Expenses. Review project expenses separately.</p><Link className="underline" href={`/projects/${context.project}/expenses`}>View project Site Expenses</Link></Card>}
+      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Version {d.version} · Request ID {d.id}</p></details>
       {action && (
         <MaterialForm
           context={context}

@@ -117,10 +117,10 @@ function Access({
           Change project
         </Link>
       </header>
-      <nav aria-label="Sales" className="flex flex-wrap gap-5">
+      <nav aria-label="Sales" className="flex flex-wrap gap-2">
         {project.permissions.includes("inventory:read") && (
           <Link
-            className="underline"
+            className={section === "inventory" ? selectedTab : tab}
             aria-current={section === "inventory" ? "page" : undefined}
             href={`/projects/${project.id}/sales/inventory`}
           >
@@ -130,7 +130,7 @@ function Access({
         {canReadSales(project.permissions) && (
           <>
             <Link
-              className="underline"
+              className={section === "bookings" ? selectedTab : tab}
               aria-current={section === "bookings" ? "page" : undefined}
               href={`/projects/${project.id}/sales/bookings`}
             >
@@ -138,21 +138,21 @@ function Access({
             </Link>
             <Link
               aria-current={section === "leads" ? "page" : undefined}
-              className="underline"
+              className={section === "leads" ? selectedTab : tab}
               href={`/projects/${project.id}/sales/leads`}
             >
               Leads
             </Link>
             <Link
               aria-current={section === "follow-ups" ? "page" : undefined}
-              className="underline"
+              className={section === "follow-ups" ? selectedTab : tab}
               href={`/projects/${project.id}/sales/follow-ups`}
             >
               Follow-ups
             </Link>
             <Link
               aria-current={section === "site-visits" ? "page" : undefined}
-              className="underline"
+              className={section === "site-visits" ? selectedTab : tab}
               href={`/projects/${project.id}/sales/site-visits`}
             >
               Site Visits
@@ -178,6 +178,8 @@ function Access({
     </div>
   );
 }
+const tab = "inline-flex min-h-11 items-center rounded-xl border border-hairline px-4 text-sm font-semibold text-sub hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-lime";
+const selectedTab = "inline-flex min-h-11 items-center rounded-xl border border-lime bg-lime px-4 text-sm font-semibold text-lime-ink focus-visible:ring-2 focus-visible:ring-lime";
 export function SalesWorkspace(props: {
   projectId?: string;
   section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings";

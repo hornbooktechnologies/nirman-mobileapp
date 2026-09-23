@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { projectListReturnHref } from "../project-list-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { PermissionKey } from "@nirman-app/shared";
 import { LoadingScreen } from "@/components/common";
 import { Card, PageHeader, TabButton, Tabs } from "@/components/ui";
@@ -18,18 +18,31 @@ export function ProjectTeamPage({ projectId }: { projectId: string }) {
   const { activeOrganizationId } = useAuth();
   const organizationId = activeOrganizationId ?? "";
   const project = useProject(organizationId, projectId);
-  const [activeTab, setActiveTab] = useState<TeamTab>("members");
+  const params = useSearchParams();
   const effectivePermissions = (project.data?.currentUserAccess?.permissions ??
     []) as PermissionKey[];
   const canReadMembers = effectivePermissions.includes("project-members:read");
   const canReadWorkers = effectivePermissions.includes("workers:read");
+  const activeTab =
+    params.get("tab") === "workers" || (!canReadMembers && canReadWorkers)
+      ? "workers"
+      : "members";
+  function setActiveTab(tab: TeamTab) {
+    const next = new URLSearchParams(params.toString());
+    next.set("tab", tab);
+    router.replace(`/projects/${projectId}/team?${next}`, { scroll: false });
+  }
 
   return (
     <div className="space-y-4">
       <PageHeader
         title={`${project.data?.name ?? "Project"} Team`}
         description="Manage login members and workforce allocations for this project."
-        onBack={() => router.push(`/projects/${projectId}`)}
+        onBack={() =>
+          router.push(
+            `/projects/${projectId}?returnTo=${encodeURIComponent(projectListReturnHref(params.get("returnTo"), organizationId))}`,
+          )
+        }
       />
 
       {!organizationId ? (

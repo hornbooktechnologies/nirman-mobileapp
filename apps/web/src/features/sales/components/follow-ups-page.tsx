@@ -4,7 +4,7 @@ import { Suspense, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { FOLLOW_UP_STATUSES, type FollowUpStatus } from "@nirman-app/shared";
-import { Button, Card, Input, LoadingState, Select } from "@/components/ui";
+import { Button, Card, LoadingState } from "@/components/ui";
 import { useFollowUps, useSalesLifetime } from "../hooks/use-sales";
 import {
   canWriteLead,
@@ -19,6 +19,8 @@ import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { SalesForm } from "./sales-form";
 import { Failure, Status, dateTime } from "./sales-ui";
 import { useAssignees } from "./lead-form";
+import { SalesFilters } from "./sales-filters";
+import { salesDetailUrl, salesListUrl } from "../sales-view";
 function FollowUps({ c }: { c: SalesContext }) {
   const live = useSalesLifetime();
   const params = useSearchParams();
@@ -56,12 +58,6 @@ function FollowUps({ c }: { c: SalesContext }) {
   const [selected, setSelected] = useState<SalesFollowUp | null>(null);
   const snapshot = useRef<SalesFollowUp | null>(null);
   const [success, setSuccess] = useState("");
-  function filter(name: string, value: string) {
-    const next = new URLSearchParams(params);
-    if (value) next.set(name, value);
-    else next.delete(name);
-    router.replace(`${pathname}?${next}`, { scroll: false });
-  }
   async function refreshSelected() {
     const records = await salesService.followUps(c.org, c.project);
     const current = records.find((f) => f.id === selected?.id);
@@ -86,63 +82,19 @@ function FollowUps({ c }: { c: SalesContext }) {
         Schedule a follow-up from a lead’s detail page. Dates use {c.timezone}.
       </p>
       {success && <p role="status">{success}</p>}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label>
-          Status
-          <Select
-            value={status ?? ""}
-            onChange={(e) => filter("status", e.target.value)}
-          >
-            <option value="">All statuses</option>
-            {FOLLOW_UP_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {label(s)}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label>
-          From date
-          <Input
-            type="date"
-            value={from}
-            onChange={(e) => filter("from", e.target.value)}
-          />
-        </label>
-        <label>
-          To date
-          <Input
-            type="date"
-            value={to}
-            onChange={(e) => filter("to", e.target.value)}
-          />
-        </label>
-      </div>
-      {team && (
-        <label className="block max-w-md">
-          Assigned user
-          <Select
-            value={assignedTo ?? ""}
-            onChange={(e) => filter("assignedTo", e.target.value)}
-          >
-            <option value="">All users</option>
-            {assignedTo &&
-              !assignees.data?.some((a) => a.value === assignedTo) && (
-                <option value={assignedTo}>{assignedTo}</option>
-              )}
-            {assignees.data?.map((a) => (
-              <option key={a.value} value={a.value}>
-                {a.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-      )}
-      {(status || assignedTo || from || to) && (
-        <Button variant="outline" onClick={() => router.replace(pathname)}>
-          Clear filters
-        </Button>
-      )}
+      <SalesFilters
+        name="follow-ups"
+        scope={`Due dates use ${c.timezone}.`}
+        value={{ status: status ?? "", from, to, ...(team ? { assignedTo: assignedTo ?? "" } : {}) }}
+        fields={[
+          { key: "status", name: "Status", options: FOLLOW_UP_STATUSES },
+          { key: "from", name: "From date", type: "date" },
+          { key: "to", name: "To date", type: "date" },
+          ...(team ? [{ key: "assignedTo", name: "Assigned user", options: assignees.data?.map((a) => a.value) ?? [], optionLabels: Object.fromEntries((assignees.data ?? []).map((a) => [a.value, a.label])) }] : []),
+        ]}
+        validate={(value) => value.from && value.to && value.from > value.to ? "End date must be on or after start date." : null}
+        onApply={(value) => router.replace(salesListUrl(pathname, params, value), { scroll: false })}
+      />
       {dateError ? (
         <p role="alert">{dateError}</p>
       ) : query.isPending ? (
@@ -165,7 +117,7 @@ function FollowUps({ c }: { c: SalesContext }) {
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
                       className="font-semibold underline"
-                      href={`/projects/${c.project}/sales/leads/${f.leadId}`}
+                      href={salesDetailUrl(`/projects/${c.project}/sales/leads/${f.leadId}`, salesListUrl(pathname, params, {}))}
                     >
                       {f.customerName}
                     </Link>

@@ -1,4 +1,56 @@
+## 2026-09-23 - Web UX acceptance follow-up
+
+Local API-isolated browser verification covered phase 2-8 synthetic previews at four viewport widths, shared drawer interactions, synthetic read-only/restricted states and public/auth-guard navigation. No horizontal page overflow or browser error overlay was observed. The Administration fixture now visibly follows applied filters; Worker Detail passes the API-supported workerId to Kharchi. Real 200% zoom, reduced motion, authenticated persona/data and cross-client tests remain open. See web-ux-phase9-acceptance.md.
+
+## 2026-09-23 - Web UX Phase 9 route audit and consolidation
+
+All production Web route groups and four persona journeys were audited against current source, behavior tests and a successful production-build route list. The unused responsive filter duplicate was removed, while the design-system reference FilterBar remains. Full Web type-check, lint, build, 119 behavior tests and diff check passed. Browser/role, responsive, keyboard, zoom, reduced-motion and cross-client acceptance remain unrun because no local server or authorized role sessions were available. Phase 9 is statically verified, not accepted. See web-ux-phase9-acceptance.md.
+
 # NirmanSite Progress Ledger
+
+## 2026-09-23 - Web UX Phase 8 administration and remaining forms
+
+Migrated Organizations, Members, Users/Roles, Notifications and subscription-plan collections to supported shared filters; Users now uses server search, role and pagination across application identities. Details and forms show identity/context and visible labels, preserve validated return state, and separate access-changing work. Settings General and Email saves no longer submit each other’s unsaved values. Existing invitation, CUSTOM access, capacity, password and notification target safeguards remain API-owned. Full Web type-check, scoped lint and focused behavior tests passed. The Phase 8 synthetic preview remains unverified in a browser because no local server was available and prior server-start approval was rejected; authenticated role and cross-client acceptance remain open. No production account/billing writes. Next: Phase 9 on explicit instruction.
+
+## 2026-09-23 - Web UX Phase 7 Sales workflows
+
+Leads, Follow-ups, Site Visits, Inventory and Bookings now share the filter drawer and retain list state through validated same-project return links. Lead/unit/booking details present customer, owner, status, next actions and related records before secondary administration; Sales tabs and domain status tones are explicit. API-owned stage, availability, hold, conversion, permission and uncertain-retry rules remain unchanged. Full Web type-check, scoped lint and 19 focused tests passed. The synthetic preview is unverified in a browser because no local server was available and prior server-start approval was rejected; authenticated role and cross-client acceptance remain open. No production Sales writes. Next: Phase 8 on explicit instruction.
+
+## 2026-09-23 - Web UX Phase 6 Progress, Gallery and Calendar
+
+Progress history and Gallery collections now use the shared filter drawer; stage status, immutable update history, photo captions and review metadata are clearer. Permission-gated navigation connects Progress, project Gallery, Work Calendar and Attendance, with same-project return context. Calendar editing and Gallery upload/retry workflows remain unchanged. Full Web type-check, scoped lint and 21 focused tests passed. Phase 6 browser checks remain open because approval to start the local dev server was rejected; authenticated and cross-client acceptance also remain open. Next: Phase 7 on explicit instruction.
+
+## 2026-09-23 - Web UX Phase 5 Materials and Expenses
+
+Web lists now use the shared search/filter drawer and retain applied query state on record return. Materials distinguishes requested, ordered, delivered and outstanding quantities; Expenses keeps original, signed adjustments and recognized cost separate. Detail actions remain API-derived and existing two-mode Materials approval/delegation work was preserved. Focused Web type/lint and return-path tests passed. Synthetic browser fixture checked drawer behavior and 360px/1366px reflow; real project route redirected to login. Authenticated role, history and mutation acceptance remain open. Next: Phase 6 on explicit instruction.
+
+## 2026-09-23 - Web UX Phase 4 Wages and Kharchi
+
+Organized Wages into calculation period, readiness/preview, confirmation and saved batch/payment stages; historical multi-rate snapshots and net/paid/remaining amounts are explicit. Kharchi now uses the shared collection drawer, accurately scopes its summary and links permitted Worker, Attendance, Wage and advance history. Existing financial API rules, immutable records and uncertain-write recovery remain authoritative. Fourteen focused tests, full Web TypeScript and focused ESLint passed. Synthetic browser checks passed at 360px/1366px and for filter draft/apply behavior; the live Wages route redirects to login. Authenticated acceptance is recorded in the [redesign plan](web-ux-redesign-plan.md). No financial payment was executed. No API/Mobile/database/dependency/Git integration work; unrelated dirty changes preserved. Stop before Phase 5.
+
+## 2026-09-22 - Web UX Phase 3 Dashboard and project navigation
+
+Replaced operational sample metrics/projects/approvals with an authorized, project-scoped dashboard: real pending-record previews and detail/full-queue links, verified workflow/progress/gallery summaries, explicit unavailable Attendance/finance values, and safe project context/query isolation. Dashboard and Project Detail now reuse shared effective-permission navigation; sidebar retains explicit project context. Nineteen focused tests, full Web TypeScript and focused ESLint passed. Development browser fixture checks passed at 360px/1366px, including restricted and archived states; actual /dashboard redirects to login. Detailed evidence is recorded in the [redesign plan](web-ux-redesign-plan.md). Dashboard API gaps are documented rather than repaired in Web. Authenticated role/data/switching/detail acceptance remains open. No API/Mobile/database/dependency or Git integration changes; unrelated dirty work and earlier phase entries preserved. Stop before Phase 4.
+
+## 2026-09-22 - Web UX Phase 2 Workers, Projects and Attendance
+
+Implemented the bounded Web reference journey: Workers shared search/filter drawer, semantic desktop rows/narrow cards, safe URL/return state and explicit page-local assignment filtering; read-first Worker Detail with reused Project Team assignment/rate workflows, related work and separate history/management; Project Detail navigation separated from lifecycle actions; Attendance filter drawer and permitted assignment/calendar recovery navigation. Automatic presence, absence writes, effective-date rates and existing mutation guards remain unchanged. Twelve focused behavioral tests, full Web TypeScript and focused ESLint passed; final verification is recorded in the [redesign plan](web-ux-redesign-plan.md). Browser fixture checks passed at desktop/tablet/narrow/reflow widths with keyboard/draft/focus/scroll and read-only navigation checks. Actual Workers redirects to login: authenticated roles/data/mutations/detail journeys, native zoom and runtime reduced-motion remain unaccepted. No API/Mobile/database/dependency or Git integration work performed; unrelated dirty changes preserved. Stop before Phase 3.
+
+## 2026-09-22 - Web UX Phase 1B collection and filter foundation
+
+Implemented the production Drawer accessibility/focus/scroll safeguards and reusable search/filter toolbar with independent drafts, Apply and draft-only Reset. Projects is the sole migrated collection, with API pagination, scoped URL state, safe detail/back restoration, user-scoped list cache and reliable-total guards. Shared controls/table typography retain Manrope and the palette. Seven focused tests passed; full Web type-check and focused lint passed in the final verification pass. Project Detail retains its pre-existing setForm-in-effect lint failure. Browser fixture checks passed for keyboard/drafts/scroll and 1366/768/683/360px layouts; 683px is a zoom reflow approximation. Real Projects redirects to login: authenticated queries/roles/returns, native 200% zoom and runtime reduced-motion preference checks remain pending. See [redesign evidence](web-ux-redesign-plan.md). Phase 2 was not started. API/Mobile/database/dependencies and unrelated work were preserved.
+
+## 2026-09-22 - Web UX Phase 1A validation pass
+
+Re-audited the existing three-file foundation implementation and its production consumers. No additional application-code corrections were justified by source evidence; existing uncommitted work was preserved. Focused ESLint, source-only TypeScript (zero diagnostics) and scoped whitespace checks passed. The initial full Web check reconfirmed malformed generated Next dev types; a final full Web type-check passed after Next dev regenerated them, without manual generated-file edits. The approved local dev server started, but browser navigation/inspection timed out during Workers compilation; responsive, long-content and 200% zoom acceptance remain open. Detailed evidence is in the [redesign plan](web-ux-redesign-plan.md#phase-1a-validation-pass--2026-09-22). Phase 1B was not started and must recheck those visual gates before adoption.
+
+## 2026-09-22 - Web UX redesign, Phase 1A
+
+Recorded the [design contract and phased rollout](web-ux-redesign-plan.md). Started shared typography, wrapping headers and organization-selector containment. Palette, font family and business behavior preserved; existing Materials work preserved. Verification is tracked in the plan; authenticated visual acceptance remains pending.
+
+## 2026-09-22 - Materials two-mode approval and delegation
+
+Implemented Direct/Final approval settings across shared/API/Mobile/Web, Owner-managed project delegation, both organization-owner self-request exceptions, final decision/notification eligibility parity and readable approval responsibility. Migration 027 is prepared to convert pending verification with immutable history and notification backfill; it has NOT been executed. The full API suite passed (37 suites / 246 tests), API build and Mobile type-check passed, Web source-only type-check/scoped lint and six Materials rule tests passed, and all 18 locale namespaces validated. Normal Web type-check is blocked by malformed generated .next/dev types. Final focused verification and rollout evidence are tracked in [Materials approval plan](materials-two-mode-approval-plan.md). Authenticated DB/API/browser/device acceptance remains pending; no deployment, commit or push.
 
 ## 2026-09-21 - W8 Web Notifications
 

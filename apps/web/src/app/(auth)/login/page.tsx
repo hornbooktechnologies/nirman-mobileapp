@@ -69,29 +69,31 @@ function LoginPageContent() {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="space-y-2">
-              <label className="text-[12px] font-semibold text-body">Email</label>
+            <label className="block space-y-2 text-[13px] font-medium text-body">
+              <span>Email</span>
               <Input
                 type="email"
                 placeholder="admin@example.local"
                 {...form.register("email")}
               />
+            </label>
+            <div>
               {form.formState.errors.email ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.email.message}</p>
               ) : null}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <label className="text-[12px] font-semibold text-body">Password</label>
+                <span className="text-[13px] font-medium text-body">Password</span>
                 <Link className="text-[12px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Forgot password?</Link>
               </div>
-              <PasswordInput autoComplete="current-password" {...form.register("password")} />
+              <label className="block"><span className="sr-only">Password</span><PasswordInput autoComplete="current-password" {...form.register("password")} /></label>
               {form.formState.errors.password ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.password.message}</p>
               ) : null}
             </div>
             {form.formState.errors.root ? (
-              <p className="text-[12px] text-red-600">{form.formState.errors.root.message}</p>
+              <p role="alert" className="text-sm text-danger">{form.formState.errors.root.message}</p>
             ) : null}
             <Button type="submit" variant="primary" className="w-full" disabled={login.isPending}>
               {login.isPending ? "Signing in" : "Sign in"}

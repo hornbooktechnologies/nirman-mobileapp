@@ -253,12 +253,12 @@ export function MemberProjectAssignmentDialog({
                 {selectedProjectIds.length} selected
               </p>
             </div>
-            <Input
+            <label className="grid gap-1 text-sm font-medium">Search available projects<Input
               className="max-w-[280px]"
               placeholder="Search projects"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-            />
+            /></label>
           </div>
           <div className="grid max-h-52 gap-2 overflow-y-auto rounded-inner border border-hairline bg-sunken/30 p-3 sm:grid-cols-2">
             {visibleProjects.map((project) => {

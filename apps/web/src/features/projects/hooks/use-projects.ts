@@ -13,28 +13,40 @@ export const projectKeys = {
     ["projects", organizationId, projectId] as const,
   members: (organizationId: string, projectId: string) =>
     ["projects", organizationId, projectId, "members"] as const,
-  access: (organizationId: string) => ["projects", organizationId, "access"] as const,
+  access: (organizationId: string) =>
+    ["projects", organizationId, "access"] as const,
   organizationAssignments: (organizationId: string) =>
     ["projects", organizationId, "member-assignments"] as const,
 };
 
-export function useProjects(organizationId: string | null, query?: ProjectQuery) {
+export function useProjects(
+  organizationId: string | null,
+  query?: ProjectQuery,
+) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: projectKeys.list(organizationId ?? "none", query),
+    queryKey: [...projectKeys.list(organizationId ?? "none", query), user?.id],
     queryFn: () => projectsService.projects(organizationId!, query),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId && user),
   });
 }
 
 export function useProject(organizationId: string | null, projectId: string) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: projectKeys.detail(organizationId ?? "none", projectId),
+    queryKey: [
+      ...projectKeys.detail(organizationId ?? "none", projectId),
+      user?.id,
+    ],
     queryFn: () => projectsService.project(organizationId!, projectId),
     enabled: Boolean(organizationId && projectId),
   });
 }
 
-export function useProjectMembers(organizationId: string | null, projectId: string) {
+export function useProjectMembers(
+  organizationId: string | null,
+  projectId: string,
+) {
   return useQuery({
     queryKey: projectKeys.members(organizationId ?? "none", projectId),
     queryFn: () => projectsService.members(organizationId!, projectId),
@@ -70,17 +82,24 @@ export function useCreateProject(organizationId: string | null) {
     mutationFn: (input: Parameters<typeof projectsService.createProject>[1]) =>
       projectsService.createProject(organizationId!, input),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: projectKeys.all(organizationId ?? "none") }),
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.all(organizationId ?? "none"),
+      }),
   });
 }
 
-export function useUpdateProject(organizationId: string | null, projectId: string) {
+export function useUpdateProject(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Parameters<typeof projectsService.updateProject>[2]) =>
       projectsService.updateProject(organizationId!, projectId, input),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: projectKeys.all(organizationId ?? "none") });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.all(organizationId ?? "none"),
+      });
       void queryClient.invalidateQueries({
         queryKey: projectKeys.detail(organizationId ?? "none", projectId),
       });
@@ -88,12 +107,18 @@ export function useUpdateProject(organizationId: string | null, projectId: strin
   });
 }
 
-export function useArchiveProject(organizationId: string | null, projectId: string) {
+export function useArchiveProject(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => projectsService.archiveProject(organizationId!, projectId),
+    mutationFn: () =>
+      projectsService.archiveProject(organizationId!, projectId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: projectKeys.all(organizationId ?? "none") });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.all(organizationId ?? "none"),
+      });
       void queryClient.invalidateQueries({
         queryKey: projectKeys.detail(organizationId ?? "none", projectId),
       });
@@ -101,12 +126,18 @@ export function useArchiveProject(organizationId: string | null, projectId: stri
   });
 }
 
-export function useRestoreProject(organizationId: string | null, projectId: string) {
+export function useRestoreProject(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => projectsService.restoreProject(organizationId!, projectId),
+    mutationFn: () =>
+      projectsService.restoreProject(organizationId!, projectId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: projectKeys.all(organizationId ?? "none") });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.all(organizationId ?? "none"),
+      });
       void queryClient.invalidateQueries({
         queryKey: projectKeys.detail(organizationId ?? "none", projectId),
       });
@@ -114,7 +145,10 @@ export function useRestoreProject(organizationId: string | null, projectId: stri
   });
 }
 
-export function useAssignProjectMember(organizationId: string | null, projectId: string) {
+export function useAssignProjectMember(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -123,7 +157,8 @@ export function useAssignProjectMember(organizationId: string | null, projectId:
     }: {
       memberId: string;
       input: Parameters<typeof projectsService.assignMember>[3];
-    }) => projectsService.assignMember(organizationId!, projectId, memberId, input),
+    }) =>
+      projectsService.assignMember(organizationId!, projectId, memberId, input),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: projectKeys.members(organizationId ?? "none", projectId),
@@ -131,7 +166,10 @@ export function useAssignProjectMember(organizationId: string | null, projectId:
   });
 }
 
-export function useUpdateProjectMember(organizationId: string | null, projectId: string) {
+export function useUpdateProjectMember(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -140,7 +178,8 @@ export function useUpdateProjectMember(organizationId: string | null, projectId:
     }: {
       memberId: string;
       input: Parameters<typeof projectsService.updateMember>[3];
-    }) => projectsService.updateMember(organizationId!, projectId, memberId, input),
+    }) =>
+      projectsService.updateMember(organizationId!, projectId, memberId, input),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: projectKeys.members(organizationId ?? "none", projectId),
@@ -148,7 +187,10 @@ export function useUpdateProjectMember(organizationId: string | null, projectId:
   });
 }
 
-export function useUnassignProjectMember(organizationId: string | null, projectId: string) {
+export function useUnassignProjectMember(
+  organizationId: string | null,
+  projectId: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (memberId: string) =>
@@ -176,9 +218,7 @@ export function useSaveMemberProjectAssignments(
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: projectKeys.organizationAssignments(
-          organizationId ?? "none",
-        ),
+        queryKey: projectKeys.organizationAssignments(organizationId ?? "none"),
       });
       void queryClient.invalidateQueries({
         queryKey: projectKeys.all(organizationId ?? "none"),

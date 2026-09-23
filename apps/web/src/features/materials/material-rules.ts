@@ -11,10 +11,9 @@ export const actionPermissions: Record<string, string> = {
   EDIT: "materials:update",
   SUBMIT: "materials:update",
   CANCEL: "materials:update",
-  VERIFY: "materials:approve-level-1",
   APPROVE: "materials:approve-final",
-  RETURN: "materials:reject",
-  REJECT: "materials:reject",
+  RETURN: "materials:approve-final",
+  REJECT: "materials:approve-final",
   RECORD_PURCHASE: "materials:record-purchase",
   RECORD_DELIVERY: "materials:record-delivery",
 };
@@ -27,7 +26,9 @@ export function materialActions(
     ? actions.filter(
         (action) =>
           actionPermissions[action] &&
-          permissions.includes(actionPermissions[action]),
+          (["APPROVE", "RETURN", "REJECT"].includes(action)
+            ? permissions.includes("materials:read") || permissions.includes("materials:approve-final")
+            : permissions.includes(actionPermissions[action])),
       )
     : [];
 }

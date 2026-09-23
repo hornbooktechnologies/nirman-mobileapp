@@ -58,7 +58,7 @@ describe("MaterialsRepository transactional guards", () => {
     jest.clearAllMocks();
   });
 
-  it("rejects requester self-verification before writing state, audit, or notifications", async () => {
+  it("rejects retired verification before writing state, audit, or notifications", async () => {
     database.query.mockImplementation(async (sql: string) => {
       if (sql.includes("FROM material_request_events")) return [];
       if (
@@ -85,7 +85,7 @@ describe("MaterialsRepository transactional guards", () => {
         auditAction: "materials.request.verified",
         preventRequesterAction: true,
       }),
-    ).rejects.toThrow("MATERIAL_SELF_APPROVAL_FORBIDDEN");
+    ).rejects.toThrow("MATERIAL_STATUS_TRANSITION_INVALID");
 
     expect(database.execute).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
@@ -141,9 +141,24 @@ describe("MaterialsRepository transactional guards", () => {
     expect(notifications.createMany).not.toHaveBeenCalled();
   });
   describe("Builder Owner request approval", () => {
-    function mockRow(overrides: Record<string, unknown> = {}) {
+    function mockRow(overrides: Record<string, unknown> = {}, owner = true) {
       database.query.mockImplementation(async (sql: string) => {
         if (sql.includes("FROM material_request_events")) return [];
+        if (sql.includes("FROM organization_members om"))
+          return [
+            {
+              memberId: actorMemberId,
+              userId: actorUserId,
+              isOwner: owner ? 1 : 0,
+              canApprove: 1,
+            },
+            {
+              memberId: "other-owner",
+              userId: "other-owner-user",
+              isOwner: 1,
+              canApprove: 1,
+            },
+          ] as any;
         if (sql.includes("FROM material_requests mr"))
           return [{ ...requestRow, ...overrides }] as any;
         return [];
@@ -162,7 +177,7 @@ describe("MaterialsRepository transactional guards", () => {
       eventType: "APPROVED" as const,
       auditAction: "materials.request.approved" as const,
       preventRequesterAction: true,
-      actorIsBuilderOwner: true,
+      actorIsOrganizationOwner: true,
     };
 
     it.each(["FINAL_APPROVAL", "VERIFY_THEN_FINAL", "DIRECT"])(
@@ -203,7 +218,7 @@ describe("MaterialsRepository transactional guards", () => {
             actorUserId,
             newValues: { status: "APPROVED", version: 3 },
             metadata: expect.objectContaining({
-              approvalBasis: "BUILDER_OWNER_REQUEST",
+              approvalBasis: "ORGANIZATION_OWNER_REQUEST",
             }),
           }),
           connection,
@@ -241,15 +256,18 @@ describe("MaterialsRepository transactional guards", () => {
     ] as const)(
       "preserves standard submission: owner=%s requester=%s workflow=%s",
       async (
-        actorIsBuilderOwner,
+        actorIsOrganizationOwner,
         requestedByMemberId,
         workflowMode,
         nextStatus,
       ) => {
-        mockRow({ status: "DRAFT", workflowMode, requestedByMemberId });
+        mockRow(
+          { status: "DRAFT", workflowMode, requestedByMemberId },
+          actorIsOrganizationOwner,
+        );
         await repository.transition({
           ...approval,
-          actorIsBuilderOwner,
+          actorIsOrganizationOwner,
           allowedFrom: ["DRAFT"],
           eventType: "SUBMITTED",
           auditAction: "materials.request.submitted",
@@ -282,9 +300,9 @@ describe("MaterialsRepository transactional guards", () => {
     });
 
     it("does not allow a non-owner to self-approve", async () => {
-      mockRow({ status: "PENDING_FINAL" });
+      mockRow({ status: "PENDING_FINAL" }, false);
       await expect(
-        repository.transition({ ...approval, actorIsBuilderOwner: false }),
+        repository.transition({ ...approval, actorIsOrganizationOwner: false }),
       ).rejects.toThrow("MATERIAL_SELF_APPROVAL_FORBIDDEN");
       expect(database.execute).not.toHaveBeenCalled();
     });
@@ -299,7 +317,7 @@ describe("MaterialsRepository transactional guards", () => {
           nextStatus: "PENDING_FINAL",
           auditAction: "materials.request.verified",
         }),
-      ).rejects.toThrow("MATERIAL_SELF_APPROVAL_FORBIDDEN");
+      ).rejects.toThrow("MATERIAL_STATUS_TRANSITION_INVALID");
       expect(database.execute).not.toHaveBeenCalled();
     });
 

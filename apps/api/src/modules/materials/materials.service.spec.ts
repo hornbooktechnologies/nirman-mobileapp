@@ -6,6 +6,7 @@ import { MaterialsService } from "./materials.service";
 
 describe("MaterialsService", () => {
   const repository = {
+    approvalMembers: jest.fn().mockResolvedValue([]),
     findSettings: jest.fn(),
     upsertSettings: jest.fn(),
     findMany: jest.fn(),
@@ -56,7 +57,7 @@ describe("MaterialsService", () => {
       ],
     } as any);
     repository.findSettings.mockResolvedValue({
-      workflowMode: "VERIFY_THEN_FINAL",
+      workflowMode: "FINAL_APPROVAL",
     } as any);
     repository.create.mockResolvedValue({
       id: requestId,
@@ -74,13 +75,16 @@ describe("MaterialsService", () => {
     await expect(
       service.findSettings(organizationId, projectId, actor),
     ).resolves.toMatchObject({
-      workflowMode: "VERIFY_THEN_FINAL",
+      workflowMode: "FINAL_APPROVAL",
       configured: true,
     });
   });
 
   it("marks newly configured settings as configured", async () => {
     repository.upsertSettings.mockResolvedValue({
+      workflowMode: "DIRECT",
+    } as any);
+    repository.findSettings.mockResolvedValue({
       workflowMode: "DIRECT",
     } as any);
 
@@ -146,7 +150,7 @@ describe("MaterialsService", () => {
       }),
       actor.id,
       memberId,
-      "VERIFY_THEN_FINAL",
+      "FINAL_APPROVAL",
     );
     expect(result.availableActions).toEqual(["EDIT", "SUBMIT", "CANCEL"]);
   });
@@ -154,7 +158,7 @@ describe("MaterialsService", () => {
   it.each([
     ["DIRECT", "APPROVED", undefined],
     ["FINAL_APPROVAL", "PENDING_FINAL", "materials:approve-final"],
-    ["VERIFY_THEN_FINAL", "PENDING_VERIFICATION", "materials:approve-level-1"],
+    ["VERIFY_THEN_FINAL", "PENDING_FINAL", "materials:approve-final"],
   ])(
     "submits %s workflow to %s",
     async (workflowMode, nextStatus, notificationPermission) => {
@@ -182,29 +186,19 @@ describe("MaterialsService", () => {
     },
   );
 
-  it("keeps site verification separate from final approval", async () => {
-    repository.findDetail.mockResolvedValue({
-      id: requestId,
-      status: "PENDING_VERIFICATION",
-      workflowMode: "VERIFY_THEN_FINAL",
-    } as any);
-
-    await service.verify(
-      organizationId,
-      projectId,
-      requestId,
-      { expectedVersion: 2, idempotencyKey: "verify-001" },
-      actor,
-    );
-
-    expect(repository.transition).toHaveBeenCalledWith(
-      expect.objectContaining({
-        allowedFrom: ["PENDING_VERIFICATION"],
-        nextStatus: "PENDING_FINAL",
-        preventRequesterAction: true,
-        notificationPermission: "materials:approve-final",
-      }),
-    );
+  it("rejects the retired verification endpoint without a mutation", async () => {
+    await expect(
+      service.verify(
+        organizationId,
+        projectId,
+        requestId,
+        { expectedVersion: 2, idempotencyKey: "verify-001" },
+        actor,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: "MATERIAL_STATUS_TRANSITION_INVALID" },
+    });
+    expect(repository.transition).not.toHaveBeenCalled();
   });
 
   it("requires comments for return, rejection, and cancellation", () => {
@@ -274,6 +268,7 @@ describe("MaterialsService", () => {
     ["BUILDER", "Organization Owner", true, true],
     ["BUILDER", "Builder Admin", true, false],
     ["CONTRACTOR", "Organization Owner", true, false],
+    ["CONTRACTOR", "Independent Contractor Owner", true, true],
     ["BUILDER", "Organization Owner", false, false],
   ])(
     "derives owner exception from current membership: %s %s final=%s",
@@ -314,7 +309,7 @@ describe("MaterialsService", () => {
         actor,
       );
       expect(repository.transition).toHaveBeenCalledWith(
-        expect.objectContaining({ actorIsBuilderOwner: expected }),
+        expect.objectContaining({ actorIsOrganizationOwner: expected }),
       );
     },
   );
@@ -354,7 +349,7 @@ describe("MaterialsService", () => {
       );
       expect(repository.transition).toHaveBeenCalledWith(
         expect.objectContaining({
-          actorIsBuilderOwner: true,
+          actorIsOrganizationOwner: true,
           preventRequesterAction: true,
         }),
       );

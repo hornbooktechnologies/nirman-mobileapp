@@ -4,15 +4,15 @@
 
 - Status: API implementation baseline; runtime and Product acceptance pending
 - Scope owner: Product Owner
-- Last updated: 2026-09-01
+- Last updated: 2026-09-22 (two-mode approval policy approved by Product Owner)
 
 This contract governs the current Materials API source. Mobile, Web, offline sync, file attachments, Expenses integration, migration execution, seed execution, and authenticated runtime acceptance remain separate gates.
 
 ## 2. Purpose
 
-Materials tracks one Project material requirement from creation through optional verification, final approval, purchase/order, partial delivery, and completion.
+Materials tracks one Project material requirement from creation through final approval, purchase/order, partial delivery, and completion.
 
-The module supports Independent Contractor and self-managed Builder work without fake approval while preserving Builder-controlled verification and final commercial approval when configured.
+The module supports Independent Contractor and self-managed Builder work without fake approval while preserving Owner-controlled delegated final approval when configured.
 
 ## 3. Scope And Boundaries
 
@@ -21,7 +21,6 @@ Included:
 - one material item per request;
 - Project workflow configuration;
 - draft/edit/submit;
-- optional site verification;
 - final approval;
 - return, rejection, and pre-purchase cancellation;
 - multiple purchase/order records;
@@ -52,23 +51,9 @@ Excluded:
 
 ## 5. Workflow Modes
 
-Each Project explicitly configures one mode:
+Only `DIRECT` and `FINAL_APPROVAL` are configurable. DIRECT submission becomes APPROVED; FINAL_APPROVAL submission becomes PENDING_FINAL, except for the organization-owner self-request rule below. The API snapshots the mode per request. Normal settings changes affect new requests only.
 
-```text
-DIRECT
-FINAL_APPROVAL
-VERIFY_THEN_FINAL
-```
-
-The API snapshots the configured mode onto each request. Later Project configuration changes do not rewrite existing requests.
-
-- `DIRECT`: submission becomes `APPROVED`.
-- `FINAL_APPROVAL`: submission becomes `PENDING_FINAL`.
-- `VERIFY_THEN_FINAL`: submission becomes `PENDING_VERIFICATION`; verification then becomes `PENDING_FINAL`.
-
-These routes apply except for the Builder Owner's own-request approval rule in section 7. The stored workflow snapshot remains unchanged when that exception is used.
-
-Builder Supervisor verification is never final commercial approval.
+Decision approved 2026-09-22 supersedes verification in MVP section 10 and the previous three-mode contract. Migration 027 changes legacy project settings to FINAL_APPROVAL and moves PENDING_VERIFICATION requests to PENDING_FINAL with a version increment. Original request workflow snapshots, fingerprints and historical events are preserved. A dedicated system migration record appears as WORKFLOW_MIGRATED in the timeline; it is not attributed to a human approver. Legacy draft/returned requests submit directly to the final stage. Historical VERIFY_THEN_FINAL and VERIFIED labels remain readable; the verify endpoint rejects further writes.
 
 ## 6. Statuses And Transitions
 
@@ -102,47 +87,39 @@ Rules:
 - A request becomes `DELIVERED` only when cumulative delivered quantity equals requested quantity; otherwise it remains `PARTIALLY_DELIVERED`.
 - No critical history has a standard delete endpoint.
 
-## 7. Self-Approval And Actor Rules
+## 7. Approval Responsibility And Actor Rules
 
-- In approval workflows, the requester cannot verify or finally approve their own request, except for the Builder Owner rule approved on 2026-09-18 below.
-- An active `Organization Owner` in a `BUILDER` Organization with effective Project `materials:approve-final` permission may submit their own draft/returned request directly to `APPROVED`, in any workflow. Creation still records a draft and its creator; submission records the actor, status transition, and `BUILDER_OWNER_REQUEST` approval basis in the audit trail.
-- The same owner may explicitly finally approve their own existing `PENDING_VERIFICATION` or `PENDING_FINAL` request. This recovery action does not rewrite the workflow snapshot or historical events. Other members' requests still follow the configured stages, and self-verification remains forbidden.
-- Direct workflow is not considered fake self-approval; it intentionally skips approval.
-- A requester may edit their own draft/returned request.
-- Another Member may edit it only when holding final commercial approval capability.
-- A requester may cancel their request in an allowed state; another Member requires final commercial approval capability.
-- Responsible Contractor references must resolve to an active same-Organization Member with current access to the same Project.
+- The final decision pool is the eligible organization Owner plus members explicitly delegated by that Owner for this project. The first valid decision completes review; concurrent stale decisions fail through the request lock/version check.
+- Builder Organization Owner and Independent Contractor Owner may submit their own requests directly to APPROVED and approve their own pending requests. Both need effective final approval and Materials read access. The audit basis is ORGANIZATION_OWNER_REQUEST; older BUILDER_OWNER_REQUEST audit history remains unchanged.
+- Delegates cannot approve, reject or return their own requests. A request needing approval cannot be submitted without at least one other eligible approver (MATERIAL_APPROVER_REQUIRED).
+- A Contractor Member in a Builder organization is distinct from an Independent Contractor Owner in another organization. Authority never crosses organizations. The optional responsible contractor reference does not grant approval authority or establish a reporting hierarchy.
+- Delegation requires active organization membership, an active user, current project access (including assignment dates), and effective Materials read permission. CUSTOM read restrictions apply to organization-wide members too. Revoking project/read access makes a stored delegation ineffective.
+- Only the organization Owner can replace the project's delegated approver list. An approval delegate cannot further delegate. Delegation is managed in Materials settings on Mobile and Web and applies to pending requests immediately.
+- `project_material_approvers` is a narrow, explicit exception to the ordinary role ceiling for Materials approve-final/reject only. Other permissions retain the organization-role intersection. Existing non-owner role defaults alone no longer confer Materials final decision authority; an Owner must explicitly select those members as delegates.
+- Owner final permission remains subject to effective project restrictions. A delegate needs explicit delegation plus read access, not a global role permission or a project checkbox for approve-final.
+- Approve, return and reject all require the same final decision authority. Comments remain mandatory for return/reject. Retired verification/rejection-only roles cannot decide requests.
+- Direct deliberately skips approval. Requester identity and all transitions remain recorded.
+- Requesters may edit/submit/cancel their own request in allowed states. Editing/submitting/cancelling another member's request requires final approval capability as well as the endpoint's update permission.
 
 ## 8. Permissions
 
-```text
-materials:read
-materials:create
-materials:update
-materials:configure
-materials:approve-level-1
-materials:approve-final
-materials:reject
-materials:record-purchase
-materials:record-delivery
-materials:export
-```
+Existing `materials:read`, `create`, `update`, `configure`, `record-purchase`, `record-delivery`, and `export` rules remain. Effective `materials:approve-final` and `materials:reject` come from the decision pool above. `materials:approve-level-1` is retained as historical vocabulary but removed from effective project permissions and active actions.
 
-Default direction:
-
-- Organization Owner, Builder Admin, Independent Contractor Owner: all.
-- Project Manager: operational management, site verification, purchase/delivery, and export; no final approval by default.
-- Builder Supervisor: read, site verification, return/reject, and delivery; no final approval.
-- Contractor Member and Site Supervisor: read/create/update their requests; no commercial approval or purchase authority by default.
-- Sales User, Viewer, Platform Super Admin: none by default.
-
-Project `CUSTOM` grants remain intersected with the Organization role ceiling.
+The Materials API uses current ProjectAccessService authorization rather than the global user's role guard, which cannot represent active organization membership and project delegation. Authentication remains required. Final decisions and delegation edits recheck approval eligibility inside the transaction. A shared project lock serializes delegation replacement against decisions; the common eligibility query drives session permissions, actions and notifications.
 
 ## 9. Data Contract
 
 ### `project_material_settings`
 
-One workflow setting per Organization/Project.
+One workflow setting per Organization/Project, with a version for optimistic configuration updates. PUT /settings accepts workflowMode, optional approverMemberIds and expectedVersion. Supplying approverMemberIds requires Owner authority and expectedVersion (0 for initial configuration); omission preserves delegation for older clients. Settings responses include version, canManageApprovers and approvalMembers (memberId, name, roleName, isOwner, delegated, canApprove). Inactive/inaccessible members are not offered as candidates.
+
+### `project_material_approvers`
+
+Same-organization/project membership references with grantor and timestamp; replacements and removals are audited through materials.settings.updated. Delegation grants neither project nor Materials read access.
+
+### `material_workflow_migrations`
+
+Immutable migration provenance (request scope, previous status/version, system timestamp). Original domain/audit events are never rewritten.
 
 ### `material_requests`
 
@@ -187,7 +164,7 @@ Routes:
 - `POST /:id/purchases`;
 - `POST /:id/deliveries`.
 
-Detail responses expose server-derived `availableActions`. Clients may use them for UI but the server revalidates every command.
+Detail responses expose server-derived `availableActions` and current `approvalResponsibility` (eligible member IDs, names and roles, excluding a non-owner requester). Clients may use them for UI but the server revalidates every command.
 
 ## 11. Idempotency And Concurrency
 
@@ -201,7 +178,7 @@ Detail responses expose server-derived `availableActions`. Clients may use them 
 
 ## 12. Notifications And Audit
 
-In-app notifications cover verification required, final approval required, return, approval, rejection, purchase, and delivery. Recipients are resolved from active same-Project effective permissions. Deep links never grant access.
+In-app notifications cover final approval required, return, approval, rejection, purchase, and delivery. Recipients are resolved through the same Materials approval eligibility query as API actions. Requesters are excluded from approval-required notices. Newly delegated members receive notices for existing pending requests. Migration 027 backfills Owner final-approval inbox/push deliveries and stops queued verification reminders. Deep links never grant access.
 
 Critical actions use immutable reusable `audit_events`. Domain events remain separately visible in the request timeline.
 
@@ -225,8 +202,8 @@ Source-complete requires shared/API type-checks, API build, focused and full tes
 
 Runtime-verified additionally requires separately approved migration/seed execution and authenticated tests for:
 
-- Direct, final-only, and verify-then-final workflows;
-- self-approval denial;
+- Direct and final-only workflows, retired-verification rejection and legacy conversion;
+- delegated self-approval denial and both owner-type exceptions;
 - default roles and Project CUSTOM grants;
 - unassigned and cross-tenant denial;
 - idempotent retries and stale versions;

@@ -1,7 +1,8 @@
 "use client";
 
-import { Badge, Card } from "@/components/ui";
+import { Badge, Button, Card, LoadingState, StatusBadge } from "@/components/ui";
 import { useCustomerSubscriptionSummary } from "./hooks";
+import { subscriptionTone } from "./subscription-view";
 
 export function OrganizationCapacityCard({
   organizationId,
@@ -9,7 +10,9 @@ export function OrganizationCapacityCard({
   organizationId: string;
 }) {
   const summary = useCustomerSubscriptionSummary(organizationId);
-  if (summary.isLoading || summary.isError || !summary.data) return null;
+  if (summary.isLoading) return <LoadingState label="Loading organization capacity" />;
+  if (summary.isError) return <Card><p role="alert" className="text-sm text-sub">Subscription capacity is unavailable with the current access or connection.</p><Button variant="outline" onClick={() => void summary.refetch()}>Retry capacity</Button></Card>;
+  if (!summary.data) return null;
   const { subscription, usage } = summary.data;
 
   return (
@@ -30,9 +33,9 @@ export function OrganizationCapacityCard({
           Members {usage.activeMembers}/{subscription?.plan.maxActiveMembers ?? "Unlimited"}
         </Badge>
         {subscription ? (
-          <Badge variant={subscription.status === "ACTIVE" ? "success" : "warning"}>
+          <StatusBadge tone={subscriptionTone(subscription.status)}>
             {subscription.status}
-          </Badge>
+          </StatusBadge>
         ) : null}
       </div>
     </Card>

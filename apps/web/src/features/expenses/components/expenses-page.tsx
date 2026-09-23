@@ -8,7 +8,7 @@ import {
   EXPENSE_PAYMENT_METHODS,
   EXPENSE_STATUSES,
 } from "@nirman-app/shared";
-import { Button, Card, Input, LoadingState, Select } from "@/components/ui";
+import { Button, Card, LoadingState } from "@/components/ui";
 import { projectsService } from "@/features/projects/services/projects.service";
 import { validDate } from "@/features/attendance/date-utils";
 import {
@@ -22,6 +22,8 @@ import type { ExpensesQuery } from "../types/expenses.types";
 import { ExpensesWorkspace, type ExpensesContext } from "./expenses-workspace";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseSettingsDialog } from "./expense-settings";
+import { ExpensesCollectionFilters, defaultExpensesQuery } from "./expenses-collection-filters";
+import { financialListHref } from "@/features/financial-return";
 import { date, ExpenseStatusBadge, Failure, money } from "./expenses-ui";
 
 export function ExpensesPage({ projectId }: { projectId?: string }) {
@@ -33,12 +35,7 @@ export function ExpensesPage({ projectId }: { projectId?: string }) {
     </Suspense>
   );
 }
-const defaultQuery: ExpensesQuery = {
-  page: 1,
-  pageSize: 25,
-  sortBy: "expenseDate",
-  sortOrder: "desc",
-};
+const defaultQuery = defaultExpensesQuery;
 function List({ context }: { context: ExpensesContext }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -155,28 +152,6 @@ function List({ context }: { context: ExpensesContext }) {
       setNotice("Expenses CSV downloaded.");
     },
   });
-  const filter = (key: keyof ExpensesQuery, value: string) =>
-    setQuery((q) => ({ ...q, [key]: value || undefined, page: 1 }));
-  const selectFilter = (
-    key: keyof ExpensesQuery,
-    title: string,
-    options: readonly string[],
-  ) => (
-    <label>
-      {title}
-      <Select
-        value={String(query[key] ?? "")}
-        onChange={(e) => filter(key, e.target.value)}
-      >
-        <option value="">All</option>
-        {options.map((v) => (
-          <option key={v} value={v}>
-            {label(v)}
-          </option>
-        ))}
-      </Select>
-    </label>
-  );
   const filtered = Boolean(
     query.search ||
     query.status ||
@@ -283,161 +258,19 @@ function List({ context }: { context: ExpensesContext }) {
           </section>
         ))}
       <Card className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label>
-            Search
-            <Input
-              maxLength={160}
-              value={search}
-              placeholder="Description or vendor / payee"
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-          {selectFilter("status", "Status", EXPENSE_STATUSES)}
-          {selectFilter("category", "Category", EXPENSE_CATEGORIES)}
-          {selectFilter(
-            "paymentMethod",
-            "Payment method",
-            EXPENSE_PAYMENT_METHODS,
-          )}
-          <label>
-            Expense from
-            <Input
-              type="date"
-              value={query.expenseFrom ?? ""}
-              onChange={(e) => filter("expenseFrom", e.target.value)}
-            />
-          </label>
-          <label>
-            Expense to
-            <Input
-              type="date"
-              min={query.expenseFrom}
-              value={query.expenseTo ?? ""}
-              invalid={invalidRange}
-              aria-describedby={invalidRange ? "range-error" : undefined}
-              onChange={(e) => filter("expenseTo", e.target.value)}
-            />
-          </label>
-          <label>
-            Sort by
-            <Select
-              value={query.sortBy}
-              onChange={(e) => filter("sortBy", e.target.value)}
-            >
-              {[
-                ["expenseDate", "Expense date"],
-                ["amount", "Original amount"],
-                ["updatedAt", "Last updated"],
-                ["description", "Description"],
-              ].map(([value, title]) => (
-                <option key={value} value={value}>
-                  {title}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label>
-            Order
-            <Select
-              value={query.sortOrder}
-              onChange={(e) => filter("sortOrder", e.target.value)}
-            >
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </Select>
-          </label>
-        </div>
-        {invalidRange && (
-          <p id="range-error" role="alert" className="text-danger">
-            Choose valid dates with the end on or after the start.
-          </p>
-        )}
-        {canReadMembers && (
-          <details>
-            <summary className="cursor-pointer py-2 font-medium">
-              Recorded by
-            </summary>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label>
-                Find member
-                <Input
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                />
-              </label>
-              <label>
-                Recorder
-                <Select
-                  value={query.recordedByMemberId ?? ""}
-                  onChange={(e) => filter("recordedByMemberId", e.target.value)}
-                >
-                  <option value="">All members</option>
-                  {query.recordedByMemberId &&
-                    !members.data?.some(
-                      (m) => m.memberId === query.recordedByMemberId,
-                    ) && (
-                      <option value={query.recordedByMemberId}>
-                        Selected member ({query.recordedByMemberId})
-                      </option>
-                    )}
-                  {members.data
-                    ?.filter(
-                      (m) =>
-                        m.memberId === query.recordedByMemberId ||
-                        m.user.name
-                          .toLowerCase()
-                          .includes(memberSearch.toLowerCase()),
-                    )
-                    .map((m) => (
-                      <option key={m.memberId} value={m.memberId}>
-                        {m.user.name}
-                      </option>
-                    ))}
-                </Select>
-              </label>
-            </div>
-            {members.isPending && <p role="status">Loading members…</p>}
-            {members.isError && (
-              <Failure
-                error={members.error}
-                retry={() => void members.refetch()}
-              />
-            )}
-          </details>
-        )}
-        {!canReadMembers && query.recordedByMemberId && (
-          <p className="text-sm">
-            Filtered by recorder {query.recordedByMemberId}. Clear filters to
-            remove.
-          </p>
-        )}
+        <ExpensesCollectionFilters
+          query={query} search={search} onSearch={setSearch}
+          onApply={setQuery} members={members.data ?? []}
+          canReadMembers={canReadMembers} memberSearch={memberSearch}
+          onMemberSearch={setMemberSearch}
+          memberState={<>{members.isPending && <p role="status">Loading members…</p>}{members.isError && <Failure error={members.error} retry={() => void members.refetch()} />}</>}
+        />
+        {invalidRange && <p role="alert" className="text-danger">Choose valid dates with the end on or after the start.</p>}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearch("");
-              setMemberSearch("");
-              setQuery(defaultQuery);
-            }}
-          >
-            Clear filters
-          </Button>
-          {can("export") && (
-            <Button
-              variant="outline"
-              disabled={exporting.isPending || invalidRange}
-              onClick={() => exporting.mutate()}
-            >
-              {exporting.isPending ? "Preparing CSV…" : "Export filtered CSV"}
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => { setSearch(""); setMemberSearch(""); setQuery(defaultQuery); }}>Clear all</Button>
+          {can("export") && <Button variant="outline" disabled={exporting.isPending || invalidRange} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing CSV…" : "Export filtered CSV"}</Button>}
         </div>
-        {exporting.isError && (
-          <p role="alert" className="text-danger">
-            {exporting.error.message} Use Export filtered CSV to retry.
-          </p>
-        )}
+        {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered CSV to retry.</p>}
       </Card>
       {!invalidRange &&
         (list.isPending ? (
@@ -494,7 +327,7 @@ function List({ context }: { context: ExpensesContext }) {
                           <td className="max-w-sm px-4 py-4">
                             <Link
                               className="break-words font-semibold underline"
-                              href={`/projects/${context.project}/expenses/${item.id}`}
+                              href={`/projects/${context.project}/expenses/${item.id}?returnTo=${encodeURIComponent(financialListHref(context.project, "expenses", query))}`}
                             >
                               {item.description}
                             </Link>
@@ -516,6 +349,7 @@ function List({ context }: { context: ExpensesContext }) {
                           </td>
                           <td className="px-4 py-4">
                             <ExpenseStatusBadge status={item.status} />
+                            <p className="mt-1 text-xs text-sub">{item.status === "PENDING_APPROVAL" ? "Needs authorized review" : item.status === "APPROVED" ? "Included in recognized cost" : item.status === "DRAFT" ? "Ready to submit" : item.status === "REJECTED" ? "Review rejection" : "No further action"}</p>
                           </td>
                           {[
                             item.amount,
@@ -539,7 +373,7 @@ function List({ context }: { context: ExpensesContext }) {
                     <Link
                       key={item.id}
                       className="block min-w-0 rounded-card focus-visible:outline-2 focus-visible:outline-lime"
-                      href={`/projects/${context.project}/expenses/${item.id}`}
+                      href={`/projects/${context.project}/expenses/${item.id}?returnTo=${encodeURIComponent(financialListHref(context.project, "expenses", query))}`}
                     >
                       <Card className="space-y-3">
                         <div className="flex flex-wrap justify-between gap-2">
@@ -558,6 +392,7 @@ function List({ context }: { context: ExpensesContext }) {
                         <p className="font-semibold tabular-nums">
                           {money(item.recognizedAmount)} recognized
                         </p>
+                        <p className="text-sm text-sub">{item.status === "PENDING_APPROVAL" ? "Needs authorized review" : item.status === "APPROVED" ? "Included in recognized cost" : item.status === "DRAFT" ? "Ready to submit" : item.status === "REJECTED" ? "Review rejection" : "No further action"}</p>
                         <p className="text-sm">
                           Original {money(item.amount)} · Adjustments{" "}
                           {money(item.adjustmentTotal)}

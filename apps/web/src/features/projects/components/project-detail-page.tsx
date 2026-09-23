@@ -1,14 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Archive, Banknote, CalendarCheck, RotateCcw, UsersRound } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
-import { Button, Card, LoadingState, PageHeader, StatusBadge } from "@/components/ui";
+import { ProjectWorkspaceNavigation } from "./project-workspace-navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Archive, RotateCcw } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import {
+  Button,
+  Card,
+  LoadingState,
+  PageHeader,
+  SectionHeader,
+  StatusBadge,
+} from "@/components/ui";
 import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   ProjectFormFields,
-  emptyProjectForm,
   normalizeProjectInput,
 } from "@/features/projects/components/project-form-fields";
 import {
@@ -18,6 +25,7 @@ import {
   useUpdateProject,
 } from "@/features/projects/hooks/use-projects";
 import type { ProjectInput } from "@/features/projects/types/projects.types";
+import { projectListReturnHref } from "../project-list-query";
 
 const statusTone = {
   ACTIVE: "active",
@@ -29,38 +37,19 @@ const statusTone = {
 
 export function ProjectDetailPage({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { activeOrganizationId, hasPermission } = useAuth();
+  const params = useSearchParams();
+  const { activeOrganizationId } = useAuth();
   const organizationId = activeOrganizationId ?? "";
   const project = useProject(organizationId, projectId);
   const updateProject = useUpdateProject(organizationId, projectId);
   const archiveProject = useArchiveProject(organizationId, projectId);
   const restoreProject = useRestoreProject(organizationId, projectId);
-  const [form, setForm] = useState<ProjectInput>(emptyProjectForm);
-
-  useEffect(() => {
-    if (!project.data) return;
-    setForm({
-      name: project.data.name,
-      projectCode: project.data.projectCode ?? "",
-      type: project.data.type,
-      status: project.data.status,
-      address: {
-        line1: project.data.address.line1 ?? "",
-        line2: project.data.address.line2 ?? "",
-        city: project.data.address.city ?? "",
-        state: project.data.address.state ?? "",
-        postalCode: project.data.address.postalCode ?? "",
-      },
-      startDate: project.data.startDate?.slice(0, 10) ?? "",
-      expectedCompletionDate: project.data.expectedCompletionDate?.slice(0, 10) ?? "",
-      description: project.data.description ?? "",
-    });
-  }, [project.data]);
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await updateProject.mutateAsync(normalizeProjectInput(form));
-  }
+  const permissions = project.isSuccess
+    ? (project.data?.currentUserAccess?.permissions ?? [])
+    : [];
+  const can = (permission: string) =>
+    permissions.some((value) => value === permission);
+  const [editing, setEditing] = useState(false);
 
   return (
     <PermissionGuard permission="projects:read">
@@ -68,7 +57,11 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
         <PageHeader
           title={project.data?.name ?? "Project"}
           description="Review project setup and lifecycle status."
-          onBack={() => router.push("/projects")}
+          onBack={() =>
+            router.push(
+              projectListReturnHref(params.get("returnTo"), organizationId),
+            )
+          }
           actions={
             <div className="flex flex-wrap gap-2">
               {project.data ? (
@@ -76,81 +69,216 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
                   {project.data.status}
                 </StatusBadge>
               ) : null}
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/projects/${projectId}/team`)}
-                disabled={!organizationId}
-              >
-                <UsersRound size={16} />
-                Team
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/attendance?projectId=${projectId}`)}
-                disabled={!organizationId || !hasPermission("attendance:read")}
-              >
-                <CalendarCheck size={16} />
-                Attendance
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/projects/${projectId}/wages`)}
-                disabled={!organizationId || !project.data?.currentUserAccess?.permissions.includes("wages:read")}
-              >
-                <Banknote size={16} />
-                Wages
-              </Button>
-              {project.data?.currentUserAccess?.permissions.includes("kharchi:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/kharchi`)}>Kharchi</Button>}
-              {project.data?.currentUserAccess?.permissions.includes("materials:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/materials`)}>Materials</Button>}
-              {project.data?.currentUserAccess?.permissions.includes("expenses:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/expenses`)}>Site Expenses</Button>}
-              {project.data?.currentUserAccess?.permissions.includes("progress:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/progress`)}>Progress</Button>}
-              {project.data?.currentUserAccess?.permissions.includes("gallery:read") && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/gallery`)}>Gallery</Button>}
-              {project.data?.currentUserAccess?.permissions.some(p => ["leads:read-own", "leads:read-team", "leads:read-all"].includes(p)) && <Button variant="outline" onClick={() => router.push(`/projects/${projectId}/sales/leads`)}>Sales leads</Button>}
-              <Button
-                variant="outline"
-                onClick={() => archiveProject.mutate()}
-                disabled={!organizationId || archiveProject.isPending}
-              >
-                <Archive size={16} />
-                Archive
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => restoreProject.mutate()}
-                disabled={!organizationId || restoreProject.isPending}
-              >
-                <RotateCcw size={16} />
-                Restore
-              </Button>
             </div>
           }
         />
 
         {!organizationId ? (
-          <Card className="text-[13px] text-body">No active organization is available.</Card>
+          <Card className="text-[13px] text-body">
+            No active organization is available.
+          </Card>
         ) : project.isLoading ? (
           <LoadingState label="Loading project" />
         ) : project.isError ? (
-          <Card className="text-[13px] text-red-600">Unable to load project</Card>
+          <Card className="text-[13px] text-red-600">
+            Unable to load project
+          </Card>
         ) : (
           <>
-            <Card>
-              <PermissionGuard permission="projects:update">
-                <form className="space-y-4" onSubmit={submit}>
-                  <ProjectFormFields
-                    form={form}
-                    setForm={setForm}
-                    allowArchivedStatus={project.data?.status === "ARCHIVED"}
-                  />
-                  <Button type="submit" disabled={updateProject.isPending}>
-                    {updateProject.isPending ? "Saving" : "Save Project"}
-                  </Button>
-                </form>
-              </PermissionGuard>
+            <ProjectWorkspaceNavigation
+              project={{
+                id: projectId,
+                status: project.data?.status ?? "DRAFT",
+                permissions,
+              }}
+              overview={false}
+              returnTo={projectListReturnHref(
+                params.get("returnTo"),
+                organizationId,
+              )}
+            />
+            <Card className="space-y-4">
+              <SectionHeader
+                title="Project overview"
+                actions={
+                  can("projects:update") ? (
+                    <Button variant="outline" onClick={() => setEditing(true)}>
+                      Edit project
+                    </Button>
+                  ) : undefined
+                }
+              />
+              <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-sub">Code</dt>
+                  <dd>{project.data?.projectCode || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sub">Type</dt>
+                  <dd>{project.data?.type.replaceAll("_", " ")}</dd>
+                </div>
+                <div>
+                  <dt className="text-sub">Start date</dt>
+                  <dd>{project.data?.startDate?.slice(0, 10) || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sub">Expected completion</dt>
+                  <dd>
+                    {project.data?.expectedCompletionDate?.slice(0, 10) ||
+                      "Not set"}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-sub">Address</dt>
+                  <dd className="break-words">
+                    {Object.values(project.data?.address ?? {})
+                      .filter(Boolean)
+                      .join(", ") || "Not set"}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-sub">Description</dt>
+                  <dd className="break-words">
+                    {project.data?.description || "No description"}
+                  </dd>
+                </div>
+              </dl>
             </Card>
+            {editing && can("projects:update") && project.data ? (
+              <ProjectEditor
+                key={`${organizationId}:${projectId}`}
+                project={project.data}
+                pending={updateProject.isPending}
+                save={async (input) => {
+                  await updateProject.mutateAsync(input);
+                  setEditing(false);
+                }}
+                close={() => setEditing(false)}
+              />
+            ) : null}
+            {(can("projects:archive") && project.data?.status !== "ARCHIVED") ||
+            (can("projects:restore") &&
+              can("projects:view-all") &&
+              project.data?.status === "ARCHIVED") ? (
+              <Card className="space-y-3">
+                <SectionHeader
+                  title="Project lifecycle"
+                  description="Archived projects retain their history. Restoring is subject to project capacity."
+                />
+                <div className="flex flex-wrap gap-2">
+                  {project.data?.status !== "ARCHIVED" &&
+                  can("projects:archive") ? (
+                    <Button
+                      variant="outline"
+                      disabled={archiveProject.isPending}
+                      onClick={() => archiveProject.mutate()}
+                    >
+                      <Archive size={16} />
+                      {archiveProject.isPending
+                        ? "Archiving"
+                        : "Archive project"}
+                    </Button>
+                  ) : null}
+                  {project.data?.status === "ARCHIVED" &&
+                  can("projects:restore") &&
+                  can("projects:view-all") ? (
+                    <Button
+                      variant="outline"
+                      disabled={restoreProject.isPending}
+                      onClick={() => restoreProject.mutate()}
+                    >
+                      <RotateCcw size={16} />
+                      {restoreProject.isPending
+                        ? "Restoring"
+                        : "Restore project"}
+                    </Button>
+                  ) : null}
+                </div>
+                {archiveProject.error || restoreProject.error ? (
+                  <p role="alert" className="text-sm text-danger">
+                    {(archiveProject.error ?? restoreProject.error)?.message}
+                  </p>
+                ) : null}
+              </Card>
+            ) : null}
           </>
         )}
       </div>
     </PermissionGuard>
+  );
+}
+
+function ProjectEditor({
+  project,
+  pending,
+  save,
+  close,
+}: {
+  project: NonNullable<ReturnType<typeof useProject>["data"]>;
+  pending: boolean;
+  save: (input: ProjectInput) => Promise<void>;
+  close: () => void;
+}) {
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<ProjectInput>(() => ({
+    name: project.name,
+    projectCode: project.projectCode ?? "",
+    type: project.type,
+    status: project.status,
+    address: {
+      line1: project.address.line1 ?? "",
+      line2: project.address.line2 ?? "",
+      city: project.address.city ?? "",
+      state: project.address.state ?? "",
+      postalCode: project.address.postalCode ?? "",
+    },
+    startDate: project.startDate?.slice(0, 10) ?? "",
+    expectedCompletionDate: project.expectedCompletionDate?.slice(0, 10) ?? "",
+    description: project.description ?? "",
+  }));
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    setError("");
+    try {
+      await save(normalizeProjectInput(form));
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Unable to save project",
+      );
+    }
+  }
+  return (
+    <Card>
+      <form className="space-y-4" onSubmit={submit}>
+        <SectionHeader title="Edit project" />
+        <fieldset disabled={pending}>
+          <ProjectFormFields
+            form={form}
+            setForm={setForm}
+            allowArchivedStatus={project.status === "ARCHIVED"}
+          />
+        </fieldset>
+        {error ? (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex gap-2">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving" : "Save project"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={pending}
+            onClick={() => {
+              if (window.confirm("Discard project changes?")) close();
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }

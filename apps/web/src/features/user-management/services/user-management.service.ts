@@ -9,10 +9,11 @@ import type {
   UpdateRoleInput,
   User,
 } from "@/features/user-management/types/user-management.types";
+import { platformUsersQuery } from "@/features/administration/administration-list";
 
 export const userManagementService = {
-  users() {
-    return api.get<PaginatedUsers>("/users");
+  users(query: { page: number; pageSize: number; search?: string; roleId?: string }) {
+    return api.get<PaginatedUsers>(`/users?${platformUsersQuery(query)}`);
   },
   user(id: string) {
     return api.get<User>(`/users/${id}`);

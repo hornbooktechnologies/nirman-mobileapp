@@ -1,274 +1,316 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, RefreshCw, UsersRound } from "lucide-react";
-import { LoadingState } from "@/components/ui";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { WORKER_STATUSES, type WorkerStatus } from "@nirman-app/shared";
 import {
   Button,
   Card,
-  IconButton,
+  CollectionToolbar,
+  CollectionPagination,
+  FieldLabel,
   Input,
+  LoadingState,
   NotificationBanner,
   PageHeader,
   Select,
-  StatusBadge,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/ui";
-import { PermissionGuard } from "@/features/user-management/components/permission-guard";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { WorkerWorkspace } from "./worker-workspace";
-import { OrganizationContextSelect } from "@/features/projects/components/organization-context-select";
 import { useProjectAccess } from "@/features/projects/hooks/use-projects";
-import { useProjectWorkers, useWorkers } from "@/features/workers/hooks/use-workers";
-
-const statusTone = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-} as const;
-
-type ProjectAssignmentFilter = "all" | "working_here" | "assigned_here" | "not_on_project";
+import { useProjectWorkers, useWorkers } from "../hooks/use-workers";
+import { WorkerWorkspace } from "./worker-workspace";
+import { WorkerCollectionRows } from "./worker-collection-rows";
+import {
+  matchesWorkerAssignment,
+  readWorkerListQuery,
+  workerContext,
+  workerFilterDefaults,
+  workerListHref,
+  type AssignmentFilter,
+} from "../worker-list-query";
 
 export function WorkerListPage() {
-  return <WorkerWorkspace permission="workers:read">{organizationId => <WorkerList organizationId={organizationId} />}</WorkerWorkspace>;
-}
-
-function WorkerList({ organizationId }: { organizationId: string }) {
-  const searchParams = useSearchParams();
-  const { hasPermission, refreshUser } = useAuth();
-  const [query, setQuery] = useState<{
-    search: string;
-    status: WorkerStatus | "";
-    trade: string;
-    page: number;
-    pageSize: number;
-  }>({ search: "", status: "", trade: "", page: 1, pageSize: 20 });
-  const workers = useWorkers(organizationId, query);
-  const projectAccess = useProjectAccess(organizationId);
-  const readableProjects = useMemo(
-    () => (projectAccess.data?.projects ?? []).filter((project) => project.permissions.includes("workers:read")),
-    [projectAccess.data?.projects],
+  return (
+    <WorkerWorkspace permission="workers:read">
+      {(organizationId) => <WorkerList organizationId={organizationId} />}
+    </WorkerWorkspace>
   );
-  const [projectId, setProjectId] = useState("");
-  const selectedProjectId = projectId || readableProjects.find((project) => project.isDefault)?.id || readableProjects[0]?.id || "";
-  const [assignmentFilter, setAssignmentFilter] = useState<ProjectAssignmentFilter>("all");
+}
+function WorkerList({ organizationId }: { organizationId: string }) {
+  const params = useSearchParams();
+  const { hasPermission } = useAuth();
+  const query = readWorkerListQuery(
+    new URLSearchParams(params.toString()),
+    organizationId,
+  );
+  const access = useProjectAccess(organizationId);
+  const projects = (access.data?.projects ?? []).filter((project) =>
+    project.permissions.includes("workers:read"),
+  );
+  const selected = query.projectId
+    ? projects.find((project) => project.id === query.projectId)
+    : (projects.find((project) => project.isDefault) ?? projects[0]);
+  const projectId = selected?.id ?? "";
+  const workers = useWorkers(organizationId, {
+    search: query.search,
+    status: query.status,
+    trade: query.trade,
+    page: query.page,
+    pageSize: 20,
+  });
   const roster = useProjectWorkers(
-    selectedProjectId ? organizationId : null,
-    selectedProjectId,
+    access.isSuccess && projectId ? organizationId : null,
+    projectId,
     { assignmentScope: "ALL_ACTIVE", pageSize: 100 },
   );
-  const rosterByWorkerId = useMemo(
-    () => new Map((roster.data?.data ?? []).map((worker) => [worker.id, worker])),
-    [roster.data?.data],
+  const readiness =
+    access.isError || roster.isError
+      ? "unknown"
+      : access.isPending || (projectId && roster.isPending)
+        ? "loading"
+        : !projectId || !roster.data
+          ? "unknown"
+          : "ready";
+  const byId = new Map(
+    (roster.data?.data ?? []).map((worker) => [worker.id, worker]),
   );
-  const workerRows = workers.data?.data ?? [];
-  const filteredWorkerRows = workerRows.filter((worker) => {
-    if (!selectedProjectId || assignmentFilter === "all") return true;
-    const projectWorker = rosterByWorkerId.get(worker.id);
-    if (assignmentFilter === "working_here") return projectWorker?.isPrimaryForDate === true;
-    if (assignmentFilter === "assigned_here") return Boolean(projectWorker);
-    return !projectWorker;
-  });
-  const deletedWorker = searchParams.get("deletedWorker");
-
+  const rows = (workers.data?.data ?? []).map((worker) => ({
+    worker,
+    context: workerContext(worker, byId.get(worker.id), readiness),
+  }));
+  const visible = rows.filter((row) =>
+    matchesWorkerAssignment(row.context, query.assignment),
+  );
+  const returnTo = workerListHref(
+    { ...query, projectId: query.projectId || projectId },
+    organizationId,
+  );
+  function update(values: Partial<typeof query>) {
+    const latest = readWorkerListQuery(
+      new URLSearchParams(window.location.search),
+      organizationId,
+    );
+    window.history.replaceState(
+      null,
+      "",
+      workerListHref(
+        { ...latest, projectId: latest.projectId || projectId, ...values },
+        organizationId,
+      ),
+    );
+  }
+  function refresh() {
+    void workers.refetch();
+    void access.refetch();
+    if (projectId) void roster.refetch();
+  }
+  const detailHref = (id: string) =>
+    `/workers/${id}?${new URLSearchParams({ organizationId, ...(projectId ? { projectId } : {}), returnTo })}`;
   return (
-    <PermissionGuard permission="workers:read">
-      <div className="space-y-4">
-        <PageHeader
-          title="Workers"
-          description="Manage labour records, project rosters, and wage-readiness details."
-          actions={(
-            <div className="flex items-center gap-2">
-              <IconButton
-                aria-label="Refresh workers"
-                title="Refresh workers"
-                variant="outline"
-                disabled={!organizationId || workers.isFetching}
-                onClick={() => void workers.refetch()}
+    <div className="space-y-4">
+      <PageHeader
+        title="Workers"
+        description="Worker records, project assignments and current rate context."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={workers.isFetching || roster.isFetching}
+              onClick={refresh}
+            >
+              Refresh
+            </Button>
+            {hasPermission("workers:create") ? (
+              <Link
+                className="inline-flex min-h-11 items-center rounded-inner bg-lime px-4 text-sm font-medium text-body"
+                href={`/workers/new?${new URLSearchParams({ organizationId, returnTo })}`}
               >
-                <RefreshCw
-                  aria-hidden="true"
-                  className={workers.isFetching ? "animate-spin" : undefined}
-                  size={17}
-                />
-              </IconButton>
-              {hasPermission("workers:create") ? (
-                <Link
-                  href={`/workers/new${organizationId ? `?organizationId=${organizationId}` : ""}`}
-                >
-                  <Button>
-                    <Plus size={16} />
-                    New Worker
-                  </Button>
-                </Link>
-              ) : null}
-            </div>
-          )}
-        />
-
-        {deletedWorker ? (
-          <NotificationBanner
-            variant="success"
-            title="Worker permanently deleted"
-            description={`${deletedWorker} and all related records were removed.`}
-          />
-        ) : null}
-
-        <Card>
-          <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_180px_180px]">
-            <OrganizationContextSelect organizationId={organizationId} onChange={id => { void refreshUser(id); }} />
-            <Input
-              aria-label="Search code, name, or mobile" placeholder="Search code, name, or mobile"
-              value={query.search}
-              onChange={(event) =>
-                setQuery({ ...query, search: event.target.value, page: 1 })
-              }
-            />
-            <Select
-              aria-label="Worker status" value={query.status}
-              onChange={(event) =>
-                setQuery({
-                  ...query,
-                  status: event.target.value as WorkerStatus | "",
-                  page: 1,
-                })
-              }
-            >
-              <option value="">All statuses</option>
-              {WORKER_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </Select>
-            <Input
-              aria-label="Trade" placeholder="Trade"
-              value={query.trade}
-              onChange={(event) =>
-                setQuery({ ...query, trade: event.target.value, page: 1 })
-              }
-            />
-            <Select
-              aria-label="Project for assignment filter"
-              value={selectedProjectId}
-              disabled={projectAccess.isLoading || readableProjects.length === 0}
-              onChange={(event) => {
-                setProjectId(event.target.value);
-                setAssignmentFilter("all");
-                setQuery({ ...query, page: 1 });
-              }}
-            >
-              <option value="">Choose a project</option>
-              {readableProjects.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </Select>
-            <Select
-              aria-label="Project assignment filter"
-              value={assignmentFilter}
-              disabled={!selectedProjectId || roster.isLoading}
-              onChange={(event) => setAssignmentFilter(event.target.value as ProjectAssignmentFilter)}
-            >
-              <option value="all">All workers</option>
-              <option value="working_here">Working here</option>
-              <option value="assigned_here">Assigned to this project</option>
-              <option value="not_on_project">Not on this project</option>
-            </Select>
+                New worker
+              </Link>
+            ) : null}
           </div>
-          {selectedProjectId ? <p className="mt-3 text-sm text-sub">“Working here” shows workers whose primary project is this selected project today.</p> : null}
-        </Card>
-
-        <Card aria-busy={workers.isFetching}>
-          {!organizationId ? (
-            <p className="text-[13px] text-body">
-              Select an organization to view workers.
-            </p>
-          ) : workers.isLoading ? (
-            <LoadingState label="Loading workers" />
-          ) : workers.isError ? (
-            <p className="text-[13px] text-red-600">Unable to load workers</p>
-          ) : filteredWorkerRows.length === 0 ? (
-            <div className="flex items-center gap-3 text-[13px] text-body">
-              <UsersRound size={18} />
-              No workers match this view.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Trade</TableHead>
-                    <TableHead>Daily Rate</TableHead>
-                    <TableHead>Mobile</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Active Projects</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredWorkerRows.map((worker) => (
-                    <TableRow key={worker.id}>
-                      <TableCell>
-                        <Link
-                          href={`/workers/${worker.id}?organizationId=${organizationId}`}
-                        >
-                          {worker.workerCode}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{worker.name}</TableCell>
-                      <TableCell>{worker.trade}</TableCell>
-                      <TableCell>{worker.baseDailyRate ?? "-"}</TableCell>
-                      <TableCell>{worker.mobileNumber ?? "-"}</TableCell>
-                      <TableCell>
-                        <StatusBadge tone={statusTone[worker.status]}>
-                          {worker.status}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>{worker.activeAssignmentCount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-sub">
-                <span>
-                  Page {workers.data?.meta.page ?? query.page} of{" "}
-                  {Math.max(1, workers.data?.meta.pageCount ?? 1)} ·{" "}
-                  {workers.data?.meta.total ?? 0} workers
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={query.page <= 1 || workers.isFetching}
-                    onClick={() => setQuery({ ...query, page: query.page - 1 })}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={
-                      query.page >= (workers.data?.meta.pageCount ?? 1) ||
-                      workers.isFetching
+        }
+      />
+      {params.get("deletedWorker") ? (
+        <NotificationBanner
+          variant="success"
+          title="Worker permanently deleted"
+          description={`${params.get("deletedWorker")} and all related records were removed.`}
+        />
+      ) : null}
+      <Card>
+        <CollectionToolbar
+          name="workers"
+          search={{
+            value: query.search,
+            onChange: (search) => update({ search, page: 1 }),
+            placeholder: "Name, code or mobile",
+          }}
+          scope={`Current organization · Project context: ${selected?.name ?? (access.isPending ? "Loading" : "Unavailable")}`}
+          filters={{
+            value: {
+              status: query.status as string,
+              trade: query.trade,
+              assignment: query.assignment,
+              projectId: query.projectId || projectId,
+            },
+            defaults: {
+              ...workerFilterDefaults,
+              projectId: query.projectId || projectId,
+            },
+            count:
+              Number(Boolean(query.status)) +
+              Number(Boolean(query.trade)) +
+              Number(query.assignment !== "all"),
+            onApply: (draft) =>
+              update({
+                ...draft,
+                status: draft.status as typeof query.status,
+                page: 1,
+              }),
+            fields: (draft, setDraft, id) => (
+              <>
+                <div>
+                  <FieldLabel htmlFor={`${id}-project`}>
+                    Project context
+                  </FieldLabel>
+                  <Select
+                    id={`${id}-project`}
+                    value={draft.projectId}
+                    disabled={!access.isSuccess}
+                    onChange={(event) =>
+                      setDraft({ ...draft, projectId: event.target.value })
                     }
-                    onClick={() => setQuery({ ...query, page: query.page + 1 })}
                   >
-                    Next
-                  </Button>
+                    <option value="">Choose a project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-    </PermissionGuard>
+                <div>
+                  <FieldLabel htmlFor={`${id}-status`}>
+                    Worker status
+                  </FieldLabel>
+                  <Select
+                    id={`${id}-status`}
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft({ ...draft, status: event.target.value })
+                    }
+                  >
+                    <option value="">All statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </Select>
+                </div>
+                <div>
+                  <FieldLabel htmlFor={`${id}-trade`}>Trade</FieldLabel>
+                  <Input
+                    id={`${id}-trade`}
+                    value={draft.trade}
+                    onChange={(event) =>
+                      setDraft({ ...draft, trade: event.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <FieldLabel htmlFor={`${id}-assignment`}>
+                    Assignment on this page
+                  </FieldLabel>
+                  <Select
+                    id={`${id}-assignment`}
+                    value={draft.assignment}
+                    disabled={!draft.projectId}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        assignment: event.target.value as AssignmentFilter,
+                      })
+                    }
+                  >
+                    <option value="all">All workers</option>
+                    <option value="working_here">Working here</option>
+                    <option value="assigned_here">
+                      Assigned here (includes working here)
+                    </option>
+                    <option value="not_on_project">
+                      Elsewhere or unassigned
+                    </option>
+                  </Select>
+                  <p className="mt-2 text-[13px] text-sub">
+                    Assignment filters apply to the current results page.
+                    Search, status and trade search the full worker directory.
+                    Inactive and unavailable assignments are excluded from
+                    assignment filters.
+                  </p>
+                </div>
+              </>
+            ),
+          }}
+        />
+        <p className="mt-3 text-[13px] text-sub">
+          Working here means this is the primary project today. Assigned here
+          can include scheduled assignments.
+        </p>
+      </Card>
+      {readiness === "unknown" ? (
+        <NotificationBanner
+          variant="warning"
+          title="Assignment context unavailable"
+          description="Choose an accessible project in Filters or refresh access. Unknown assignments are never treated as unassigned."
+          action={
+            <Button variant="outline" onClick={refresh}>
+              Refresh access and roster
+            </Button>
+          }
+        />
+      ) : null}
+      <Card aria-busy={workers.isFetching || roster.isFetching}>
+        {workers.isPending ? (
+          <LoadingState label="Loading workers" />
+        ) : workers.isError ? (
+          <NotificationBanner
+            variant="danger"
+            title="Workers could not be loaded"
+            action={
+              <Button onClick={() => void workers.refetch()}>Retry</Button>
+            }
+          />
+        ) : readiness === "loading" && query.assignment !== "all" ? (
+          <LoadingState label="Checking assignments" />
+        ) : visible.length === 0 ? (
+          <p className="text-sm text-sub">
+            {query.assignment !== "all"
+              ? "No confirmed matches on this page. Change filters or use the next page."
+              : "No workers match this view. Change search or filters."}
+          </p>
+        ) : (
+          <WorkerCollectionRows visible={visible} detailHref={detailHref} />
+        )}
+      </Card>
+      {workers.data && !workers.isError ? (
+        <>
+          <p className="text-[13px] text-sub">
+            {query.assignment !== "all"
+              ? `${visible.length} assignment matches on this page. Pagination below covers directory results before the assignment filter.`
+              : ""}
+          </p>
+          <CollectionPagination
+            page={query.page}
+            pageCount={workers.data.meta.pageCount}
+            total={workers.data.meta.total}
+            busy={workers.isFetching}
+            onPageChange={(page) => update({ page })}
+          />
+          {query.page > Math.max(1, workers.data.meta.pageCount) ? (
+            <Button variant="outline" onClick={() => update({ page: 1 })}>
+              Return to first page
+            </Button>
+          ) : null}
+        </>
+      ) : null}
+    </div>
   );
 }

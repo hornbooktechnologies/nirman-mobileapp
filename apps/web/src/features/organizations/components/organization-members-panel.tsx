@@ -42,6 +42,7 @@ import type {
 } from "@/features/organizations/types/organizations.types";
 import { useOrganizationProjectAssignments } from "@/features/projects/hooks/use-projects";
 import { ApiError } from "@/lib/api/api-client";
+import { AdministrationFilters } from "@/features/administration/administration-filters";
 
 const memberStatusTone = {
   ACTIVE: "active",
@@ -107,6 +108,13 @@ export function OrganizationMembersPanel({
   const [memberInvitation, setMemberInvitation] =
     useState<OrganizationMemberInvitationResponse | null>(null);
   const [copiedInvitationLink, setCopiedInvitationLink] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberFilters, setMemberFilters] = useState({ status: "", roleId: "" });
+  const visibleMembers = (members.data ?? []).filter((member) =>
+    (!memberFilters.status || member.status === memberFilters.status) &&
+    (!memberFilters.roleId || member.roleId === memberFilters.roleId) &&
+    `${member.user?.name ?? ""} ${member.user?.email ?? ""} ${member.designation ?? ""}`.toLocaleLowerCase().includes(memberSearch.toLocaleLowerCase()),
+  );
 
   async function submitMemberInvitation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -261,15 +269,15 @@ export function OrganizationMembersPanel({
             className="mb-4 grid gap-3 rounded-inner border border-hairline bg-canvas p-3 md:grid-cols-2"
             onSubmit={submitMemberInvitation}
           >
-            <Input
+            <label className="grid gap-1 text-sm font-medium">Member name<Input
               placeholder="Member name"
               value={inviteForm.name}
               onChange={(event) =>
                 setInviteForm({ ...inviteForm, name: event.target.value })
               }
               required
-            />
-            <Input
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Login email<Input
               type="email"
               placeholder="Login email"
               value={inviteForm.email}
@@ -277,15 +285,15 @@ export function OrganizationMembersPanel({
                 setInviteForm({ ...inviteForm, email: event.target.value })
               }
               required
-            />
-            <Input
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Mobile number (optional)<Input
               placeholder="Mobile number (optional)"
               value={inviteForm.phone}
               onChange={(event) =>
                 setInviteForm({ ...inviteForm, phone: event.target.value })
               }
-            />
-            <Select
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Organization role<Select
               value={inviteForm.roleId}
               onChange={(event) =>
                 setInviteForm({ ...inviteForm, roleId: event.target.value })
@@ -298,8 +306,8 @@ export function OrganizationMembersPanel({
                   {role.name}
                 </option>
               ))}
-            </Select>
-            <Input
+            </Select></label>
+            <label className="grid gap-1 text-sm font-medium">Designation (optional)<Input
               placeholder="Designation (optional)"
               value={inviteForm.designation}
               onChange={(event) =>
@@ -308,7 +316,7 @@ export function OrganizationMembersPanel({
                   designation: event.target.value,
                 })
               }
-            />
+            /></label>
             <Checkbox
               label="Access all organization projects"
               checked={inviteForm.organizationWideProjectAccess}
@@ -336,6 +344,18 @@ export function OrganizationMembersPanel({
           <p className="mb-3 text-[13px] text-red-600">{actionError}</p>
         ) : null}
 
+        <AdministrationFilters
+          name="members"
+          scope="Organization membership is separate from project assignment. Role and project-wide access determine what each member can do."
+          search={{ value: memberSearch, placeholder: "Name, email or designation", onChange: setMemberSearch }}
+          value={memberFilters}
+          fields={[
+            { key: "status", label: "Status", options: Object.keys(memberStatusTone).map((value) => ({ value, label: value })) },
+            { key: "roleId", label: "Organization role", options: Array.from(new Map((members.data ?? []).map((member) => [member.roleId, { value: member.roleId, label: member.role?.name ?? "Role" }])).values()) },
+          ]}
+          onApply={(value) => setMemberFilters({ status: value.status ?? "", roleId: value.roleId ?? "" })}
+        />
+
         {members.isLoading ? (
           <LoadingState label="Loading organization members" />
         ) : members.isError ? (
@@ -346,6 +366,8 @@ export function OrganizationMembersPanel({
           <p className="text-[13px] text-body">
             No organization members are available yet.
           </p>
+        ) : !visibleMembers.length ? (
+          <p className="text-sm text-sub">No members match these filters.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -359,7 +381,7 @@ export function OrganizationMembersPanel({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.data.map((member) => {
+              {visibleMembers.map((member) => {
                 const assignments =
                   projectOverview.data?.assignments.filter(
                     (assignment) => assignment.memberId === member.id,

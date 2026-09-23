@@ -149,10 +149,10 @@ function ActivateInvitationContent() {
               <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-sub">
                 Login email: <span className="font-semibold text-body">{invitation.owner.email}</span>
               </div>
-              <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-body">
+              <label className="block space-y-2 text-[13px] font-medium text-body">
+                <span>
                   Create password
-                </label>
+                </span>
                 <PasswordInput
                   autoComplete="new-password"
                   minLength={8}
@@ -160,11 +160,11 @@ function ActivateInvitationContent() {
                   onChange={(event) => setPassword(event.target.value)}
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-body">
+              </label>
+              <label className="block space-y-2 text-[13px] font-medium text-body">
+                <span>
                   Confirm password
-                </label>
+                </span>
                 <PasswordInput
                   autoComplete="new-password"
                   minLength={8}
@@ -172,7 +172,7 @@ function ActivateInvitationContent() {
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
                 />
-              </div>
+              </label>
               {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
               <Button className="w-full" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Activating" : "Activate Account"}

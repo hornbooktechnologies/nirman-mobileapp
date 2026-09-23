@@ -493,6 +493,8 @@ All customer operational access still requires active organisation membership, t
 
 ### Materials
 
+> 2026-09-22 approved supersession: Materials has only Direct and Final approval. Verification is retired. Final decisions belong to the eligible organization Owner and explicitly delegated project approvers; both organization-owner types can approve their own requests. Existing pending verification moves to final approval with history preserved. See docs/modules/construction/materials/CONTRACTS.md for authoritative details.
+
 - `materials:read`
 - `materials:create`
 - `materials:update`

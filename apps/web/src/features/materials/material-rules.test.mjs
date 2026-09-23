@@ -24,7 +24,10 @@ test("actions require server availability, matching effective permission and act
     ["APPROVE"],
   );
   assert.deepEqual(materialActions([], ["materials:approve-final"], true), []); // Self-approval is withheld by API.
-  assert.deepEqual(materialActions(["APPROVE"], ["materials:read"], true), []);
+  // A freshly authorized action is authoritative even if the session predates delegation.
+  assert.deepEqual(materialActions(["APPROVE"], ["materials:read"], true), ["APPROVE"]);
+  assert.deepEqual(materialActions(["VERIFY"], ["materials:approve-level-1"], true), []);
+  assert.deepEqual(materialActions([], ["materials:approve-final"], true), []);
   assert.deepEqual(
     materialActions(["RECORD_PURCHASE"], ["materials:record-purchase"], false),
     [],

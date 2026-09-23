@@ -23,7 +23,7 @@ async function data<T>(path: string, accessToken: string, init: RequestInit = {}
 }
 
 export const fetchMaterialSettings = (o: string, p: string, token: string) => data<MaterialSettings>(`${base(o, p)}/settings`, token);
-export const configureMaterialSettings = (o: string, p: string, token: string, workflowMode: MaterialWorkflowMode) => data<MaterialSettings>(`${base(o, p)}/settings`, token, { method: 'PUT', body: JSON.stringify({ workflowMode }) });
+export const configureMaterialSettings = (o: string, p: string, token: string, workflowMode: MaterialWorkflowMode, approverMemberIds?: string[], expectedVersion?: number) => data<MaterialSettings>(`${base(o, p)}/settings`, token, { method: 'PUT', body: JSON.stringify({ workflowMode, approverMemberIds, expectedVersion }) });
 export const fetchMaterials = (o: string, p: string, token: string, query: MaterialsQuery = {}) => data<MaterialRequestListResponse>(`${base(o, p)}${queryString(query)}`, token);
 export const fetchMaterialsSummary = (o: string, p: string, token: string, query: MaterialsQuery = {}) => data<MaterialSummary>(`${base(o, p)}/summary${queryString(query)}`, token);
 export const fetchMaterialDetail = (o: string, p: string, id: string, token: string) => data<MaterialRequestDetail>(`${base(o, p)}/${id}`, token);

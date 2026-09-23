@@ -124,6 +124,7 @@
     "NOTIFICATION_NOT_FOUND": "यह सूचना अब उपलब्ध नहीं है।",
     "NOTIFICATION_DEVICE_TOKEN_INVALID": "इस डिवाइस को पुश सूचनाओं के लिए पंजीकृत नहीं किया जा सका।",
     "NOTIFICATION_DEVICE_NOT_FOUND": "यह सूचना डिवाइस अब पंजीकृत नहीं है।",
-    "PROJECT_STATUS_INVALID": "इस कार्रवाई के लिए सक्रिय प्रोजेक्ट चाहिए।"
+    "PROJECT_STATUS_INVALID": "इस कार्रवाई के लिए सक्रिय प्रोजेक्ट चाहिए।",
+    "MATERIAL_APPROVER_REQUIRED": "कोई पात्र अनुमोदक उपलब्ध नहीं है। संगठन के मालिक से सामग्री अनुमोदन का अधिकार देने के लिए कहें।"
   }
 }

@@ -14,10 +14,10 @@ export const userManagementKeys = {
   role: (id: string) => ["user-management", "roles", id] as const,
 };
 
-export function useUsers() {
+export function useUsers(query: { page: number; pageSize: number; search?: string; roleId?: string }) {
   return useQuery({
-    queryKey: userManagementKeys.users,
-    queryFn: userManagementService.users,
+    queryKey: [...userManagementKeys.users, query],
+    queryFn: () => userManagementService.users(query),
   });
 }
 
@@ -28,10 +28,11 @@ export function useUser(id: string) {
   });
 }
 
-export function useRoles() {
+export function useRoles(enabled = true) {
   return useQuery({
     queryKey: userManagementKeys.roles,
     queryFn: userManagementService.roles,
+    enabled,
   });
 }
 

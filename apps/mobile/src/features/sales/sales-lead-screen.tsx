@@ -36,6 +36,9 @@ export function SalesLeadScreen() {
   const { t: tCommon } = useTranslation('common');
   const { session } = useSession();
   const project = getActiveProject(session);
+  const activeOrganizationId = session?.activeOrganization?.id;
+  const activeProjectId = project?.id;
+  const accessToken = session?.accessToken;
   const permissions = getActiveProjectPermissions(session);
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
   const [lead, setLead] = useState<SalesLead | null>(null);
@@ -48,6 +51,10 @@ export function SalesLeadScreen() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetKey>(null);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+  const [sheetRetry, setSheetRetry] = useState(0);
+  const canReadInventory = permissions.includes('inventory:read');
   const [stage, setStage] = useState<LeadStage>('NEW');
   const [lostReason, setLostReason] = useState('');
   const [activityType, setActivityType] = useState<'CALL_OUTCOME' | 'NOTE_ADDED' | 'BROCHURE_SHARED'>('NOTE_ADDED');
@@ -71,11 +78,11 @@ export function SalesLeadScreen() {
 
   const load = useCallback(
     async (quiet = false) => {
-      if (!leadId || !session?.activeOrganization || !project) return;
+      if (!leadId || !activeOrganizationId || !activeProjectId || !accessToken) return;
       quiet ? setRefreshing(true) : setLoading(true);
       setError(null);
       try {
-        const [nextLead, nextActivities] = await Promise.all([fetchLead(session.activeOrganization.id, project.id, leadId, session.accessToken), fetchActivities(session.activeOrganization.id, project.id, leadId, session.accessToken)]);
+        const [nextLead, nextActivities] = await Promise.all([fetchLead(activeOrganizationId, activeProjectId, leadId, accessToken), fetchActivities(activeOrganizationId, activeProjectId, leadId, accessToken)]);
         setLead(nextLead);
         setActivities(nextActivities);
       } catch (cause) {
@@ -85,12 +92,50 @@ export function SalesLeadScreen() {
         setRefreshing(false);
       }
     },
-    [leadId, project, session, t],
+    // getActiveProject normalizes into a new object on each render. Depend on
+    // request identity so loading/data updates do not trigger another fetch.
+    [leadId, activeOrganizationId, activeProjectId, accessToken, t],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!activeOrganizationId || !activeProjectId || !accessToken || !leadId) return;
+    if (sheet !== 'assign' && sheet !== 'interest' && sheet !== 'holdRequest' && sheet !== 'booking') return;
+    if (sheet === 'booking' && !canReadInventory) return;
+
+    // Open first, then load options. Closing/switching the sheet invalidates
+    // late responses so they cannot replace another action's options or error.
+    let active = true;
+    setSheetLoading(true);
+    setSheetError(null);
+    void (async () => {
+      try {
+        if (sheet === 'assign') {
+          setMembers([]);
+          const nextMembers = await fetchProjectMembers(activeOrganizationId, activeProjectId, accessToken);
+          if (active) setMembers(nextMembers.filter((member) => member.status === 'ACTIVE'));
+        } else if (sheet === 'holdRequest') {
+          setInterests([]);
+          setSelectedInterest(null);
+          const nextInterests = await fetchLeadUnitInterests(activeOrganizationId, activeProjectId, leadId, accessToken);
+          if (active) setInterests(nextInterests.filter((interest) => interest.status !== 'WITHDRAWN' && !interest.holdRequestId));
+        } else {
+          setUnits([]);
+          setSelectedUnit(null);
+          const nextUnits = await fetchUnits(activeOrganizationId, activeProjectId, accessToken);
+          if (active) setUnits(nextUnits.filter((unit) => unit.status === 'AVAILABLE' || (unit.status === 'BLOCKED' && (sheet === 'interest' || unit.blockedForLeadId === leadId))));
+        }
+      } catch (cause) {
+        if (active) setSheetError(getLocalizedErrorMessage(cause, t('errors.load')));
+      } finally {
+        if (active) setSheetLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [sheet, sheetRetry, activeOrganizationId, activeProjectId, accessToken, leadId, canReadInventory, t]);
 
   const callableNumber = useMemo(() => lead?.primaryMobile.replace(/[^+\d]/g, '') ?? '', [lead?.primaryMobile]);
 
@@ -108,56 +153,35 @@ export function SalesLeadScreen() {
     }
   }
 
-  async function openUnits(nextSheet: 'interest' | 'booking') {
+  function openUnits(nextSheet: 'interest' | 'booking') {
     if (!session?.activeOrganization || !project) return;
     if (nextSheet === 'booking' && leadId) setBookingIdempotencyKey(makeBookingIdempotencyKey(leadId));
-    if (nextSheet === 'booking' && !permissions.includes('inventory:read')) {
-      setUnits([]);
-      setSelectedUnit(null);
-      setSheet(nextSheet);
-      return;
-    }
-    setWorking(true);
+    setUnits([]);
+    setSelectedUnit(null);
+    setSheetError(null);
+    setSheetLoading(nextSheet === 'interest' || canReadInventory);
     setError(null);
-    try {
-      const nextUnits = await fetchUnits(session.activeOrganization.id, project.id, session.accessToken);
-      setUnits(nextSheet === 'booking' ? nextUnits.filter((unit) => unit.status === 'AVAILABLE' || (unit.status === 'BLOCKED' && unit.blockedForLeadId === leadId)) : nextUnits.filter((unit) => unit.status === 'AVAILABLE' || unit.status === 'BLOCKED'));
-      setSelectedUnit(null);
-      setSheet(nextSheet);
-    } catch (cause) {
-      Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.load')));
-    } finally {
-      setWorking(false);
-    }
+    setSheet(nextSheet);
   }
 
-  async function openHoldRequests() {
+  function openHoldRequests() {
     if (!session?.activeOrganization || !project || !leadId) return;
-    setWorking(true);
+    setInterests([]);
+    setSelectedInterest(null);
+    setDetails('');
+    setSheetError(null);
+    setSheetLoading(true);
     setError(null);
-    try {
-      setInterests((await fetchLeadUnitInterests(session.activeOrganization.id, project.id, leadId, session.accessToken)).filter((interest) => interest.status !== 'WITHDRAWN'));
-      setSelectedInterest(null);
-      setDetails('');
-      setSheet('holdRequest');
-    } catch (cause) {
-      Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.load')));
-    } finally {
-      setWorking(false);
-    }
+    setSheet('holdRequest');
   }
 
-  async function openAssignees() {
+  function openAssignees() {
     if (!session?.activeOrganization || !project) return;
-    setWorking(true);
-    try {
-      setMembers(await fetchProjectMembers(session.activeOrganization.id, project.id, session.accessToken));
-      setSheet('assign');
-    } catch (cause) {
-      Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.load')));
-    } finally {
-      setWorking(false);
-    }
+    setMembers([]);
+    setSheetError(null);
+    setSheetLoading(true);
+    setError(null);
+    setSheet('assign');
   }
 
   if (!leadId || !project || !session?.activeOrganization)
@@ -174,6 +198,16 @@ export function SalesLeadScreen() {
   const scheduledAt = toIso(scheduleDate, scheduleTime);
   const recentActivities = activities.slice(0, 3);
   const bookingAmountInvalid = Boolean(amount) && (!Number.isFinite(Number(amount)) || Number(amount) < 0);
+  const sheetOptionsUnavailable = sheetLoading || Boolean(sheetError);
+  const sheetFeedback = sheetLoading ? <LoadingState label={t('loading')} /> : sheetError ? (
+    <View>
+      <FormError message={sheetError} />
+      <Button label={tCommon('actions.retry')} variant="secondary" onPress={() => {
+        setSheetLoading(true);
+        setSheetRetry((current) => current + 1);
+      }} />
+    </View>
+  ) : null;
 
   async function confirmBooking() {
     if (!lead || !leadId || !bookingIdempotencyKey || bookingAmountInvalid) return;
@@ -636,11 +670,11 @@ export function SalesLeadScreen() {
       {sheet === 'assign' ? (
         <BottomSheet visible title={t('leadDetail.assignTitle')} description={t('leadDetail.assignDescription')} scroll onClose={() => setSheet(null)}>
           <FormError message={error} />
-          {members
-            .filter((member) => member.status === 'ACTIVE')
-            .map((member) => (
-              <SalesChoice key={member.user.id} label={member.user.name} description={member.role.name} selected={lead?.assignedTo === member.user.id} onPress={() => void run(() => assignLead(organizationId, projectId, leadId, token, member.user.id))} />
-            ))}
+          {sheetFeedback}
+          {!sheetOptionsUnavailable ? members.length ? members.map((member) => (
+            <SalesChoice key={member.user.id} label={member.user.name} description={member.role.name} selected={lead?.assignedTo === member.user.id} onPress={() => { if (!working) void run(() => assignLead(organizationId, projectId, leadId, token, member.user.id)); }} />
+          )) : <EmptyState title={t('leadDetail.noAssignees')} description={t('leadDetail.noAssigneesDescription')} /> : null}
+          {working ? <LoadingState label={t('loading')} /> : null}
         </BottomSheet>
       ) : null}
 
@@ -656,7 +690,7 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={t('leadDetail.saveInterest')}
-              working={working || !selectedUnit}
+              working={working || sheetOptionsUnavailable || !selectedUnit}
               onCancel={() => setSheet(null)}
               onSave={() =>
                 selectedUnit &&
@@ -672,7 +706,8 @@ export function SalesLeadScreen() {
           }
         >
           <FormError message={error} />
-          {units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor, t(`unitStatus.${unit.status}`)].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />) : <EmptyState title={t('units.noInterestUnits')} description={t('units.noInterestUnitsDescription')} />}
+          {sheetFeedback}
+          {!sheetOptionsUnavailable ? units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor, t(`unitStatus.${unit.status}`)].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />) : <EmptyState title={t('units.noInterestUnits')} description={t('units.noInterestUnitsDescription')} /> : null}
           <FormField label={t('fields.interestLevel')} required>
             <View accessibilityRole="radiogroup" style={styles.followUpTypes}>
               {(['INTERESTED', 'HIGH_INTENT'] as const).map((status) => (
@@ -687,9 +722,10 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'holdRequest' ? (
-        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.submitHoldRequest')} working={working || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
+        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.submitHoldRequest')} working={working || sheetOptionsUnavailable || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
           <FormError message={error} />
-          {interests.filter((interest) => !interest.holdRequestId).length ? interests.filter((interest) => !interest.holdRequestId).map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} />}
+          {sheetFeedback}
+          {!sheetOptionsUnavailable ? interests.length ? interests.map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} /> : null}
           <FormField label={t('fields.requestNotes')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
@@ -697,15 +733,16 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'booking' && lead ? (
-        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.confirm')} working={working || !bookingIdempotencyKey || bookingAmountInvalid} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
+        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.confirm')} working={working || sheetOptionsUnavailable || !bookingIdempotencyKey || bookingAmountInvalid} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
           <FormError message={error} />
+          {sheetFeedback}
           <AppText style={styles.helper} weight={600}>
             {t('leadDetail.inventoryOptional')}
           </AppText>
-          <SalesChoice label={t('leadDetail.noUnit')} description={t('leadDetail.noUnitDescription')} selected={!selectedUnit} onPress={() => setSelectedUnit(null)} />
-          {units.map((unit) => (
+          {!sheetOptionsUnavailable ? <SalesChoice label={t('leadDetail.noUnit')} description={t('leadDetail.noUnitDescription')} selected={!selectedUnit} onPress={() => setSelectedUnit(null)} /> : null}
+          {!sheetOptionsUnavailable ? units.map((unit) => (
             <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />
-          ))}
+          )) : null}
           <FormField label={t('fields.bookingDate')} required>
             <DateInput allowClear={false} accessibilityLabel={t('fields.bookingDate')} value={scheduleDate} onChangeText={setScheduleDate} />
           </FormField>

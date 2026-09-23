@@ -19,7 +19,7 @@ export function OrganizationContextSelect({
     <Select
       value={organizationId}
       onChange={(event) => onChange(event.target.value)}
-      className={cn("w-full sm:w-[280px]", className)}
+      className={cn("w-full max-w-full", className)}
       aria-label="Organization"
     >
       <option value="">Select organization</option>

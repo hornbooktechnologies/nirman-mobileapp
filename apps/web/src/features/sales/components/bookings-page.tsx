@@ -3,11 +3,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BOOKING_STATUSES } from "@nirman-app/shared";
-import { Button, Card, Input, Select, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState } from "@/components/ui";
+import { CollectionPagination } from "@/components/ui/collection-toolbar";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { useBookings } from "../hooks/use-bookings";
 import { Failure, Status, money } from "./sales-ui";
-import { label } from "../sales-rules";
+import { SalesFilters } from "./sales-filters";
+import { salesDetailUrl, salesListUrl } from "../sales-view";
 function Bookings({ c }: { c: SalesContext }) {
   const params = useSearchParams();
   const pathname = usePathname();
@@ -20,11 +22,7 @@ function Bookings({ c }: { c: SalesContext }) {
   const to = date("bookedTo");
   const page = Math.max(1, Math.floor(Number(params.get("page")) || 1));
   function filter(key: string, value: string) {
-    const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    if (key !== "page") next.delete("page");
-    router.replace(`${pathname}?${next}`, { scroll: false });
+    router.replace(salesListUrl(pathname, params, { [key]: value }, key === "page" ? [] : ["page"]), { scroll: false });
   }
   const invalid = Boolean(from && to && from > to);
   const bookings = useBookings(
@@ -63,64 +61,18 @@ function Bookings({ c }: { c: SalesContext }) {
           Choose a lead to confirm a booking
         </Link>
       )}
-      <Card>
-        <form
-          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            filter(
-              "search",
-              String(new FormData(e.currentTarget).get("search") ?? "").trim(),
-            );
-          }}
-        >
-          <label>
-            Search bookings
-            <Input
-              key={term}
-              name="search"
-              defaultValue={term}
-              maxLength={160}
-              placeholder="Customer, mobile, reference or unit"
-            />
-          </label>
-          <label>
-            Status
-            <Select
-              value={status ?? ""}
-              onChange={(e) => filter("status", e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {BOOKING_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {label(s)}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label>
-            Booked from
-            <Input
-              type="date"
-              value={from}
-              onChange={(e) => filter("bookedFrom", e.target.value)}
-            />
-          </label>
-          <label>
-            Booked to
-            <Input
-              type="date"
-              value={to}
-              aria-invalid={invalid}
-              aria-describedby={invalid ? "booking-dates" : undefined}
-              onChange={(e) => filter("bookedTo", e.target.value)}
-            />
-          </label>
-          <Button type="submit" variant="outline">
-            Search
-          </Button>
-        </form>
-      </Card>
+      <SalesFilters
+        name="bookings"
+        search={{ value: term, placeholder: "Customer, mobile, reference or unit", maxLength: 160, onChange: (value) => filter("search", value) }}
+        value={{ status: status ?? "", bookedFrom: from, bookedTo: to }}
+        fields={[
+          { key: "status", name: "Status", options: BOOKING_STATUSES },
+          { key: "bookedFrom", name: "Booked from", type: "date" },
+          { key: "bookedTo", name: "Booked to", type: "date" },
+        ]}
+        validate={(value) => value.bookedFrom && value.bookedTo && value.bookedFrom > value.bookedTo ? "Booked to must be on or after Booked from." : null}
+        onApply={(value) => router.replace(salesListUrl(pathname, params, value, ["page"]), { scroll: false })}
+      />
       {invalid ? (
         <p id="booking-dates" role="alert">
           Booked to must be on or after Booked from.
@@ -144,7 +96,7 @@ function Bookings({ c }: { c: SalesContext }) {
                 <li key={b.id}>
                   <Link
                     className="block h-full rounded-card border border-hairline bg-surface p-5 focus-visible:ring-2 focus-visible:ring-lime"
-                    href={`/projects/${c.project}/sales/bookings/${b.id}`}
+                    href={salesDetailUrl(`/projects/${c.project}/sales/bookings/${b.id}`, salesListUrl(pathname, params, {}))}
                   >
                     <div className="flex flex-wrap justify-between gap-2">
                       <h2 className="font-semibold break-words">
@@ -168,27 +120,7 @@ function Bookings({ c }: { c: SalesContext }) {
               ))}
             </ul>
           )}
-          {rows.length > 25 && (
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                disabled={current === 1}
-                onClick={() => filter("page", String(current - 1))}
-              >
-                Previous
-              </Button>
-              <span>
-                Page {current} of {Math.ceil(rows.length / 25)}
-              </span>
-              <Button
-                variant="outline"
-                disabled={current * 25 >= rows.length}
-                onClick={() => filter("page", String(current + 1))}
-              >
-                Next
-              </Button>
-            </div>
-          )}
+          {rows.length > 25 && <CollectionPagination page={current} pageCount={Math.ceil(rows.length / 25)} total={rows.length} busy={bookings.isFetching} onPageChange={(next) => filter("page", String(next))} />}
         </>
       )}
     </div>

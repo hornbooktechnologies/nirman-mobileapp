@@ -33,6 +33,9 @@ export type MaterialSettings = {
   projectId: string;
   workflowMode: MaterialWorkflowMode | null;
   configured: boolean;
+  version: number;
+  canManageApprovers: boolean;
+  approvalMembers: { memberId: string; name: string; roleName: string; isOwner: boolean; delegated: boolean; canApprove: boolean }[];
   createdAt?: string;
   updatedAt?: string;
 };

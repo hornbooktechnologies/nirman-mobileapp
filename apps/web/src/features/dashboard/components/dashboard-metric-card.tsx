@@ -64,9 +64,7 @@ export function DashboardMetricCard({
 
       <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-4.5">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.6px] text-sub">
-            {label}
-          </p>
+          <p className="text-[13px] font-medium text-sub">{label}</p>
           <p className="mt-2 text-[28px] font-semibold leading-none tracking-[-0.02em] text-body tabular-nums">
             {value}
           </p>
@@ -92,16 +90,17 @@ export function DashboardMetricCard({
             aria-valuenow={safeProgress}
           >
             <div
-              className={cn("h-full rounded-full transition-all duration-500", styles.progress)}
+              className={cn(
+                "h-full rounded-full transition-all duration-500 motion-reduce:transition-none",
+                styles.progress,
+              )}
               style={{ width: `${safeProgress}%` }}
             />
           </div>
         ) : null}
         <div className="flex min-w-0 items-center justify-between gap-3">
           <p className="min-w-0 text-[12px] leading-5 text-sub">{detail}</p>
-          {trend ? (
-            <Badge variant="success">{trend}</Badge>
-          ) : null}
+          {trend ? <Badge variant="success">{trend}</Badge> : null}
         </div>
       </div>
     </Card>

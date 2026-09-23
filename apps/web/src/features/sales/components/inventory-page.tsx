@@ -1,31 +1,32 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { UNIT_STATUSES, type UnitStatus } from "@nirman-app/shared";
-import { Button, Card, Input, Select, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState } from "@/components/ui";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { Failure, Status, money, dateTime } from "./sales-ui";
 import { useUnits } from "../hooks/use-inventory";
 import { inventoryService } from "../services/inventory.service";
 import { inventoryPermission } from "../inventory-rules";
-import { label, salesKey } from "../sales-rules";
+import { salesKey } from "../sales-rules";
 import { useSalesLifetime } from "../hooks/use-sales";
 import { UnitForm } from "./unit-form";
+import { SalesFilters } from "./sales-filters";
+import { salesDetailUrl, salesListUrl } from "../sales-view";
 function Inventory({ c }: { c: SalesContext }) {
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [status, setStatus] = useState("");
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const search = (params.get("search") ?? "").slice(0, 120);
+  const status = UNIT_STATUSES.find((value) => value === params.get("status")) ?? "";
   const [adding, setAdding] = useState(false);
   const [success, setSuccess] = useState("");
   const cache = useQueryClient();
   const live = useSalesLifetime();
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
   const units = useUnits(c.org, c.project, {
-    search: debounced || undefined,
+    search: search || undefined,
     status: (status as UnitStatus) || undefined,
   });
   const root = `/projects/${c.project}/sales/inventory`;
@@ -43,35 +44,17 @@ function Inventory({ c }: { c: SalesContext }) {
         )}
       </header>
       {success && <p role="status">{success}</p>}
-      <Card className="flex flex-wrap items-end gap-4">
-        <label className="flex-1">
-          Search units
-          <Input
-            value={search}
-            maxLength={120}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Unit number, type or tower"
-          />
-        </label>
-        <label>
-          Status
-          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All statuses</option>
-            {UNIT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {label(s)}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <Button
-          variant="outline"
-          disabled={units.isFetching}
-          onClick={() => void units.refetch()}
-        >
-          {units.isFetching ? "Refreshing…" : "Refresh"}
-        </Button>
-      </Card>
+      <SalesFilters
+        name="units"
+        scope="Availability and block expiry come from the server. Interest does not reserve a unit."
+        search={{ value: search, placeholder: "Unit number, type or tower", maxLength: 120, onChange: (value) => router.replace(salesListUrl(pathname, params, { search: value }), { scroll: false }) }}
+        value={{ status }}
+        fields={[{ key: "status", name: "Status", options: UNIT_STATUSES }]}
+        onApply={(value) => router.replace(salesListUrl(pathname, params, value), { scroll: false })}
+      />
+      <Button variant="outline" disabled={units.isFetching} onClick={() => void units.refetch()}>
+        {units.isFetching ? "Refreshing…" : "Refresh"}
+      </Button>
       {units.isPending ? (
         <LoadingState label="Loading inventory" />
       ) : units.isError ? (
@@ -95,7 +78,7 @@ function Inventory({ c }: { c: SalesContext }) {
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
                       className="text-lg font-semibold underline"
-                      href={`${root}/${u.id}`}
+                      href={salesDetailUrl(`${root}/${u.id}`, salesListUrl(pathname, params, {}))}
                     >
                       {u.unitNumber}
                     </Link>
@@ -162,8 +145,10 @@ function Inventory({ c }: { c: SalesContext }) {
 }
 export function InventoryPage({ projectId }: { projectId?: string }) {
   return (
-    <SalesWorkspace projectId={projectId} section="inventory">
-      {(c) => <Inventory c={c} />}
-    </SalesWorkspace>
+    <Suspense fallback={<LoadingState label="Loading inventory" />}>
+      <SalesWorkspace projectId={projectId} section="inventory">
+        {(c) => <Inventory c={c} />}
+      </SalesWorkspace>
+    </Suspense>
   );
 }

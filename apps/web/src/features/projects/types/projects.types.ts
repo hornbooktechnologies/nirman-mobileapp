@@ -41,6 +41,8 @@ export interface Project {
 }
 
 export interface PaginatedProjects {
+  /** False for legacy/incomplete responses whose totals cannot be trusted. */
+  paginationAvailable?: boolean;
   data: Project[];
   meta: {
     total: number;

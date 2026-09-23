@@ -8,6 +8,8 @@ import {
   type PermissionKey,
 } from "@nirman-app/shared";
 import { useState } from "react";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
   Card,
@@ -30,6 +32,7 @@ import {
   useUpdateRole,
 } from "@/features/user-management/hooks/use-user-management";
 import type { Role } from "@/features/user-management/types/user-management.types";
+import { safeAdministrationReturn } from "@/features/administration/administration-list";
 
 const PERMISSIONS_BY_RESOURCE = PERMISSION_RESOURCES.map((resource) => ({
   resource,
@@ -38,16 +41,22 @@ const PERMISSIONS_BY_RESOURCE = PERMISSION_RESOURCES.map((resource) => ({
   ),
 })).filter((group) => group.permissions.length > 0);
 
-export function RoleDetailPage({ roleId }: { roleId: string }) {
+function RoleDetail({ roleId }: { roleId: string }) {
   const role = useRole(roleId);
+  const router = useRouter();
+  const returnTo = safeAdministrationReturn(useSearchParams().get("returnTo"), "roles");
 
   if (role.isLoading) return <LoadingState label="Loading role" />;
   if (role.isError || !role.data) return <Card>Unable to load role</Card>;
 
-  return <RolePermissionEditor key={role.data.updatedAt} role={role.data} />;
+  return <RolePermissionEditor key={role.data.updatedAt} role={role.data} onBack={() => router.push(returnTo)} />;
 }
 
-function RolePermissionEditor({ role }: { role: Role }) {
+export function RoleDetailPage({ roleId }: { roleId: string }) {
+  return <Suspense fallback={<LoadingState label="Loading role" />}><RoleDetail roleId={roleId} /></Suspense>;
+}
+
+function RolePermissionEditor({ role, onBack }: { role: Role; onBack: () => void }) {
   const { hasPermission } = useAuth();
   const replacePermissions = useReplaceRolePermissions(role.id);
   const updateRole = useUpdateRole(role.id);
@@ -101,20 +110,11 @@ function RolePermissionEditor({ role }: { role: Role }) {
     <div className="space-y-4">
       <PageHeader
         title={role.name}
+        onBack={onBack}
         description={
           role.isSystem
             ? "System role template and permission reference."
             : "Manage the permissions assigned to this custom role."
-        }
-        actions={
-          canManage ? (
-            <Button
-              onClick={() => void savePermissions()}
-              disabled={replacePermissions.isPending}
-            >
-              {replacePermissions.isPending ? "Saving" : "Save Permissions"}
-            </Button>
-          ) : undefined
         }
       />
 
@@ -136,21 +136,21 @@ function RolePermissionEditor({ role }: { role: Role }) {
                 Update the custom role name and description.
               </p>
             </div>
-            <Input
+            <label className="grid gap-1 text-sm font-medium">Role name<Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Role name"
               maxLength={50}
               required
               disabled={!canUpdate}
-            />
-            <Textarea
+            /></label>
+            <label className="grid gap-1 text-sm font-medium">Description<Textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Description"
               maxLength={200}
               disabled={!canUpdate}
-            />
+            /></label>
             {canUpdate ? (
               <Button type="submit" disabled={updateRole.isPending}>
                 {updateRole.isPending ? "Saving" : "Save Role Details"}
@@ -188,7 +188,11 @@ function RolePermissionEditor({ role }: { role: Role }) {
         />
       ) : null}
 
-      <Card>
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="text-lg font-semibold">Permission set</h2><p className="text-sm text-sub">These grants affect users assigned to this role. Review changes before saving.</p></div>
+          {canManage && <Button onClick={() => void savePermissions()} disabled={replacePermissions.isPending}>{replacePermissions.isPending ? "Saving" : "Save Permissions"}</Button>}
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

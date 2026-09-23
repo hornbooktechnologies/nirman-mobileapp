@@ -14,7 +14,7 @@ export function MembersPage() {
       <div className="space-y-4">
         <PageHeader
           title="Members"
-          description="Manage your organization team and assign members to the projects where they work."
+          description="Manage the team in the active organization shown in the workspace header. Organization roles grant permissions; project assignments choose where a member can work."
         />
 
         {!activeOrganizationId ? (

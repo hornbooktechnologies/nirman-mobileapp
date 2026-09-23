@@ -9,12 +9,10 @@ import {
   Put,
   Query,
   Res,
-  UseGuards,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
-import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import {
   ConfigureMaterialsDto,
@@ -28,7 +26,8 @@ import {
 import { MaterialsService } from "./materials.service";
 
 @Controller("organizations/:organizationId/projects/:projectId/materials")
-@UseGuards(PermissionsGuard)
+// Each service method resolves current organization/project authority.
+// Global user-role guards cannot represent project-specific delegation.
 export class MaterialsController {
   constructor(private readonly service: MaterialsService) {}
 
