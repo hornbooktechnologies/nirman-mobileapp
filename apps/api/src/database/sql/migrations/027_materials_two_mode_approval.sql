@@ -44,9 +44,33 @@ WHERE mr.status = 'PENDING_VERIFICATION' AND mr.version = wm.previous_version;
 UPDATE project_material_settings SET workflow_mode = 'FINAL_APPROVAL', version = version + 1
 WHERE workflow_mode = 'VERIFY_THEN_FINAL';
 
-ALTER TABLE project_material_settings DROP CHECK chk_project_material_settings_mode;
-ALTER TABLE project_material_settings ADD CONSTRAINT chk_project_material_settings_mode
-  CHECK (workflow_mode IN ('DIRECT', 'FINAL_APPROVAL'));
+-- MySQL 5.7 accepts the CHECK in migration 017 but does not store or enforce it.
+-- Keep the database constraint on servers that support CHECK without issuing
+-- unsupported DROP CHECK / named ADD CHECK syntax on 5.7.
+SET @materials_mode_check_exists = (
+  SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_material_settings'
+    AND CONSTRAINT_NAME = 'chk_project_material_settings_mode' AND CONSTRAINT_TYPE = 'CHECK'
+);
+SET @materials_mode_check_drop_sql = IF(@materials_mode_check_exists > 0,
+  'ALTER TABLE project_material_settings DROP CHECK chk_project_material_settings_mode',
+  'SELECT 1');
+PREPARE materials_mode_check_drop FROM @materials_mode_check_drop_sql;
+EXECUTE materials_mode_check_drop;
+DEALLOCATE PREPARE materials_mode_check_drop;
+
+SET @materials_mysql_major = CAST(SUBSTRING_INDEX(VERSION(), '.', 1) AS UNSIGNED);
+SET @materials_mysql_minor = CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(VERSION(), '.', 2), '.', -1) AS UNSIGNED);
+SET @materials_mysql_patch = CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(VERSION(), '.', 3), '.', -1) AS UNSIGNED);
+SET @materials_can_enforce_check = @materials_mysql_major > 8 OR
+  (@materials_mysql_major = 8 AND
+    (@materials_mysql_minor > 0 OR @materials_mysql_patch >= 16));
+SET @materials_mode_check_add_sql = IF(@materials_can_enforce_check,
+  'ALTER TABLE project_material_settings ADD CONSTRAINT chk_project_material_settings_mode CHECK (workflow_mode IN (''DIRECT'', ''FINAL_APPROVAL''))',
+  'SELECT 1');
+PREPARE materials_mode_check_add FROM @materials_mode_check_add_sql;
+EXECUTE materials_mode_check_add;
+DEALLOCATE PREPARE materials_mode_check_add;
 
 -- Durable inbox backfill for eligible Owners. Delegates start empty; grants notify
 -- newly delegated members about existing pending requests through the normal API.
