@@ -31,7 +31,7 @@ import {
   visibleNavigation,
   visibleOrganizationNavigation,
 } from './components';
-import { ActivityTimeline, DashboardBackdrop, DashboardTabs, Entrance, ProgressCard, ProjectSummary, QuickActions, SalesPulse, SiteStatsCard } from './components/Dashboard';
+import { ActivityTimeline, DashboardBackdrop, DashboardTabs, Entrance, ProgressCard, ProjectSummary, SalesPulse, SiteStatsCard } from './components/Dashboard';
 import { fetchGalleryEntries } from '../gallery/services';
 import { AuthenticatedGalleryImage } from '../gallery/authenticated-gallery-image';
 import { fetchRoleDashboard } from './services';
@@ -308,14 +308,6 @@ export function DashboardScreen() {
         { key: 'expiringBlocks', label: tHome('role.metrics.expiringBlocks'), raw: dashboard.sales.blocksNearingExpiry },
         { key: 'bookedUnits', label: tHome('role.metrics.bookedUnits'), raw: dashboard.sales.bookedUnits },
       ].filter(metric => metric.raw !== null).map(metric => ({ key: metric.key, label: metric.label, value: number(metric.raw!), accessibilityLabel: metric.label + ': ' + number(metric.raw!) }))} /> : null}
-
-      {quickActions.length ? <QuickActions title={tHome('quickActions.title')} items={[
-        ...quickActions.filter(action => action.key === 'create-project'),
-        ...(roleQuickActions.some(action => action.key === 'MARK_ATTENDANCE' || action.key === 'UPDATE_PROGRESS')
-          ? roleQuickActions.filter(action => action.key === 'MARK_ATTENDANCE' || action.key === 'UPDATE_PROGRESS')
-          : quickActions.filter(action => action.key !== 'create-project' && action.key !== 'more').slice(0, 2)),
-        ...quickActions.filter(action => action.key === 'more'),
-      ].map(action => ({ ...action, label: action.key === 'MARK_ATTENDANCE' ? tHome('dashboard.attendance') : action.key === 'UPDATE_PROGRESS' ? tHome('dashboard.progress') : action.label }))} /> : null}
 
       {activeProject && (dashboard?.finance || dashboard?.workflow || quickActions.length) ? (
         <DashboardTabs

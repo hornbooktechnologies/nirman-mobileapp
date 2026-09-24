@@ -8,6 +8,7 @@ import {
   getActiveProjectPermissions,
   type MobileSession,
 } from "../../../lib/auth";
+import { useSession } from "../../../providers";
 
 export type CustomerRoute =
   | "/(app)/dashboard"
@@ -246,10 +247,13 @@ export function visibleOrganizationNavigation(
 
 export function CustomerTabBar({ activeKey }: { activeKey: string }) {
   const { t } = useTranslation("navigation");
+  const { session } = useSession();
+  const projectPermissions = getActiveProjectPermissions(session);
   const primaryItems = customerNavigation
     .filter(
       (item) =>
-        item.key === "home" || item.key === "team" || item.key === "project",
+        (item.key === "home" || item.key === "team" || item.key === "project") &&
+        (!item.permission || projectPermissions.includes(item.permission)),
     )
     .map((item) => localizeNavigationItem(item, t));
   const tabs = primaryItems.map(({ key, label, icon }) => ({

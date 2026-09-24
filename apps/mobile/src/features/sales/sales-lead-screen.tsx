@@ -59,6 +59,7 @@ export function SalesLeadScreen() {
   const [lostReason, setLostReason] = useState('');
   const [activityType, setActivityType] = useState<'CALL_OUTCOME' | 'NOTE_ADDED' | 'BROCHURE_SHARED'>('NOTE_ADDED');
   const [summary, setSummary] = useState('');
+  const [activitySummaryError, setActivitySummaryError] = useState('');
   const [details, setDetails] = useState('');
   const [scheduleDate, setScheduleDate] = useState(formatDateOnly(new Date()));
   const [scheduleTime, setScheduleTime] = useState('10:00');
@@ -151,6 +152,23 @@ export function SalesLeadScreen() {
     } finally {
       setWorking(false);
     }
+  }
+
+  function saveActivity() {
+    const nextSummary = summary.trim();
+    if (!nextSummary) {
+      setActivitySummaryError(tCommon('validation.required', { field: t('fields.summary') }));
+      return;
+    }
+
+    setActivitySummaryError('');
+    void run(() =>
+      addActivity(organizationId, projectId, leadId!, token, {
+        activityType,
+        summary: nextSummary,
+        details: details.trim() || undefined,
+      }),
+    );
   }
 
   function openUnits(nextSheet: 'interest' | 'booking') {
@@ -372,6 +390,7 @@ export function SalesLeadScreen() {
                       icon="text-box-plus-outline"
                       onPress={() => {
                         setSummary('');
+                        setActivitySummaryError('');
                         setDetails('');
                         setSheet('activity');
                       }}
@@ -565,17 +584,9 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={t('save')}
-              working={working || !summary.trim()}
+              working={working}
               onCancel={() => setSheet(null)}
-              onSave={() =>
-                void run(() =>
-                  addActivity(organizationId, projectId, leadId, token, {
-                    activityType,
-                    summary: summary.trim(),
-                    details: details.trim() || undefined,
-                  }),
-                )
-              }
+              onSave={saveActivity}
             />
           }
         >
@@ -583,8 +594,8 @@ export function SalesLeadScreen() {
           {(['CALL_OUTCOME', 'NOTE_ADDED', 'BROCHURE_SHARED'] as const).map((value) => (
             <SalesChoice key={value} label={t(`activity.${value}`)} selected={activityType === value} onPress={() => setActivityType(value)} />
           ))}
-          <FormField label={t('fields.summary')} required>
-            <Input value={summary} onChangeText={setSummary} />
+          <FormField label={t('fields.summary')} required error={activitySummaryError}>
+            <Input invalid={Boolean(activitySummaryError)} value={summary} onChangeText={(value) => { setSummary(value); if (activitySummaryError) setActivitySummaryError(''); }} />
           </FormField>
           <FormField label={t('fields.details')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
@@ -602,7 +613,7 @@ export function SalesLeadScreen() {
           footer={
             <SheetFooter
               cancel={tCommon('actions.cancel')}
-              save={t('leadDetail.schedule')}
+              save={working ? t('leadDetail.scheduling') : t('leadDetail.schedule')}
               working={working || !scheduledAt}
               onCancel={() => setSheet(null)}
               onSave={() =>

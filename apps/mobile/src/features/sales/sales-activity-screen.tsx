@@ -25,6 +25,9 @@ export function SalesActivityScreen() {
   const { t: tCommon } = useTranslation('common');
   const { session } = useSession();
   const project = getActiveProject(session);
+  const activeOrganizationId = session?.activeOrganization?.id;
+  const activeProjectId = project?.id;
+  const accessToken = session?.accessToken;
   const [lead, setLead] = useState<SalesLead | null>(null);
   const [activities, setActivities] = useState<SalesActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,13 +35,13 @@ export function SalesActivityScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (quiet = false) => {
-    if (!leadId || !session?.activeOrganization || !project) return;
+    if (!leadId || !activeOrganizationId || !activeProjectId || !accessToken) return;
     quiet ? setRefreshing(true) : setLoading(true);
     setError(null);
     try {
       const [nextLead, nextActivities] = await Promise.all([
-        fetchLead(session.activeOrganization.id, project.id, leadId, session.accessToken),
-        fetchActivities(session.activeOrganization.id, project.id, leadId, session.accessToken),
+        fetchLead(activeOrganizationId, activeProjectId, leadId, accessToken),
+        fetchActivities(activeOrganizationId, activeProjectId, leadId, accessToken),
       ]);
       setLead(nextLead);
       setActivities(nextActivities);
@@ -48,7 +51,7 @@ export function SalesActivityScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [leadId, project, session, t]);
+  }, [leadId, activeOrganizationId, activeProjectId, accessToken, t]);
 
   useEffect(() => { void load(); }, [load]);
 

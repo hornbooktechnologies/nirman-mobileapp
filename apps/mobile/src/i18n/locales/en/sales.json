@@ -186,6 +186,7 @@
     "noUnit": "No linked Unit",
     "noUnitDescription": "Use when Project inventory does not apply.",
     "schedule": "Schedule",
+    "scheduling": "Scheduling…",
     "confirm": "Confirm Booking"
   },
   "fields": {

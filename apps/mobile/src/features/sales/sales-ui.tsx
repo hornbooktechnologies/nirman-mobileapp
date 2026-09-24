@@ -5,13 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon, AppText, OperationalEntityCard, type AppIconName } from '../../components/ui';
 import { formatDate } from '../../i18n/formatters';
 import { mobileText, mobileTheme } from '../../theme';
+import { salesActivityDisplayAt } from './sales-activity';
 import type { SalesActivity } from './types';
 
 export function SalesActivityCard({ activity }: { activity: SalesActivity }) {
   const { t, i18n } = useTranslation('sales');
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
 
-  return <OperationalEntityCard compact contextLeading={t(`activity.${activity.activityType}`)} contextTrailing={formatDate(activity.occurredAt, language, { dateStyle: 'medium', timeStyle: 'short' })} title={activity.summary} supporting={activity.actorName ?? t('leadDetail.system')} tone={activity.activityType === 'LEAD_BOOKED' ? 'success' : activity.activityType === 'LEAD_LOST' || activity.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />;
+  return <OperationalEntityCard compact contextLeading={t(`activity.${activity.activityType}`)} contextTrailing={formatDate(salesActivityDisplayAt(activity), language, { dateStyle: 'medium', timeStyle: 'short' })} title={activity.summary} supporting={activity.actorName ?? t('leadDetail.system')} tone={activity.activityType === 'LEAD_BOOKED' ? 'success' : activity.activityType === 'LEAD_LOST' || activity.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />;
 }
 
 export function SalesSectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {

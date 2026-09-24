@@ -1,6 +1,6 @@
 import { LEAD_STAGES, type LeadStage } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -38,6 +38,9 @@ export function SalesBookingScreen() {
   const { t: tCommon } = useTranslation("common");
   const { session } = useSession();
   const project = getActiveProject(session);
+  const activeOrganizationId = session?.activeOrganization?.id;
+  const activeProjectId = project?.id;
+  const accessToken = session?.accessToken;
   const permissions = getActiveProjectPermissions(session);
   const language = (i18n.resolvedLanguage ?? "en") as "en" | "hi" | "gu";
   const [booking, setBooking] = useState<SalesBooking | null>(null);
@@ -52,33 +55,42 @@ export function SalesBookingScreen() {
   const [restoredUnitStatus, setRestoredUnitStatus] = useState<
     "AVAILABLE" | "UNAVAILABLE"
   >("AVAILABLE");
+  const requestSequence = useRef(0);
 
   const load = useCallback(
     async (quiet = false) => {
-      if (!bookingId || !session?.activeOrganization || !project) return;
+      if (!bookingId || !activeOrganizationId || !activeProjectId || !accessToken)
+        return;
+      const sequence = ++requestSequence.current;
       quiet ? setRefreshing(true) : setLoading(true);
       setError(null);
       try {
-        setBooking(
-          await fetchBooking(
-            session.activeOrganization.id,
-            project.id,
-            bookingId,
-            session.accessToken,
-          ),
+        const nextBooking = await fetchBooking(
+          activeOrganizationId,
+          activeProjectId,
+          bookingId,
+          accessToken,
         );
+        if (sequence === requestSequence.current) setBooking(nextBooking);
       } catch (cause) {
-        setError(getLocalizedErrorMessage(cause, t("errors.load")));
+        if (sequence === requestSequence.current)
+          setError(getLocalizedErrorMessage(cause, t("errors.load")));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (sequence === requestSequence.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [bookingId, project, session, t],
+    [accessToken, activeOrganizationId, activeProjectId, bookingId, t],
   );
 
   useEffect(() => {
+    setBooking(null);
     void load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [load]);
 
   function openCancellation() {
