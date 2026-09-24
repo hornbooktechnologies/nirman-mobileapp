@@ -121,7 +121,7 @@ function WorkerList({ organizationId }: { organizationId: string }) {
             </Button>
             {hasPermission("workers:create") ? (
               <Link
-                className="inline-flex min-h-11 items-center rounded-inner bg-lime px-4 text-sm font-medium text-body"
+                className="inline-flex min-h-11 items-center rounded-inner bg-lime px-4 text-sm font-medium text-lime-ink"
                 href={`/workers/new?${new URLSearchParams({ organizationId, returnTo })}`}
               >
                 New worker
