@@ -1,7 +1,7 @@
 {
   "title": "Sales",
   "loading": "Loading sales work",
-  "saving": "Saving",
+  "saving": "Saving…",
   "save": "Save",
   "refresh": "Refresh sales details",
   "navigation": {
@@ -69,6 +69,7 @@
   "followUps": {
     "noNotes": "No notes",
     "complete": "Complete",
+    "completing": "Completing…",
     "completeTitle": "Complete follow-up"
   },
   "visits": {
@@ -127,6 +128,7 @@
     "cancelTitle": "Cancel booking?",
     "cancelDescription": "Choose the Lead and linked Unit state that should be restored.",
     "confirmCancellation": "Confirm cancellation",
+    "cancelling": "Cancelling…",
     "cancelledTitle": "Booking cancelled",
     "cancelledDescription": "The selected Lead and Unit states were restored.",
     "cancellationTitle": "Cancellation record",
@@ -178,6 +180,7 @@
     "requestHoldTitle": "Request exclusive hold",
     "requestHoldSheetDescription": "Choose an interested Unit. An owner or admin will make the final decision.",
     "submitHoldRequest": "Submit request",
+    "submitting": "Submitting…",
     "noHoldCandidates": "No Unit ready for a hold request",
     "noHoldCandidatesDescription": "Record Unit interest first, or wait for an existing request to be decided.",
     "bookingTitle": "Confirm booking",
@@ -187,7 +190,8 @@
     "noUnitDescription": "Use when Project inventory does not apply.",
     "schedule": "Schedule",
     "scheduling": "Scheduling…",
-    "confirm": "Confirm Booking"
+    "confirm": "Confirm Booking",
+    "confirming": "Confirming…"
   },
   "fields": {
     "customerName": "Customer name",
@@ -307,7 +311,9 @@
     "emptyTitle": "No interested customers",
     "emptyDescription": "Customer interest recorded from a Lead will appear here.",
     "approve": "Approve",
+    "approving": "Approving…",
     "reject": "Reject",
+    "rejecting": "Rejecting…",
     "approveTitle": "Approve exclusive hold?",
     "rejectTitle": "Reject hold request?",
     "decisionDescription": "{{customer}} requested Unit {{unit}}."

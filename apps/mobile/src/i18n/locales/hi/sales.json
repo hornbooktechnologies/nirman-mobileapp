@@ -1,7 +1,7 @@
 {
   "title": "सेल्स",
   "loading": "सेल्स कार्य लोड हो रहा है",
-  "saving": "सेव हो रहा है",
+  "saving": "सेव हो रहा है…",
   "save": "सेव करें",
   "refresh": "सेल्स विवरण रीफ़्रेश करें",
   "navigation": {
@@ -69,6 +69,7 @@
   "followUps": {
     "noNotes": "कोई नोट नहीं",
     "complete": "पूरा करें",
+    "completing": "पूरा किया जा रहा है…",
     "completeTitle": "फ़ॉलो-अप पूरा करें"
   },
   "visits": {
@@ -127,6 +128,7 @@
     "cancelTitle": "बुकिंग रद्द करें?",
     "cancelDescription": "रद्द करने के बाद लीड और जुड़ी यूनिट की स्थिति चुनें।",
     "confirmCancellation": "रद्द करना कन्फर्म करें",
+    "cancelling": "रद्द किया जा रहा है…",
     "cancelledTitle": "बुकिंग रद्द हुई",
     "cancelledDescription": "चुनी हुई लीड और यूनिट स्थितियाँ बहाल कर दी गईं।",
     "cancellationTitle": "रद्दीकरण रिकॉर्ड",
@@ -178,6 +180,7 @@
     "requestHoldTitle": "यूनिट होल्ड का अनुरोध करें",
     "requestHoldSheetDescription": "मंज़ूरी तक यूनिट अन्य ग्राहकों के लिए उपलब्ध रहती है।",
     "submitHoldRequest": "होल्ड अनुरोध भेजें",
+    "submitting": "होल्ड अनुरोध भेजा जा रहा है…",
     "noHoldCandidates": "कोई योग्य यूनिट नहीं",
     "noHoldCandidatesDescription": "पहले इस लीड के लिए यूनिट रुचि दर्ज करें या लंबित अनुरोध का निर्णय होने दें।",
     "bookingTitle": "बुकिंग पक्की करें",
@@ -187,7 +190,8 @@
     "noUnitDescription": "जब प्रोजेक्ट इन्वेंटरी लागू न हो।",
     "schedule": "तय करें",
     "scheduling": "तय किया जा रहा है…",
-    "confirm": "बुकिंग पक्की करें"
+    "confirm": "बुकिंग पक्की करें",
+    "confirming": "पुष्टि की जा रही है…"
   },
   "fields": {
     "customerName": "ग्राहक का नाम",
@@ -373,7 +377,9 @@
     "emptyTitle": "अभी कोई इच्छुक ग्राहक नहीं",
     "emptyDescription": "लीड से यूनिट रुचि दर्ज करने पर ग्राहक यहाँ दिखेंगे।",
     "approve": "मंज़ूर करें",
+    "approving": "मंज़ूर किया जा रहा है…",
     "reject": "अस्वीकार करें",
+    "rejecting": "अस्वीकार किया जा रहा है…",
     "approveTitle": "यूनिट होल्ड मंज़ूर करें?",
     "rejectTitle": "यूनिट होल्ड अस्वीकार करें?",
     "decisionDescription": "{{customer}} ने यूनिट {{unit}} के होल्ड का अनुरोध किया है।"

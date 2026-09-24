@@ -368,7 +368,7 @@ export function SalesBookingScreen() {
                 style={styles.footerButton}
                 disabled={working || !cancellationReason.trim()}
                 label={
-                  working ? t("saving") : t("bookings.confirmCancellation")
+                  working ? t("bookings.cancelling") : t("bookings.confirmCancellation")
                 }
                 variant="danger"
                 onPress={() => void confirmCancellation()}

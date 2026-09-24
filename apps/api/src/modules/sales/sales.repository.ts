@@ -1689,8 +1689,8 @@ export class SalesRepository {
   ) {
     await this.database.execute(
       `INSERT INTO sales_activities
-        (id, organization_id, project_id, lead_id, activity_type, summary, details_json, actor_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, organization_id, project_id, lead_id, activity_type, summary, details_json, actor_id, occurred_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         randomUUID(),
         organizationId,
@@ -1700,6 +1700,7 @@ export class SalesRepository {
         summary,
         details ? JSON.stringify(details) : null,
         actorId,
+        new Date(),
       ],
       connection,
     );

@@ -1,7 +1,7 @@
 {
   "title": "સેલ્સ",
   "loading": "સેલ્સનું કામ લોડ થઈ રહ્યું છે",
-  "saving": "સેવ થઈ રહ્યું છે",
+  "saving": "સેવ થઈ રહ્યું છે…",
   "save": "સેવ કરો",
   "refresh": "સેલ્સ વિગતો રિફ્રેશ કરો",
   "navigation": {
@@ -69,6 +69,7 @@
   "followUps": {
     "noNotes": "કોઈ નોંધ નથી",
     "complete": "પૂર્ણ કરો",
+    "completing": "પૂર્ણ થઈ રહ્યું છે…",
     "completeTitle": "ફોલો-અપ પૂર્ણ કરો"
   },
   "visits": {
@@ -127,6 +128,7 @@
     "cancelTitle": "બુકિંગ રદ કરવું?",
     "cancelDescription": "રદ કર્યા પછી લીડ અને જોડાયેલ યુનિટની સ્થિતિ પસંદ કરો.",
     "confirmCancellation": "રદ કરવાનું કન્ફર્મ કરો",
+    "cancelling": "રદ થઈ રહ્યું છે…",
     "cancelledTitle": "બુકિંગ રદ થયું",
     "cancelledDescription": "પસંદ કરેલી લીડ અને યુનિટ સ્થિતિ પાછી મુકાઈ.",
     "cancellationTitle": "રદ કરવાનો રેકોર્ડ",
@@ -178,6 +180,7 @@
     "requestHoldTitle": "યુનિટ હોલ્ડની વિનંતી કરો",
     "requestHoldSheetDescription": "મંજૂરી સુધી યુનિટ બીજા ગ્રાહકો માટે ઉપલબ્ધ રહે છે.",
     "submitHoldRequest": "હોલ્ડ વિનંતી મોકલો",
+    "submitting": "હોલ્ડ વિનંતી મોકલાઈ રહી છે…",
     "noHoldCandidates": "કોઈ યોગ્ય યુનિટ નથી",
     "noHoldCandidatesDescription": "પહેલા આ લીડ માટે યુનિટમાં રસ નોંધો અથવા બાકી વિનંતીનો નિર્ણય થવા દો.",
     "bookingTitle": "બુકિંગ કન્ફર્મ કરો",
@@ -187,7 +190,8 @@
     "noUnitDescription": "જ્યારે પ્રોજેક્ટ ઇન્વેન્ટરી લાગુ ન પડતી હોય.",
     "schedule": "નક્કી કરો",
     "scheduling": "નક્કી થઈ રહ્યું છે…",
-    "confirm": "બુકિંગ કન્ફર્મ કરો"
+    "confirm": "બુકિંગ કન્ફર્મ કરો",
+    "confirming": "કન્ફર્મ થઈ રહ્યું છે…"
   },
   "fields": {
     "customerName": "ગ્રાહકનું નામ",
@@ -373,7 +377,9 @@
     "emptyTitle": "હજી કોઈ રસ ધરાવતો ગ્રાહક નથી",
     "emptyDescription": "લીડમાંથી યુનિટમાં રસ નોંધાયા પછી ગ્રાહકો અહીં દેખાશે.",
     "approve": "મંજૂર કરો",
+    "approving": "મંજૂર થઈ રહ્યું છે…",
     "reject": "નકારો",
+    "rejecting": "નકારવામાં આવી રહ્યું છે…",
     "approveTitle": "યુનિટ હોલ્ડ મંજૂર કરવો?",
     "rejectTitle": "યુનિટ હોલ્ડ નકારવો?",
     "decisionDescription": "{{customer}} એ યુનિટ {{unit}} માટે હોલ્ડની વિનંતી કરી છે."
