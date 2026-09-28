@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
+import { brandAssets } from "@/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "NirmanSite",
   description: "Enterprise Builder SaaS platform",
+  icons: {
+    icon: [
+      { url: brandAssets.appIconLight, type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: brandAssets.appIconDark, type: "image/png", media: "(prefers-color-scheme: dark)" },
+    ],
+    shortcut: brandAssets.appIconLight,
+    apple: brandAssets.appIcon,
+  },
 };
 
 const manrope = Manrope({

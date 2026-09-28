@@ -1,6 +1,7 @@
 import {
   PROJECT_PERMISSION_GROUPS,
   type PermissionKey,
+  type ProjectDelegatablePermissionKey,
   type ProjectMemberStatus,
   type ProjectPermissionMode,
 } from '@nirman-app/shared';
@@ -10,6 +11,9 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Badge, Button, Card, DateInput, FormField, Input, badgeToneTokens, getStatusTone, type BadgeTone } from '../../components/ui';
 import { parseDateOnly } from '../../lib/validation';
 import { mobileText, mobileTheme } from '../../theme';
+
+type PermissionAction<T extends string> = T extends `${string}:${infer Action}` ? Action : never;
+type ProjectPermissionAction = PermissionAction<ProjectDelegatablePermissionKey>;
 
 const permissionActionTranslationKeys = {
   read: 'permissionAction.read',
@@ -32,7 +36,23 @@ const permissionActionTranslationKeys = {
   'mark-paid': 'permissionAction.mark-paid',
   'update-organization': 'permissionAction.update-organization',
   'update-project': 'permissionAction.update-project',
-} as const;
+  cancel: 'permissionAction.cancel',
+  'approve-level-1': 'permissionAction.approve-level-1',
+  'approve-final': 'permissionAction.approve-final',
+  'record-purchase': 'permissionAction.record-purchase',
+  'record-delivery': 'permissionAction.record-delivery',
+  upload: 'permissionAction.upload',
+  'read-own': 'permissionAction.read-own',
+  'read-team': 'permissionAction.read-team',
+  'read-all': 'permissionAction.read-all',
+  reassign: 'permissionAction.reassign',
+  convert: 'permissionAction.convert',
+  manage: 'permissionAction.manage',
+  interest: 'permissionAction.interest',
+  'request-block': 'permissionAction.request-block',
+  block: 'permissionAction.block',
+  book: 'permissionAction.book',
+} as const satisfies Record<ProjectPermissionAction, string>;
 
 export type ProjectAssignmentDraft = {
   roleLabel: string;

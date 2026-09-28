@@ -139,6 +139,7 @@
     "correct-locked": "Correct locked attendance",
     "generate": "Generate",
     "mark-paid": "Mark paid",
+    "cancel": "Cancel wage batch",
     "update-organization": "Update Organization calendar",
     "update-project": "Update Project calendar",
     "read-own": "Read own",

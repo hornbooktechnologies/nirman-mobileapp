@@ -1,3 +1,7 @@
+## 2026-09-28 - Official Mobile and Web logo pack
+
+Integrated the supplied named logo pack through both app theme exports. Mobile auth and Web auth/sidebar/browser identity use official variants. Existing Expo icon/splash paths resolve to the updated assets. Both app type-checks, asset existence, resolved Expo configuration and diff checks passed. Browser/device visual acceptance remains unrun; native launcher/splash updates require a new build. See docs/design/brand-assets.md for placement rules. Supplied artwork and unrelated edits were preserved.
+
 ## 2026-09-23 - Web UX acceptance follow-up
 
 Started a local API-isolated Web browser pass. Synthetic phase 2-8 previews rendered without page-level horizontal overflow at 1366, 768, 683 and 360 CSS-pixel widths; 683 is reflow approximation, not actual 200% zoom. Checked Administration drawer keyboard/cancel/apply/reset/empty behavior, Worker read-only and Dashboard restricted/archived fixtures, signed-out dashboard redirect, Login and Forgot Password. Corrected Administration preview filtering and connected Worker Detail to the existing Kharchi workerId filter. Signed-in persona, live mutation, actual zoom/reduced-motion and cross-client acceptance still require an authorized non-production session. See web-ux-phase9-acceptance.md.

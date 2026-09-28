@@ -64,6 +64,19 @@ describe("OrganizationOnboardingService", () => {
     );
   });
 
+  it("uses the activation website independently of other auth email URLs", () => {
+    const previous = process.env.PUBLIC_ACTIVATION_WEB_URL;
+    try {
+      process.env.PUBLIC_ACTIVATION_WEB_URL = "https://nirman-website.vercel.app/";
+      expect(service["webActivationUrl"]("test/token")).toBe(
+        "https://nirman-website.vercel.app/activate?token=test%2Ftoken",
+      );
+    } finally {
+      if (previous === undefined) delete process.env.PUBLIC_ACTIVATION_WEB_URL;
+      else process.env.PUBLIC_ACTIVATION_WEB_URL = previous;
+    }
+  });
+
   it("blocks customer actors from provisioning another organization", async () => {
     await expect(
       service.createOrganizationWithOwner(dto, {

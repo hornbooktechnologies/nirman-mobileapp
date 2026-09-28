@@ -33,6 +33,16 @@ export const webThemeCssVariables = {
 } as const;
 
 export const brandAssets = {
-  logoFull: "/brand/logo-full.png",
-  logoMark: "/brand/logo-mark.png",
+  logoFull: "/brand/horizontal-logo.png",
+  logoMark: "/brand/app-icon-light.png",
+  primaryLogo: "/brand/primary-logo.png",
+  textOnlyLogo: "/brand/text-only-logo.png",
+  blackStackedLogo: "/brand/black-stacked-logo.png",
+  whiteStackedLogo: "/brand/white-stacked-logo.png",
+  blackSymbol: "/brand/black-symbol.png",
+  whiteSymbol: "/brand/white-symbol.png",
+  appIcon: "/brand/app-icon.png",
+  appIconLight: "/brand/app-icon-light.png",
+  appIconDark: "/brand/app-icon-dark.png",
+  appIconRound: "/brand/app-icon-round.png",
 } as const;

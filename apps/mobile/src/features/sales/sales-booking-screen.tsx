@@ -32,6 +32,10 @@ const RESTORABLE_LEAD_STAGES = LEAD_STAGES.filter(
   (stage) => stage !== "BOOKED",
 );
 
+type CancellationFieldErrors = Partial<
+  Record<"reason" | "leadStage" | "unitStatus", string>
+>;
+
 export function SalesBookingScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
   const { t, i18n } = useTranslation("sales");
@@ -55,6 +59,8 @@ export function SalesBookingScreen() {
   const [restoredUnitStatus, setRestoredUnitStatus] = useState<
     "AVAILABLE" | "UNAVAILABLE"
   >("AVAILABLE");
+  const [cancellationFieldErrors, setCancellationFieldErrors] =
+    useState<CancellationFieldErrors>({});
   const requestSequence = useRef(0);
 
   const load = useCallback(
@@ -96,6 +102,7 @@ export function SalesBookingScreen() {
   function openCancellation() {
     if (!booking) return;
     setCancellationReason("");
+    setCancellationFieldErrors({});
     setError(null);
     setRestoredLeadStage(
       booking.leadStageBeforeBooking &&
@@ -112,14 +119,31 @@ export function SalesBookingScreen() {
   }
 
   async function confirmCancellation() {
+    if (!booking || !session?.activeOrganization || !project) return;
+
+    const nextFieldErrors: CancellationFieldErrors = {};
+    if (!cancellationReason.trim()) {
+      nextFieldErrors.reason = tCommon("validation.required", {
+        field: t("fields.cancellationReason"),
+      });
+    }
+    if (restoredLeadStage === "BOOKED") {
+      nextFieldErrors.leadStage = tCommon("validation.required", {
+        field: t("fields.restoredLeadStage"),
+      });
+    }
     if (
-      !booking ||
-      !session?.activeOrganization ||
-      !project ||
-      !cancellationReason.trim() ||
-      restoredLeadStage === "BOOKED"
-    )
-      return;
+      booking.unitId &&
+      restoredUnitStatus !== "AVAILABLE" &&
+      restoredUnitStatus !== "UNAVAILABLE"
+    ) {
+      nextFieldErrors.unitStatus = tCommon("validation.required", {
+        field: t("fields.restoredUnitStatus"),
+      });
+    }
+    setCancellationFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length > 0) return;
+
     setWorking(true);
     setError(null);
     try {
@@ -366,7 +390,7 @@ export function SalesBookingScreen() {
               />
               <Button
                 style={styles.footerButton}
-                disabled={working || !cancellationReason.trim()}
+                disabled={working}
                 label={
                   working ? t("bookings.cancelling") : t("bookings.confirmCancellation")
                 }
@@ -377,34 +401,71 @@ export function SalesBookingScreen() {
           }
         >
           <FormError message={error} />
-          <FormField label={t("fields.cancellationReason")} required>
+          <FormField
+            label={t("fields.cancellationReason")}
+            required
+            error={cancellationFieldErrors.reason}
+          >
             <Input
               accessibilityLabel={t("fields.cancellationReason")}
+              invalid={Boolean(cancellationFieldErrors.reason)}
               multiline
               numberOfLines={3}
               value={cancellationReason}
-              onChangeText={setCancellationReason}
+              onChangeText={(value) => {
+                setCancellationReason(value);
+                if (cancellationFieldErrors.reason) {
+                  setCancellationFieldErrors((current) => ({
+                    ...current,
+                    reason: undefined,
+                  }));
+                }
+              }}
               style={styles.multiline}
             />
           </FormField>
-          <FormField label={t("fields.restoredLeadStage")} required>
+          <FormField
+            label={t("fields.restoredLeadStage")}
+            required
+            error={cancellationFieldErrors.leadStage}
+          >
             {RESTORABLE_LEAD_STAGES.map((value) => (
               <SalesChoice
                 key={value}
                 label={t(`stage.${value}`)}
                 selected={restoredLeadStage === value}
-                onPress={() => setRestoredLeadStage(value)}
+                onPress={() => {
+                  setRestoredLeadStage(value);
+                  if (cancellationFieldErrors.leadStage) {
+                    setCancellationFieldErrors((current) => ({
+                      ...current,
+                      leadStage: undefined,
+                    }));
+                  }
+                }}
               />
             ))}
           </FormField>
           {booking.unitId ? (
-            <FormField label={t("fields.restoredUnitStatus")} required>
+            <FormField
+              label={t("fields.restoredUnitStatus")}
+              required
+              error={cancellationFieldErrors.unitStatus}
+            >
               {(["AVAILABLE", "UNAVAILABLE"] as const).map((value) => (
                 <SalesChoice
                   key={value}
                   label={t(`unitStatus.${value}`)}
                   selected={restoredUnitStatus === value}
-                  onPress={() => setRestoredUnitStatus(value)}
+                  onPress={() => {
+                    setRestoredUnitStatus(value);
+                    if (cancellationFieldErrors.unitStatus) {
+                      setCancellationFieldErrors((current) => ({
+                        ...current,
+                        unitStatus: undefined,
+                      }));
+                    }
+                  }}
                 />
               ))}
             </FormField>
