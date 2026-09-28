@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { canCancelWageBatch, paymentValidation, isUncertainPaymentFailure, effectiveWageProject, retainPaymentAttempt } from "./wage-rules.ts";
+import { hasActiveWageOverlap, canCancelWageBatch, paymentValidation, isUncertainPaymentFailure, effectiveWageProject, retainPaymentAttempt } from "./wage-rules.ts";
 
 const item = { netAmount: "100.30", paidAmount: "100.10" };
 test("uncertain retry preserves both key and original payload; a completed attempt gets a new key", () => {
@@ -37,4 +37,16 @@ test("direct-route access uses target project's effective CUSTOM permissions", (
   assert.equal(effectiveWageProject(projects, "allowed")?.id, "allowed");
   assert.equal(effectiveWageProject(projects, "custom-denied"), undefined);
   assert.equal(effectiveWageProject(projects, "another-organization"), undefined);
+});
+
+
+test("active wage overlap blocks partial, contained and inclusive boundary periods", () => {
+  const batches = [{ status: "CONFIRMED", periodStart: "2026-09-10", periodEnd: "2026-09-20" }];
+  for (const [start, end] of [["2026-09-01", "2026-09-10"], ["2026-09-20", "2026-09-28"], ["2026-09-12", "2026-09-15"], ["2026-09-01", "2026-09-28"]]) {
+    assert.equal(hasActiveWageOverlap(batches, start, end), true);
+  }
+  assert.equal(hasActiveWageOverlap(batches, "2026-09-21", "2026-09-28"), false);
+  assert.equal(hasActiveWageOverlap(batches, "2026-09-01", "2026-09-09"), false);
+  assert.equal(hasActiveWageOverlap([{ ...batches[0], status: "CANCELLED" }], "2026-09-10", "2026-09-20"), false);
+  assert.equal(hasActiveWageOverlap(batches, "", "2026-09-20"), false);
 });

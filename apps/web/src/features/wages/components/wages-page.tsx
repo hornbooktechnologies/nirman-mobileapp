@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Dialog, Input, LoadingState, PageHeader, Select, StatusBadge } from "@/components/ui";
 import { WageWorkspace } from "./wage-workspace";
 import { WageFinancialDetail, WageRateBreakdown } from "./wage-financial-detail";
-import { canCancelWageBatch, paymentValidation, isUncertainPaymentFailure, retainPaymentAttempt, type WagePaymentAttempt } from "../wage-rules";
+import { hasActiveWageOverlap, canCancelWageBatch, paymentValidation, isUncertainPaymentFailure, retainPaymentAttempt, type WagePaymentAttempt } from "../wage-rules";
 import { ApiError } from "@/lib/api/api-client";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
@@ -101,15 +101,18 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
   const canUpdate = !archived && hasPermission("wages:update");
   const canExport = hasPermission("wages:export");
   const canCancel = !archived && hasPermission("wages:cancel");
+  const batches = useWageBatches(organizationId, projectId);
+  const overlappingPeriod = hasActiveWageOverlap(batches.data ?? [], periodStart, periodEnd);
   const invalidRange = periodEnd < periodStart;
   const futurePeriodEnd = periodEnd > wageToday;
   const periodError = !periodStart || !periodEnd ? "Both period dates are required." : invalidRange
     ? "End date cannot be before start date."
     : futurePeriodEnd
       ? "End date must be today or earlier."
-      : "";
-  const preview = useWagePreview(organizationId, projectId, periodStart, periodEnd, previewRequested && !periodError);
-  const batches = useWageBatches(organizationId, projectId);
+      : overlappingPeriod
+        ? "An active wage batch already covers part or all of this period. Choose a different period or cancel the existing unpaid batch first."
+        : "";
+  const preview = useWagePreview(organizationId, projectId, periodStart, periodEnd, previewRequested && !periodError && batches.isSuccess);
   const createBatch = useCreateWageBatch(organizationId, projectId);
   const detail = useWageBatchDetail(organizationId, projectId, selectedBatchId);
   const recordPayment = useRecordWagePayment(organizationId, projectId);
@@ -140,6 +143,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
     setBusy(true); setFailure(""); setMessage("");
     try { await action(); }
     catch (error) {
+      if (error instanceof ApiError && error.code === "WAGE_BATCH_DUPLICATE") setPreviewRequested(false);
       setFailure(`${error instanceof Error ? error.message : "Unable to complete wage action."} Review the refreshed record before submitting again.`);
       void batches.refetch();
       if (selectedBatchId) void detail.refetch();
@@ -259,22 +263,22 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
           <div className="grid gap-3 lg:grid-cols-[180px_180px_auto] md:items-end">
             <label className="grid gap-1 text-sm font-semibold text-sub">
               Period start *
-              <Input disabled={busy} type="date" max={periodEnd < wageToday ? periodEnd : wageToday} value={periodStart} onChange={(event) => { setPeriodStart(event.target.value); setPreviewRequested(false); }} />
+              <Input disabled={busy} type="date" max={periodEnd < wageToday ? periodEnd : wageToday} value={periodStart} onChange={(event) => { setPeriodStart(event.target.value); setPreviewRequested(false); setFailure(""); }} />
             </label>
             <label className="grid gap-1 text-sm font-semibold text-sub">
               Period end *
-              <Input disabled={busy} type="date" min={periodStart} max={wageToday} invalid={Boolean(periodError)} aria-describedby={periodError ? "wage-period-error" : undefined} value={periodEnd} onChange={(event) => { setPeriodEnd(event.target.value); setPreviewRequested(false); }} />
+              <Input disabled={busy} type="date" min={periodStart} max={wageToday} invalid={Boolean(periodError)} aria-describedby={periodError ? "wage-period-error" : undefined} value={periodEnd} onChange={(event) => { setPeriodEnd(event.target.value); setPreviewRequested(false); setFailure(""); }} />
             </label>
-            <Button onClick={() => { setPreviewRequested(true); if (previewRequested) void preview.refetch(); }} disabled={!organizationId || Boolean(periodError) || preview.isFetching || busy}>
+            <Button onClick={() => { setPreviewRequested(true); if (previewRequested) void preview.refetch(); }} disabled={!organizationId || !batches.isSuccess || Boolean(periodError) || preview.isFetching || busy}>
               <CalendarDays size={16} />
               {preview.isFetching ? "Generating" : "Generate preview"}
             </Button>
           </div>
           {periodError ? <p id="wage-period-error" role="alert" className="text-[14px] text-danger">{periodError}</p> : null}
-          {preview.isError ? <p className="text-[14px] text-danger">{preview.error instanceof Error ? preview.error.message : "Unable to generate wage preview."}</p> : null}
+          {previewRequested && !periodError && preview.isError ? <p className="text-[14px] text-danger">{preview.error instanceof Error ? preview.error.message : "Unable to generate wage preview."}</p> : null}
         </Card>
 
-        {previewRequested && preview.data && !preview.isError ? (
+        {previewRequested && !periodError && batches.isSuccess && preview.data && !preview.isError ? (
           <Card className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
