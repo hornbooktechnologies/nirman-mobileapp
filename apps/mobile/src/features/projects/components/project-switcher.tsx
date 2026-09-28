@@ -277,11 +277,14 @@ function ProjectSwitcherSheet({
       visible={visible}
       title={t("projectContext.pickerTitle")}
       description={t("projectContext.pickerDescription")}
+      scroll
       onClose={onClose}
     >
       {projects.map((project) => (
         <ListItem
           key={project.id}
+          accessibilityRole="button"
+          accessibilityState={{ selected: project.id === activeProjectId }}
           leading={
             <IconContainer icon="office-building-marker-outline" size="sm" />
           }
@@ -290,11 +293,6 @@ function ProjectSwitcherSheet({
             project.roleLabel ??
             project.projectCode ??
             t("projectContext.projectAccess")
-          }
-          meta={
-            project.id === activeProjectId
-              ? t("projectContext.selected")
-              : undefined
           }
           trailing={
             <View style={styles.switcherStatus}>

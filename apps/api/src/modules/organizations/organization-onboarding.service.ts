@@ -290,9 +290,10 @@ export class OrganizationOnboardingService {
 
   private webActivationUrl(token: string) {
     const configuredBase =
-      process.env.PUBLIC_WEB_APP_URL ??
-      process.env.FRONTEND_URL?.split(",")[0]?.trim() ??
-      "http://localhost:3000";
+      process.env.PUBLIC_ACTIVATION_WEB_URL?.trim() ||
+      (process.env.PUBLIC_WEB_APP_URL ??
+        process.env.FRONTEND_URL?.split(",")[0]?.trim() ??
+        "http://localhost:3000");
     return `${configuredBase.replace(/\/$/, "")}/activate?token=${encodeURIComponent(token)}`;
   }
 

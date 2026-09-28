@@ -52,7 +52,7 @@ function LoginPageContent() {
           <Image
             src={brandAssets.logoFull}
             alt="NirmanSite"
-            width={220}
+            width={240}
             height={80}
             className="mb-3 h-auto w-[220px] max-w-full object-contain"
             priority

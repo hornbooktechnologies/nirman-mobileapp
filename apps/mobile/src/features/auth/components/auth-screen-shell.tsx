@@ -3,7 +3,7 @@ import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText, GlassCard, LanguagePicker } from '../../../components/ui';
-import { mobileShadows, mobileText, mobileTheme } from '../../../theme';
+import { brandAssets, mobileShadows, mobileText, mobileTheme } from '../../../theme';
 
 type AuthScreenShellProps = PropsWithChildren<{
   title: string;
@@ -20,7 +20,7 @@ export function AuthScreenShell({ title, description, children }: AuthScreenShel
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' && !useAutomaticKeyboardInsets ? 'padding' : undefined}>
           <ScrollView automaticallyAdjustKeyboardInsets={useAutomaticKeyboardInsets} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
             <View style={styles.content}>
-              <Image accessibilityLabel="NirmanSite" accessible source={require('../../../../assets/brand/horizontal-logo.png')} resizeMode="contain" style={styles.logo} />
+              <Image accessibilityLabel="NirmanSite" accessible source={brandAssets.logoFull} resizeMode="contain" style={styles.logo} />
               <GlassCard variant="strong" style={styles.card}>
                 <View style={styles.heading}>
                   <AppText accessibilityRole="header" style={styles.title} weight={700}>{title}</AppText>

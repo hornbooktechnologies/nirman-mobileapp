@@ -40,7 +40,7 @@ function ResetPasswordContent() {
     <main className="grid min-h-screen place-items-center px-4 py-8">
       <Card className="w-full max-w-[420px]">
         <CardHeader className="items-center text-center">
-          <Image src={brandAssets.logoFull} alt="NirmanSite" width={220} height={80} className="mb-3 h-auto max-w-full object-contain" priority />
+          <Image src={brandAssets.logoFull} alt="NirmanSite" width={240} height={80} className="mb-3 h-auto w-[220px] max-w-full object-contain" priority />
           <CardTitle>Create a new password</CardTitle>
           <p className="max-w-[320px] text-[13px] leading-5 text-sub">Choose a new password for your NirmanSite account.</p>
         </CardHeader>

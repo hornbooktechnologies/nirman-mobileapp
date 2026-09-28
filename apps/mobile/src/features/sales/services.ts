@@ -33,7 +33,17 @@ export const createLead = (o: string, p: string, token: string, input: LeadInput
     method: 'POST',
     body: JSON.stringify(input),
   });
-export const updateLead = (o: string, p: string, leadId: string, token: string, input: Partial<LeadInput> & { currentStage?: LeadStage; lostReason?: string }) =>
+export const updateLead = (
+  o: string,
+  p: string,
+  leadId: string,
+  token: string,
+  input: Omit<Partial<LeadInput>, 'email'> & {
+    email?: string | null;
+    currentStage?: LeadStage;
+    lostReason?: string;
+  },
+) =>
   data<SalesLead>(`${base(o, p)}/leads/${leadId}`, token, {
     method: 'PATCH',
     body: JSON.stringify(input),

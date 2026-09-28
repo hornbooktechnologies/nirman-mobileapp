@@ -25,7 +25,7 @@ import {
 import { getLocalizedErrorMessage } from "../../../i18n";
 import { isValidEmail } from "../../../lib/validation";
 import { useSession } from "../../../providers";
-import { mobileShadows, mobileText, mobileTheme } from "../../../theme";
+import { brandAssets, mobileShadows, mobileText, mobileTheme } from "../../../theme";
 
 export function LoginScreen() {
   const { t } = useTranslation("auth");
@@ -101,7 +101,7 @@ export function LoginScreen() {
                 <Image
                   accessibilityLabel="NirmanSite"
                   accessible
-                  source={require("../../../../assets/brand/horizontal-logo.png")}
+                  source={brandAssets.logoFull}
                   resizeMode="contain"
                   style={styles.logo}
                 />

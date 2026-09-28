@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, IconButton, LoadingState, NirmanScreenBackground, StatusBadge } from '../../components/ui';
-import { getLocalizedErrorMessage } from '../../i18n';
+import { formatDate, getLocalizedErrorMessage, type SupportedLanguage } from '../../i18n';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
@@ -15,7 +15,7 @@ import { fetchNotifications, markAllNotificationsRead, markNotificationRead } fr
 export function NotificationsScreen() {
   const { t } = useTranslation('notifications');
   const { t: tCommon } = useTranslation('common');
-  const { locale } = useLocalization();
+  const { language } = useLocalization();
   const { session } = useSession();
   const { setUnreadCount, refreshUnreadCount, unreadCount } = useNotifications();
   const organizationId = session?.activeOrganization?.id;
@@ -100,17 +100,17 @@ export function NotificationsScreen() {
       ListEmptyComponent={loading ? <LoadingState label={t('loading')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={unreadOnly ? t('empty.unreadTitle') : t('empty.title')} description={unreadOnly ? t('empty.unreadDescription') : t('empty.description')} />}
       ListFooterComponent={loadingMore ? <LoadingState label={t('loadingMore')} /> : null}
       onEndReachedThreshold={0.35} onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}
-      renderItem={({ item }) => <NotificationCard item={item} locale={locale} onPress={() => void open(item)} />}
+      renderItem={({ item }) => <NotificationCard item={item} language={language} onPress={() => void open(item)} />}
     />
   </NirmanScreenBackground>;
 }
 
-function NotificationCard({ item, locale, onPress }: { item: NotificationItem; locale: string; onPress: () => void }) {
+function NotificationCard({ item, language, onPress }: { item: NotificationItem; language: SupportedLanguage; onPress: () => void }) {
   const { t } = useTranslation('notifications');
   const title = t(`types.${item.type}.title`, { defaultValue: item.title });
   const message = t(`types.${item.type}.message`, { defaultValue: item.message });
   const actionable = Boolean(notificationHref(item));
-  const time = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.createdAt));
+  const time = formatDate(item.createdAt, language, { dateStyle: 'medium', timeStyle: 'short' });
   return <Pressable accessibilityRole={actionable ? 'button' : undefined} accessibilityLabel={t('card.a11y', { title, message, time, state: item.readAt ? t('card.read') : t('card.unread') })} onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
     <Card collapsable={false} style={styles.card}>
       {/* Keep the native card geometry stable when marking a notification read. */}

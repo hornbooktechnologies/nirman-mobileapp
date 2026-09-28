@@ -5,6 +5,22 @@ import type { GalleryCategory, ProjectProgressStage } from "@nirman-app/shared";
 import type { QueuedGalleryUpload } from "./types";
 
 const KEY = "nirman.gallery.upload-queue.v1";
+// Only uploads left over from a previous runtime need recovery. Queue refreshes
+// must preserve uploads that are still running in this process.
+const activeUploads = new Set<string>();
+
+export async function runGalleryUpload(
+  entryId: string,
+  upload: () => Promise<void>,
+) {
+  if (activeUploads.has(entryId)) return;
+  activeUploads.add(entryId);
+  try {
+    await upload();
+  } finally {
+    activeUploads.delete(entryId);
+  }
+}
 const directory = `${FileSystem.documentDirectory}gallery-queue/`;
 const makeId = () =>
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
@@ -18,7 +34,7 @@ export async function readGalleryQueue(): Promise<QueuedGalleryUpload[]> {
   try {
     return (JSON.parse(raw) as QueuedGalleryUpload[]).map<QueuedGalleryUpload>(
       (item) =>
-        item.state === "UPLOADING"
+        item.state === "UPLOADING" && !activeUploads.has(item.entryId)
           ? { ...item, state: "FAILED", lastError: item.lastError }
           : item,
     );

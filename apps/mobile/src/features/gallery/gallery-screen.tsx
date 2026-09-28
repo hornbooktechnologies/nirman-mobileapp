@@ -46,6 +46,7 @@ import {
 } from "../../components/ui";
 import {
   formatDate,
+  formatIndiaDateKey,
   getLocalizedErrorMessage,
   type SupportedLanguage,
 } from "../../i18n";
@@ -59,6 +60,7 @@ import {
   enqueueGalleryUpload,
   readGalleryQueue,
   removeGalleryQueue,
+  runGalleryUpload,
   updateGalleryQueue,
 } from "./queue";
 import {
@@ -182,28 +184,30 @@ export function GalleryScreen() {
 
   async function sendQueued(item: QueuedGalleryUpload) {
     if (!token) return;
-    await updateGalleryQueue(item.entryId, {
-      state: "UPLOADING",
-      attempts: item.attempts + 1,
-      lastError: undefined,
-    });
-    await refreshQueue();
-    try {
-      await uploadGalleryEntry(item, token);
-      await removeGalleryQueue(item.entryId);
-      setSuccess(t("success.uploaded"));
-      await Promise.all([refreshQueue(), load(1)]);
-    } catch (uploadError) {
+    await runGalleryUpload(item.entryId, async () => {
       await updateGalleryQueue(item.entryId, {
-        state: "FAILED",
+        state: "UPLOADING",
         attempts: item.attempts + 1,
-        lastError: getLocalizedErrorMessage(
-          uploadError,
-          t("errors.uploadFailed"),
-        ),
+        lastError: undefined,
       });
       await refreshQueue();
-    }
+      try {
+        await uploadGalleryEntry(item, token);
+        await removeGalleryQueue(item.entryId);
+        setSuccess(t("success.uploaded"));
+        await Promise.all([refreshQueue(), load(1)]);
+      } catch (uploadError) {
+        await updateGalleryQueue(item.entryId, {
+          state: "FAILED",
+          attempts: item.attempts + 1,
+          lastError: getLocalizedErrorMessage(
+            uploadError,
+            t("errors.uploadFailed"),
+          ),
+        });
+        await refreshQueue();
+      }
+    });
   }
 
   if (!project || !projectId)
@@ -619,14 +623,6 @@ function dateOnly(value: string) {
   return new Date(`${value}T12:00:00`);
 }
 
-function calendarKey(value: Date) {
-  return [
-    value.getFullYear(),
-    String(value.getMonth() + 1).padStart(2, "0"),
-    String(value.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-
 function buildGallerySections(
   entries: GalleryEntry[],
   language: SupportedLanguage,
@@ -637,8 +633,8 @@ function buildGallerySections(
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  const todayKey = calendarKey(today);
-  const yesterdayKey = calendarKey(yesterday);
+  const todayKey = formatIndiaDateKey(today);
+  const yesterdayKey = formatIndiaDateKey(yesterday);
   const months = new Map<
     string,
     {
@@ -649,10 +645,8 @@ function buildGallerySections(
 
   entries.forEach((entry) => {
     const capturedAt = new Date(entry.capturedAt);
-    const monthKey = `${capturedAt.getFullYear()}-${String(
-      capturedAt.getMonth() + 1,
-    ).padStart(2, "0")}`;
-    const dayKey = calendarKey(capturedAt);
+    const dayKey = formatIndiaDateKey(capturedAt);
+    const monthKey = dayKey.slice(0, 7);
     const month = months.get(monthKey) ?? {
       title: formatDate(capturedAt, language, {
         month: "long",

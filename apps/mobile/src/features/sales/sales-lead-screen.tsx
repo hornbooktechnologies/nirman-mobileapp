@@ -1,13 +1,13 @@
 import { FOLLOW_UP_TYPES, LEAD_STAGES, type FollowUpType, type LeadStage } from '@nirman-app/shared';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { Alert, FlatList, Linking, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, BottomSheet, Button, Chip, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, LoadingState, NirmanScreenBackground, OperationalEntityCard, TimeInput } from '../../components/ui';
 import { formatInr } from '../../i18n/formatters';
 import { getLocalizedErrorMessage } from '../../i18n';
-import { formatDateOnly, isValidEmail, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
+import { formatDateOnly, isValidDateOnly, isValidEmail, isValidNonNegativeNumber, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
@@ -20,9 +20,11 @@ import type { SalesActivity, SalesLead, SalesUnit, SalesUnitInterest } from './t
 
 type SheetKey = 'stage' | 'activity' | 'followUp' | 'visit' | 'assign' | 'interest' | 'holdRequest' | 'booking' | 'edit' | null;
 type EditFieldErrors = Partial<Record<'customerName' | 'primaryMobile' | 'email', string>>;
+type ActionFieldErrors = Partial<Record<'stage' | 'lostReason' | 'date' | 'time' | 'attendeeCount' | 'unit' | 'bookingDate' | 'bookingAmount', string>>;
 
 function toIso(date: string, time: string) {
-  const value = new Date(`${date}T${/^\d{2}:\d{2}$/.test(time) ? time : '10:00'}:00`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  const value = new Date(`${date}T${time}:00`);
   return Number.isNaN(value.getTime()) ? null : value.toISOString();
 }
 
@@ -76,6 +78,7 @@ export function SalesLeadScreen() {
   const [draftEmail, setDraftEmail] = useState('');
   const [editFormError, setEditFormError] = useState('');
   const [editFieldErrors, setEditFieldErrors] = useState<EditFieldErrors>({});
+  const [actionFieldErrors, setActionFieldErrors] = useState<ActionFieldErrors>({});
 
   const load = useCallback(
     async (quiet = false) => {
@@ -174,6 +177,7 @@ export function SalesLeadScreen() {
   function openUnits(nextSheet: 'interest' | 'booking') {
     if (!session?.activeOrganization || !project) return;
     if (nextSheet === 'booking' && leadId) setBookingIdempotencyKey(makeBookingIdempotencyKey(leadId));
+    setActionFieldErrors({});
     setUnits([]);
     setSelectedUnit(null);
     setSheetError(null);
@@ -187,6 +191,7 @@ export function SalesLeadScreen() {
     setInterests([]);
     setSelectedInterest(null);
     setDetails('');
+    setActionFieldErrors({});
     setSheetError(null);
     setSheetLoading(true);
     setError(null);
@@ -196,6 +201,7 @@ export function SalesLeadScreen() {
   function openAssignees() {
     if (!session?.activeOrganization || !project) return;
     setMembers([]);
+    setActionFieldErrors({});
     setSheetError(null);
     setSheetLoading(true);
     setError(null);
@@ -213,9 +219,8 @@ export function SalesLeadScreen() {
   const organizationId = session.activeOrganization.id;
   const projectId = project.id;
   const token = session.accessToken;
-  const scheduledAt = toIso(scheduleDate, scheduleTime);
   const recentActivities = activities.slice(0, 3);
-  const bookingAmountInvalid = Boolean(amount) && (!Number.isFinite(Number(amount)) || Number(amount) < 0);
+  const bookingAmountInvalid = Boolean(amount) && !isValidNonNegativeNumber(amount);
   const sheetOptionsUnavailable = sheetLoading || Boolean(sheetError);
   const sheetFeedback = sheetLoading ? <LoadingState label={t('loading')} /> : sheetError ? (
     <View>
@@ -227,8 +232,96 @@ export function SalesLeadScreen() {
     </View>
   ) : null;
 
+  function getScheduleErrors() {
+    const nextErrors: ActionFieldErrors = {};
+    if (!isValidDateOnly(scheduleDate)) nextErrors.date = tCommon('validation.date');
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(scheduleTime)) nextErrors.time = t('fields.timeHint');
+    return nextErrors;
+  }
+
+  function saveStage() {
+    const stageError = stage === 'BOOKED'
+      ? tCommon('validation.required', { field: t('fields.status') })
+      : undefined;
+    const lostReasonError = stage === 'LOST' && !lostReason.trim()
+      ? tCommon('validation.required', { field: t('fields.lostReason') })
+      : undefined;
+    setActionFieldErrors({ stage: stageError, lostReason: lostReasonError });
+    if (stageError || lostReasonError) return;
+    void run(() =>
+      updateLead(organizationId, projectId, leadId!, token, {
+        currentStage: stage,
+        ...(stage === 'LOST' ? { lostReason: lostReason.trim() } : {}),
+      }),
+    );
+  }
+
+  function saveFollowUp() {
+    const nextErrors = getScheduleErrors();
+    setActionFieldErrors(nextErrors);
+    const nextScheduledAt = toIso(scheduleDate, scheduleTime);
+    if (Object.keys(nextErrors).length || !nextScheduledAt) return;
+    void run(() =>
+      createFollowUp(organizationId, projectId, leadId!, token, {
+        scheduledAt: nextScheduledAt,
+        type: followUpType,
+        notes: details.trim() || undefined,
+      }),
+    );
+  }
+
+  function saveVisit() {
+    const nextErrors = getScheduleErrors();
+    const attendeeCount = visitAttendeeCount ? Number(visitAttendeeCount) : undefined;
+    if (attendeeCount !== undefined && (!Number.isInteger(attendeeCount) || attendeeCount < 1 || attendeeCount > 1000)) {
+      nextErrors.attendeeCount = t('leadDetail.attendeeCountError');
+    }
+    setActionFieldErrors(nextErrors);
+    const nextScheduledAt = toIso(scheduleDate, scheduleTime);
+    if (Object.keys(nextErrors).length || !nextScheduledAt) return;
+    void run(() =>
+      createSiteVisit(organizationId, projectId, leadId!, token, {
+        scheduledAt: nextScheduledAt,
+        ...(attendeeCount !== undefined ? { attendeeCount } : {}),
+      }),
+    );
+  }
+
+  function saveInterest() {
+    if (!selectedUnit) {
+      setActionFieldErrors({ unit: t('leadDetail.selectInterestUnitError') });
+      return;
+    }
+    setActionFieldErrors({});
+    void run(() =>
+      saveUnitInterest(organizationId, projectId, selectedUnit.id, token, {
+        leadId: leadId!,
+        status: interestStatus,
+        notes: details.trim() || undefined,
+      }),
+    );
+  }
+
+  function saveHoldRequest() {
+    if (!selectedInterest) {
+      setActionFieldErrors({ unit: t('leadDetail.selectHoldUnitError') });
+      return;
+    }
+    setActionFieldErrors({});
+    void run(() =>
+      requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, {
+        leadId: leadId!,
+        notes: details.trim() || undefined,
+      }),
+    );
+  }
+
   async function confirmBooking() {
-    if (!lead || !leadId || !bookingIdempotencyKey || bookingAmountInvalid) return;
+    const nextErrors: ActionFieldErrors = {};
+    if (!isValidDateOnly(scheduleDate)) nextErrors.bookingDate = tCommon('validation.date');
+    if (bookingAmountInvalid) nextErrors.bookingAmount = tCommon('validation.number');
+    setActionFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length || !lead || !leadId || !bookingIdempotencyKey) return;
     setWorking(true);
     setError(null);
     try {
@@ -282,7 +375,7 @@ export function SalesLeadScreen() {
       await updateLead(organizationId, projectId, leadId!, token, {
         customerName: draftName.trim(),
         primaryMobile: draftMobile.trim(),
-        email: draftEmail.trim() || undefined,
+        email: draftEmail.trim() || null,
       });
       setSheet(null);
       setEditFieldErrors({});
@@ -378,6 +471,7 @@ export function SalesLeadScreen() {
                       onPress={() => {
                         setStage(lead.currentStage);
                         setLostReason(lead.lostReason ?? '');
+                        setActionFieldErrors({});
                         setSheet('stage');
                       }}
                     />
@@ -403,6 +497,7 @@ export function SalesLeadScreen() {
                       icon="calendar-clock-outline"
                       onPress={() => {
                         setDetails('');
+                        setActionFieldErrors({});
                         setSheet('followUp');
                       }}
                     />
@@ -414,6 +509,7 @@ export function SalesLeadScreen() {
                       icon="map-marker-plus-outline"
                       onPress={() => {
                         setVisitAttendeeCount('');
+                        setActionFieldErrors({});
                         setSheet('visit');
                       }}
                     />
@@ -548,26 +644,38 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={working ? t('saving') : t('save')}
-              working={working || stage === 'BOOKED' || (stage === 'LOST' && !lostReason.trim())}
+              working={working}
               onCancel={() => setSheet(null)}
-              onSave={() =>
-                void run(() =>
-                  updateLead(organizationId, projectId, leadId, token, {
-                    currentStage: stage,
-                    ...(stage === 'LOST' ? { lostReason: lostReason.trim() } : {}),
-                  }),
-                )
-              }
+              onSave={saveStage}
             />
           }
         >
           <FormError message={error} />
-          {LEAD_STAGES.filter((value) => value !== 'BOOKED').map((value) => (
-            <SalesChoice key={value} label={t(`stage.${value}`)} selected={stage === value} onPress={() => setStage(value)} />
-          ))}
+          <FormField label={t('fields.status')} required error={actionFieldErrors.stage}>
+            {LEAD_STAGES.filter((value) => value !== 'BOOKED').map((value) => (
+              <SalesChoice
+                key={value}
+                label={t(`stage.${value}`)}
+                selected={stage === value}
+                onPress={() => {
+                  setStage(value);
+                  if (actionFieldErrors.stage || actionFieldErrors.lostReason) setActionFieldErrors((current) => ({ ...current, stage: undefined, lostReason: undefined }));
+                }}
+              />
+            ))}
+          </FormField>
           {stage === 'LOST' ? (
-            <FormField label={t('fields.lostReason')} required>
-              <Input multiline value={lostReason} onChangeText={setLostReason} style={styles.multiline} />
+            <FormField label={t('fields.lostReason')} required error={actionFieldErrors.lostReason}>
+              <Input
+                invalid={Boolean(actionFieldErrors.lostReason)}
+                multiline
+                value={lostReason}
+                onChangeText={(value) => {
+                  setLostReason(value);
+                  if (actionFieldErrors.lostReason) setActionFieldErrors((current) => ({ ...current, lostReason: undefined }));
+                }}
+                style={styles.multiline}
+              />
             </FormField>
           ) : null}
         </BottomSheet>
@@ -614,23 +722,14 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={working ? t('leadDetail.scheduling') : t('leadDetail.schedule')}
-              working={working || !scheduledAt}
+              working={working}
               onCancel={() => setSheet(null)}
-              onSave={() =>
-                scheduledAt &&
-                void run(() =>
-                  createFollowUp(organizationId, projectId, leadId, token, {
-                    scheduledAt,
-                    type: followUpType,
-                    notes: details.trim() || undefined,
-                  }),
-                )
-              }
+              onSave={saveFollowUp}
             />
           }
         >
           <FormError message={error} />
-          <ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} />
+          <ScheduleFields date={scheduleDate} time={scheduleTime} errors={actionFieldErrors} setDate={setScheduleDate} setTime={setScheduleTime} setErrors={setActionFieldErrors} />
           <FormField label={t('fields.followUpType')} required>
             <View accessibilityRole="radiogroup" style={styles.followUpTypes}>
               {FOLLOW_UP_TYPES.map((value) => (
@@ -656,24 +755,25 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={working ? t('leadDetail.scheduling') : t('leadDetail.schedule')}
-              working={working || !scheduledAt}
+              working={working}
               onCancel={() => setSheet(null)}
-              onSave={() =>
-                scheduledAt &&
-                void run(() =>
-                  createSiteVisit(organizationId, projectId, leadId, token, {
-                    scheduledAt,
-                    ...(visitAttendeeCount ? { attendeeCount: Number(visitAttendeeCount) } : {}),
-                  }),
-                )
-              }
+              onSave={saveVisit}
             />
           }
         >
           <FormError message={error} />
-          <ScheduleFields date={scheduleDate} time={scheduleTime} setDate={setScheduleDate} setTime={setScheduleTime} />
-          <FormField label={t('fields.attendeeCount')}>
-            <Input accessibilityLabel={t('fields.attendeeCount')} keyboardType="number-pad" value={visitAttendeeCount} onChangeText={(value) => setVisitAttendeeCount(value.replace(/\D/g, '').slice(0, 4))} />
+          <ScheduleFields date={scheduleDate} time={scheduleTime} errors={actionFieldErrors} setDate={setScheduleDate} setTime={setScheduleTime} setErrors={setActionFieldErrors} />
+          <FormField label={t('fields.attendeeCount')} error={actionFieldErrors.attendeeCount}>
+            <Input
+              accessibilityLabel={t('fields.attendeeCount')}
+              invalid={Boolean(actionFieldErrors.attendeeCount)}
+              keyboardType="number-pad"
+              value={visitAttendeeCount}
+              onChangeText={(value) => {
+                setVisitAttendeeCount(value.replace(/\D/g, '').slice(0, 4));
+                if (actionFieldErrors.attendeeCount) setActionFieldErrors((current) => ({ ...current, attendeeCount: undefined }));
+              }}
+            />
           </FormField>
         </BottomSheet>
       ) : null}
@@ -701,24 +801,17 @@ export function SalesLeadScreen() {
             <SheetFooter
               cancel={tCommon('actions.cancel')}
               save={working ? t('saving') : t('leadDetail.saveInterest')}
-              working={working || sheetOptionsUnavailable || !selectedUnit}
+              working={working || sheetOptionsUnavailable}
               onCancel={() => setSheet(null)}
-              onSave={() =>
-                selectedUnit &&
-                void run(() =>
-                  saveUnitInterest(organizationId, projectId, selectedUnit.id, token, {
-                    leadId,
-                    status: interestStatus,
-                    notes: details.trim() || undefined,
-                  }),
-                )
-              }
+              onSave={saveInterest}
             />
           }
         >
           <FormError message={error} />
           {sheetFeedback}
-          {!sheetOptionsUnavailable ? units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor, t(`unitStatus.${unit.status}`)].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />) : <EmptyState title={t('units.noInterestUnits')} description={t('units.noInterestUnitsDescription')} /> : null}
+          <FormField label={t('fields.unit')} required error={actionFieldErrors.unit}>
+            {!sheetOptionsUnavailable ? units.length ? units.map((unit) => <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor, t(`unitStatus.${unit.status}`)].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => { setSelectedUnit(unit); if (actionFieldErrors.unit) setActionFieldErrors((current) => ({ ...current, unit: undefined })); }} />) : <EmptyState title={t('units.noInterestUnits')} description={t('units.noInterestUnitsDescription')} /> : null}
+          </FormField>
           <FormField label={t('fields.interestLevel')} required>
             <View accessibilityRole="radiogroup" style={styles.followUpTypes}>
               {(['INTERESTED', 'HIGH_INTENT'] as const).map((status) => (
@@ -733,10 +826,12 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'holdRequest' ? (
-        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.submitting') : t('leadDetail.submitHoldRequest')} working={working || sheetOptionsUnavailable || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
+        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.submitting') : t('leadDetail.submitHoldRequest')} working={working || sheetOptionsUnavailable} onCancel={() => setSheet(null)} onSave={saveHoldRequest} />}>
           <FormError message={error} />
           {sheetFeedback}
-          {!sheetOptionsUnavailable ? interests.length ? interests.map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} /> : null}
+          <FormField label={t('fields.unit')} required error={actionFieldErrors.unit}>
+            {!sheetOptionsUnavailable ? interests.length ? interests.map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => { setSelectedInterest(interest); if (actionFieldErrors.unit) setActionFieldErrors((current) => ({ ...current, unit: undefined })); }} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} /> : null}
+          </FormField>
           <FormField label={t('fields.requestNotes')}>
             <Input multiline value={details} onChangeText={setDetails} style={styles.multiline} />
           </FormField>
@@ -744,7 +839,7 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'booking' && lead ? (
-        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.confirming') : t('leadDetail.confirm')} working={working || sheetOptionsUnavailable || !bookingIdempotencyKey || bookingAmountInvalid} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
+        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.confirming') : t('leadDetail.confirm')} working={working || sheetOptionsUnavailable || !bookingIdempotencyKey} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
           <FormError message={error} />
           {sheetFeedback}
           <AppText style={styles.helper} weight={600}>
@@ -754,11 +849,11 @@ export function SalesLeadScreen() {
           {!sheetOptionsUnavailable ? units.map((unit) => (
             <SalesChoice key={unit.id} label={unit.unitNumber} description={[unit.unitType, unit.wingTower, unit.floor].filter(Boolean).join(' · ')} selected={selectedUnit?.id === unit.id} onPress={() => setSelectedUnit(unit)} />
           )) : null}
-          <FormField label={t('fields.bookingDate')} required>
-            <DateInput allowClear={false} accessibilityLabel={t('fields.bookingDate')} value={scheduleDate} onChangeText={setScheduleDate} />
+          <FormField label={t('fields.bookingDate')} required error={actionFieldErrors.bookingDate}>
+            <DateInput allowClear={false} accessibilityLabel={t('fields.bookingDate')} invalid={Boolean(actionFieldErrors.bookingDate)} value={scheduleDate} onChangeText={(value) => { setScheduleDate(value); if (actionFieldErrors.bookingDate) setActionFieldErrors((current) => ({ ...current, bookingDate: undefined })); }} />
           </FormField>
-          <FormField label={t('fields.bookingAmount')} error={bookingAmountInvalid ? tCommon('validation.number') : undefined}>
-            <Input invalid={bookingAmountInvalid} keyboardType="decimal-pad" value={amount} onChangeText={(value) => setAmount(value.replace(/[^0-9.]/g, ''))} />
+          <FormField label={t('fields.bookingAmount')} error={actionFieldErrors.bookingAmount ?? (bookingAmountInvalid ? tCommon('validation.number') : undefined)}>
+            <Input invalid={Boolean(actionFieldErrors.bookingAmount) || bookingAmountInvalid} keyboardType="decimal-pad" value={amount} onChangeText={(value) => { setAmount(value.replace(/[^0-9.]/g, '')); if (actionFieldErrors.bookingAmount) setActionFieldErrors((current) => ({ ...current, bookingAmount: undefined })); }} />
           </FormField>
           <FormField label={t('fields.bookingReference')}>
             <Input value={reference} onChangeText={setReference} />
@@ -778,15 +873,39 @@ function SheetFooter({ cancel, save, working, onCancel, onSave }: { cancel: stri
   );
 }
 
-function ScheduleFields({ date, time, setDate, setTime }: { date: string; time: string; setDate: (value: string) => void; setTime: (value: string) => void }) {
+function ScheduleFields({ date, time, errors, setDate, setTime, setErrors }: {
+  date: string;
+  time: string;
+  errors: ActionFieldErrors;
+  setDate: (value: string) => void;
+  setTime: (value: string) => void;
+  setErrors: Dispatch<SetStateAction<ActionFieldErrors>>;
+}) {
   const { t } = useTranslation('sales');
   return (
     <>
-      <FormField label={t('fields.date')} required>
-        <DateInput allowClear={false} accessibilityLabel={t('fields.date')} value={date} onChangeText={setDate} />
+      <FormField label={t('fields.date')} required error={errors.date}>
+        <DateInput
+          allowClear={false}
+          accessibilityLabel={t('fields.date')}
+          invalid={Boolean(errors.date)}
+          value={date}
+          onChangeText={(value) => {
+            setDate(value);
+            if (errors.date) setErrors((current) => ({ ...current, date: undefined }));
+          }}
+        />
       </FormField>
-      <FormField label={t('fields.time')} required>
-        <TimeInput accessibilityLabel={t('fields.time')} value={time} onChangeText={setTime} />
+      <FormField label={t('fields.time')} required error={errors.time}>
+        <TimeInput
+          accessibilityLabel={t('fields.time')}
+          invalid={Boolean(errors.time)}
+          value={time}
+          onChangeText={(value) => {
+            setTime(value);
+            if (errors.time) setErrors((current) => ({ ...current, time: undefined }));
+          }}
+        />
       </FormField>
     </>
   );

@@ -10,6 +10,13 @@ Implemented Gallery private images, filters/summary/pagination, metadata, browse
 
 ## Implemented
 
+### Mobile upload state correction - 2026-09-28
+
+- Queue reads now preserve uploads active in the current runtime. Previously every refresh converted `UPLOADING` to `FAILED`, exposing Retry before the first request completed.
+- A per-entry runtime guard prevents duplicate concurrent attempts while preserving interrupted-upload recovery after restart and stable retry identity.
+- Regression coverage: `node apps/mobile/scripts/verify-gallery-queue.cjs` passes active refresh, duplicate attempt prevention, unrelated queue updates, restart recovery, lock release, and identity preservation. Physical-device first-upload confirmation remains pending.
+- Mobile TypeScript check (`node node_modules/typescript/bin/tsc --noEmit` from `apps/mobile`) and `git diff --check` passed.
+
 - Approved Gallery and narrow Files/Media ownership contracts plus technical plan.
 - Shared categories/statuses/types, four permissions, Audit actions, stable errors, and Project grant group.
 - Migration `020_gallery_project_diary.sql` with tenant/Project-owned private asset metadata, retry identity, review state/versioning, and restrictive relationships.
