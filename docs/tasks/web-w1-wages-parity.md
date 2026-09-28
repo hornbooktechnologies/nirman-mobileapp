@@ -2,6 +2,10 @@
 
 Status: implemented; authenticated browser and cross-client acceptance pending. Scope is the Wages portion of W1 only, not Workers, Calendar/Attendance, Subscriptions, or all of W0.
 
+## 2026-09-28 — Block overlapping previews
+
+Web now checks the existing API batch list before requesting or showing a preview. An inclusive overlap with any non-cancelled batch shows the period error and hides preview/confirmation. Cancelled batches permit regeneration. A newer server `WAGE_BATCH_DUPLICATE` response also dismisses the preview immediately; changing dates clears the previous action error. The API's overlap validation remains authoritative. Focused regression coverage includes partial/contained periods, shared boundary dates, non-overlapping dates, and cancelled batches. Authenticated browser verification remains pending.
+
 ## Source audit and preserved behavior
 
 Extended the existing `/projects/[id]/wages` page, service, and React Query hooks. Preserved preview and confirmation, organization working-timezone date limits, batch selection, partial/full payments, manual adjustments/notes, and authenticated CSV download. Preserved the existing uncommitted future-period changes. No Mobile, API, shared-contract, migration, seed, dependency, or marketing-site files were changed by this slice.

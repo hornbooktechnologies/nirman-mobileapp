@@ -1,4 +1,9 @@
-import type { WageBatchDetail, WageItem, WagePaymentMethod } from "@nirman-app/shared";
+import type { WageBatch, WageBatchDetail, WageItem, WagePaymentMethod } from "@nirman-app/shared";
+
+export function hasActiveWageOverlap(batches: Pick<WageBatch, "status" | "periodStart" | "periodEnd">[], start: string, end: string) {
+  if (!start || !end || end < start) return false;
+  return batches.some(batch => batch.status !== "CANCELLED" && batch.periodStart <= end && batch.periodEnd >= start);
+}
 
 export type WagePaymentAttempt = {
   wageItemId: string;
