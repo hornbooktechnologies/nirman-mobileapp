@@ -28,6 +28,7 @@ test("server actions remain authoritative for self approval and immutable record
     "expenses:adjust",
   ];
   assert.deepEqual(expenseActions([], all, true), []);
+  assert.deepEqual(expenseActions(["APPROVE", "CANCEL"], all, true), ["APPROVE", "CANCEL"]);
   assert.deepEqual(expenseActions(["ADJUST"], all, true), ["ADJUST"]);
   assert.deepEqual(expenseActions(["EDIT", "SUBMIT", "CANCEL"], all, true), [
     "EDIT",

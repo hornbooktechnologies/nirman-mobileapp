@@ -154,7 +154,7 @@ export function ExpenseSettingsDialog({
                 <span className="block text-sm text-sub">
                   {value === "DIRECT"
                     ? "Submitting approves the expense immediately."
-                    : "A separate authorized reviewer must approve submitted expenses."}
+                    : "Submitted expenses require approval. Eligible owners can approve their own expenses."}
                 </span>
               </span>
             </label>
