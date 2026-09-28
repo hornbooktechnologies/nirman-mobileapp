@@ -470,7 +470,7 @@ export function SalesLeadScreen() {
       />
 
       {sheet === 'edit' ? (
-        <BottomSheet visible title={t('leadDetail.editTitle')} scroll showCloseButton={false} onClose={closeEditForm} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('save')} working={working} onCancel={closeEditForm} onSave={() => void saveCustomerDetails()} />}>
+        <BottomSheet visible title={t('leadDetail.editTitle')} scroll showCloseButton={false} onClose={closeEditForm} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('saving') : t('save')} working={working} onCancel={closeEditForm} onSave={() => void saveCustomerDetails()} />}>
           <FormError message={editFormError} />
           <FormField label={t('fields.customerName')} required error={editFieldErrors.customerName}>
             <Input
@@ -547,7 +547,7 @@ export function SalesLeadScreen() {
           footer={
             <SheetFooter
               cancel={tCommon('actions.cancel')}
-              save={t('save')}
+              save={working ? t('saving') : t('save')}
               working={working || stage === 'BOOKED' || (stage === 'LOST' && !lostReason.trim())}
               onCancel={() => setSheet(null)}
               onSave={() =>
@@ -583,7 +583,7 @@ export function SalesLeadScreen() {
           footer={
             <SheetFooter
               cancel={tCommon('actions.cancel')}
-              save={t('save')}
+              save={working ? t('saving') : t('save')}
               working={working}
               onCancel={() => setSheet(null)}
               onSave={saveActivity}
@@ -655,7 +655,7 @@ export function SalesLeadScreen() {
           footer={
             <SheetFooter
               cancel={tCommon('actions.cancel')}
-              save={t('leadDetail.schedule')}
+              save={working ? t('leadDetail.scheduling') : t('leadDetail.schedule')}
               working={working || !scheduledAt}
               onCancel={() => setSheet(null)}
               onSave={() =>
@@ -700,7 +700,7 @@ export function SalesLeadScreen() {
           footer={
             <SheetFooter
               cancel={tCommon('actions.cancel')}
-              save={t('leadDetail.saveInterest')}
+              save={working ? t('saving') : t('leadDetail.saveInterest')}
               working={working || sheetOptionsUnavailable || !selectedUnit}
               onCancel={() => setSheet(null)}
               onSave={() =>
@@ -733,7 +733,7 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'holdRequest' ? (
-        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.submitHoldRequest')} working={working || sheetOptionsUnavailable || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
+        <BottomSheet visible title={t('leadDetail.requestHoldTitle')} description={t('leadDetail.requestHoldSheetDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.submitting') : t('leadDetail.submitHoldRequest')} working={working || sheetOptionsUnavailable || !selectedInterest} onCancel={() => setSheet(null)} onSave={() => selectedInterest && void run(() => requestUnitHold(organizationId, projectId, selectedInterest.unitId, token, { leadId, notes: details.trim() || undefined }))} />}>
           <FormError message={error} />
           {sheetFeedback}
           {!sheetOptionsUnavailable ? interests.length ? interests.map((interest) => <SalesChoice key={interest.id} label={interest.unitNumber} description={t(`unitInterestStatus.${interest.status}`)} selected={selectedInterest?.id === interest.id} onPress={() => setSelectedInterest(interest)} />) : <EmptyState title={t('leadDetail.noHoldCandidates')} description={t('leadDetail.noHoldCandidatesDescription')} /> : null}
@@ -744,7 +744,7 @@ export function SalesLeadScreen() {
       ) : null}
 
       {sheet === 'booking' && lead ? (
-        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={t('leadDetail.confirm')} working={working || sheetOptionsUnavailable || !bookingIdempotencyKey || bookingAmountInvalid} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
+        <BottomSheet visible title={t('leadDetail.bookingTitle')} description={t('leadDetail.bookingDescription')} scroll showCloseButton={false} onClose={() => setSheet(null)} footer={<SheetFooter cancel={tCommon('actions.cancel')} save={working ? t('leadDetail.confirming') : t('leadDetail.confirm')} working={working || sheetOptionsUnavailable || !bookingIdempotencyKey || bookingAmountInvalid} onCancel={() => setSheet(null)} onSave={() => void confirmBooking()} />}>
           <FormError message={error} />
           {sheetFeedback}
           <AppText style={styles.helper} weight={600}>

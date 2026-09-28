@@ -965,7 +965,7 @@ export function SalesScreen() {
           footer={
             <View style={styles.footer}>
               <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={() => setSelectedFollowUp(null)} />
-              <Button style={styles.footerButton} disabled={working} label={t('followUps.complete')} variant="success" onPress={() => void completeFollowUp()} />
+              <Button style={styles.footerButton} disabled={working} label={working ? t('followUps.completing') : t('followUps.complete')} variant="success" onPress={() => void completeFollowUp()} />
             </View>
           }
         >
