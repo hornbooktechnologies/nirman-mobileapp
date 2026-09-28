@@ -10,6 +10,27 @@
 - Web: implemented on 2026-09-18; 11 focused tests and scoped lint passed. Whole-Web baseline failures and pending browser/cross-client acceptance are recorded in [W4 Web parity](../../../tasks/web-w4-expenses-parity.md).
 - Offline: deferred; no offline financial writes implemented.
 
+## Owner approval correction - 2026-09-28
+
+User authorized the API exception after confirming missing owner approval in Mobile/Web.
+Eligible Builder Organization Owners and Independent Contractor Owners with effective
+`expenses:approve` now receive `APPROVE` for their own pending expenses. Explicit approval
+is required; creation/submission still follows the stored workflow snapshot. Other recorders
+cannot self-approve and all self-rejection remains blocked. No migration is needed.
+
+| Functionality | Existing API | Mobile / Web | Verification |
+| --- | --- | --- | --- |
+| Owner approval | Detail `availableActions` and `POST /:expenseId/approve` now allow eligible owner | Existing localized Mobile action and Web button reused; Web explanatory copy updated | Owner role/type/effective-permission tests; Web action tests |
+| Approval integrity | Locked recorder check, expectedVersion, idempotency, audit actor and owner approval basis | Existing confirmation and server-result refresh preserved | Repository stale-version, self-rejection, non-owner denial and replay tests |
+| Existing workflows | DIRECT and APPROVAL_REQUIRED snapshots unchanged | Existing submit/reject/cancel/adjust flows preserved | Existing Expenses tests retained |
+
+Verification: all 258 API tests (37 suites), including 21 focused Expenses tests; 11 Web
+Expenses tests; API/Mobile/Web type-checks; Web lint, scoped API lint, API build, Web production
+build and git diff --check passed. Web build needed a network-enabled retry to fetch Google Fonts.
+Authenticated API, browser, device and cross-client acceptance remain pending. Deploy/restart
+the API before checking an existing own pending expense in either client; nothing was deployed
+as part of this change.
+
 ## Delivered Mobile
 
 - permission-aware navigation and active-Project context;

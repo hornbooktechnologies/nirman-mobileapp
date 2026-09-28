@@ -4,7 +4,7 @@
 
 - Status: Approved; API and database baseline verified, authenticated/client acceptance pending
 - Scope owner: Product Owner
-- Last updated: 2026-09-02
+- Last updated: 2026-09-28
 
 The Product Owner approved all section 18 decisions on 2026-09-02. Shared/API source and the
 additive migration are implemented. Migration `018` and guarded role synchronization were verified
@@ -40,8 +40,8 @@ Excluded or deferred:
 - **Expense**: one Project operating-cost record for money spent or incurred.
 - **Recognised cost**: an expense amount included in Project summaries; only `APPROVED` records count.
 - **Direct workflow**: recording an expense intentionally approves it without a separate reviewer.
-- **Approval-required workflow**: recording creates a pending expense that a separate authorized
-  Member must approve or reject.
+- **Approval-required workflow**: recording creates a pending expense that an authorized
+  Member must approve or reject; eligible owners may approve their own expense.
 - **Adjustment**: an immutable signed correction linked to an approved expense. It does not rewrite
   the original amount.
 - **Receipt**: optional evidence owned by the future Files/Media contract, not an unvalidated URL.
@@ -111,7 +111,12 @@ CANCELLED -> terminal
 - Submission chooses `APPROVED` in `DIRECT` mode or `PENDING_APPROVAL` in
   `APPROVAL_REQUIRED` mode.
 - Direct mode is an intentional simplified workflow, not fake self-approval; audit records the mode.
-- In approval-required mode, the recorder cannot approve or reject their own expense.
+- In approval-required mode, a Builder Organization Owner or Independent Contractor Owner with
+  effective `expenses:approve` may explicitly approve their own pending expense. Other recorders
+  cannot self-approve; all recorders remain prohibited from self-rejection. This owner exception
+  was approved on 2026-09-28. Creation/submission still produces `PENDING_APPROVAL`.
+- Owner self-approval records `approvalBasis: OWNER_SELF_APPROVAL` in audit metadata and retains
+  the recorder, approval actor, version checks, idempotency, and transactional history.
 - Rejection requires a reason and may return to draft for correction and resubmission.
 - Cancellation requires a reason and is allowed only before approval.
 - Approved expenses are never edited, cancelled, or deleted.
@@ -276,7 +281,7 @@ references are redacted from audit metadata.
 - Category and payment method use shared enums.
 - Vendor/payee and description are bounded and sanitized as plain text.
 - Only draft/rejected records are editable; recorder ownership and elevated authority are rechecked.
-- Approval-required mode enforces actor separation.
+- Approval-required mode enforces actor separation except for the approved owner approval exception.
 - Cross-tenant, inaccessible-Project, inactive-Member, stale-version, and duplicate-key attempts fail
   with stable codes.
 - Request bodies are allowlisted; clients cannot set status, workflow, recorder, approval actor,

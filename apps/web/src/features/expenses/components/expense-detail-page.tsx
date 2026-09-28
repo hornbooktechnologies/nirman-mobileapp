@@ -99,7 +99,7 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
       )}
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold">Current state and next step</h2>
-        <p className="text-sm text-sub">{d.status === "PENDING_APPROVAL" ? "Awaiting a separate authorized reviewer. Only a permitted action can approve or reject this expense." : d.status === "APPROVED" ? "Recognized cost includes the approved original amount and signed adjustments." : d.status === "DRAFT" ? "Draft expense. Submit when the details are ready." : d.status === "REJECTED" ? "Rejected expense. Review the reason and available actions." : "Cancelled expense. No further changes are allowed."}</p>
+        <p className="text-sm text-sub">{d.status === "PENDING_APPROVAL" ? "Awaiting approval. Eligible owners can approve their own expenses; other recorders need an authorized reviewer." : d.status === "APPROVED" ? "Recognized cost includes the approved original amount and signed adjustments." : d.status === "DRAFT" ? "Draft expense. Submit when the details are ready." : d.status === "REJECTED" ? "Rejected expense. Review the reason and available actions." : "Cancelled expense. No further changes are allowed."}</p>
         {actions.length ? <div aria-label="Available expense actions" className="flex flex-wrap gap-3">{actions.map(value => <Button key={value} variant={value === "APPROVE" || value === "SUBMIT" ? "primary" : value === "CANCEL" || value === "REJECT" ? "danger" : "outline"} disabled={query.isFetching} onClick={() => setAction(value as ExpenseAvailableAction)}>{label(value)}</Button>)}</div> : <p className="text-sm text-sub">No actions available for this expense.</p>}
       </Card>
       <section

@@ -11,6 +11,7 @@ import type {
   PermissionKey,
 } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import type { ResolvedProjectAccess } from "../project-access/types/project-access.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type {
   AdjustExpenseDto,
@@ -120,6 +121,7 @@ export class ExpensesService {
       detail,
       access.membership.id,
       access.permissions,
+      this.canApproveOwnExpense(access),
     );
   }
 
@@ -166,6 +168,7 @@ export class ExpensesService {
         ),
         access.membership.id,
         access.permissions,
+        this.canApproveOwnExpense(access),
       ),
     );
   }
@@ -206,6 +209,7 @@ export class ExpensesService {
         ),
         access.membership.id,
         access.permissions,
+        this.canApproveOwnExpense(access),
       ),
     );
   }
@@ -348,6 +352,7 @@ export class ExpensesService {
         ),
         access.membership.id,
         access.permissions,
+        this.canApproveOwnExpense(access),
       ),
     );
   }
@@ -456,25 +461,33 @@ export class ExpensesService {
           eventType: config.eventType,
           auditAction: config.auditAction,
           preventRecorderAction: config.preventRecorderAction,
+          actorCanSelfApprove: this.canApproveOwnExpense(access),
           requireRecorderUnlessElevated: config.requireRecorderUnlessElevated,
           actorElevated: access.permissions.includes("expenses:approve"),
           notificationType: config.notificationType,
         }),
         access.membership.id,
         access.permissions,
+        this.canApproveOwnExpense(access),
       ),
     );
   }
 
   private withAvailableActions<
     T extends { status: ExpenseStatus; recordedByMemberId: string },
-  >(detail: T, actorMemberId: string, permissions: readonly PermissionKey[]) {
+  >(
+    detail: T,
+    actorMemberId: string,
+    permissions: readonly PermissionKey[],
+    canSelfApprove: boolean,
+  ) {
     return {
       ...detail,
       availableActions: this.availableActions(
         detail.status,
         detail.recordedByMemberId === actorMemberId,
         permissions,
+        canSelfApprove,
       ),
     };
   }
@@ -483,6 +496,7 @@ export class ExpensesService {
     status: ExpenseStatus,
     isRecorder: boolean,
     permissions: readonly PermissionKey[],
+    canSelfApprove: boolean,
   ) {
     const has = (permission: PermissionKey) => permissions.includes(permission);
     const elevated = has("expenses:approve");
@@ -495,13 +509,24 @@ export class ExpensesService {
       actions.push("EDIT", "SUBMIT", "CANCEL");
     }
     if (status === "PENDING_APPROVAL") {
-      if (!isRecorder && has("expenses:approve")) actions.push("APPROVE");
+      if ((!isRecorder || canSelfApprove) && has("expenses:approve"))
+        actions.push("APPROVE");
       if (!isRecorder && has("expenses:reject")) actions.push("REJECT");
       if ((isRecorder || elevated) && has("expenses:update"))
         actions.push("CANCEL");
     }
     if (status === "APPROVED" && has("expenses:adjust")) actions.push("ADJUST");
     return [...new Set(actions)];
+  }
+
+  private canApproveOwnExpense(access: ResolvedProjectAccess) {
+    return (
+      ((access.organization.type === "BUILDER" &&
+        access.membership.role?.name === "Organization Owner") ||
+        (access.organization.type === "CONTRACTOR" &&
+          access.membership.role?.name === "Independent Contractor Owner")) &&
+      access.permissions.includes("expenses:approve")
+    );
   }
 
   private access(

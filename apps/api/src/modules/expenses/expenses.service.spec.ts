@@ -39,6 +39,7 @@ describe("ExpensesService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     projectAccess.resolveProjectAccess.mockResolvedValue({
+      organization: { type: "BUILDER" },
       project: { status: "ACTIVE" },
       membership: { id: memberId },
       permissions: [
@@ -65,6 +66,73 @@ describe("ExpensesService", () => {
       status: "APPROVED",
       recordedByMemberId: "00000000-0000-4000-8000-000000000099",
     } as any);
+  });
+
+  it.each([
+    ["BUILDER", "Organization Owner", true, true],
+    ["CONTRACTOR", "Independent Contractor Owner", true, true],
+    ["BUILDER", "Builder Admin", true, false],
+    ["BUILDER", "Project Manager", true, false],
+    ["CONTRACTOR", "Organization Owner", true, false],
+    ["BUILDER", "Organization Owner", false, false],
+  ])(
+    "gates own approval for %s / %s with permission %s",
+    async (type, role, permission, allowed) => {
+      projectAccess.resolveProjectAccess.mockResolvedValue({
+        organization: { type },
+        project: { status: "ACTIVE" },
+        membership: { id: memberId, role: { name: role } },
+        permissions: permission
+          ? ["expenses:read", "expenses:approve", "expenses:reject"]
+          : ["expenses:read"],
+      } as any);
+      repository.findDetail.mockResolvedValue({
+        id: expenseId,
+        status: "PENDING_APPROVAL",
+        recordedByMemberId: memberId,
+      } as any);
+      const detail = await service.findDetail(
+        organizationId,
+        projectId,
+        expenseId,
+        actor,
+      );
+      expect(detail.availableActions.includes("APPROVE")).toBe(allowed);
+      expect(detail.availableActions).not.toContain("REJECT");
+      if (permission) {
+        await service.approve(
+          organizationId,
+          projectId,
+          expenseId,
+          { expectedVersion: 2, idempotencyKey: "owner-approval-key" },
+          actor,
+        );
+        expect(repository.transition).toHaveBeenCalledWith(
+          expect.objectContaining({
+            actorCanSelfApprove: allowed,
+            preventRecorderAction: true,
+            expectedVersion: 2,
+            actor: { userId: actor.id, memberId },
+          }),
+        );
+      }
+    },
+  );
+
+  it("does not write when effective project access denies approval", async () => {
+    projectAccess.resolveProjectAccess.mockRejectedValueOnce(
+      new Error("PERMISSION_DENIED"),
+    );
+    await expect(
+      service.approve(
+        organizationId,
+        projectId,
+        expenseId,
+        { expectedVersion: 2, idempotencyKey: "denied-approval-key" },
+        actor,
+      ),
+    ).rejects.toThrow("PERMISSION_DENIED");
+    expect(repository.transition).not.toHaveBeenCalled();
   });
 
   it("requires explicit Project expense workflow configuration", async () => {

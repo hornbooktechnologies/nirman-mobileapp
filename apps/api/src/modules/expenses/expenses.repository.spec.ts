@@ -109,6 +109,122 @@ describe("ExpensesRepository transactional guards", () => {
     expect(notifications.createMany).not.toHaveBeenCalled();
   });
 
+  it.each(["APPROVED", "REJECTED"] as const)(
+    "owner exception only permits approval, not %s self-rejection",
+    async (status) => {
+      database.query.mockImplementation(async (sql: string) => {
+        if (sql.includes("FROM site_expenses e"))
+          return [
+            {
+              ...row,
+              status: sql.includes("FOR UPDATE") ? "PENDING_APPROVAL" : status,
+            },
+          ] as any;
+        return [];
+      });
+      const operation = repository.transition({
+        organizationId,
+        projectId,
+        expenseId,
+        actor,
+        expectedVersion: 2,
+        idempotencyKey: "owner-self-action",
+        allowedFrom: ["PENDING_APPROVAL"],
+        nextStatus: status,
+        eventType: status,
+        auditAction:
+          status === "APPROVED"
+            ? "expenses.expense.approved"
+            : "expenses.expense.rejected",
+        preventRecorderAction: true,
+        actorCanSelfApprove: true,
+      });
+      if (status === "REJECTED") {
+        await expect(operation).rejects.toThrow(
+          "EXPENSE_SELF_APPROVAL_FORBIDDEN",
+        );
+        expect(database.execute).not.toHaveBeenCalled();
+      } else {
+        await operation;
+        expect(database.execute).toHaveBeenCalledWith(
+          expect.stringContaining("UPDATE site_expenses"),
+          expect.arrayContaining([actor.userId, actor.memberId]),
+          connection,
+        );
+        expect(audit.record).toHaveBeenCalledWith(
+          expect.objectContaining({
+            actorUserId: actor.userId,
+            newValues: { status: "APPROVED", version: 3 },
+            metadata: { approvalBasis: "OWNER_SELF_APPROVAL" },
+          }),
+          connection,
+        );
+      }
+    },
+  );
+
+  it("replays owner approval without duplicate financial or audit writes", async () => {
+    const input = {
+      organizationId,
+      projectId,
+      expenseId,
+      actor,
+      expectedVersion: 2,
+      idempotencyKey: "owner-replay-key",
+      allowedFrom: ["PENDING_APPROVAL"] as const,
+      nextStatus: "APPROVED" as const,
+      eventType: "APPROVED" as const,
+      auditAction: "expenses.expense.approved" as const,
+      preventRecorderAction: true,
+      actorCanSelfApprove: true,
+    };
+    database.query.mockImplementation(async (sql: string) => {
+      if (sql.includes("SELECT site_expense_id expenseId"))
+        return [
+          {
+            expenseId,
+            requestFingerprint: repository.fingerprint({
+              expenseId,
+              expectedVersion: 2,
+              reason: null,
+              eventType: "APPROVED",
+              nextStatus: "APPROVED",
+            }),
+          },
+        ];
+      if (sql.includes("FROM site_expenses e"))
+        return [{ ...row, status: "APPROVED", version: 3 }] as any;
+      return [];
+    });
+    await repository.transition(input);
+    expect(database.execute).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+    expect(notifications.createMany).not.toHaveBeenCalled();
+  });
+
+  it("still rejects stale owner approval before writes", async () => {
+    database.query.mockImplementation(async (sql: string) =>
+      sql.includes("FOR UPDATE") ? ([row] as any) : [],
+    );
+    await expect(
+      repository.transition({
+        organizationId,
+        projectId,
+        expenseId,
+        actor,
+        expectedVersion: 1,
+        idempotencyKey: "stale-owner-action",
+        allowedFrom: ["PENDING_APPROVAL"],
+        nextStatus: "APPROVED",
+        eventType: "APPROVED",
+        auditAction: "expenses.expense.approved",
+        preventRecorderAction: true,
+        actorCanSelfApprove: true,
+      }),
+    ).rejects.toThrow("EXPENSE_VERSION_CONFLICT");
+    expect(database.execute).not.toHaveBeenCalled();
+  });
+
   it("rejects an adjustment that would make recognized cost negative", async () => {
     database.query.mockImplementation(async (sql: string) => {
       if (

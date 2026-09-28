@@ -565,6 +565,7 @@ export class ExpensesRepository {
     eventType: ExpenseEventType;
     auditAction: ExpenseAuditAction;
     preventRecorderAction?: boolean;
+    actorCanSelfApprove?: boolean;
     requireRecorderUnlessElevated?: boolean;
     actorElevated?: boolean;
     notificationType?: string;
@@ -602,7 +603,12 @@ export class ExpensesRepository {
         input.allowedFrom,
       );
       const isRecorder = row.recordedByMemberId === input.actor.memberId;
-      if (input.preventRecorderAction && isRecorder)
+      const ownerSelfApproval =
+        isRecorder &&
+        input.actorCanSelfApprove &&
+        input.eventType === "APPROVED" &&
+        input.nextStatus === "APPROVED";
+      if (input.preventRecorderAction && isRecorder && !ownerSelfApproval)
         this.fail("EXPENSE_SELF_APPROVAL_FORBIDDEN");
       if (
         input.requireRecorderUnlessElevated &&
@@ -672,7 +678,14 @@ export class ExpensesRepository {
           entityId: input.expenseId,
           oldValues: { status: row.status, version: row.version },
           newValues: { status: input.nextStatus, version: row.version + 1 },
-          metadata: input.reason ? { reason: input.reason } : null,
+          metadata: ownerSelfApproval
+            ? {
+                approvalBasis: "OWNER_SELF_APPROVAL",
+                ...(input.reason ? { reason: input.reason } : {}),
+              }
+            : input.reason
+              ? { reason: input.reason }
+              : null,
         },
         connection,
       );
