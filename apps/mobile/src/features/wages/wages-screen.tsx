@@ -18,12 +18,14 @@ import {
 } from '../../components/ui';
 import { formatDate, formatInr, getLocalizedErrorMessage } from '../../i18n';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { ApiRequestError } from '../../lib/api';
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import type { WageBatch, WagePreview } from './types';
 import { createWageBatch, fetchWageBatches, fetchWagePreview } from './services';
+import { prepareWagePreview } from './prepare-wage-preview';
 
 const DEFAULT_WORKING_TIMEZONE = 'Asia/Kolkata';
 
@@ -49,6 +51,7 @@ const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 export function WagesScreen() {
   const { t } = useTranslation('wages');
   const { t: tCommon } = useTranslation('common');
+  const { t: tErrors } = useTranslation('errors');
   const { language } = useLocalization();
   const { session } = useSession();
   const activeProject = getActiveProject(session);
@@ -69,6 +72,7 @@ export function WagesScreen() {
   const [isBusy, setIsBusy] = useState(false);
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const confirmingRef = useRef(false);
+  const previewRequestRef = useRef(0);
 
   const loadBatches = useCallback(async () => {
     if (!organizationId || !projectId || !session?.accessToken) {
@@ -86,9 +90,11 @@ export function WagesScreen() {
   }, [organizationId, projectId, session?.accessToken, t]);
 
   useEffect(() => {
+    previewRequestRef.current += 1;
     setPreview(null);
     setConfirmationError(null);
     void loadBatches();
+    return () => { previewRequestRef.current += 1; };
   }, [loadBatches]);
 
   const invalidRange = periodStart > periodEnd;
@@ -99,17 +105,37 @@ export function WagesScreen() {
   );
 
   async function generatePreview() {
+    if (confirmingRef.current || isBusy) return;
+    setPreview(null);
     setConfirmationError(null);
     if (!organizationId || !projectId || !session?.accessToken || !isDate(periodStart) || !isDate(periodEnd) || invalidRange || futurePeriodEnd) {
       Alert.alert(t('errors.periodTitle'), t('errors.periodMessage'));
       return;
     }
+    confirmingRef.current = true;
+    const request = ++previewRequestRef.current;
     setIsBusy(true);
     try {
-      setPreview(await fetchWagePreview(organizationId, projectId, periodStart, periodEnd, session.accessToken));
+      const result = await prepareWagePreview(
+        periodStart,
+        periodEnd,
+        () => fetchWageBatches(organizationId, projectId, session.accessToken),
+        () => fetchWagePreview(organizationId, projectId, periodStart, periodEnd, session.accessToken),
+        () => request === previewRequestRef.current,
+      );
+      if (!result) return;
+      setBatches(result.batches);
+      if (!result.preview) {
+        setConfirmationError(tErrors('api.WAGE_BATCH_DUPLICATE'));
+        return;
+      }
+      setPreview(result.preview);
     } catch (error) {
-      Alert.alert(t('errors.previewTitle'), getLocalizedErrorMessage(error, t('errors.previewMessage')));
+      if (request === previewRequestRef.current) {
+        setConfirmationError(getLocalizedErrorMessage(error, t('errors.previewMessage')));
+      }
     } finally {
+      confirmingRef.current = false;
       setIsBusy(false);
     }
   }
@@ -129,6 +155,10 @@ export function WagesScreen() {
       await loadBatches();
       router.push({ pathname: '/(app)/wage-batch', params: { batchId: created.id } } as Href);
     } catch (error) {
+      if (error instanceof ApiRequestError && error.code === 'WAGE_BATCH_DUPLICATE') {
+        setPreview(null);
+        void loadBatches();
+      }
       setConfirmationError(getLocalizedErrorMessage(error, t('errors.confirmMessage')));
     } finally {
       confirmingRef.current = false;
@@ -163,6 +193,7 @@ export function WagesScreen() {
                   value={periodStart}
                   onChangeText={(value) => {
                     if (value) {
+                      previewRequestRef.current += 1;
                       setPeriodStart(value);
                       setPreview(null);
                       setConfirmationError(null);
@@ -180,6 +211,7 @@ export function WagesScreen() {
                   value={periodEnd}
                   onChangeText={(value) => {
                     if (value) {
+                      previewRequestRef.current += 1;
                       setPeriodEnd(value);
                       setPreview(null);
                       setConfirmationError(null);
@@ -194,6 +226,11 @@ export function WagesScreen() {
               disabled={isBusy || invalidRange || futurePeriodEnd}
               onPress={() => void generatePreview()}
             />
+            {confirmationError ? (
+              <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.confirmationError}>
+                {confirmationError}
+              </AppText>
+            ) : null}
           </Card>
 
           {preview ? (
@@ -233,11 +270,6 @@ export function WagesScreen() {
                   disabled={!previewReady || isBusy}
                   onPress={() => void confirmBatch()}
                 />
-              ) : null}
-              {confirmationError ? (
-                <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.confirmationError}>
-                  {confirmationError}
-                </AppText>
               ) : null}
             </Card>
           ) : null}

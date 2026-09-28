@@ -1,3 +1,7 @@
+## 2026-09-28 - Mobile Wages overlap validation on Generate
+
+Generate now fetches current project wage batches before requesting a preview. An inclusive overlap with a non-cancelled batch shows the existing en/hi/gu error beneath Generate without a preview or Confirm button. Cancelled batches and non-overlapping periods retain preview/confirmation. Failed batch reads stop calculation; duplicate taps are guarded and date/project changes discard stale responses. A concurrent server duplicate rejection also clears the preview. API, Web, database and calculations are unchanged. Mobile type-check, locale validation (18 namespaces in 3 languages), five focused tests and git diff --check pass; physical-device acceptance remains pending.
+
 ## 2026-09-28 - Official Mobile and Web logo pack
 
 Integrated the supplied named logo pack through both app theme exports. Mobile auth and Web auth/sidebar/browser identity use official variants. Existing Expo icon/splash paths resolve to the updated assets. Both app type-checks, asset existence, resolved Expo configuration and diff checks passed. Browser/device visual acceptance remains unrun; native launcher/splash updates require a new build. See docs/design/brand-assets.md for placement rules. Supplied artwork and unrelated edits were preserved.
