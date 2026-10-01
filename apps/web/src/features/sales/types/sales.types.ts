@@ -86,6 +86,7 @@ export type SalesLead = {
   lostReason: string | null;
   convertedAt: string | null;
   convertedBy: string | null;
+  convertedByName: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -96,6 +97,11 @@ export type SalesActivity = {
   details: unknown;
   actorId: string;
   actorName: string | null;
+  bookingReference?: string | null;
+  bookingDate?: string | null;
+  unitNumber?: string | null;
+  assignedFromName?: string | null;
+  assignedToName?: string | null;
   occurredAt: string;
 };
 export type SalesFollowUp = {

@@ -328,8 +328,16 @@ export class SalesRepository {
   ) {
     return this.database.query<Row>(
       `SELECT a.id, a.activity_type activityType, a.summary, a.details_json details,
-              a.actor_id actorId, u.name actorName, a.occurred_at occurredAt
+              a.actor_id actorId, u.name actorName, a.occurred_at occurredAt,
+              b.booking_reference bookingReference, b.booking_date bookingDate,
+              unit.unit_number unitNumber, previous.name assignedFromName, assignee.name assignedToName
        FROM sales_activities a LEFT JOIN \`user\` u ON u.id = a.actor_id
+       LEFT JOIN sales_bookings b ON b.id = JSON_UNQUOTE(JSON_EXTRACT(a.details_json, '$.bookingId'))
+         AND b.organization_id = a.organization_id AND b.project_id = a.project_id AND b.lead_id = a.lead_id
+       LEFT JOIN sales_units unit ON unit.id = COALESCE(JSON_UNQUOTE(JSON_EXTRACT(a.details_json, '$.unitId')), b.unit_id)
+         AND unit.organization_id = a.organization_id AND unit.project_id = a.project_id
+       LEFT JOIN \`user\` previous ON previous.id = JSON_UNQUOTE(JSON_EXTRACT(a.details_json, '$.assignedFrom'))
+       LEFT JOIN \`user\` assignee ON assignee.id = JSON_UNQUOTE(JSON_EXTRACT(a.details_json, '$.assignedTo'))
        WHERE a.organization_id = ? AND a.project_id = ? AND a.lead_id = ?
        ORDER BY a.occurred_at DESC`,
       [organizationId, projectId, leadId],
@@ -1798,11 +1806,12 @@ export class SalesRepository {
       l.source_detail sourceDetail, l.created_by createdBy, creator.name createdByName,
       l.assigned_to assignedTo, assignee.name assignedToName, l.current_stage currentStage,
       l.priority, l.interested_unit_id interestedUnitId, unit.unit_number interestedUnitNumber,
-      l.lost_reason lostReason, l.converted_at convertedAt, l.converted_by convertedBy,
+      l.lost_reason lostReason, l.converted_at convertedAt, l.converted_by convertedBy, converter.name convertedByName,
       l.created_at createdAt, l.updated_at updatedAt
       FROM sales_leads l
       LEFT JOIN \`user\` creator ON creator.id = l.created_by
       LEFT JOIN \`user\` assignee ON assignee.id = l.assigned_to
+      LEFT JOIN \`user\` converter ON converter.id = l.converted_by
       LEFT JOIN sales_units unit ON unit.id = l.interested_unit_id`;
   }
 
