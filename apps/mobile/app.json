@@ -5,7 +5,7 @@
     "scheme": "nirmansite",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/app-icon-light.png",
+    "icon": "./assets/brand/app-icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [
@@ -44,8 +44,8 @@
     },
     "ios": {
       "icon": {
-        "light": "./assets/brand/app-icon-light.png",
-        "dark": "./assets/brand/app-icon-dark.png"
+        "light": "./assets/brand/app-icon.png",
+        "dark": "./assets/brand/app-icon.png"
       },
       "supportsTablet": true,
       "bundleIdentifier": "com.nirmansite.mobile",
@@ -65,7 +65,7 @@
       "package": "com.hornbook.nirmansite",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/brand/app-icon-light.png",
+        "foregroundImage": "./assets/brand/app-icon.png",
         "backgroundColor": "#FAF8F5"
       },
       "permissions": [
@@ -73,12 +73,12 @@
       ]
     },
     "splash": {
-      "image": "./assets/brand/primary-logo.png",
+      "image": "./assets/brand/app-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FAF8F5"
     },
     "web": {
-      "favicon": "./assets/brand/app-icon-light.png",
+      "favicon": "./assets/brand/app-icon.png",
       "bundler": "metro",
       "output": "single"
     },

@@ -1,8 +1,8 @@
 import LottieView from 'lottie-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { mobileTheme } from '../../theme';
+import { brandAssets, mobileTheme } from '../../theme';
 import { AppText, NirmanScreenBackground } from '../ui';
 
 type LoadingScreenProps = {
@@ -15,6 +15,7 @@ export function LoadingScreen({ message }: LoadingScreenProps) {
   return (
     <NirmanScreenBackground scroll={false} style={styles.screen}>
       <View style={styles.content}>
+        <Image accessible accessibilityLabel="NirmanSite" source={brandAssets.appIcon} resizeMode="contain" style={styles.brandIcon} />
         <View accessible={false} importantForAccessibility="no-hide-descendants">
           <LottieView
             autoPlay
@@ -37,6 +38,10 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     gap: mobileTheme.spacing[3],
+  },
+  brandIcon: {
+    height: 96,
+    width: 96,
   },
   animation: {
     height: 176,

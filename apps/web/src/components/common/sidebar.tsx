@@ -17,7 +17,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 function LogoMark() {
   return (
     <Image
-      src={brandAssets.logoMark}
+      src={brandAssets.sidebarIcon}
       alt=""
       width={36}
       height={36}

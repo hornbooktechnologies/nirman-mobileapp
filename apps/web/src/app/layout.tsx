@@ -8,11 +8,8 @@ export const metadata: Metadata = {
   title: "NirmanSite",
   description: "Enterprise Builder SaaS platform",
   icons: {
-    icon: [
-      { url: brandAssets.appIconLight, type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: brandAssets.appIconDark, type: "image/png", media: "(prefers-color-scheme: dark)" },
-    ],
-    shortcut: brandAssets.appIconLight,
+    icon: { url: brandAssets.appIcon, type: "image/png" },
+    shortcut: brandAssets.appIcon,
     apple: brandAssets.appIcon,
   },
 };

@@ -67,9 +67,9 @@ describe("OrganizationOnboardingService", () => {
   it("uses the activation website independently of other auth email URLs", () => {
     const previous = process.env.PUBLIC_ACTIVATION_WEB_URL;
     try {
-      process.env.PUBLIC_ACTIVATION_WEB_URL = "https://nirman-website.vercel.app/";
+      process.env.PUBLIC_ACTIVATION_WEB_URL = "https://nirman-mobileapp-web.vercel.app/";
       expect(service["webActivationUrl"]("test/token")).toBe(
-        "https://nirman-website.vercel.app/activate?token=test%2Ftoken",
+        "https://nirman-mobileapp-web.vercel.app/activate?token=test%2Ftoken",
       );
     } finally {
       if (previous === undefined) delete process.env.PUBLIC_ACTIVATION_WEB_URL;
