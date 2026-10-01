@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -25,7 +27,10 @@ import { WagesService } from "./wages.service";
 @Controller("organizations/:organizationId/projects/:projectId/wages")
 @UseGuards(PermissionsGuard)
 export class WagesController {
-  constructor(private readonly wagesService: WagesService) {}
+  constructor(
+    private readonly wagesService: WagesService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get("preview")
   @RequirePermissions("wages:read")
@@ -74,6 +79,25 @@ export class WagesController {
       user,
     );
     return { success: true, message: "Wage batch retrieved", data };
+  }
+
+  @Get("batches/:batchId/export/pdf")
+  @RequirePermissions("wages:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Param("batchId", new ParseUUIDPipe()) batchId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.wagesService.exportReport(
+      organizationId,
+      projectId,
+      batchId,
+      user,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("batches/:batchId/export")

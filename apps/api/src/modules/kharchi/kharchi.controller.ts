@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -25,7 +27,10 @@ import { KharchiService } from "./kharchi.service";
 @Controller("organizations/:organizationId/projects/:projectId/kharchi")
 @UseGuards(PermissionsGuard)
 export class KharchiController {
-  constructor(private readonly service: KharchiService) {}
+  constructor(
+    private readonly service: KharchiService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get()
   @RequirePermissions("kharchi:read")
@@ -59,6 +64,25 @@ export class KharchiController {
       actor,
     );
     return { success: true, message: "Kharchi summary retrieved", data };
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("kharchi:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Query() query: QueryKharchiDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.service.exportReport(
+      organizationId,
+      projectId,
+      query,
+      actor,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("export")

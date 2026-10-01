@@ -46,6 +46,8 @@ The mobile app should focus on field and fast-response workflows:
 
 ## Boundaries
 
+API-backed PDF reports use `src/lib/exports/pdf.ts` and `use-pdf-export.tsx`: the API renders a PDF, Mobile downloads its exact bytes into a unique temporary cache file, and the user saves through Android's folder picker or the native save/share sheet. The localized preparation sheet supports cancellation and elapsed time. Temporary files are removed after use; this does not add offline data storage. Mobile does not use Expo Print or any PDF renderer. See `docs/tasks/pdf-export-implementation-plan.md`.
+
 - Mobile should not own business rules that belong in the API.
 - Mobile should not define independent permission names or statuses.
 - Mobile screens should be workflow-first, not a full copy of every back-office page.

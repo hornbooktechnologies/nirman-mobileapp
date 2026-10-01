@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import type { ProjectProgressSummary, ProjectProgressHistoryResponse, ProjectProgressPortfolioItem } from "@nirman-app/shared";
 import { api, apiClient } from "@/lib/api/api-client";
 import type { ProgressInput, ProgressQuery } from "../types/progress.types";
@@ -8,4 +9,8 @@ export const progressService = {
   record: (o: string, p: string, input: ProgressInput) => api.post<ProjectProgressSummary>(`${base(o, p)}/updates`, input),
   portfolio: (o: string, signal?: AbortSignal) => api.get<ProjectProgressPortfolioItem[]>(`/organizations/${o}/progress/projects`, { signal }),
   export: async (o: string, p: string, query: ProgressQuery, signal?: AbortSignal) => (await apiClient.get<string>(`${base(o, p)}/export`, { params: query, responseType: "text", signal })).data,
+  exportPdf(o: string, p: string, query: ProgressQuery, signal?: AbortSignal) {
+    return requestPdf(`${base(o, p)}/export/pdf`, query, signal);
+  },
+
 };

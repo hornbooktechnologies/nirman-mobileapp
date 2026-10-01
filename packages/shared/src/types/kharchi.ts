@@ -6,6 +6,7 @@ export type KharchiAdjustment = {
   amount: string;
   reason: string;
   recordedBy: string;
+  recordedByName?: string | null;
   recordedAt: string;
 };
 
@@ -17,8 +18,10 @@ export type KharchiDeductionAllocation = {
   deductionAmount: string;
   deductedAt: string;
   recordedBy: string;
+  recordedByName?: string | null;
   reversedAt?: string | null;
   reversedBy?: string | null;
+  reversedByName?: string | null;
   reversalReason?: string | null;
 };
 
@@ -27,6 +30,9 @@ export type KharchiAdvance = {
   organizationId: string;
   projectId: string;
   workerAssignmentId: string;
+  projectName?: string | null;
+  assignmentStartsOn?: string | null;
+  assignmentEndsOn?: string | null;
   workerId: string;
   workerCode: string;
   workerName: string;
@@ -42,6 +48,7 @@ export type KharchiAdvance = {
   paymentReference?: string | null;
   notes?: string | null;
   recordedBy: string;
+  recordedByName?: string | null;
   paidAt: string;
   createdAt: string;
 };

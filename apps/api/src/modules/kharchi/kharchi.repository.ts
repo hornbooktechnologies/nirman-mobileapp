@@ -33,6 +33,9 @@ type KharchiRow = {
   worker_id: string;
   worker_code: string;
   worker_name: string;
+  project_name?: string | null;
+  assignment_starts_on?: Date | string | null;
+  assignment_ends_on?: Date | string | null;
   trade: string;
   amount: string;
   adjustment_amount: string | null;
@@ -42,6 +45,7 @@ type KharchiRow = {
   payment_reference: string | null;
   notes: string | null;
   recorded_by: string;
+  recorded_by_name?: string | null;
   paid_at: Date | string;
   created_at: Date | string;
 };
@@ -52,6 +56,7 @@ type AdjustmentRow = {
   amount: string;
   reason: string;
   recorded_by: string;
+  recorded_by_name?: string | null;
   created_at: Date | string;
 };
 
@@ -63,8 +68,10 @@ type AllocationRow = {
   deduction_amount: string;
   deducted_at: Date | string;
   recorded_by: string;
+  recorded_by_name?: string | null;
   reversed_at: Date | string | null;
   reversed_by: string | null;
+  reversed_by_name?: string | null;
   reversal_reason: string | null;
 };
 
@@ -238,19 +245,24 @@ export class KharchiRepository {
     if (!rows[0]) return null;
     const [adjustmentRows, allocationRows] = await Promise.all([
       this.database.query<AdjustmentRow & RowDataPacket>(
-        `SELECT id, kharchi_advance_id, amount, reason, recorded_by, created_at
-         FROM kharchi_adjustments
-         WHERE organization_id = ? AND project_id = ? AND kharchi_advance_id = ?
-         ORDER BY created_at ASC, id ASC`,
+        `SELECT a.id, a.kharchi_advance_id, a.amount, a.reason, a.recorded_by,
+                u.name AS recorded_by_name, a.created_at
+         FROM kharchi_adjustments a
+         LEFT JOIN \`user\` u ON u.id = a.recorded_by
+         WHERE a.organization_id = ? AND a.project_id = ? AND a.kharchi_advance_id = ?
+         ORDER BY a.created_at ASC, a.id ASC`,
         [organizationId, projectId, kharchiId],
       ),
       this.database.query<AllocationRow & RowDataPacket>(
         `SELECT kda.id, kda.kharchi_advance_id, kda.wage_item_id, kda.wage_batch_id,
                 kda.deduction_amount, kda.deducted_at, kda.recorded_by,
-                kdar.reversed_at, kdar.reversed_by, kdar.reason AS reversal_reason
+                recorder.name AS recorded_by_name, kdar.reversed_at, kdar.reversed_by,
+                reverser.name AS reversed_by_name, kdar.reason AS reversal_reason
          FROM kharchi_deduction_allocations kda
          LEFT JOIN kharchi_deduction_allocation_reversals kdar
            ON kdar.allocation_id = kda.id
+         LEFT JOIN \`user\` recorder ON recorder.id = kda.recorded_by
+         LEFT JOIN \`user\` reverser ON reverser.id = kdar.reversed_by
          WHERE kda.organization_id = ? AND kda.project_id = ? AND kda.kharchi_advance_id = ?
          ORDER BY kda.deducted_at ASC, kda.id ASC`,
         [organizationId, projectId, kharchiId],
@@ -740,10 +752,17 @@ export class KharchiRepository {
 
   private advanceSelectSql() {
     return `SELECT ka.*, w.worker_code, w.name AS worker_name, w.trade,
+      recorder.name AS recorded_by_name, p.name AS project_name,
+      wpa.starts_on AS assignment_starts_on, wpa.ends_on AS assignment_ends_on,
       COALESCE(adj.adjustment_amount, 0) AS adjustment_amount,
       COALESCE(ded.deducted_amount, 0) AS deducted_amount
     FROM kharchi_advances ka
     INNER JOIN workers w ON w.id = ka.worker_id AND w.organization_id = ka.organization_id
+    LEFT JOIN \`user\` recorder ON recorder.id = ka.recorded_by
+    LEFT JOIN projects p ON p.id = ka.project_id AND p.organization_id = ka.organization_id
+    LEFT JOIN worker_project_assignments wpa ON wpa.id = ka.worker_assignment_id
+      AND wpa.organization_id = ka.organization_id AND wpa.project_id = ka.project_id
+      AND wpa.worker_id = ka.worker_id
     LEFT JOIN (
       SELECT kharchi_advance_id, SUM(amount) AS adjustment_amount
       FROM kharchi_adjustments GROUP BY kharchi_advance_id
@@ -774,6 +793,13 @@ export class KharchiRepository {
       organizationId: row.organization_id,
       projectId: row.project_id,
       workerAssignmentId: row.worker_assignment_id,
+      projectName: row.project_name ?? null,
+      assignmentStartsOn: row.assignment_starts_on
+        ? serializeDateOnly(row.assignment_starts_on)
+        : null,
+      assignmentEndsOn: row.assignment_ends_on
+        ? serializeDateOnly(row.assignment_ends_on)
+        : null,
       workerId: row.worker_id,
       workerCode: row.worker_code,
       workerName: row.worker_name,
@@ -789,6 +815,7 @@ export class KharchiRepository {
       paymentReference: row.payment_reference,
       notes: row.notes,
       recordedBy: row.recorded_by,
+      recordedByName: row.recorded_by_name ?? null,
       paidAt: serializeDate(row.paid_at) ?? "",
       createdAt: serializeDate(row.created_at) ?? "",
     };
@@ -801,6 +828,7 @@ export class KharchiRepository {
       amount: formatMoney(toCents(row.amount)),
       reason: row.reason,
       recordedBy: row.recorded_by,
+      recordedByName: row.recorded_by_name ?? null,
       recordedAt: serializeDate(row.created_at) ?? "",
     };
   }
@@ -814,8 +842,10 @@ export class KharchiRepository {
       deductionAmount: formatMoney(toCents(row.deduction_amount)),
       deductedAt: serializeDate(row.deducted_at) ?? "",
       recordedBy: row.recorded_by,
+      recordedByName: row.recorded_by_name ?? null,
       reversedAt: serializeDate(row.reversed_at),
       reversedBy: row.reversed_by,
+      reversedByName: row.reversed_by_name ?? null,
       reversalReason: row.reversal_reason,
     };
   }

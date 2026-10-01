@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type {
   ProjectProgressHistoryResponse,
   ProjectProgressPortfolioItem,
@@ -47,10 +48,11 @@ export async function exportProgressCsv(
   projectId: string,
   token: string,
   query: ProgressHistoryQuery = {},
+  signal?: AbortSignal,
 ) {
   const response = await fetch(
     `${appConfig.apiBaseUrl}${base(organizationId, projectId)}/export${queryString(query)}`,
-    { headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } },
+    { signal, headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } },
   );
   if (!response.ok) {
     let body: { code?: string; message?: string } | null = null;
@@ -58,4 +60,8 @@ export async function exportProgressCsv(
     throw new ApiRequestError(body?.message ?? `Progress export failed with ${response.status}`, response.status, body?.code);
   }
   return { csv: await response.text(), filename: response.headers.get('content-disposition') ?? 'project-progress.csv' };
+}
+
+export function exportProgressPdf(o: string, p: string, token: string, query: ProgressHistoryQuery = {}, signal?: AbortSignal) {
+  return requestPdf(`${base(o, p)}/export/pdf${queryString(query)}`, token, signal);
 }

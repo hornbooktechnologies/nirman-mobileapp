@@ -80,6 +80,8 @@ web_modules/
 # Next.js build output
 .next
 out
+# Copied from the installed Lottie renderer before Web dev/build.
+apps/web/public/animations/dotlottie-player.wasm
 
 # Nuxt.js build / generate output
 .nuxt

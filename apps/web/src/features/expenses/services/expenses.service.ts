@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import type {
   SiteExpenseDetail,
   SiteExpenseListResponse,
@@ -66,4 +67,8 @@ export const expensesService = {
       })
     ).data;
   },
+  exportPdf(o: string, p: string, query: ExpensesQuery, signal?: AbortSignal) {
+    return requestPdf(`${base(o, p)}/export/pdf`, query, signal);
+  },
+
 };

@@ -32,6 +32,7 @@ import { SiteVisitForm } from "./site-visit-form";
 import { BookingCreate } from "./booking-create";
 import { LeadInventory } from "./lead-inventory";
 import { safeLeadReturn, salesDetailUrl } from "../sales-view";
+import { activityDetails } from "../activity-details";
 function LeadDetail({
   c,
   id,
@@ -92,9 +93,9 @@ function LeadDetail({
     ["Source", label(l.source)],
     ["Source detail", l.sourceDetail],
     ["Priority", label(l.priority)],
-    ["Created by", l.createdByName ?? l.createdBy],
+    ["Created by", l.createdByName || "Name unavailable"],
     ["Preferred unit type", l.preferredUnitType],
-    ["Interested unit", l.interestedUnitNumber ?? l.interestedUnitId],
+    ["Interested unit", l.interestedUnitNumber || (l.interestedUnitId ? "Unit unavailable" : null)],
     ["Minimum budget", money(l.budgetMin)],
     ["Maximum budget", money(l.budgetMax)],
     ["Purchase purpose", l.purchasePurpose],
@@ -103,7 +104,7 @@ function LeadDetail({
     ["Created", dateTime(l.createdAt, c.timezone)],
     ["Updated", dateTime(l.updatedAt, c.timezone)],
     ["Converted", dateTime(l.convertedAt, c.timezone)],
-    ["Converted by", l.convertedBy],
+    ["Converted by", l.convertedByName || (l.convertedBy ? "Name unavailable" : null)],
   ];
   return (
     <div className="space-y-5">
@@ -132,7 +133,7 @@ function LeadDetail({
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold">Customer and owner</h2>
         <dl className="grid gap-4 sm:grid-cols-3">
-          {[["Primary mobile", l.primaryMobile], ["Alternate mobile", l.alternateMobile], ["Email", l.email], ["Owner", l.assignedToName ?? l.assignedTo]].map(([name, value]) => (
+          {[["Primary mobile", l.primaryMobile], ["Alternate mobile", l.alternateMobile], ["Email", l.email], ["Owner", l.assignedToName || (l.assignedTo ? "Name unavailable" : "Unassigned")]].map(([name, value]) => (
             <div key={name}><dt className="text-sm text-sub">{name}</dt><dd className="break-words font-medium">{value || "Not provided"}</dd></div>
           ))}
         </dl>
@@ -196,29 +197,29 @@ function LeadDetail({
           <>
             {!activities.data.length && <Card>No activities yet.</Card>}
             <ol className="space-y-3">
-              {activities.data.map((a) => (
+              {activities.data.map((a) => {
+                const details = activityDetails(a, (value) => dateTime(value, c.timezone));
+                return (
                 <li key={a.id}>
                   <Card>
                     <p className="font-semibold">{a.summary}</p>
                     <p className="text-sm text-sub">
-                      {label(a.activityType)} · {a.actorName ?? a.actorId} ·{" "}
+                      {label(a.activityType)} · {a.actorName || "Name unavailable"} ·{" "}
                       {dateTime(a.occurredAt, c.timezone)}
                     </p>
-                    {a.details != null && (
+                    {details.length > 0 && (
                       <details className="mt-2">
                         <summary className="cursor-pointer">
                           Activity details
                         </summary>
-                        <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm">
-                          {typeof a.details === "string"
-                            ? a.details
-                            : JSON.stringify(a.details, null, 2)}
-                        </pre>
+                        <dl className="mt-2 grid gap-3 text-sm sm:grid-cols-2">
+                          {details.map(([name, value]) => <div key={name}><dt className="text-sub">{name}</dt><dd className="whitespace-pre-wrap break-words">{value}</dd></div>)}
+                        </dl>
                       </details>
                     )}
                   </Card>
                 </li>
-              ))}
+              ); })}
             </ol>
           </>
         )}

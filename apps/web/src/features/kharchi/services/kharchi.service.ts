@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import type { KharchiAdvanceDetail, KharchiListResponse, KharchiSummary, KharchiBalanceStatus, KharchiPaymentMethod, ProjectWorkerRosterResponse } from "@nirman-app/shared";
 import { api, apiClient } from "@/lib/api/api-client";
 
@@ -20,4 +21,8 @@ export const kharchiService = {
     const response = await apiClient.get<string>(`${base(org, project)}/export`, { params: query, responseType: "text" });
     return response.data;
   },
+  exportPdf(org: string, project: string, query: KharchiQuery, signal?: AbortSignal) {
+    return requestPdf(`${base(org, project)}/export/pdf`, query, signal);
+  },
+
 };

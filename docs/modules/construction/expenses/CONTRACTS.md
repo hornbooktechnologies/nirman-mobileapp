@@ -340,3 +340,8 @@ The Product Owner approved all decisions below on 2026-09-02:
 9. Choose the future-date validation window for `expense_date` (recommended: today only or earlier).
 10. Confirm delivery sequence after approval: API first, then Mobile, with Web deferred unless
     separately requested.
+
+
+## On-demand PDF export - 2026-10-01
+
+User-approved addition: `GET /organizations/:organizationId/projects/:projectId/expenses/export/pdf` accepts the existing export scope/query and requires `expenses:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.

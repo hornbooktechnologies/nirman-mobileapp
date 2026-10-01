@@ -46,7 +46,7 @@ function Allocations({ organizationId, projectId, item }: { organizationId: stri
     {advance.isError ? <p role="alert">{advance.error.message} <Button onClick={() => void advance.refetch()}>Retry</Button></p> : null}
     {advance.data ? <>
       <p>Advance balance: {money(advance.data.outstandingAmount)} · <Link className="underline" href={`/projects/${projectId}/kharchi/${advance.data.id}`}>Open advance and correction history</Link></p>
-      {advance.data.deductionAllocations.filter(row => row.wageItemId === item.id).map(row => <div key={row.id} className="rounded-inner border border-hairline p-3 text-sm"><p>{money(row.deductionAmount)} · {row.reversedAt ? "Reversed" : "Allocated"}</p><p>Allocated {row.deductedAt} · Actor {row.recordedBy}</p>{row.reversedAt ? <p>Reversed {row.reversedAt} · Actor {row.reversedBy} · {row.reversalReason}</p> : null}</div>)}
+      {advance.data.deductionAllocations.filter(row => row.wageItemId === item.id).map(row => <div key={row.id} className="rounded-inner border border-hairline p-3 text-sm"><p>{money(row.deductionAmount)} · {row.reversedAt ? "Reversed" : "Allocated"}</p><p>Allocated {row.deductedAt} · Recorded by {row.recordedByName || "Name unavailable"}</p>{row.reversedAt ? <p>Reversed {row.reversedAt} · Reversed by {row.reversedByName || "Name unavailable"} · {row.reversalReason}</p> : null}</div>)}
       {!advance.data.deductionAllocations.some(row => row.wageItemId === item.id) ? <p>This advance has no allocations to the selected wage item.</p> : null}
     </> : null}
   </section>;

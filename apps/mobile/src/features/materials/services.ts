@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type { MaterialRequestDetail, MaterialRequestListResponse, MaterialSummary, MaterialWorkflowMode } from '@nirman-app/shared';
 
 import { appConfig } from '../../config';
@@ -33,8 +34,12 @@ export const runMaterialCommand = (o: string, p: string, id: string, action: 'su
 export const recordMaterialPurchase = (o: string, p: string, id: string, token: string, input: MaterialPurchaseInput) => data<MaterialRequestDetail>(`${base(o, p)}/${id}/purchases`, token, { method: 'POST', body: JSON.stringify(input) });
 export const recordMaterialDelivery = (o: string, p: string, id: string, token: string, input: MaterialDeliveryInput) => data<MaterialRequestDetail>(`${base(o, p)}/${id}/deliveries`, token, { method: 'POST', body: JSON.stringify(input) });
 
-export async function exportMaterialsCsv(o: string, p: string, token: string, query: MaterialsQuery = {}) {
-  const response = await fetch(`${appConfig.apiBaseUrl}${base(o, p)}/export${queryString(query)}`, { headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } });
+export async function exportMaterialsCsv(o: string, p: string, token: string, query: MaterialsQuery = {}, signal?: AbortSignal) {
+  const response = await fetch(`${appConfig.apiBaseUrl}${base(o, p)}/export${queryString(query)}`, { signal, headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } });
   if (!response.ok) throw new ApiRequestError(`Materials export failed with ${response.status}`, response.status);
   return { csv: await response.text(), filename: response.headers.get('content-disposition') ?? 'materials.csv' };
+}
+
+export function exportMaterialsPdf(o: string, p: string, token: string, query: MaterialsQuery = {}, signal?: AbortSignal) {
+  return requestPdf(`${base(o, p)}/export/pdf${queryString(query)}`, token, signal);
 }

@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import { api, apiClient } from "@/lib/api/api-client";
 import type { KharchiAdvanceDetail, KharchiListResponse } from "@nirman-app/shared";
 import type {
@@ -82,4 +83,8 @@ export const wagesService = {
     );
     return response.data;
   },
+  exportPdf(organizationId: string, projectId: string, batchId: string, signal?: AbortSignal) {
+    return requestPdf(`/organizations/${organizationId}/projects/${projectId}/wages/batches/${batchId}/export/pdf`, undefined, signal);
+  },
+
 };

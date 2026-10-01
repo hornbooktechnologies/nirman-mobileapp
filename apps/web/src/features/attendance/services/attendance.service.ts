@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import { api, apiClient } from "@/lib/api/api-client";
 import type { AttendanceException, AttendanceSummaryQuery, AttendanceSummaryResponse, CreateAttendanceExceptionInput, UpdateAttendanceExceptionInput, WorkerAttendancePeriodResponse } from "@nirman-app/shared";
 
@@ -34,4 +35,8 @@ export const attendanceService = {
     );
     return response.data;
   },
+  exportPdf(organizationId: string, projectId: string, startDate: string, endDate: string, signal?: AbortSignal) {
+    return requestPdf(`${basePath(organizationId, projectId)}/export/pdf`, { startDate, endDate }, signal);
+  },
+
 };

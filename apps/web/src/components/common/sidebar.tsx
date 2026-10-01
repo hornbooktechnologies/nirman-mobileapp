@@ -19,9 +19,9 @@ function LogoMark() {
     <Image
       src={brandAssets.sidebarIcon}
       alt=""
-      width={36}
-      height={36}
-      className="size-8 rounded-sub object-contain"
+      width={48}
+      height={48}
+      className="size-12 shrink-0 rounded-sub object-contain"
       aria-hidden="true"
     />
   );

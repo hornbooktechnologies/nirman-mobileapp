@@ -212,6 +212,8 @@ export const ERROR_CODES = [
   "CONFLICT",
   "IDEMPOTENCY_CONFLICT",
   "SERVER_ERROR",
+  "PDF_EXPORT_TOO_LARGE",
+  "PDF_EXPORT_BUSY",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

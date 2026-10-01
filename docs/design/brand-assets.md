@@ -18,6 +18,7 @@ Web square identity placements use `apps/web/public/brand/app-icon.png` unchange
 sidebar, compact design-preview mark, light/dark favicon, shortcut and Apple touch
 icon. Legacy square variant theme keys alias this file. This supersedes the earlier
 sidebar image selection. Existing horizontal and stacked Web logos remain unchanged.
+The Web sidebar icon renders at 48 × 48 CSS pixels with contain sizing and no shrinking.
 
 Native Mobile launcher/splash changes require a new build and installation.
 Expo Go retains its own installed launcher icon. Browser/device visual acceptance

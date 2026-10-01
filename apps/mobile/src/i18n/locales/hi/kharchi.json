@@ -131,10 +131,10 @@
   },
   "export": {
     "title": "खर्ची एक्सपोर्ट",
-    "action": "CSV एक्सपोर्ट करें",
-    "preparing": "CSV तैयार हो रही है…",
+    "action": "PDF निर्यात करें",
+    "preparing": "PDF बनाई जा रही है…",
     "failedTitle": "एक्सपोर्ट उपलब्ध नहीं",
-    "failed": "खर्ची CSV तैयार नहीं हो सकी।"
+    "failed": "खर्ची PDF तैयार नहीं हो सकी।"
   },
   "actions": {
     "cancel": "रद्द करें",

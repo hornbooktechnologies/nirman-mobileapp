@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type {
   KharchiAdvanceDetail,
   KharchiListResponse,
@@ -79,10 +80,15 @@ export async function fetchEligibleKharchiWorkers(organizationId: string, projec
   return response.data;
 }
 
-export async function exportKharchiCsv(organizationId: string, projectId: string, accessToken: string, query: KharchiQuery = {}) {
+export async function exportKharchiCsv(organizationId: string, projectId: string, accessToken: string, query: KharchiQuery = {}, signal?: AbortSignal) {
   const response = await fetch(`${appConfig.apiBaseUrl}${basePath(organizationId, projectId)}/export${queryString(query)}`, {
+    signal,
     headers: { Accept: 'text/csv', Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) throw new ApiRequestError(`Kharchi export failed with ${response.status}`, response.status);
   return { csv: await response.text(), filename: response.headers.get('content-disposition') ?? 'kharchi.csv' };
+}
+
+export function exportKharchiPdf(o: string, p: string, token: string, query: KharchiQuery = {}, signal?: AbortSignal) {
+  return requestPdf(`${basePath(o, p)}/export/pdf${queryString(query)}`, token, signal);
 }

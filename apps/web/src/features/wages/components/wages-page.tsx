@@ -1,4 +1,6 @@
 "use client";
+import { downloadPdf } from "@/lib/exports/pdf";
+import { ExportProgress } from "@/components/common/export-progress";
 
 import Link from "next/link";
 import { Banknote, CalendarDays, Check, CreditCard, Download, Save } from "lucide-react";
@@ -89,12 +91,13 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
 
   const [failure, setFailure] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [wagePanel, setWagePanel] = useState<"details" | "payment" | "adjustment" | null>(initialWageItemId ? "details" : null);
   const [reason, setReason] = useState("");
   const [paymentAttempt, setPaymentAttempt] = useState<WagePaymentAttempt | null>(null);
   const actionLock = useRef(false);
   const [busy, setBusy] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => { if (failure && !cancelOpen) errorRef.current?.focus(); }, [failure, cancelOpen]);
+  useEffect(() => { if (failure && !cancelOpen && !wagePanel) errorRef.current?.focus(); }, [failure, cancelOpen, wagePanel]);
   const closeCancel = useCallback((open: boolean) => { if (!actionLock.current) setCancelOpen(open); }, []);
   const canGenerate = !archived && hasPermission("wages:generate");
   const canPay = !archived && hasPermission("wages:mark-paid");
@@ -194,6 +197,8 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
     setSelectedItemId("");
     setAmount("");
     setReference("");
+    resetWorkerForm();
+    setWagePanel(null);
     setMessage("Wage payment recorded.");
   }
 
@@ -213,22 +218,21 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
     setSelectedBatchId(updated.id);
     setSelectedItemId("");
     setItemSnapshot(null);
+    resetWorkerForm();
+    setWagePanel(null);
     setMessage("Wage item updated.");
   }
 
   async function exportBatch() {
-    if (!selectedBatchId || !organizationId) return;
+    const batch = detail.data;
+    if (!selectedBatchId || !organizationId || !batch || batch.id !== selectedBatchId) return;
     setIsExporting(true);
+    setFailure("");
     try {
-      const csv = await wagesService.exportCsv(organizationId, projectId, selectedBatchId);
-      const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `wages-${projectId}-${selectedBatchId}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      const file = await wagesService.exportPdf(organizationId, projectId, selectedBatchId);
+      downloadPdf(file);
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "PDF export failed. Please retry.");
     } finally {
       setIsExporting(false);
     }
@@ -245,8 +249,27 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
     setItemNotes(item.notes ?? "");
   }
 
+  function resetWorkerForm() {
+    setSelectedItemId(""); setItemSnapshot(null); setAmount("");
+    setAdjustmentAmount(""); setItemNotes(""); setReference("");
+    setPaymentDate(wageToday); setPaymentMethod("CASH");
+  }
+
+  function openWagePanel(panel: "payment" | "adjustment") {
+    if (actionLock.current || paymentAttempt) return;
+    if (formDirty && !window.confirm("Discard your unsaved wage form?")) return;
+    resetWorkerForm(); setFailure(""); setWagePanel(panel);
+  }
+
+  function closeWagePanel(open: boolean) {
+    if (open || actionLock.current || paymentAttempt) return;
+    if (formDirty && !window.confirm("Discard your unsaved wage form?")) return;
+    resetWorkerForm(); setFailure(""); setWagePanel(null);
+  }
+
   return (
     <>
+      <ExportProgress active={isExporting} />
       <div className="min-w-0 space-y-4 pb-8 [&_button]:min-h-11 [&_input]:min-h-11 [&_select]:min-h-11 [&_input]:text-base [&_select]:text-base">
         {archived ? <Card>This project is archived. Wage records are read-only.</Card> : null}
         {failure ? <p ref={errorRef} tabIndex={-1} role="alert" className="text-sm text-danger">{failure}</p> : null}
@@ -348,7 +371,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                   <div><p className="text-sub">Paid</p><p className="font-semibold">{currency(detail.data.totals.paidAmount)}</p></div>
                   <div><p className="text-sub">Remaining</p><p className="font-semibold">{currency(Math.max(0, Number(detail.data.totals.netAmount) - Number(detail.data.totals.paidAmount)).toFixed(2))}</p></div>
                   </div>
-                  {canExport ? <Button variant="outline" onClick={() => void perform(exportBatch)} disabled={isExporting || busy}><Download size={16} /> {isExporting ? "Exporting" : "Export"}</Button> : null}
+                  {canExport ? <Button variant="outline" onClick={() => void perform(exportBatch)} disabled={isExporting || busy}><Download size={16} /> {isExporting ? "Preparing PDF…" : "Export PDF"}</Button> : null}
                 </div>
                 <div role="region" aria-label="Wage comparison table" tabIndex={0} className="overflow-x-auto">
                   <table className="min-w-[640px] w-full text-left text-[14px]">
@@ -362,7 +385,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                           <td>{currency(item.netAmount)}</td>
                           <td>{currency(item.paidAmount)}</td>
                           <td><StatusBadge tone={item.paymentStatus === "PAID" ? "success" : item.paymentStatus === "PARTIALLY_PAID" ? "active" : "warning"}>{item.paymentStatus}</StatusBadge></td>
-                          <td><Button disabled={busy || Boolean(paymentAttempt)} size="sm" variant="outline" onClick={() => chooseItem(item)}>Details</Button></td>
+                          <td><Button disabled={busy || Boolean(paymentAttempt)} size="sm" variant="outline" onClick={() => { chooseItem(item); setFailure(""); setWagePanel("details"); }}>Details</Button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -374,33 +397,51 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                   {cancelled ? <p>Cancelled {detail.data.cancelledAt}: {detail.data.cancellationReason}. Actor {detail.data.cancelledBy}. This snapshot is read-only; Kharchi deductions have been reversed.</p> : null}
                   {canCancel && !cancelled ? !canCancelWageBatch(detail.data) ? <p>Cancellation is unavailable because this batch has payment history.</p> : <Button variant="danger" disabled={busy || Boolean(paymentAttempt)} onClick={() => setCancelOpen(true)}>Cancel batch</Button> : null}
                 </div>
-                {selectedRecordChanged ? <p role="alert" className="text-danger">This wage item changed. Select Details again to review the latest values before submitting.</p> : null}
-                {selectedItem ? <WageFinancialDetail key={selectedItem.id} item={selectedItem} detail={detail.data} organizationId={organizationId} projectId={projectId} canReadKharchi={hasPermission("kharchi:read")} canReadAttendance={hasPermission("attendance:read") && hasPermission("workers:read")} /> : null}
-                {paymentAttempt && !busy ? <p role="alert">The last payment has an uncertain result. Retry the same payment to safely recover its result. Keep this page open until resolved.</p> : null}
-                {canPay && !cancelled ? (
-                  <div className="grid gap-3 border-t border-hairline pt-4 xl:grid-cols-2 md:items-end">
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.filter((item) => item.paymentStatus !== "PAID" || item.id === selectedItemId).map((item) => <option key={item.id} value={item.id}>{item.workerName} - due {currency(remainingAmount(item))}</option>)}</Select></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Amount *<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(amount && paymentError)} aria-describedby={amount && paymentError ? "wage-payment-error" : undefined} type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Date *<Input disabled={busy || Boolean(paymentAttempt)} type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Method *<Select disabled={busy || Boolean(paymentAttempt)} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as WagePaymentMethod)}>{WAGE_PAYMENT_METHODS.map((method) => <option key={method} value={method}>{paymentMethods[method]}</option>)}</Select></label>
-                    <Button onClick={() => void perform(pay)} disabled={!selectedItemId || (!paymentAttempt && Boolean(paymentError)) || !paymentDate || busy || (!paymentAttempt && selectedRecordChanged)}><CreditCard size={16} /> {busy ? "Recording" : paymentAttempt ? "Retry same payment" : "Record payment"}</Button>
-                    {amount && paymentError && !paymentAttempt ? <p id="wage-payment-error" role="alert" className="text-sm text-danger">{paymentError}</p> : null}
-                    <label className="grid gap-1 text-sm font-semibold text-sub xl:col-span-2">Reference<Input maxLength={120} disabled={busy || Boolean(paymentAttempt)} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Transaction reference" /></label>
-                  </div>
-                ) : null}
-                {canUpdate && !cancelled ? (
-                  <div className="grid gap-3 border-t border-hairline pt-4 xl:grid-cols-2 md:items-end">
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Selected worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.map((item) => <option key={item.id} value={item.id}>{item.workerName}</option>)}</Select></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Adjustment<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(adjustmentError)} aria-describedby={adjustmentError ? "wage-adjustment-error" : undefined} type="number" step="0.01" value={adjustmentAmount} onChange={(event) => setAdjustmentAmount(event.target.value)} /></label>
-                    {adjustmentError ? <p role="alert" id="wage-adjustment-error" className="text-danger">{adjustmentError}</p> : null}
-                    <Button onClick={() => void perform(saveAdjustment)} disabled={!selectedItemId || busy || Boolean(paymentAttempt) || (Boolean(adjustmentError) || selectedRecordChanged)}><Save size={16} /> {updateItem.isPending ? "Saving" : "Save adjustment"}</Button>
-                    <label className="grid gap-1 text-sm font-semibold text-sub xl:col-span-2">Notes<Input maxLength={500} disabled={busy || Boolean(paymentAttempt)} value={itemNotes} onChange={(event) => setItemNotes(event.target.value)} placeholder="Adjustment note" /></label>
-                  </div>
-                ) : null}
+                <div className="flex flex-wrap gap-2 border-t border-hairline pt-4">
+                  {canPay && !cancelled ? <Button disabled={busy || Boolean(paymentAttempt)} onClick={() => openWagePanel("payment")}><CreditCard size={16} /> Record payment</Button> : null}
+                  {canUpdate && !cancelled ? <Button variant="outline" disabled={busy || Boolean(paymentAttempt)} onClick={() => openWagePanel("adjustment")}><Save size={16} /> Save adjustment</Button> : null}
+                </div>
               </>
             ) : <p role="alert" className="text-[14px] text-danger">{detail.error?.message ?? "Unable to load selected wage batch."} <Button onClick={() => void detail.refetch()}>Retry</Button></p>}
           </Card>
         </div>
+
+        <Dialog
+          open={wagePanel !== null && Boolean(detail.data)}
+          onOpenChange={closeWagePanel}
+          title={wagePanel === "details" ? `${selectedItem?.workerName ?? "Worker"} — wage details` : wagePanel === "payment" ? "Record wage payment" : "Save wage adjustment"}
+          description={detail.data ? `Batch period: ${detail.data.periodStart} to ${detail.data.periodEnd}` : undefined}
+          className={wagePanel === "details" ? "max-w-3xl" : "max-w-xl"}
+          footer={<>
+            <Button variant="outline" disabled={busy || Boolean(paymentAttempt)} onClick={() => closeWagePanel(false)}>Close</Button>
+            {wagePanel === "payment" && canPay && !cancelled ? <Button onClick={() => void perform(pay)} disabled={!selectedItemId || (!paymentAttempt && Boolean(paymentError)) || !paymentDate || busy || (!paymentAttempt && selectedRecordChanged)}><CreditCard size={16} /> {busy ? "Recording" : paymentAttempt ? "Retry same payment" : "Record payment"}</Button> : null}
+            {wagePanel === "adjustment" && canUpdate && !cancelled ? <Button onClick={() => void perform(saveAdjustment)} disabled={!selectedItemId || busy || Boolean(paymentAttempt) || Boolean(adjustmentError) || selectedRecordChanged}><Save size={16} /> {updateItem.isPending ? "Saving" : "Save adjustment"}</Button> : null}
+          </>}
+        >
+          {failure ? <p role="alert" className="mb-4 text-sm text-danger">{failure}</p> : null}
+          {selectedRecordChanged && wagePanel !== "details" ? <p role="alert" className="mb-4 text-danger">This wage item changed. <Button variant="outline" disabled={busy || Boolean(paymentAttempt)} onClick={() => { if (selectedItem) chooseItem(selectedItem); }}>Reload worker</Button> Review the latest values before submitting.</p> : null}
+          {wagePanel === "details" && selectedItem && detail.data ? <WageFinancialDetail key={selectedItem.id} item={selectedItem} detail={detail.data} organizationId={organizationId} projectId={projectId} canReadKharchi={hasPermission("kharchi:read")} canReadAttendance={hasPermission("attendance:read") && hasPermission("workers:read")} /> : null}
+          {wagePanel === "details" && !selectedItem ? <p role="alert">This worker is no longer available in the selected batch.</p> : null}
+          {wagePanel === "payment" && canPay && !cancelled && detail.data ? <>
+            {paymentAttempt && !busy ? <p role="alert" className="mb-4 text-danger">The last payment has an uncertain result. Retry the same payment to safely recover its result. Keep this popup open until resolved.</p> : null}
+                  <div className="grid gap-3 sm:grid-cols-2 md:items-end">
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.filter((item) => item.paymentStatus !== "PAID" || item.id === selectedItemId).map((item) => <option key={item.id} value={item.id}>{item.workerName} - due {currency(remainingAmount(item))}</option>)}</Select></label>
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Amount *<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(amount && paymentError)} aria-describedby={amount && paymentError ? "wage-payment-error" : undefined} type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Date *<Input disabled={busy || Boolean(paymentAttempt)} type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Method *<Select disabled={busy || Boolean(paymentAttempt)} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as WagePaymentMethod)}>{WAGE_PAYMENT_METHODS.map((method) => <option key={method} value={method}>{paymentMethods[method]}</option>)}</Select></label>
+                    {amount && paymentError && !paymentAttempt ? <p id="wage-payment-error" role="alert" className="text-sm text-danger">{paymentError}</p> : null}
+                    <label className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Reference<Input maxLength={120} disabled={busy || Boolean(paymentAttempt)} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Transaction reference" /></label>
+                  </div>
+          </> : null}
+          {wagePanel === "adjustment" && canUpdate && !cancelled && detail.data ? <>
+                  <div className="grid gap-3 sm:grid-cols-2 md:items-end">
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Selected worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.map((item) => <option key={item.id} value={item.id}>{item.workerName}</option>)}</Select></label>
+                    <label className="grid gap-1 text-sm font-semibold text-sub">Adjustment<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(adjustmentError)} aria-describedby={adjustmentError ? "wage-adjustment-error" : undefined} type="number" step="0.01" value={adjustmentAmount} onChange={(event) => setAdjustmentAmount(event.target.value)} /></label>
+                    {adjustmentError ? <p role="alert" id="wage-adjustment-error" className="text-danger">{adjustmentError}</p> : null}
+                    <label className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Notes<Input maxLength={500} disabled={busy || Boolean(paymentAttempt)} value={itemNotes} onChange={(event) => setItemNotes(event.target.value)} placeholder="Adjustment note" /></label>
+                  </div>
+          </> : null}
+        </Dialog>
 
         <Dialog open={cancelOpen} onOpenChange={closeCancel} title="Cancel wage batch" description="This keeps the wage snapshot, reverses Kharchi deductions, and allows the period to be generated again. Any recorded payment prevents cancellation.">
           <label className="grid gap-2 text-base">Reason *<Input autoFocus aria-describedby="wage-cancel-reason-help" minLength={2} maxLength={500} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} /></label>

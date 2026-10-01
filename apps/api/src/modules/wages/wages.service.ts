@@ -1,4 +1,12 @@
 import {
+  assertReportLimit,
+  readablePdfFilename,
+  reportCsv,
+  reportTable,
+  type ExportReport,
+  type ReportTable,
+} from "../../common/exports/report";
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -92,7 +100,19 @@ export class WagesService {
     batchId: string,
     actor: AuthenticatedUser,
   ) {
-    await this.projectAccess.resolveProjectAccess(
+    return reportCsv(
+      await this.exportReport(organizationId, projectId, batchId, actor),
+    );
+  }
+
+  async exportReport(
+    organizationId: string,
+    projectId: string,
+    batchId: string,
+    actor: AuthenticatedUser,
+    maxRows?: number,
+  ): Promise<ExportReport> {
+    const access = await this.projectAccess.resolveProjectAccess(
       actor,
       organizationId,
       projectId,
@@ -109,9 +129,19 @@ export class WagesService {
       );
     }
 
+    assertReportLimit(detail.items.length + detail.payments.length, maxRows);
+    const projectName = access?.project?.name ?? "Project";
     return {
-      filename: `wages-${projectId}-${detail.periodStart}-${detail.periodEnd}.csv`,
-      csv: this.toCsv(detail),
+      title: "Wages",
+      projectName,
+      scope: `From: ${detail.periodStart} · To: ${detail.periodEnd} · Status: ${detail.status}`,
+      csvFilename: `wages-${projectId}-${detail.periodStart}-${detail.periodEnd}.csv`,
+      pdfFilename: readablePdfFilename(
+        "wages",
+        projectName,
+        `${detail.periodStart}-${detail.periodEnd}`,
+      ),
+      tables: this.batchReportTables(detail),
     };
   }
 
@@ -516,42 +546,33 @@ export class WagesService {
     return `${sign}${Math.trunc(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
   }
 
-  private toCsv(
-    detail: Awaited<ReturnType<WagesRepository["findBatchDetail"]>>,
-  ) {
-    if (!detail) return "";
-    const itemHeaders = [
-      "Worker Code",
-      "Worker Name",
-      "Trade",
-      "Period Start",
-      "Period End",
-      "Present Days",
-      "Half Days",
-      "Holiday Days",
-      "Absent Days",
-      "Daily Rate",
-      "Gross Amount",
-      "Kharchi Deduction",
-      "Adjustment Amount",
-      "Net Amount",
-      "Paid Amount",
-      "Payment Status",
-      "Notes",
-    ];
-    const paymentHeaders = [
-      "Worker Code",
-      "Worker Name",
-      "Payment Date",
-      "Amount",
-      "Payment Method",
-      "Reference",
-      "Recorded At",
-    ];
-    const itemLines = [
-      itemHeaders.map((header) => this.csvCell(header)).join(","),
-      ...detail.items.map((item) =>
+  private batchReportTables(
+    detail: NonNullable<
+      Awaited<ReturnType<WagesRepository["findBatchDetail"]>>
+    >,
+  ): ReportTable[] {
+    const items = reportTable(
+      [
         [
+          "Worker Code",
+          "Worker Name",
+          "Trade",
+          "Period Start",
+          "Period End",
+          "Present Days",
+          "Half Days",
+          "Holiday Days",
+          "Absent Days",
+          "Daily Rate",
+          "Gross Amount",
+          "Kharchi Deduction",
+          "Adjustment Amount",
+          "Net Amount",
+          "Paid Amount",
+          "Payment Status",
+          "Notes",
+        ],
+        ...detail.items.map((item) => [
           item.workerCode,
           item.workerName,
           item.trade,
@@ -569,36 +590,38 @@ export class WagesService {
           item.paidAmount,
           item.paymentStatus,
           item.notes ?? "",
-        ]
-          .map((value) => this.csvCell(value))
-          .join(","),
-      ),
-      "",
-      this.csvCell("Payment History"),
-      paymentHeaders.map((header) => this.csvCell(header)).join(","),
-      ...detail.payments.map((payment) => {
-        const item = detail.items.find(
-          (candidate) => candidate.id === payment.wageItemId,
-        );
-        return [
-          item?.workerCode ?? "",
-          item?.workerName ?? "",
-          payment.paymentDate,
-          payment.amount,
-          payment.paymentMethod,
-          payment.reference ?? "",
-          payment.recordedAt,
-        ]
-          .map((value) => this.csvCell(value))
-          .join(",");
-      }),
-    ];
-    return `${itemLines.join("\r\n")}\r\n`;
-  }
-
-  private csvCell(value: string | number | boolean | null | undefined) {
-    const text = value === null || value === undefined ? "" : String(value);
-    return `"${text.replace(/"/g, '""')}"`;
+        ]),
+      ],
+      "Wage items",
+    );
+    const itemById = new Map(detail.items.map((item) => [item.id, item]));
+    const payments = reportTable(
+      [
+        [
+          "Worker Code",
+          "Worker Name",
+          "Payment Date",
+          "Amount",
+          "Payment Method",
+          "Reference",
+          "Recorded At",
+        ],
+        ...detail.payments.map((payment) => {
+          const item = itemById.get(payment.wageItemId);
+          return [
+            item?.workerCode ?? "",
+            item?.workerName ?? "",
+            payment.paymentDate,
+            payment.amount,
+            payment.paymentMethod,
+            payment.reference ?? "",
+            payment.recordedAt,
+          ];
+        }),
+      ],
+      "Payment History",
+    );
+    return [items, payments];
   }
 
   private error(code: ErrorCode, message: string) {

@@ -1,4 +1,6 @@
 "use client";
+import { downloadPdf } from "@/lib/exports/pdf";
+import { ExportProgress } from "@/components/common/export-progress";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,27 +52,25 @@ function ProjectProgress({ context: c }: { context: ProgressContext }) {
     const controller = new AbortController(); exportController.current = controller;
     setExporting(true); setExportError("");
     try {
-      const csv = await progressService.export(c.org, c.project, filters, controller.signal);
+      const file = await progressService.exportPdf(c.org, c.project, filters, controller.signal);
       if (controller.signal.aborted) return;
-      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-      const a = document.createElement("a"); a.href = url; a.download = `project-progress-${c.project}.csv`; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setSuccess("CSV downloaded for the selected filters.");
+      downloadPdf(file);
+      setSuccess("PDF downloaded for the selected filters.");
     } catch (e) { if (!controller.signal.aborted) setExportError(e instanceof Error ? e.message : "Export failed. Please retry."); }
     finally { if (!controller.signal.aborted) { setExporting(false); exportController.current = null; } }
   }
   const canUpdate = canUpdateProgress(c.permissions, c.active);
   return <div className="space-y-5">
     <ProjectActivityNavigation projectId={c.project} permissions={c.permissions} current="progress" date={summary.data?.latestUpdate?.updateDate} origin={activityOrigin(pathname, new URLSearchParams(params.toString()))} returnTo={params.get("returnTo")} />
-    <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">Project Progress</h1><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { void cache.invalidateQueries(); }}>Refresh</Button>{canUpdate && <Button disabled={!summary.data || summary.isError} onClick={() => setOpen(true)}>Record progress</Button>}</div></header>
+    <ExportProgress active={exporting} /><header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">Project Progress</h1><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { void cache.invalidateQueries(); }}>Refresh</Button>{canUpdate && <Button disabled={!summary.data || summary.isError} onClick={() => setOpen(true)}>Record progress</Button>}</div></header>
     {success && <p role="status">{success}</p>}
     {summary.isPending ? <LoadingState label="Loading progress summary" /> : summary.isError ? <Failure error={summary.error} retry={() => void summary.refetch()} /> : <>
       <Card><div className="grid gap-5 sm:grid-cols-3"><div><p className="text-sm text-sub">Overall progress</p><p className="text-3xl font-semibold tabular-nums">{summary.data.overallPercentage}%</p></div><div><p className="text-sm text-sub">Stage coverage</p><p>{summary.data.updatedStages} of {summary.data.stages.length} updated · {summary.data.completedStages} complete</p></div><div><p className="text-sm text-sub">Latest update</p><p>{summary.data.latestUpdate ? `${stageLabel(summary.data.latestUpdate.stage)} · ${dateLabel(summary.data.latestUpdate.updateDate)}` : "No updates yet"}</p></div></div><p className="mt-4 text-sm text-sub">Overall progress includes all nine stages equally. Stages without updates contribute 0%.</p></Card>
       <section aria-label="Construction stages" className="grid gap-3 sm:grid-cols-3">{summary.data.stages.map(s => <Card key={s.stage} className="space-y-2"><div className="flex flex-wrap justify-between gap-2 font-semibold"><h2 className="text-base font-semibold">{stageLabel(s.stage)}</h2><span className="tabular-nums">{s.percentage}%</span></div><progress aria-label={`${stageLabel(s.stage)} completion`} max={100} value={s.percentage} className="h-2 w-full accent-lime" /><StatusBadge tone={!s.lastUpdate ? "neutral" : s.percentage === 100 ? "success" : "info"}>{!s.lastUpdate ? "Not updated" : s.percentage === 100 ? "Complete" : "In progress"}</StatusBadge><p className="text-sm text-sub">{s.lastUpdate ? `${dateLabel(s.lastUpdate.updateDate)} · ${s.lastUpdate.updatedBy}` : "No update recorded"}</p></Card>)}</section>
     </>}
-    <section className="space-y-4" aria-labelledby="progress-history"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="progress-history" className="text-xl font-semibold">Update history</h2>{c.permissions.includes("progress:export") && <Button variant="outline" disabled={exporting || invalid} onClick={() => void download()}>{exporting ? "Preparing CSV…" : "Export CSV"}</Button>}</div>
+    <section className="space-y-4" aria-labelledby="progress-history"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="progress-history" className="text-xl font-semibold">Update history</h2>{c.permissions.includes("progress:export") && <Button variant="outline" disabled={exporting || invalid} onClick={() => void download()}>{exporting ? "Preparing PDF…" : "Export PDF"}</Button>}</div>
       {c.permissions.includes("gallery:read") && <p className="text-sm text-sub">Project gallery is available above. Photos are not attached to individual progress updates in the current API.</p>}
-      {exportError && <p role="alert">{exportError} Use Export CSV to retry.</p>}
+      {exportError && <p role="alert">{exportError} Use Export PDF to retry.</p>}
       <ProgressHistoryFilters value={filters} onApply={applyFilters} stageLabel={stageLabel} />
       {(stage || dateFrom || dateTo) && <Button variant="outline" onClick={() => applyFilters({})}>Clear all</Button>}
       {invalid ? <p role="alert">Enter valid dates with the end date on or after the start date.</p> : history.isPending ? <LoadingState label="Loading update history" /> : history.isError ? <Failure error={history.error} retry={() => void history.refetch()} /> : <>

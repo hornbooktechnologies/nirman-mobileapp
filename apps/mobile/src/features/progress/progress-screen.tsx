@@ -1,7 +1,8 @@
+import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import { PROJECT_PROGRESS_STAGES, type ProjectProgressStage, type ProjectProgressSummary, type ProjectProgressUpdate } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, IconButton, LoadingState, NirmanScreenBackground, OperationalEntityCard, ProgressRing } from '../../components/ui';
@@ -12,7 +13,7 @@ import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import { ProgressUpdateSheet } from './progress-update-sheet';
-import { exportProgressCsv, fetchProgressHistory, fetchProgressSummary } from './services';
+import { exportProgressPdf, fetchProgressHistory, fetchProgressSummary } from './services';
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 const formatLocalizedDate = (value: string, language: string) => formatDate(dateValue(value), language as SupportedLanguage);
@@ -38,7 +39,7 @@ export function ProgressScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const pdfExport = usePdfExport(`${organizationId}:${projectId}`); const exporting = pdfExport.busy;
   const [updateOpen, setUpdateOpen] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -79,17 +80,9 @@ export function ProgressScreen() {
     return () => { sequence.current += 1; };
   }, [load]);
 
-  async function exportCsv() {
-    if (!organizationId || !projectId || !token || exporting) return;
-    setExporting(true);
-    try {
-      const result = await exportProgressCsv(organizationId, projectId, token, { stage });
-      await Share.share({ title: t('export.title'), message: result.csv });
-    } catch (exportError) {
-      setError(getLocalizedErrorMessage(exportError, t('export.failed')));
-    } finally {
-      setExporting(false);
-    }
+  async function exportPdf() {
+    if (!organizationId || !projectId || !token || exporting || !canExport) return;
+    await pdfExport.run((signal) => exportProgressPdf(organizationId, projectId, token, { stage }, signal), `${t('export.title')} · ${project?.name ?? projectId}`);
   }
 
   if (!project || !projectId) {
@@ -144,13 +137,13 @@ export function ProgressScreen() {
           <AppText style={styles.sectionTitle} weight={700}>{t('history.title')}</AppText>
           <AppText style={styles.sectionCaption}>{stage ? t('history.filtered', { stage: t(`stage.${stage}`) }) : t('history.all')}</AppText>
         </View>
-        {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} size="sm" fullWidth={false} variant="secondary" leadingIcon="file-delimited-outline" disabled={exporting} onPress={() => void exportCsv()} /> : null}
+        {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} size="sm" fullWidth={false} variant="secondary" leadingIcon="file-pdf-box" disabled={exporting} onPress={() => void exportPdf()} /> : null}
       </View>
     </View>
   );
 
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="progress" />} scroll={false}>
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="progress" />} scroll={false}>{pdfExport.popup}
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}

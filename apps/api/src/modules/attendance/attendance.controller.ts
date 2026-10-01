@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -31,7 +33,10 @@ import { UpdateAttendanceDto } from "./dto/update-attendance.dto";
 @Controller("organizations/:organizationId/projects/:projectId/attendance")
 @UseGuards(PermissionsGuard)
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(
+    private readonly attendanceService: AttendanceService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get("summary")
   @RequirePermissions("attendance:read")
@@ -72,6 +77,26 @@ export class AttendanceController {
       message: "Worker attendance retrieved",
       data,
     };
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("attendance:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Query() query: AttendanceExportQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.attendanceService.exportReport(
+      organizationId,
+      projectId,
+      query.startDate ?? query.date ?? "",
+      query.endDate ?? query.date ?? "",
+      user,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("export")
@@ -184,7 +209,11 @@ export class AttendanceController {
       dto,
       user,
     );
-    return { success: true, message: "Attendance compatibility input applied", data };
+    return {
+      success: true,
+      message: "Attendance compatibility input applied",
+      data,
+    };
   }
 
   /** @deprecated Sequential Web/Mobile compatibility route. */
@@ -204,6 +233,10 @@ export class AttendanceController {
       dto,
       user,
     );
-    return { success: true, message: "Attendance compatibility input applied", data };
+    return {
+      success: true,
+      message: "Attendance compatibility input applied",
+      data,
+    };
   }
 }

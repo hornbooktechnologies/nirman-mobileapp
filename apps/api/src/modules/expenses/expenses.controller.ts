@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -29,7 +31,10 @@ import { ExpensesService } from "./expenses.service";
 @Controller("organizations/:organizationId/projects/:projectId/expenses")
 @UseGuards(PermissionsGuard)
 export class ExpensesController {
-  constructor(private readonly service: ExpensesService) {}
+  constructor(
+    private readonly service: ExpensesService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get("settings")
   @RequirePermissions("expenses:read")
@@ -84,6 +89,25 @@ export class ExpensesController {
       "Expense summary retrieved",
       this.service.summary(organizationId, projectId, query, actor),
     );
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("expenses:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Query() query: QueryExpensesDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.service.exportReport(
+      organizationId,
+      projectId,
+      query,
+      actor,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("export")

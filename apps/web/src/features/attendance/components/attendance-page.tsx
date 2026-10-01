@@ -1,4 +1,6 @@
 "use client";
+import { downloadPdf } from "@/lib/exports/pdf";
+import { ExportProgress } from "@/components/common/export-progress";
 
 import { AttendanceNavigation } from "./attendance-navigation";
 import Link from "next/link";
@@ -175,23 +177,16 @@ function AttendanceWorkspace() {
       return;
     setIsExporting(true);
     try {
-      const csv = await attendanceService.exportCsv(
+      const file = await attendanceService.exportPdf(
         activeOrganizationId,
         projectId,
         startDate,
         endDate,
       );
       if (!mounted.current) return;
-      const url = URL.createObjectURL(
-        new Blob([csv], { type: "text/csv;charset=utf-8" }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `attendance-${projectId}-${startDate}-${endDate}.csv`;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadPdf(file);
       setSuccess(
-        "Attendance CSV downloaded for the full selected period. Search and exception filters do not limit the export.",
+        "Attendance PDF downloaded for the full selected period. Search and exception filters do not limit the export.",
       );
     } catch (error) {
       setSuccess(`Export failed. ${errorMessage(error)}`);
@@ -256,6 +251,7 @@ function AttendanceWorkspace() {
     );
   return (
     <div className="space-y-4 pb-8 text-sm">
+      <ExportProgress active={isExporting} />
       <PageHeader
         title="Attendance"
         description="Review worker attendance totals for a selected period."
@@ -269,7 +265,7 @@ function AttendanceWorkspace() {
                 title="Exports the full period, regardless of list filters"
               >
                 <Download size={16} aria-hidden="true" />
-                {isExporting ? "Exporting" : "Export"}
+                {isExporting ? "Preparing PDF…" : "Export PDF"}
               </Button>
             ) : null}
           </div>

@@ -57,5 +57,25 @@
     "gujarati": "ગુજરાતી",
     "changeTo": "Change language to {{language}}",
     "changeFailed": "Language could not be changed. Try again."
+  },
+  "pdfExport": {
+    "action": "Export PDF",
+    "title": "Preparing your PDF",
+    "description": "The server prepares your report. Save or share the PDF when it is ready.",
+    "fetching": "Preparing and downloading your PDF…",
+    "generating": "Creating PDF…",
+    "sharing": "Opening save/share…",
+    "elapsed": "{{seconds}}s elapsed",
+    "failedTitle": "PDF export failed",
+    "failed": "Unable to prepare or share the PDF. Please try again.",
+    "timeout": "The export took too long. Please retry.",
+    "attendanceScope": "Includes the full selected period. Search and exception filters do not limit the export.",
+    "ready": "Your PDF is ready",
+    "save": "Download",
+    "share": "Share",
+    "savedTitle": "PDF saved",
+    "saved": "Your report was saved to the selected folder.",
+    "tooLarge": "This report is too large. Choose a shorter period or narrower filters.",
+    "serverBusy": "Reports are being prepared. Please try again shortly."
   }
 }

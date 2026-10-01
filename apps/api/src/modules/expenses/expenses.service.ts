@@ -1,4 +1,12 @@
 import {
+  assertReportLimit,
+  readablePdfFilename,
+  reportCsv,
+  reportScope,
+  reportTable,
+  type ExportReport,
+} from "../../common/exports/report";
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -363,7 +371,24 @@ export class ExpensesService {
     query: QueryExpensesDto,
     actor: AuthenticatedUser,
   ) {
-    await this.access(actor, organizationId, projectId, "expenses:export");
+    return reportCsv(
+      await this.exportReport(organizationId, projectId, query, actor),
+    );
+  }
+
+  async exportReport(
+    organizationId: string,
+    projectId: string,
+    query: QueryExpensesDto,
+    actor: AuthenticatedUser,
+    maxRows?: number,
+  ): Promise<ExportReport> {
+    const access = await this.access(
+      actor,
+      organizationId,
+      projectId,
+      "expenses:export",
+    );
     this.validateRange(query.expenseFrom, query.expenseTo);
     const rows = [];
     let page = 1;
@@ -374,6 +399,7 @@ export class ExpensesService {
         pageSize: 100,
       });
       rows.push(...result.items);
+      assertReportLimit(rows.length, maxRows);
       if (page >= result.pagination.totalPages) break;
       page += 1;
     }
@@ -403,9 +429,14 @@ export class ExpensesService {
         row.recordedBy,
       ]),
     ];
+    const projectName = access?.project?.name ?? "Project";
     return {
-      filename: `site-expenses-${projectId}.csv`,
-      csv: `${csvRows.map((row) => row.map((cell) => this.csvCell(cell)).join(",")).join("\r\n")}\r\n`,
+      title: "Expenses",
+      projectName,
+      scope: reportScope(query),
+      csvFilename: `site-expenses-${projectId}.csv`,
+      pdfFilename: readablePdfFilename("expenses", projectName),
+      tables: [reportTable(csvRows)],
     };
   }
 
@@ -661,20 +692,5 @@ export class ExpensesService {
         "An adjustment cannot reduce recognized cost below zero",
     };
     return messages[code] ?? "The expense request is invalid";
-  }
-
-  private csvCell(value: unknown) {
-    const text =
-      value === null || value === undefined
-        ? ""
-        : typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean" ||
-            typeof value === "bigint"
-          ? String(value)
-          : value instanceof Date
-            ? value.toISOString()
-            : (JSON.stringify(value) ?? "");
-    return `"${text.replace(/"/g, '""')}"`;
   }
 }

@@ -1,7 +1,8 @@
+import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import { KHARCHI_BALANCE_STATUSES, KHARCHI_PAYMENT_METHODS } from '@nirman-app/shared';
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, FilterGroup, FilterOption, IconButton, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, StatusBadge } from '../../components/ui';
@@ -11,7 +12,7 @@ import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
-import { exportKharchiCsv, fetchKharchiList, fetchKharchiSummary } from './services';
+import { exportKharchiPdf, fetchKharchiList, fetchKharchiSummary } from './services';
 import { KharchiFormSheet } from './kharchi-form-sheet';
 import type { KharchiAdvance, KharchiBalanceStatus, KharchiPaymentMethod, KharchiSummary } from './types';
 
@@ -46,23 +47,15 @@ export function KharchiScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const pdfExport = usePdfExport(`${organizationId}:${projectId}`); const exporting = pdfExport.busy;
   const requestSequence = useRef(0);
   const activeFilterCount = Number(Boolean(status)) + Number(Boolean(method));
 
   const query = useMemo(() => ({ pageSize: 20, search: search.trim() || undefined, status, paymentMethod: method, sortBy: 'requestDate' as const, sortOrder: 'desc' as const }), [method, search, status]);
 
-  async function exportCsv() {
-    if (!organizationId || !projectId || !accessToken || exporting) return;
-    setExporting(true);
-    try {
-      const result = await exportKharchiCsv(organizationId, projectId, accessToken, query);
-      await Share.share({ title: t('export.title'), message: result.csv });
-    } catch (exportError) {
-      Alert.alert(t('export.failedTitle'), getLocalizedErrorMessage(exportError, t('export.failed')));
-    } finally {
-      setExporting(false);
-    }
+  async function exportPdf() {
+    if (!organizationId || !projectId || !accessToken || exporting || !canExport) return;
+    await pdfExport.run((signal) => exportKharchiPdf(organizationId, projectId, accessToken, query, signal), `${t('export.title')} · ${activeProject?.name ?? projectId}`);
   }
 
   const load = useCallback(async (nextPage = 1, append = false) => {
@@ -127,13 +120,13 @@ export function KharchiScreen() {
         {method ? <AppliedFilterChip label={`${t('filters.methodGroup')}: ${t(`paymentMethod.${method}`)}`} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t(`paymentMethod.${method}`) })} onRemove={() => setMethod(undefined)} /> : null}
       </AppliedFilters> : null}
     </ListControls>
-    {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-delimited-outline" disabled={exporting} onPress={() => void exportCsv()} /> : null}
+    {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-pdf-box" disabled={exporting} onPress={() => void exportPdf()} /> : null}
   </View>;
 
   if (!activeProject || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
   if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
 
-  return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />} scroll={false}>
+  return <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />} scroll={false}>{pdfExport.popup}
     <FlatList
       data={items}
       keyExtractor={(item) => item.id}

@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type { SiteExpenseDetail, SiteExpenseListResponse, SiteExpenseSummary, ExpenseWorkflowMode } from '@nirman-app/shared';
 
 import { appConfig } from '../../config';
@@ -31,9 +32,13 @@ export const updateExpense = (o: string, p: string, id: string, token: string, i
 export const runExpenseCommand = (o: string, p: string, id: string, action: 'submit' | 'approve' | 'reject' | 'cancel', token: string, input: ExpenseCommandInput) => data<SiteExpenseDetail>(`${base(o, p)}/${id}/${action}`, token, { method: 'POST', body: JSON.stringify(input) });
 export const adjustExpense = (o: string, p: string, id: string, token: string, input: ExpenseAdjustmentInput) => data<SiteExpenseDetail>(`${base(o, p)}/${id}/adjustments`, token, { method: 'POST', body: JSON.stringify(input) });
 
-export async function exportExpensesCsv(o: string, p: string, token: string, query: ExpensesQuery = {}) {
-  const response = await fetch(`${appConfig.apiBaseUrl}${base(o, p)}/export${queryString(query)}`, { headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } });
+export async function exportExpensesCsv(o: string, p: string, token: string, query: ExpensesQuery = {}, signal?: AbortSignal) {
+  const response = await fetch(`${appConfig.apiBaseUrl}${base(o, p)}/export${queryString(query)}`, { signal, headers: { Accept: 'text/csv', Authorization: `Bearer ${token}` } });
   if (!response.ok) throw new ApiRequestError(`Expenses export failed with ${response.status}`, response.status);
   return { csv: await response.text(), filename: response.headers.get('content-disposition') ?? 'expenses.csv' };
 }
 
+
+export function exportExpensesPdf(o: string, p: string, token: string, query: ExpensesQuery = {}, signal?: AbortSignal) {
+  return requestPdf(`${base(o, p)}/export/pdf${queryString(query)}`, token, signal);
+}
