@@ -1,25 +1,24 @@
-# Official logo pack
+# Official branding assets
 
-Use the user-supplied named PNG files in `apps/mobile/assets/brand/` and
-`apps/web/public/brand/`. Preserve the original artwork and aspect ratios.
-App code accesses the pack through each app's `brandAssets` theme export.
-Expo native configuration keeps literal asset paths in `apps/mobile/app.json`.
+Preserve the user-supplied artwork and aspect ratios. Each app accesses its assets
+through its `brandAssets` theme export.
 
-| Asset | Placement |
-| --- | --- |
-| `horizontal-logo.png` | Mobile authentication and Web login/password recovery |
-| `primary-logo.png` | Mobile splash; stacked full-color identity |
-| `app-icon-light.png` | Default Mobile icon, Android adaptive foreground, Mobile web favicon, Web sidebar and light browser icon |
-| `app-icon-dark.png` | iOS dark icon and dark browser icon |
-| `app-icon.png` | Web Apple touch icon; general app tile |
-| `app-icon-round.png` | Available for circular app identity placements |
-| `text-only-logo.png` | Available wordmark-only variant |
-| `black-stacked-logo.png`, `black-symbol.png` | Available monochrome variants for light surfaces |
-| `white-stacked-logo.png`, `white-symbol.png` | Available monochrome variants for dark surfaces |
+## Mobile
 
-Do not force every variant onto an existing screen. The named variants are the
-official source; legacy `logo-full.png` and `logo-mark.png` are no longer used by
-Web. Existing Mobile backgrounds and illustrations remain separate from logos.
+Only `apps/mobile/assets/brand/app-icon.png` and `horizontal-logo.png` are active
+Mobile branding artwork. The square icon is used for the launcher, iOS light/dark
+icons, Android adaptive foreground, splash, loading identity and Mobile web favicon.
+Authentication and activation use the horizontal logo. Legacy Mobile theme keys
+alias these two approved files. Expo configuration keeps literal asset paths.
+Backgrounds, illustrations and loading animations remain separate assets.
 
-Native launcher/splash changes require a new native build. Browser and physical
-device visual acceptance must be checked separately from TypeScript/config checks.
+## Web
+
+Web square identity placements use `apps/web/public/brand/app-icon.png` unchanged:
+sidebar, compact design-preview mark, light/dark favicon, shortcut and Apple touch
+icon. Legacy square variant theme keys alias this file. This supersedes the earlier
+sidebar image selection. Existing horizontal and stacked Web logos remain unchanged.
+
+Native Mobile launcher/splash changes require a new build and installation.
+Expo Go retains its own installed launcher icon. Browser/device visual acceptance
+is separate from static checks.

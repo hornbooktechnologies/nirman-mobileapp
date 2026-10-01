@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText, Button, FormError, FormField, GlassCard, Input, LanguagePicker, NirmanScreenBackground } from '../../src/components/ui';
 import { getLocalizedErrorMessage } from '../../src/i18n';
 import { apiRequest } from '../../src/lib/api';
-import { mobileText, mobileTheme } from '../../src/theme';
+import { brandAssets, mobileText, mobileTheme } from '../../src/theme';
 
 type ApiEnvelope<TData> = {
   success: boolean;
@@ -160,7 +160,7 @@ export default function ActivateInvitationRoute() {
         <Image
           accessibilityLabel="NirmanSite"
           accessible
-          source={require('../../assets/brand/horizontal-logo.png')}
+          source={brandAssets.logoFull}
           resizeMode="contain"
           style={styles.logo}
         />

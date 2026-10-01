@@ -26,6 +26,8 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import Image from "next/image";
+import { brandAssets } from "@/theme";
 import { IconButton } from "@/design-system/primitives/controls";
 import { ActionMenu } from "@/design-system/overlays/overlays";
 import styles from "./app-shell.module.css";
@@ -41,29 +43,7 @@ const navigation = [
 
 function BrandMark() {
   return (
-    <svg
-      viewBox="0 0 36 36"
-      aria-hidden="true"
-      focusable="false"
-      className={styles.brandMark}
-    >
-      <path
-        d="M16.2 3.7C10.1 4.5 5.5 9.8 5.5 16.1c0 7.3 5.4 12.3 10.7 16.2V19.1L10.4 13v8.4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.2"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-      <path
-        d="M19.8 3.7c6.1.8 10.7 6.1 10.7 12.4 0 7.3-5.4 12.3-10.7 16.2V19.1l5.8 5.8V14"
-        fill="none"
-        stroke="var(--preview-brand-copper)"
-        strokeWidth="3.2"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-    </svg>
+    <Image src={brandAssets.appIcon} alt="" aria-hidden="true" width={31} height={31} className={styles.brandMark} />
   );
 }
 
