@@ -1,4 +1,6 @@
 "use client";
+import { downloadPdf } from "@/lib/exports/pdf";
+import { ExportProgress } from "@/components/common/export-progress";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -132,24 +134,17 @@ function List({ context }: { context: ExpensesContext }) {
     retry: false,
     mutationFn: () => {
       exportController.current = new AbortController();
-      return expensesService.export(
+      return expensesService.exportPdf(
         context.org,
         context.project,
         query,
         exportController.current.signal,
       );
     },
-    onSuccess: (csv) => {
+    onSuccess: (file) => {
       if (!mounted.current) return;
-      const url = URL.createObjectURL(
-        new Blob([csv], { type: "text/csv;charset=utf-8" }),
-      );
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `site-expenses-${context.project}.csv`;
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setNotice("Expenses CSV downloaded.");
+      downloadPdf(file);
+      setNotice("Expenses PDF downloaded.");
     },
   });
   const filtered = Boolean(
@@ -163,7 +158,7 @@ function List({ context }: { context: ExpensesContext }) {
   );
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <ExportProgress active={exporting.isPending} /><header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Site Expenses</h1>
           <p className="text-sub">Site spending, approvals, and corrections</p>
@@ -268,9 +263,9 @@ function List({ context }: { context: ExpensesContext }) {
         {invalidRange && <p role="alert" className="text-danger">Choose valid dates with the end on or after the start.</p>}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => { setSearch(""); setMemberSearch(""); setQuery(defaultQuery); }}>Clear all</Button>
-          {can("export") && <Button variant="outline" disabled={exporting.isPending || invalidRange} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing CSV…" : "Export filtered CSV"}</Button>}
+          {can("export") && <Button variant="outline" disabled={exporting.isPending || invalidRange} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing PDF…" : "Export filtered PDF"}</Button>}
         </div>
-        {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered CSV to retry.</p>}
+        {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered PDF to retry.</p>}
       </Card>
       {!invalidRange &&
         (list.isPending ? (

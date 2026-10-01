@@ -17,7 +17,7 @@ function adapter(transport) {
   });
   const exports = {};
   new Function("require", "exports", outputText)((id) => {
-    assert.equal(id, "@/lib/api/api-client");
+    if (id === "@/lib/exports/pdf") return { requestPdf: (...args) => transport.requestPdf?.(...args) }; assert.equal(id, "@/lib/api/api-client");
     return transport;
   }, exports);
   return exports.expensesService;

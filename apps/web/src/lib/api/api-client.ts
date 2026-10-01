@@ -58,8 +58,8 @@ interface ApiEnvelope<TData> {
   message?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_PATH ?? "/api/v1";
-console.log(`API_BASE_URL: ${API_BASE_URL}`);
+// Keep refresh cookies on the Web origin, including when the API is remote.
+const API_BASE_URL = "/api/v1";
 let getAccessToken: TokenGetter = () => null;
 let setAccessToken: TokenSetter = () => undefined;
 let clearSession: SessionClearer = () => undefined;
@@ -104,6 +104,18 @@ apiClient.interceptors.response.use(
       !originalConfig.url?.startsWith("/onboarding/invitations/")
     ) {
       originalConfig._retry = true;
+      const tokenBeforeRefresh = getAccessToken();
+
+      // A delayed 401 may belong to the session before the latest login/refresh.
+      // Retry with the current token before attempting another cookie rotation.
+      const sentAuthorization = originalConfig.headers?.Authorization;
+      if (tokenBeforeRefresh && sentAuthorization !== `Bearer ${tokenBeforeRefresh}`) {
+        originalConfig.headers = {
+          ...originalConfig.headers,
+          Authorization: `Bearer ${tokenBeforeRefresh}`,
+        };
+        return apiClient(originalConfig);
+      }
 
       try {
         const refreshedToken = await refreshAccessToken();
@@ -113,7 +125,7 @@ apiClient.interceptors.response.use(
         };
         return apiClient(originalConfig);
       } catch (refreshError) {
-        clearSession();
+        if (getAccessToken() === tokenBeforeRefresh) clearSession();
         return Promise.reject(refreshError);
       }
     }
@@ -136,7 +148,8 @@ apiClient.interceptors.response.use(
   },
 );
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
+  const tokenAtStart = getAccessToken();
   refreshRequest ??= apiClient
     .post<ApiEnvelope<AuthRefreshResponse>>(
       "/auth/refresh",
@@ -145,8 +158,14 @@ async function refreshAccessToken() {
     )
     .then((response) => {
       const token = unwrapResponse<AuthRefreshResponse>(response).accessToken;
-      setAccessToken(token);
-      return token;
+      // A login completed while refresh was pending; keep the newer session.
+      if (getAccessToken() === tokenAtStart) {
+        setAccessToken(token);
+        return token;
+      }
+      const currentToken = getAccessToken();
+      if (!currentToken) throw new ApiError("Session ended", 401);
+      return currentToken;
     })
     .finally(() => {
       refreshRequest = null;

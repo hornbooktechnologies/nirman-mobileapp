@@ -1,4 +1,11 @@
 import {
+  assertReportLimit,
+  readablePdfFilename,
+  reportCsv,
+  reportTable,
+  type ExportReport,
+} from "../../common/exports/report";
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -585,7 +592,26 @@ export class AttendanceService {
     endDate: string,
     actor: AuthenticatedUser,
   ) {
-    await this.projectAccess.resolveProjectAccess(
+    return reportCsv(
+      await this.exportReport(
+        organizationId,
+        projectId,
+        startDate,
+        endDate,
+        actor,
+      ),
+    );
+  }
+
+  async exportReport(
+    organizationId: string,
+    projectId: string,
+    startDate: string,
+    endDate: string,
+    actor: AuthenticatedUser,
+    maxRows?: number,
+  ): Promise<ExportReport> {
+    const access = await this.projectAccess.resolveProjectAccess(
       actor,
       organizationId,
       projectId,
@@ -614,6 +640,7 @@ export class AttendanceService {
     ]);
     this.assertConfigured(days);
     const rows = deriveAttendanceDailyRows(roster, days, exceptions);
+    assertReportLimit(rows.length, maxRows);
     const headers = [
       "Worker Code",
       "Worker Name",
@@ -638,11 +665,18 @@ export class AttendanceService {
       row.exception?.reasonCode ?? "",
       row.exception?.notes ?? "",
     ]);
+    const projectName = access?.project?.name ?? "Project";
     return {
-      filename: `attendance-${projectId}-${startDate}-${endDate}.csv`,
-      csv: `${[headers, ...csvRows]
-        .map((row) => row.map((value) => this.csvCell(value)).join(","))
-        .join("\r\n")}\r\n`,
+      title: "Attendance",
+      projectName,
+      scope: `From: ${startDate} · To: ${endDate} · Full selected period`,
+      csvFilename: `attendance-${projectId}-${startDate}-${endDate}.csv`,
+      pdfFilename: readablePdfFilename(
+        "attendance",
+        projectName,
+        `${startDate}-${endDate}`,
+      ),
+      tables: [reportTable([headers, ...csvRows])],
     };
   }
 
@@ -944,11 +978,6 @@ export class AttendanceService {
         "Legacy HOLIDAY, check-in, check-out, overtime, and offline sync input cannot be translated safely",
       ),
     );
-  }
-
-  private csvCell(value: string | number | boolean | null | undefined) {
-    const text = value === null || value === undefined ? "" : String(value);
-    return `"${text.replace(/"/g, '""')}"`;
   }
 
   private error(code: ErrorCode, message: string) {

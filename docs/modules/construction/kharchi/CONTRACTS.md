@@ -517,3 +517,16 @@ acceptance boundaries, is maintained in `docs/modules/construction/kharchi/STATU
 No open decision blocks the API-first implementation.
 
 The Product Owner confirmed that the first Kharchi API has no cancel or delete action. Incorrect paid records are preserved and corrected only with an immutable negative adjustment; the original row is never deleted or rewritten.
+
+
+## On-demand PDF export - 2026-10-01
+
+User-approved addition: `GET /organizations/:organizationId/projects/:projectId/kharchi/export/pdf` accepts the existing export scope/query and requires `kharchi:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.
+
+## Readable people and assignment context - 2026-10-01
+
+Kharchi responses add optional nullable `recordedByName` on advances, adjustments and deduction allocations, and `reversedByName` on reversals. Advances also add `projectName`, `assignmentStartsOn` and `assignmentEndsOn`. Existing UUID fields remain unchanged for audit integrity and navigation. Names resolve from the existing user table; assignment/project joins are scoped to the record's organization, project and worker. Left joins preserve history when a related display value is unavailable. No migration or write-path change is required.
+
+Web payment records and correction/deduction/reversal history show resolved names instead of UUIDs. Worker assignment displays worker name/code, project name and available assignment dates. Missing account names show `Name unavailable`. The shared Kharchi allocation panel in Wages uses these same name fields.
+
+Verification: nine Kharchi API tests, API/Web/Mobile typechecks and scoped lint passed. API build includes the new response fields. Authenticated live database/name resolution remains an acceptance check; clients must use the updated API.

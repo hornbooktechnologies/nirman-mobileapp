@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -23,7 +25,10 @@ import { ProgressService } from "./progress.service";
 @Controller("organizations/:organizationId/projects/:projectId/progress")
 @UseGuards(PermissionsGuard)
 export class ProgressController {
-  constructor(private readonly service: ProgressService) {}
+  constructor(
+    private readonly service: ProgressService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get("summary")
   @RequirePermissions("progress:read")
@@ -64,6 +69,25 @@ export class ProgressController {
       "Project progress updated",
       this.service.record(organizationId, projectId, dto, actor),
     );
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("progress:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Query() query: QueryProgressHistoryDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.service.exportReport(
+      organizationId,
+      projectId,
+      query,
+      actor,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("export")

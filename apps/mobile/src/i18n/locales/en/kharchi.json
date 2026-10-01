@@ -131,10 +131,10 @@
   },
   "export": {
     "title": "Kharchi export",
-    "action": "Export CSV",
-    "preparing": "Preparing CSV…",
+    "action": "Export PDF",
+    "preparing": "Creating PDF…",
     "failedTitle": "Export unavailable",
-    "failed": "Kharchi CSV could not be prepared."
+    "failed": "Kharchi PDF could not be prepared."
   },
   "actions": { "cancel": "Cancel", "retry": "Try again", "back": "Go back" }
 }

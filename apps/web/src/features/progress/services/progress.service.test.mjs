@@ -6,7 +6,7 @@ function adapter(transport) {
   const source = readFileSync(new URL("./progress.service.ts", import.meta.url), "utf8");
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   const exports = {};
-  new Function("require", "exports", outputText)((id) => { assert.equal(id, "@/lib/api/api-client"); return transport; }, exports);
+  new Function("require", "exports", outputText)((id) => { if (id === "@/lib/exports/pdf") return { requestPdf: (...args) => transport.requestPdf?.(...args) }; assert.equal(id, "@/lib/api/api-client"); return transport; }, exports);
   return exports.progressService;
 }
 test("record preserves null baseline, retry key and server summary; transport failure is not retried", async () => {

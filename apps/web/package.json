@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/prepare-lottie-wasm.mjs && next dev",
+    "build": "node scripts/prepare-lottie-wasm.mjs && next build",
     "type-check": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint"

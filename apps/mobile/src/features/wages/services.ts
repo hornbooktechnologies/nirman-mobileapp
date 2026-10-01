@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type {
   WageBatch,
   WageBatchDetail,
@@ -125,10 +126,12 @@ export async function exportWageBatchCsv(
   projectId: string,
   batchId: string,
   accessToken: string,
+  signal?: AbortSignal,
 ) {
   const response = await fetch(
     `${appConfig.apiBaseUrl}/organizations/${organizationId}/projects/${projectId}/wages/batches/${batchId}/export`,
     {
+      signal,
       headers: {
         Accept: "text/csv",
         Authorization: `Bearer ${accessToken}`,
@@ -144,4 +147,8 @@ export async function exportWageBatchCsv(
   }
 
   return response.text();
+}
+
+export function exportWageBatchPdf(o: string, p: string, batch: string, token: string, signal?: AbortSignal) {
+  return requestPdf(`/organizations/${o}/projects/${p}/wages/batches/${batch}/export/pdf`, token, signal);
 }

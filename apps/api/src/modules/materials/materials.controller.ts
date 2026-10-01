@@ -1,3 +1,5 @@
+import { PdfExportService } from "../../common/exports/pdf-export.service";
+import { PDF_EXPORT_ROW_LIMIT } from "../../common/exports/report";
 import {
   Body,
   Controller,
@@ -29,7 +31,10 @@ import { MaterialsService } from "./materials.service";
 // Each service method resolves current organization/project authority.
 // Global user-role guards cannot represent project-specific delegation.
 export class MaterialsController {
-  constructor(private readonly service: MaterialsService) {}
+  constructor(
+    private readonly service: MaterialsService,
+    private readonly pdf: PdfExportService,
+  ) {}
 
   @Get("settings")
   @RequirePermissions("materials:read")
@@ -84,6 +89,25 @@ export class MaterialsController {
       "Materials summary retrieved",
       await this.service.summary(organizationId, projectId, query, actor),
     );
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("materials:export")
+  async exportPdf(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("projectId", new ParseUUIDPipe()) projectId: string,
+    @Query() query: QueryMaterialsDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const data = await this.service.exportReport(
+      organizationId,
+      projectId,
+      query,
+      actor,
+      PDF_EXPORT_ROW_LIMIT,
+    );
+    return this.pdf.download(data, response);
   }
 
   @Get("export")

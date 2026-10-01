@@ -1,4 +1,12 @@
 import {
+  assertReportLimit,
+  readablePdfFilename,
+  reportCsv,
+  reportScope,
+  reportTable,
+  type ExportReport,
+} from "../../common/exports/report";
+import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -473,7 +481,24 @@ export class MaterialsService {
     query: QueryMaterialsDto,
     actor: AuthenticatedUser,
   ) {
-    await this.access(actor, organizationId, projectId, "materials:export");
+    return reportCsv(
+      await this.exportReport(organizationId, projectId, query, actor),
+    );
+  }
+
+  async exportReport(
+    organizationId: string,
+    projectId: string,
+    query: QueryMaterialsDto,
+    actor: AuthenticatedUser,
+    maxRows?: number,
+  ): Promise<ExportReport> {
+    const access = await this.access(
+      actor,
+      organizationId,
+      projectId,
+      "materials:export",
+    );
     this.validateRange(query.requiredFrom, query.requiredTo);
     const rows = [];
     let page = 1;
@@ -484,6 +509,7 @@ export class MaterialsService {
         pageSize: 100,
       });
       rows.push(...result.items);
+      assertReportLimit(rows.length, maxRows);
       if (page >= result.pagination.totalPages) break;
       page += 1;
     }
@@ -519,11 +545,14 @@ export class MaterialsService {
         row.totalPurchaseCost,
       ]),
     ];
+    const projectName = access?.project?.name ?? "Project";
     return {
-      filename: `materials-${projectId}.csv`,
-      csv: `${csvRows
-        .map((row) => row.map((cell) => this.csvCell(cell)).join(","))
-        .join("\r\n")}\r\n`,
+      title: "Materials",
+      projectName,
+      scope: reportScope(query),
+      csvFilename: `materials-${projectId}.csv`,
+      pdfFilename: readablePdfFilename("materials", projectName),
+      tables: [reportTable(csvRows)],
     };
   }
 
@@ -881,20 +910,5 @@ export class MaterialsService {
       MATERIAL_PURCHASE_REQUIRED: "Record a valid purchase before delivery",
     };
     return messages[code] ?? "The Materials request is invalid";
-  }
-
-  private csvCell(value: unknown) {
-    const text =
-      value === null || value === undefined
-        ? ""
-        : typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean" ||
-            typeof value === "bigint"
-          ? String(value)
-          : value instanceof Date
-            ? value.toISOString()
-            : (JSON.stringify(value) ?? "");
-    return `"${text.replace(/"/g, '""')}"`;
   }
 }

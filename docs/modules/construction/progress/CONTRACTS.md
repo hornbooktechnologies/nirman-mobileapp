@@ -90,3 +90,8 @@ None for routine updates in MVP. A later approved notification rule may referenc
 - Date filters must be ordered; pagination is bounded.
 - Static checks, focused API tests, migration/seed verification, authenticated runtime routes, locale parity, Expo export, and `git diff --check` are separate evidence gates.
 - Physical-device, accessibility/large-text, and fluent Hindi/Gujarati review remain separate acceptance gates unless run explicitly.
+
+
+## On-demand PDF export - 2026-10-01
+
+User-approved addition: `GET /organizations/:organizationId/projects/:projectId/progress/export/pdf` accepts the existing export scope/query and requires `progress:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.

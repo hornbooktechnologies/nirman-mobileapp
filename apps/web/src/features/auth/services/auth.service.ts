@@ -1,4 +1,4 @@
-import { api } from "@/lib/api/api-client";
+import { api, refreshAccessToken } from "@/lib/api/api-client";
 import type { AuthUser } from "@/providers/auth-provider";
 import type {
   OrganizationOwnerInvitationAcceptance,
@@ -126,8 +126,8 @@ export const authService = {
       ),
     };
   },
-  refresh() {
-    return api.post<RefreshResponse>("/auth/refresh");
+  async refresh(): Promise<RefreshResponse> {
+    return { accessToken: await refreshAccessToken() };
   },
   logout() {
     return api.post<null>("/auth/logout");

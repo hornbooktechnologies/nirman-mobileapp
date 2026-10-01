@@ -1,3 +1,4 @@
+import { requestPdf } from '../../lib/exports/pdf';
 import type {
   AttendanceException,
   AttendanceSummaryQuery,
@@ -8,11 +9,23 @@ import type {
 } from '@nirman-app/shared';
 
 import { apiRequest } from '../../lib/api';
+import { ApiRequestError } from '../../lib/api';
+import { appConfig } from '../../config';
 
 type ApiEnvelope<TData> = { success: boolean; data: TData };
 
 function attendancePath(organizationId: string, projectId: string) {
   return `/organizations/${organizationId}/projects/${projectId}/attendance`;
+}
+
+export async function exportAttendanceCsv(organizationId: string, projectId: string, startDate: string, endDate: string, accessToken: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ startDate, endDate });
+  const response = await fetch(`${appConfig.apiBaseUrl}${attendancePath(organizationId, projectId)}/export?${params}`, {
+    signal,
+    headers: { Accept: 'text/csv', Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new ApiRequestError(`Attendance export failed with ${response.status}`, response.status);
+  return response.text();
 }
 
 export async function fetchAttendanceSummary(
@@ -90,4 +103,8 @@ export async function removeAttendanceException(
     { accessToken },
   );
   return response.data;
+}
+
+export function exportAttendancePdf(o: string, p: string, startDate: string, endDate: string, token: string, signal?: AbortSignal) {
+  return requestPdf(`${attendancePath(o, p)}/export/pdf?${new URLSearchParams({ startDate, endDate })}`, token, signal);
 }

@@ -30,7 +30,8 @@ import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import { AttendanceTotalsTable, formatAttendanceNumber } from './attendance-ui';
 import { monthRange, monthValue, todayDateOnly } from './date-utils';
-import { fetchAttendanceSummary } from './services';
+import { exportAttendancePdf, fetchAttendanceSummary } from './services';
+import { usePdfExport } from '../../lib/exports/use-pdf-export';
 
 const PAGE_SIZE = 20;
 
@@ -95,6 +96,12 @@ export function AttendanceScreen() {
   const requestId = useRef(0);
   const contextKey = `${organizationId ?? ''}:${projectId ?? ''}`;
   const invalidRange = startDate > endDate;
+  const pdfExport = usePdfExport(`${organizationId}:${projectId}`);
+
+  async function exportPeriod() {
+    if (!organizationId || !projectId || !session?.accessToken || invalidRange || !permissions.includes('attendance:export')) return;
+    await pdfExport.run((signal) => exportAttendancePdf(organizationId, projectId, startDate, endDate, session.accessToken, signal), `${t('period.title')} · ${activeProject?.name ?? projectId} · ${startDate} – ${endDate}`);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -224,6 +231,10 @@ export function AttendanceScreen() {
         <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
         <Toggle accessibilityRole="checkbox" accessibilityState={{ checked: exceptionsOnly }} label={t('filters.exceptionsOnly')} value={exceptionsOnly} onValueChange={setExceptionsOnly} />
       </ListControls>
+      {permissions.includes('attendance:export') && organizationId && projectId ? <>
+        <Button label={tCommon('pdfExport.action')} leadingIcon="file-pdf-box" variant="secondary" disabled={invalidRange || pdfExport.busy} onPress={() => void exportPeriod()} />
+        <AppText style={styles.cardNote}>{tCommon('pdfExport.attendanceScope')}</AppText>
+      </> : null}
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
           <LottieLoader size={24} />
@@ -248,6 +259,7 @@ export function AttendanceScreen() {
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="attendance" />} scroll={false}>
+      {pdfExport.popup}
       <FlatList
         data={rows}
         keyExtractor={(row) => row.workerAssignmentId}

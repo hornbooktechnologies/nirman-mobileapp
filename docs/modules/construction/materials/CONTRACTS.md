@@ -212,3 +212,8 @@ Runtime-verified additionally requires separately approved migration/seed execut
 - CSV scope/filter parity.
 
 Mobile, Web, offline, browser, and physical-device acceptance remain separate gates.
+
+
+## On-demand PDF export - 2026-10-01
+
+User-approved addition: `GET /organizations/:organizationId/projects/:projectId/materials/export/pdf` accepts the existing export scope/query and requires `materials:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.

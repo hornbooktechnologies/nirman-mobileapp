@@ -1,3 +1,4 @@
+import { requestPdf } from "@/lib/exports/pdf";
 import type {
   MaterialRequestDetail,
   MaterialRequestListResponse,
@@ -67,4 +68,8 @@ export const materialsService = {
       })
     ).data;
   },
+  exportPdf(o: string, p: string, query: MaterialsQuery, signal?: AbortSignal) {
+    return requestPdf(`${base(o, p)}/export/pdf`, query, signal);
+  },
+
 };

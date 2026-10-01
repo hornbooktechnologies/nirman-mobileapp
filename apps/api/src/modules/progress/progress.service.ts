@@ -1,4 +1,12 @@
 import {
+  assertReportLimit,
+  readablePdfFilename,
+  reportCsv,
+  reportScope,
+  reportTable,
+  type ExportReport,
+} from "../../common/exports/report";
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -120,7 +128,24 @@ export class ProgressService {
     query: QueryProgressHistoryDto,
     actor: AuthenticatedUser,
   ) {
-    await this.access(actor, organizationId, projectId, "progress:export");
+    return reportCsv(
+      await this.exportReport(organizationId, projectId, query, actor),
+    );
+  }
+
+  async exportReport(
+    organizationId: string,
+    projectId: string,
+    query: QueryProgressHistoryDto,
+    actor: AuthenticatedUser,
+    maxRows?: number,
+  ): Promise<ExportReport> {
+    const access = await this.access(
+      actor,
+      organizationId,
+      projectId,
+      "progress:export",
+    );
     this.validateRange(query.dateFrom, query.dateTo);
     const rows = [];
     let page = 1;
@@ -135,6 +160,7 @@ export class ProgressService {
         },
       );
       rows.push(...result.items);
+      assertReportLimit(rows.length, maxRows);
       if (page >= result.pagination.totalPages) break;
       page += 1;
     }
@@ -156,9 +182,14 @@ export class ProgressService {
         row.notes ?? "",
       ]),
     ];
+    const projectName = access?.project?.name ?? "Project";
     return {
-      filename: `project-progress-${projectId}.csv`,
-      csv: `${csvRows.map((row) => row.map((cell) => this.csvCell(cell)).join(",")).join("\r\n")}\r\n`,
+      title: "Progress",
+      projectName,
+      scope: reportScope(query),
+      csvFilename: `project-progress-${projectId}.csv`,
+      pdfFilename: readablePdfFilename("progress", projectName),
+      tables: [reportTable(csvRows)],
     };
   }
 
@@ -244,20 +275,5 @@ export class ProgressService {
 
   private error(code: ErrorCode, message: string) {
     return { code, message };
-  }
-
-  private csvCell(value: unknown) {
-    const text =
-      value === null || value === undefined
-        ? ""
-        : typeof value === "string" ||
-            typeof value === "number" ||
-            typeof value === "boolean" ||
-            typeof value === "bigint"
-          ? String(value)
-          : value instanceof Date
-            ? value.toISOString()
-            : (JSON.stringify(value) ?? "");
-    return `"${text.replace(/"/g, '""')}"`;
   }
 }

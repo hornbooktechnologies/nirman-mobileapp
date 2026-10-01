@@ -131,10 +131,10 @@
   },
   "export": {
     "title": "ખર્ચી એક્સપોર્ટ",
-    "action": "CSV એક્સપોર્ટ કરો",
-    "preparing": "CSV તૈયાર થઈ રહી છે…",
+    "action": "PDF નિકાસ કરો",
+    "preparing": "PDF બની રહી છે…",
     "failedTitle": "એક્સપોર્ટ ઉપલબ્ધ નથી",
-    "failed": "ખર્ચી CSV તૈયાર થઈ શકી નથી."
+    "failed": "ખર્ચી PDF તૈયાર થઈ શકી નથી."
   },
   "actions": {
     "cancel": "રદ કરો",

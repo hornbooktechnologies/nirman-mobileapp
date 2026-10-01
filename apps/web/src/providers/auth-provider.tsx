@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeOrganizationTimezone, setActiveOrganizationTimezone] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const accessTokenRef = useRef<string | null>(null);
+  const sessionRevisionRef = useRef(0);
 
   const storeAccessToken = useCallback((token: string | null) => {
     accessTokenRef.current = token;
@@ -100,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiTokenGetter(() => accessTokenRef.current);
     setApiAccessTokenSetter((token) => storeAccessToken(token));
     setApiSessionClearer(() => {
+      sessionRevisionRef.current++;
       clearGalleryQueue();
       setUser(null);
       setActiveOrganizationTimezone(null);
@@ -125,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async (organizationId?: string | null) => {
+    const revision = sessionRevisionRef.current;
     try {
       const preferredOrganizationId =
         organizationId !== undefined
@@ -133,12 +136,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? null
             : window.localStorage.getItem(ACTIVE_ORGANIZATION_STORAGE_KEY);
       const profile = await authService.getProfile(preferredOrganizationId);
+      if (revision !== sessionRevisionRef.current) return null;
       setUser(profile.user);
       storeActiveOrganization(profile.activeOrganizationId);
       setActiveOrganizationTimezone(profile.activeOrganizationTimezone);
       setIsLoading(false);
       return profile.user;
     } catch (error) {
+      if (revision !== sessionRevisionRef.current) return null;
       if (error instanceof ApiError && (error.statusCode === 401 || error.statusCode === 403)) clearGalleryQueue();
       setUser(null);
       setActiveOrganizationTimezone(null);
@@ -152,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
     async function hydrateSession() {
+      const revision = sessionRevisionRef.current;
       const storedToken =
         typeof window === "undefined"
           ? null
@@ -162,18 +168,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let activeToken = storedToken;
         if (!activeToken) {
           const refreshed = await authService.refresh();
+          if (!isMounted || revision !== sessionRevisionRef.current) return;
           activeToken = refreshed.accessToken;
           storeAccessToken(activeToken);
         }
-        if (isMounted) await refreshUser();
+        if (isMounted && revision === sessionRevisionRef.current) await refreshUser();
       } catch {
-        if (isMounted) {
+        if (isMounted && revision === sessionRevisionRef.current) {
           setUser(null);
           setActiveOrganizationTimezone(null);
           storeAccessToken(null);
         }
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted && revision === sessionRevisionRef.current) setIsLoading(false);
       }
     }
 
@@ -190,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       activeOrganizationId?: string | null;
       activeOrganizationTimezone?: string | null;
     }) => {
+      sessionRevisionRef.current++;
       setUser(session.user);
       storeAccessToken(session.accessToken);
       storeActiveOrganization(session.activeOrganizationId ?? null);
@@ -200,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const clearSession = useCallback(() => {
+    sessionRevisionRef.current++;
     clearGalleryQueue();
     setUser(null);
     setActiveOrganizationTimezone(null);

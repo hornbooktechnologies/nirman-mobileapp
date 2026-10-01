@@ -2,6 +2,26 @@
 
 Fixed exposed UUIDs on Web lead details: the lead API now includes convertedByName, and activity reads enrich booking references/dates, unit numbers and assignment names through project/organization-scoped related records. Web renders labeled activity fields and readable stages instead of raw JSON; unavailable names use explicit fallback text. No database mutations or migrations. API/Web type-checks, 19 Sales API tests, three activity-formatting tests, scoped Web lint and diff checks passed. Authenticated browser acceptance remains pending. ui-ux-pro-max companion skill was unavailable; existing Web UI patterns were followed.
 
+## 2026-10-01 - API-generated PDF exports, no report persistence
+
+Supersedes the earlier frontend PDF rendering slice. Attendance, Wages, Kharchi, Materials, Expenses and Progress now expose permission-protected /export/pdf endpoints (Wages beneath batches/:batchId). CSV and PDF share structured authorized report datasets; the API renders PDF bytes in memory using bundled Latin/Hindi/Gujarati fonts and sends a private/no-store attachment. No PDF database rows, server temp files, S3 writes or migrations. Headings retain project names and batch dates/status. Explicit PDF row/concurrency limits prevent silent truncation or unbounded rendering. Web only downloads API blobs; Mobile downloads exact bytes into a temporary device-cache file for Android folder save/native sharing. Preparation popups, elapsed time, cancellation, timeouts and duplicate-tap guards remain; client pdfmake/Expo Print renderers and Web font assets are removed. API/Web builds, all three type-checks, locale parity, new PDF code/scoped Web lint, 273 API tests and 14 client/adapter tests passed. Broad API lint still reports seven pre-existing errors and one warning in Attendance/Wages services, confirmed against HEAD. Live authenticated/browser/device/fluent-language/large-volume acceptance remains pending. Deploy API with packaged fonts before deployed clients. See docs/tasks/pdf-export-implementation-plan.md.
+
+## 2026-10-01 - Readable wage PDF identity
+
+Wage PDF headings on Web and Mobile now show the project name and selected batch period start/end instead of internal UUIDs. Download filenames use the batch dates. Web reuses the already authorized project-access name and verifies that the loaded batch matches the selected batch.
+
+## 2026-10-01 - Web and Mobile PDF exports
+
+Implemented frontend PDF exports for Attendance, Wages, Kharchi, Materials, Expenses and Progress using the existing permission-protected CSV APIs. Web export buttons download paginated PDFs with bundled Latin/Hindi/Gujarati fonts and a compact elapsed-time progress dialog. Mobile now creates PDF files, offers Android folder saving and native save/share, and includes Attendance's previously missing full-period export action. The en/hi/gu preparation sheet supports fetch cancellation, duplicate-tap guards, a fetch deadline and temporary-file cleanup. Shared CSV utilities retain every API field, quoted multiline text and both wage tables; numbered rows and worker identifiers repeat across wide-table groups. API, financial calculations and database are unchanged. Shared build, Web/Mobile type-checks, Web production build, scoped lint, locale parity, five PDF/CSV/native utility tests and two existing Progress adapter tests passed. Authenticated browser, fluent Indic typography and physical Android/iOS acceptance remain pending; new native packages require an app rebuild. See docs/tasks/pdf-export-implementation-plan.md.
+
+## 2026-10-01 - Web session refresh race safeguards
+
+Investigated reported AUTH_SESSION_REQUIRED after local login on project-access/me. Local env targets localhost:4000 via /api/v1; the supplied failing URL is the deployed Web origin, so the exact reported request remains unconfirmed. Unified startup and interceptor refreshes under one in-flight request; stale refreshes cannot overwrite a newer login token or clear its session. Provider revision guards prevent startup/profile responses from overwriting a newer login. Four transport tests cover concurrent refresh, rejected sessions, login-overlap token preservation and protected project-access retry with the new bearer token. Web type-check and scoped lint passed. Authenticated local/live acceptance remains pending; backend auth enforcement is unchanged.
+
+## 2026-10-01 - Web loader WASM fetch fix
+
+The shared Web Lottie loader now sets a same-origin WASM URL before mounting. Web dev/build scripts copy the exact installed renderer binary into an ignored public asset, avoiding external CDN downloads and version mismatch. Animation JSON is bundled to avoid fetch-abort console errors when short-lived loading screens unmount. Web type-check, scoped lint, WASM compilation and local HTTP 200/application-wasm verification passed. Browser signed-out Members-to-Login flow requests only the local WASM and reports no WASM/download/abort errors after the fix. Authenticated workflows remain unverified.
+
 ## 2026-10-01 - Invitation Web activation destination
 
 Changed `PUBLIC_ACTIVATION_WEB_URL` in local `.env` and `.env.example` to `https://nirman-mobileapp-web.vercel.app`; updated the existing activation-origin test and identity-access contract. Organization owner/member invitation emails generated by either client use this API setting and retain `/activate?token=...`. Deployed API environment rollout/restart remains pending; previously sent emails retain their original URLs.
@@ -98,7 +118,7 @@ Implemented project-scoped Gallery, private grouped photos, filters/summary/pagi
 
 Implemented project-scoped Web settings, filtered list/summary/pagination/CSV, draft/create/edit, all server-authorized transitions, signed immutable adjustments and full history. Effective project grants, server totals/actions, expected versions, isolated caches and exact uncertain retries are preserved. Eleven focused tests and scoped lint passed. Whole-Web type-check/lint/build have existing unrelated blockers; authenticated browser, responsive/accessibility and Web/Mobile acceptance remain pending. See [W4 Expenses parity and review](web-w4-expenses-parity.md). No backend change required; no Mobile/API/database changes, commit, push or deployment.
 
-## 2026-09-17 — W2 Web Kharchi
+## 2026-09-17 ï¿½ W2 Web Kharchi
 
 Implemented project-scoped Kharchi list/summary/filter/pagination/CSV, eligible Worker selection, record-paid advances, immutable corrections, and complete deduction/reversal history using existing APIs. Effective permissions, isolated context caches and stable uncertain retries are included. Five focused tests passed; whole-Web checks expose unrelated existing errors, and authenticated/cross-client acceptance remains pending. See [W2 Kharchi parity and review](web-w2-kharchi-parity.md). No Mobile/backend/database changes, commit, push or deployment.
 
@@ -689,3 +709,9 @@ Implemented Web scheduling, scoped list/detail/filters, reschedule/outcomes and 
 ## 2026-09-21 - W7c Web Unit Inventory / Import / Holds / Blocking
 
 Implemented Inventory list/detail/create/edit, total/per-area pricing, CSV preview/import, Lead interests, hold requests/decisions, direct blocking/release and server expiry refresh. Eight focused tests and scoped Sales lint pass; whole-Web baseline errors and authenticated acceptance remain open. See [W7c Inventory parity](web-w7c-inventory-parity.md) for the Mobile/API/Web checklist and backend concurrency/idempotency/CUSTOM requirements. Existing concurrent work preserved; no Mobile/API/database edits, commit, push or deployment.
+
+## 2026-10-01 - Web dashboard authentication recovery
+
+Investigated dashboard project-access/me, organizations and notifications/summary 401s after successful login. Login is public; these endpoints require bearer authentication. The screenshot shows direct localhost-to-Vercel requests, which cannot reliably use the API's SameSite=Strict refresh cookie. Web now always uses its same-origin /api/v1 rewrite; absolute legacy NEXT_PUBLIC_API_BASE_PATH values configure the proxy upstream, with trailing API paths normalized. Delayed 401s retry a newer bearer token before refresh, and overlapping refresh/login returns the current login token. Existing uncommitted session restoration changes were preserved.
+
+Verification: seven API-client/proxy regression tests, Web type-check and scoped ESLint passed. Restart the Web server to load the rewrite and sign in again to create the cookie on the Web origin. Authenticated browser acceptance remains pending; no API, Mobile or database changes.

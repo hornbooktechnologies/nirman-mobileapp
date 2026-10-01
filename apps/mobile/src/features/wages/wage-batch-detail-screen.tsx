@@ -1,3 +1,4 @@
+import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import {
   WAGE_PAYMENT_METHODS,
   type WagePaymentMethod,
@@ -35,7 +36,7 @@ import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import {
   cancelWageBatch,
-  exportWageBatchCsv,
+  exportWageBatchPdf,
   fetchWageBatchDetail,
   recordWagePayment,
   updateWageItem,
@@ -83,6 +84,7 @@ export function WageBatchDetailScreen() {
   const [itemNotes, setItemNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
+  const pdfExport = usePdfExport(`${organizationId}:${projectId}`);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
   const [error, setError] = useState("");
@@ -236,27 +238,8 @@ export function WageBatchDetailScreen() {
   }
 
   async function exportBatch() {
-    if (!organizationId || !projectId || !session?.accessToken || !detail)
-      return;
-    setIsBusy(true);
-    try {
-      const csv = await exportWageBatchCsv(
-        organizationId,
-        projectId,
-        detail.id,
-        session.accessToken,
-      );
-      Alert.alert(t("export.title"), csv);
-    } catch (exportFailure) {
-      Alert.alert(
-        t("export.failedTitle"),
-        exportFailure instanceof Error
-          ? exportFailure.message
-          : t("export.failedMessage"),
-      );
-    } finally {
-      setIsBusy(false);
-    }
+    if (!organizationId || !projectId || !session?.accessToken || !detail || !canExport || isBusy) return;
+    await pdfExport.run((signal) => exportWageBatchPdf(organizationId, projectId, detail.id, session.accessToken, signal), `${t("export.title")} · ${activeProject?.name ?? ""} · ${detail.periodStart} – ${detail.periodEnd}`);
   }
 
   async function cancelBatch() {
@@ -359,10 +342,10 @@ export function WageBatchDetailScreen() {
           </View>
           {canExport ? (
             <Button
-              label={t("export.action")}
+              label={pdfExport.busy ? t("export.preparing") : t("export.action")}
               leadingIcon="download-outline"
               variant="secondary"
-              disabled={isBusy}
+              disabled={isBusy || pdfExport.busy}
               onPress={() => void exportBatch()}
             />
           ) : null}
@@ -415,6 +398,7 @@ export function WageBatchDetailScreen() {
 
   return (
     <>
+      {pdfExport.popup}
       <NirmanScreenBackground
         footer={<CustomerTabBar activeKey="wages" />}
         scroll={false}

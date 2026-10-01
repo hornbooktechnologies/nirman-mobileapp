@@ -127,9 +127,10 @@
   },
   "export": {
     "title": "Wage export",
-    "action": "Export wages",
+    "action": "Export PDF",
     "failedTitle": "Export failed",
-    "failedMessage": "Try again when connected."
+    "failedMessage": "Try again when connected.",
+    "preparing": "Creating PDF…"
   },
   "cancellation": {
     "title": "Cancel wage batch?",

@@ -1,7 +1,8 @@
+import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import { MATERIAL_REQUEST_STATUSES, MATERIAL_WORKFLOW_MODES, type MaterialRequest, type MaterialRequestStatus, type MaterialSummary, type MaterialWorkflowMode } from '@nirman-app/shared';
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, BottomSheet, Button, Card, CompactScreenHeader, DateInput, EmptyState, FilterGroup, FilterOption, FormError, FormField, IconButton, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, StatusBadge } from '../../components/ui';
@@ -13,7 +14,7 @@ import { CustomerTabBar } from '../home/components';
 import { ProjectContextCard } from '../projects';
 import { MaterialRequestSheet } from './material-request-sheet';
 import { materialTone } from './materials-ui';
-import { configureMaterialSettings, exportMaterialsCsv, fetchMaterialSettings, fetchMaterials, fetchMaterialsSummary } from './services';
+import { configureMaterialSettings, exportMaterialsPdf, fetchMaterialSettings, fetchMaterials, fetchMaterialsSummary } from './services';
 import type { MaterialSettings } from './types';
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
@@ -29,7 +30,7 @@ export function MaterialsScreen() {
   const [search, setSearch] = useState(''); const [status, setStatus] = useState<MaterialRequestStatus | undefined>(); const [draftStatus, setDraftStatus] = useState<MaterialRequestStatus | undefined>();
   const [requiredFrom, setRequiredFrom] = useState(''); const [requiredTo, setRequiredTo] = useState(''); const [draftRequiredFrom, setDraftRequiredFrom] = useState(''); const [draftRequiredTo, setDraftRequiredTo] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false); const [createOpen, setCreateOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false);
-  const [page, setPage] = useState(1); const [totalPages, setTotalPages] = useState(1); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState(''); const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1); const [totalPages, setTotalPages] = useState(1); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState(''); const pdfExport = usePdfExport(`${organizationId}:${projectId}`); const exporting = pdfExport.busy;
   const sequence = useRef(0);
   const activeFilterCount = Number(Boolean(status)) + Number(Boolean(requiredFrom)) + Number(Boolean(requiredTo));
   const draftDateRangeInvalid = Boolean(draftRequiredFrom && draftRequiredTo && draftRequiredFrom > draftRequiredTo);
@@ -53,11 +54,9 @@ export function MaterialsScreen() {
 
   useEffect(() => { setItems([]); setSummary(null); setPage(1); void load(1); return () => { sequence.current += 1; }; }, [load]);
 
-  async function exportCsv() {
-    if (!organizationId || !projectId || !token || exporting) return; setExporting(true);
-    try { const result = await exportMaterialsCsv(organizationId, projectId, token, query); await Share.share({ title: t('export.title'), message: result.csv }); }
-    catch (exportError) { Alert.alert(t('export.failedTitle'), getLocalizedErrorMessage(exportError, t('export.failed'))); }
-    finally { setExporting(false); }
+  async function exportPdf() {
+    if (!organizationId || !projectId || !token || exporting || !canExport) return;
+    await pdfExport.run((signal) => exportMaterialsPdf(organizationId, projectId, token, query, signal), `${t('export.title')} · ${project?.name ?? projectId}`);
   }
 
   const header = <View style={styles.header}>
@@ -67,13 +66,13 @@ export function MaterialsScreen() {
     {settings && !settings.configured ? <Card style={styles.notice}><AppText style={styles.noticeText}>{t('settings.notConfigured')}</AppText>{canConfigure ? <Button label={t('settings.configureNow')} size="sm" fullWidth={false} variant="secondary" onPress={() => setSettingsOpen(true)} /> : null}</Card> : null}
     {summary ? <Card style={styles.summary}><View style={styles.summaryTop}><SummaryMetric label={t('summary.total')} value={formatNumber(summary.totalRequests, language)} /><SummaryMetric label={t('summary.overdue')} value={formatNumber(summary.overdueRequests, language)} danger={summary.overdueRequests > 0} /></View><View style={styles.summaryDivider} /><SummaryRow label={t('summary.estimated')} value={formatInr(Number(summary.estimatedCost), language)} /><SummaryRow label={t('summary.purchased')} value={formatInr(Number(summary.purchaseCost), language)} /></Card> : null}
     <ListControls><ListFilterBar search={<SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.search')} value={search} onChangeText={setSearch} />} filterLabel={tCommon('listFilters.action')} filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: activeFilterCount })} activeFilterCount={activeFilterCount} expanded={filtersOpen} onOpenFilters={() => { setDraftStatus(status); setDraftRequiredFrom(requiredFrom); setDraftRequiredTo(requiredTo); setFiltersOpen(true); }} />{activeFilterCount ? <AppliedFilters>{status ? <AppliedFilterChip label={t(`status.${status}`)} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t(`status.${status}`) })} onRemove={() => setStatus(undefined)} /> : null}{requiredFrom ? <AppliedFilterChip label={t('filters.fromChip', { date: formatDate(dateValue(requiredFrom), language) })} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t('filters.from') })} onRemove={() => setRequiredFrom('')} /> : null}{requiredTo ? <AppliedFilterChip label={t('filters.toChip', { date: formatDate(dateValue(requiredTo), language) })} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t('filters.to') })} onRemove={() => setRequiredTo('')} /> : null}</AppliedFilters> : null}</ListControls>
-    {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-delimited-outline" disabled={exporting} onPress={() => void exportCsv()} /> : null}
+    {canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-pdf-box" disabled={exporting} onPress={() => void exportPdf()} /> : null}
   </View>;
 
   if (!project || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
   if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
 
-  return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />} scroll={false}>
+  return <NirmanScreenBackground footer={<CustomerTabBar activeKey="materials" />} scroll={false}>{pdfExport.popup}
     <FlatList data={items} keyExtractor={(item) => item.id} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}
       ListEmptyComponent={loading ? <LoadingState label={t('loading.list')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={t('empty.title')} description={t('empty.description')} actionLabel={canCreate ? t('create.action') : undefined} onAction={canCreate ? () => settings?.configured ? setCreateOpen(true) : setSettingsOpen(true) : undefined} />}
       ListFooterComponent={loadingMore ? <LoadingState label={t('loading.more')} /> : null} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(1); }} />} onEndReachedThreshold={0.35} onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}

@@ -127,9 +127,10 @@
   },
   "export": {
     "title": "મજૂરી નિકાસ",
-    "action": "મજૂરી નિકાસ કરો",
+    "action": "PDF નિકાસ કરો",
     "failedTitle": "નિકાસ નિષ્ફળ",
-    "failedMessage": "કનેક્શન મળે ત્યારે ફરી પ્રયાસ કરો."
+    "failedMessage": "કનેક્શન મળે ત્યારે ફરી પ્રયાસ કરો.",
+    "preparing": "PDF બની રહી છે…"
   },
   "cancellation": {
     "title": "મજૂરી બેચ રદ કરવો?",

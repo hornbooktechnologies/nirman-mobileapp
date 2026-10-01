@@ -69,3 +69,8 @@ Verification: Mobile TypeScript check (local compiler), six executable error-map
 Effective-dated assignment-rate history is implemented through `worker_assignment_rate_periods`. Wages resolves the rate independently for each derived working date and stores `rate_breakdown` on confirmation. Migration `025_worker_assignment_rate_history.sql` must be applied before this behavior can be accepted at runtime. The migration treats each existing assignment's current rate as the only known baseline from its assignment start because undocumented earlier changes cannot be reconstructed.
 
 Migration `026_wage_batch_cancellation.sql` adds the cancellation reason, immutable Kharchi allocation reversals, and the owner-role `wages:cancel` grants. It was applied to the configured remote development database on 2026-09-15 and verified read-only; authenticated runtime acceptance remains separate from source/schema verification.
+
+
+## On-demand PDF export - 2026-10-01
+
+User-approved addition: `GET /organizations/:organizationId/projects/:projectId/wages/batches/:batchId/export/pdf` accepts the existing export scope/query and requires `wages:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.

@@ -23,6 +23,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { GalleryModule } from "./modules/gallery/gallery.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { PdfExportModule } from "./common/exports/pdf-export.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AppService } from "./app.service";
       envFilePath: [".env", "../../.env"],
     }),
     DatabaseModule,
+    PdfExportModule,
     AuthModule,
     UsersModule,
     RolesModule,
