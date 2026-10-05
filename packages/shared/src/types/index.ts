@@ -91,3 +91,6 @@ export * from "./progress";
 export * from "./workers";
 export * from "./onboarding";
 export * from "./wages";
+
+export * from './total-expenses';
+export * from './paid-spending-utils';

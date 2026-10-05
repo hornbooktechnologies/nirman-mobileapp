@@ -3,8 +3,11 @@ import type {
   ProjectAccessScope,
   ProjectStatus,
   ProjectType,
-} from '@nirman-app/shared';
-import type { OrganizationEntity, OrganizationMemberEntity } from '../../organizations/types/organizations.types';
+} from "@nirman-app/shared";
+import type {
+  OrganizationEntity,
+  OrganizationMemberEntity,
+} from "../../organizations/types/organizations.types";
 
 export interface ResolvedOrganizationAccess {
   organization: OrganizationEntity;
@@ -21,7 +24,7 @@ export interface AccessibleProjectSummary {
   expectedCompletionDate: string | null;
   status: ProjectStatus;
   roleLabel: string | null;
-  permissionMode: 'ROLE_DEFAULT' | 'CUSTOM';
+  permissionMode: "ROLE_DEFAULT" | "CUSTOM";
   permissions: PermissionKey[];
   isDefault: boolean;
 }
@@ -46,7 +49,7 @@ export interface ResolvedProjectAccess extends ResolvedOrganizationAccess {
   projectMember: {
     id: string;
     roleLabel: string | null;
-    permissionMode: 'ROLE_DEFAULT' | 'CUSTOM';
+    permissionMode: "ROLE_DEFAULT" | "CUSTOM";
     grantedPermissions: PermissionKey[];
   } | null;
   rolePermissions: PermissionKey[];

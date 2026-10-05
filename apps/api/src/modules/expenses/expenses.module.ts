@@ -1,3 +1,4 @@
+import { SourcePaymentsModule } from "../source-payments/source-payments.module";
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
 import { NotificationsModule } from "../notifications/notifications.module";
@@ -7,7 +8,12 @@ import { ExpensesRepository } from "./expenses.repository";
 import { ExpensesService } from "./expenses.service";
 
 @Module({
-  imports: [AuditModule, NotificationsModule, ProjectAccessModule],
+  imports: [
+    SourcePaymentsModule,
+    AuditModule,
+    NotificationsModule,
+    ProjectAccessModule,
+  ],
   controllers: [ExpensesController],
   providers: [ExpensesRepository, ExpensesService],
   exports: [ExpensesService],

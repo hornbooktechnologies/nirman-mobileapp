@@ -729,8 +729,8 @@ export class KharchiRepository {
 
   private statusHavingSql(status?: KharchiBalanceStatus) {
     if (!status) return "";
-    const effective = "(ka.amount + COALESCE(adj.adjustment_amount, 0))";
-    const deducted = "COALESCE(ded.deducted_amount, 0)";
+    const effective = "(ka.amount + adjustment_amount)";
+    const deducted = "deducted_amount";
     if (status === "PAID") return `HAVING ${deducted} = 0 AND ${effective} > 0`;
     if (status === "PARTIALLY_DEDUCTED") {
       return `HAVING ${deducted} > 0 AND ${effective} > ${deducted}`;
@@ -744,8 +744,7 @@ export class KharchiRepository {
       requestDate: "ka.request_date",
       createdAt: "ka.created_at",
       workerName: "w.name",
-      outstandingAmount:
-        "(ka.amount + COALESCE(adj.adjustment_amount, 0) - COALESCE(ded.deducted_amount, 0))",
+      outstandingAmount: "(ka.amount + adjustment_amount - deducted_amount)",
     } as const;
     return `${columns[query.sortBy ?? "requestDate"]} ${direction}, ka.id ${direction}`;
   }
@@ -754,8 +753,8 @@ export class KharchiRepository {
     return `SELECT ka.*, w.worker_code, w.name AS worker_name, w.trade,
       recorder.name AS recorded_by_name, p.name AS project_name,
       wpa.starts_on AS assignment_starts_on, wpa.ends_on AS assignment_ends_on,
-      COALESCE(adj.adjustment_amount, 0) AS adjustment_amount,
-      COALESCE(ded.deducted_amount, 0) AS deducted_amount
+      COALESCE((SELECT SUM(a.amount) FROM kharchi_adjustments a WHERE a.kharchi_advance_id=ka.id AND a.organization_id=ka.organization_id AND a.project_id=ka.project_id),0) AS adjustment_amount,
+      COALESCE((SELECT SUM(kda.deduction_amount) FROM kharchi_deduction_allocations kda LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id=kda.id WHERE kda.kharchi_advance_id=ka.id AND kda.organization_id=ka.organization_id AND kda.project_id=ka.project_id AND kdar.id IS NULL),0) AS deducted_amount
     FROM kharchi_advances ka
     INNER JOIN workers w ON w.id = ka.worker_id AND w.organization_id = ka.organization_id
     LEFT JOIN \`user\` recorder ON recorder.id = ka.recorded_by
@@ -763,17 +762,7 @@ export class KharchiRepository {
     LEFT JOIN worker_project_assignments wpa ON wpa.id = ka.worker_assignment_id
       AND wpa.organization_id = ka.organization_id AND wpa.project_id = ka.project_id
       AND wpa.worker_id = ka.worker_id
-    LEFT JOIN (
-      SELECT kharchi_advance_id, SUM(amount) AS adjustment_amount
-      FROM kharchi_adjustments GROUP BY kharchi_advance_id
-    ) adj ON adj.kharchi_advance_id = ka.id
-    LEFT JOIN (
-      SELECT kda.kharchi_advance_id, SUM(kda.deduction_amount) AS deducted_amount
-      FROM kharchi_deduction_allocations kda
-      LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
-      WHERE kdar.id IS NULL
-      GROUP BY kda.kharchi_advance_id
-    ) ded ON ded.kharchi_advance_id = ka.id`;
+`;
   }
 
   private mapAdvance(row: KharchiRow): KharchiAdvance {

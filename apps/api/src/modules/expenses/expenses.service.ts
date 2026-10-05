@@ -12,6 +12,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { isCalendarDate } from "@nirman-app/shared";
 import type {
   ErrorCode,
   ExpenseAvailableAction,
@@ -130,6 +131,7 @@ export class ExpensesService {
       access.membership.id,
       access.permissions,
       this.canApproveOwnExpense(access),
+      access.project.status === "ACTIVE",
     );
   }
 
@@ -139,6 +141,7 @@ export class ExpensesService {
     dto: CreateExpenseDto,
     actor: AuthenticatedUser,
   ) {
+    this.assertActiveCategory(dto.category);
     const access = await this.access(
       actor,
       organizationId,
@@ -188,6 +191,19 @@ export class ExpensesService {
     dto: UpdateExpenseDto,
     actor: AuthenticatedUser,
   ) {
+    if (
+      dto.category &&
+      ["MATERIAL_PURCHASE", "LABOUR_RELATED"].includes(dto.category)
+    ) {
+      await this.access(actor, organizationId, projectId, "expenses:read");
+      const existing = await this.repository.findDetail(
+        organizationId,
+        projectId,
+        expenseId,
+      );
+      if (existing?.category !== dto.category)
+        this.assertActiveCategory(dto.category);
+    }
     const access = await this.access(
       actor,
       organizationId,
@@ -511,15 +527,18 @@ export class ExpensesService {
     actorMemberId: string,
     permissions: readonly PermissionKey[],
     canSelfApprove: boolean,
+    active = true,
   ) {
     return {
       ...detail,
-      availableActions: this.availableActions(
-        detail.status,
-        detail.recordedByMemberId === actorMemberId,
-        permissions,
-        canSelfApprove,
-      ),
+      availableActions: active
+        ? this.availableActions(
+            detail.status,
+            detail.recordedByMemberId === actorMemberId,
+            permissions,
+            canSelfApprove,
+          )
+        : [],
     };
   }
 
@@ -621,6 +640,13 @@ export class ExpensesService {
   }
 
   private validateExpenseDate(value: string) {
+    if (!isCalendarDate(value))
+      throw new BadRequestException(
+        this.error(
+          "VALIDATION_FAILED",
+          "Expense date must be a valid YYYY-MM-DD calendar date",
+        ),
+      );
     if (value.slice(0, 10) > this.todayInIndia()) {
       throw new BadRequestException(
         this.error(
@@ -644,6 +670,16 @@ export class ExpensesService {
   }
 
   private validateRange(start?: string, end?: string) {
+    if (
+      (start !== undefined && !isCalendarDate(start)) ||
+      (end !== undefined && !isCalendarDate(end))
+    )
+      throw new BadRequestException(
+        this.error(
+          "VALIDATION_FAILED",
+          "Expense filters require valid YYYY-MM-DD calendar dates",
+        ),
+      );
     if (start && end && end < start) {
       throw new BadRequestException(
         this.error("VALIDATION_FAILED", "End date cannot be before start date"),
@@ -652,8 +688,17 @@ export class ExpensesService {
   }
 
   private requireReason(reason: string | null | undefined, message: string) {
-    if (!reason?.trim())
+    if (!reason || reason.trim().length < 2)
       throw new BadRequestException(this.error("VALIDATION_FAILED", message));
+  }
+
+  private assertActiveCategory(category: string) {
+    if (["MATERIAL_PURCHASE", "LABOUR_RELATED"].includes(category))
+      throw new BadRequestException({
+        code: "EXPENSE_CATEGORY_RETIRED",
+        message:
+          "Record material purchases in Materials and worker wages in Wages",
+      });
   }
 
   private assertActiveProject(status: string) {

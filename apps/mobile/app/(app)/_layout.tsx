@@ -32,6 +32,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="materials" />
       <Stack.Screen name="material-detail" />
       <Stack.Screen name="expenses" />
+      <Stack.Screen name="total-expenses" />
       <Stack.Screen name="expense-detail" />
       <Stack.Screen name="progress" />
       <Stack.Screen name="gallery" />

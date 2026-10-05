@@ -345,3 +345,25 @@ The Product Owner approved all decisions below on 2026-09-02:
 ## On-demand PDF export - 2026-10-01
 
 User-approved addition: `GET /organizations/:organizationId/projects/:projectId/expenses/export/pdf` accepts the existing export scope/query and requires `expenses:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.
+
+## 2026-10-05 — Paid spending integration
+
+Approved addition: follow `docs/modules/construction/total-expenses/CONTRACTS.md`. Total Expenses consumes actual dated payments (partial included), with dedicated cross-source report visibility. Materials/Expenses gain source-scoped payment recording and audited voids; approval does not establish payment. No inferred historical payments or automatic cross-module entries. Wage payment/cancellation behavior and Kharchi deductions remain unchanged.
+
+Payments require APPROVED expenses and use original amount plus approved adjustments. expenses:read plus expenses:mark-paid or expenses:void-payment controls entry/correction. Adjustments cannot reduce recognized cost below active payments. New creation/new category selection rejects MATERIAL_PURCHASE and LABOUR_RELATED; unchanged legacy categories remain readable/editable, marked for classification review, and their confirmed payments remain included. `total-expenses:read` reveals this source’s financial report data without its detail-read permission; opening detail still requires the existing source-read permission. No historical inference, cross-module creation or automatic links.
+
+
+## 2026-10-05 Site Expense detail simplification
+
+User-authorized Web/Mobile presentation change: approved Site Expenses expose Record adjustment and Record payment according to existing effective permissions and source eligibility. Separate payment summary/history, adjustment list, void actions, metadata and related-project guidance are removed from the expense detail presentation. Original cost/adjustment/recognized amounts remain available; draft/pending review controls retain the approved workflow. Backend void endpoints, audit history, financial totals, concurrency and idempotency rules remain unchanged.
+
+A shared newest-first timeline combines workflow events, signed adjustments, payments and historical void events, without repeating matching adjustment workflow events. Older/incomplete API payment ledgers are explicitly unavailable; clients never infer paid totals or enable payment recording from missing fields. API deployment with payment ledger support is required for payment recording. Mobile labels preserve en/hi/gu parity.
+
+Verification: shared build, focused legacy-ledger/timeline regression checks and locale validation; Web/Mobile typechecks and scoped Web lint are recorded in the task ledger. Authenticated financial writes and physical-device acceptance were not run.
+
+
+### 2026-10-05 Mobile timeline/payment follow-up
+
+Adjustment rows are now canonical whenever detail adjustments exist; ADJUSTED workflow events remain fallback-only. Timestamp differences between the audit event and adjustment no longer render two entries. Mobile timeline cards stack title, timestamp, signed amount and actor, with shrinking card width to prevent overflow. Organization working timezone is used. Both clients keep Record payment visible in compact expense controls; it is disabled for incomplete/unavailable ledgers, absent grants, inactive sources or no remaining payable amount. No financial state is inferred from an older API response.
+
+Shared build, Web/Mobile typechecks, scoped Web lint, timeline/ledger regression tests and en/hi/gu locale validation passed. Read-only configured remote DB inspection found all four payment tables; the initial rollout checker stopped because it assumes zero payments and existing site expense payments are present. This is not a missing-table finding. Mobile is configured to the live Vercel API; its authenticated deployed expense ledger/permission response and deployed API/database alignment remain to verify. No DB writes, migrations, deployment or physical-device visual acceptance were performed.

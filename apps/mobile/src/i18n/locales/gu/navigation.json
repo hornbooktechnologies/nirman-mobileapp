@@ -14,6 +14,8 @@
     "menu": "મેનુ"
   },
   "items": {
+    "totalExpenses": {"title": "કુલ ખર્ચ", "description": "સાઇટ પર કરેલી ચુકવણી"},
+
     "home": {
       "title": "હોમ",
       "description": "તમારું ફીલ્ડ કમાન્ડ સેન્ટર"

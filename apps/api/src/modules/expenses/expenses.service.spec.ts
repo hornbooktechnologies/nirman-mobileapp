@@ -263,4 +263,93 @@ describe("ExpensesService", () => {
     });
     expect(repository.adjust).not.toHaveBeenCalled();
   });
+  it.each(["MATERIAL_PURCHASE", "LABOUR_RELATED"] as const)(
+    "rejects newly created retired category %s",
+    async (category) => {
+      await expect(
+        service.create(
+          organizationId,
+          projectId,
+          {
+            expenseDate: "2026-09-20",
+            category,
+            description: "Legacy duplicate",
+            amount: 10,
+            idempotencyKey: "retired-category-001",
+            saveAsDraft: false,
+          },
+          actor,
+        ),
+      ).rejects.toThrow("Record material purchases in Materials");
+      expect(repository.create).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["2026-02-30", "2026-09-20T00:00:00Z", "invalid"])(
+    "rejects non-calendar expense date %s before writes",
+    async (expenseDate) => {
+      await expect(
+        service.create(
+          organizationId,
+          projectId,
+          {
+            expenseDate,
+            category: "FOOD",
+            description: "Site meal",
+            amount: 100,
+            saveAsDraft: false,
+            idempotencyKey: "invalid-date-key",
+          },
+          actor,
+        ),
+      ).rejects.toMatchObject({ response: { code: "VALIDATION_FAILED" } });
+      expect(repository.create).not.toHaveBeenCalled();
+    },
+  );
+  it("rejects impossible filter dates before list reads", async () => {
+    await expect(
+      service.findMany(
+        organizationId,
+        projectId,
+        { page: 1, pageSize: 20, expenseFrom: "2026-02-30" },
+        actor,
+      ),
+    ).rejects.toMatchObject({ response: { code: "VALIDATION_FAILED" } });
+    expect(repository.findMany).not.toHaveBeenCalled();
+  });
+  it("rejects one-character cancellation reasons", () => {
+    expect(() =>
+      service.cancel(
+        organizationId,
+        projectId,
+        expenseId,
+        {
+          expectedVersion: 1,
+          idempotencyKey: "short-reason-key",
+          reason: " x ",
+        },
+        actor,
+      ),
+    ).toThrow("A cancellation reason is required");
+    expect(repository.transition).not.toHaveBeenCalled();
+  });
+  it("returns no write actions for archived projects", async () => {
+    projectAccess.resolveProjectAccess.mockResolvedValue({
+      organization: { type: "BUILDER" },
+      project: { status: "ARCHIVED" },
+      membership: { id: memberId },
+      permissions: ["expenses:read", "expenses:adjust"],
+    } as any);
+    repository.findDetail.mockResolvedValue({
+      id: expenseId,
+      status: "APPROVED",
+      recordedByMemberId: memberId,
+    } as any);
+    const detail = await service.findDetail(
+      organizationId,
+      projectId,
+      expenseId,
+      actor,
+    );
+    expect(detail.availableActions).toEqual([]);
+  });
 });

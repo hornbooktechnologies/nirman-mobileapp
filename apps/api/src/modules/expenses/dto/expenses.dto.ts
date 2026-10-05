@@ -69,6 +69,7 @@ export class CreateExpenseDto extends IdempotentDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
+  @Max(999999999999.99)
   amount!: number;
   @IsOptional()
   @IsIn(EXPENSE_PAYMENT_METHODS)
@@ -91,6 +92,7 @@ export class UpdateExpenseDto extends IdempotentDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
+  @Max(999999999999.99)
   amount?: number;
   @IsOptional()
   @IsIn(EXPENSE_PAYMENT_METHODS)
@@ -108,6 +110,10 @@ export class ExpenseCommandDto extends IdempotentDto {
 
 export class AdjustExpenseDto extends IdempotentDto {
   @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
-  @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) amount!: number;
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(-999999999999.99)
+  @Max(999999999999.99)
+  amount!: number;
   @Transform(trim) @IsString() @MinLength(2) @MaxLength(2000) reason!: string;
 }

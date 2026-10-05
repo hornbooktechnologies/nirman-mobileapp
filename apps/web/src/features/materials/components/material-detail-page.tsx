@@ -1,9 +1,10 @@
 "use client";
+import { SourcePaymentsPanel } from "@/features/total-expenses/source-payments-panel";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { Button, Card, LoadingState } from "@/components/ui";
-import { safeFinancialReturn } from "@/features/financial-return";
+import { safeFinancialReturn, totalExpensesReturn } from "@/features/financial-return";
 import { useMaterialDetail } from "../hooks/use-materials";
 import { label, materialActions } from "../material-rules";
 import type { MaterialAction } from "../types/materials.types";
@@ -38,6 +39,14 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
       ? "Draft created. Review it and submit when ready."
       : "",
   );
+  const purchaseFocused = useRef(false);
+  useEffect(() => {
+    if (purchaseFocused.current || !query.data) return;
+    const anchor = window.location.hash.slice(1);
+    if (!query.data.purchases.some(p => anchor === `purchase-${p.id}`)) return;
+    const frame = requestAnimationFrame(() => { const target = document.getElementById(anchor); if (target) { target.scrollIntoView({block: "start"}); purchaseFocused.current = true; } });
+    return () => cancelAnimationFrame(frame);
+  }, [query.data]);
   const refresh = async () => {
     const result = await query.refetch();
     return result.isError ? undefined : result.data;
@@ -66,7 +75,7 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
         className="underline"
         href={safeFinancialReturn(search.get("returnTo"), context.project, "materials")}
       >
-        Back to Materials
+        {totalExpensesReturn(search.get("returnTo"), context.project) ? "Back to Total Expenses" : "Back to Materials"}
       </Link>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -139,7 +148,7 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
         {!d.purchases.length && <Card>No purchases recorded.</Card>}
         <div className="grid gap-3 lg:grid-cols-2">
           {d.purchases.map((p) => (
-            <Card key={p.id} className="space-y-3">
+            <Card key={p.id} id={`purchase-${p.id}`} className="space-y-3">
               <h3 className="font-semibold">
                 {p.vendorName ?? "Purchase"} · {p.orderedQuantity} {unit}
               </h3>
@@ -152,6 +161,7 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
                   ["Recorded by", p.recordedBy],
                 ]}
               />
+              <SourcePaymentsPanel org={context.org} project={context.project} source="materials" id={p.id} parent={d.id} ledger={p} version={d.version} permissions={context.permissions} active={context.active} timezone={context.timezone} onSaved={refresh} />
               {p.notes && (
                 <p className="whitespace-pre-wrap break-words">{p.notes}</p>
               )}
@@ -227,7 +237,7 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
         </ol>
       </section>
       {context.permissions.includes("expenses:read") && <Card className="space-y-2"><h2 className="text-lg font-semibold">Related project work</h2><p className="text-sm text-sub">Material purchases do not automatically create Site Expenses. Review project expenses separately.</p><Link className="underline" href={`/projects/${context.project}/expenses`}>View project Site Expenses</Link></Card>}
-      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Version {d.version} · Request ID {d.id}</p></details>
+      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Version {d.version}</p></details>
       {action && (
         <MaterialForm
           context={context}

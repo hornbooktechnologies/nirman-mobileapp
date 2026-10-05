@@ -1,4 +1,4 @@
-import { findMaterialApprovalMembers } from "./material-approval-policy";
+import { findMaterialApprovalForMemberProjects } from "./material-approval-policy";
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../../database/database.service";
 import type { DbRow } from "../../database/database.types";
@@ -44,14 +44,46 @@ export class ProjectAccessRepository {
     projectId: string,
     memberId: string,
   ) {
-    const members = await findMaterialApprovalMembers(
+    return (
+      await this.findMaterialApprovalProjects(organizationId, memberId, [
+        projectId,
+      ])
+    ).has(projectId);
+  }
+
+  findMaterialApprovalProjects(
+    organizationId: string,
+    memberId: string,
+    projectIds: readonly string[],
+  ) {
+    return findMaterialApprovalForMemberProjects(
       this.database,
       organizationId,
-      projectId,
+      memberId,
+      projectIds,
     );
-    return members.some(
-      (member) => member.memberId === memberId && Boolean(member.canApprove),
+  }
+
+  async findPermissionGrantsForProjects(
+    organizationId: string,
+    memberId: string,
+    projectIds: readonly string[],
+  ) {
+    const grants = new Map<string, string[]>();
+    if (!projectIds.length) return grants;
+    const rows = await this.database.query<
+      PermissionGrantRow & { project_id: string }
+    >(
+      `SELECT project_id,permission_key FROM project_member_permission_grants
+       WHERE organization_id=? AND member_id=? AND project_id IN (${projectIds.map(() => "?").join(",")})`,
+      [organizationId, memberId, ...projectIds],
     );
+    for (const row of rows) {
+      const keys = grants.get(row.project_id) ?? [];
+      keys.push(row.permission_key);
+      grants.set(row.project_id, keys);
+    }
+    return grants;
   }
 
   async findPermissionsForMemberRole(roleId: string) {
@@ -73,9 +105,12 @@ export class ProjectAccessRepository {
     const rows = await this.database.query<AccessibleProjectRow>(
       organizationWideProjectAccess
         ? `SELECT p.id, p.name, p.project_code, p.start_date,
-            p.expected_completion_date, p.status, NULL AS role_label,
-            NULL AS project_member_id, NULL AS permission_mode
-          FROM projects p
+            p.expected_completion_date, p.status, pm.role_label,
+            pm.id AS project_member_id, pm.permission_mode
+          FROM projects p LEFT JOIN project_members pm ON pm.project_id=p.id AND pm.organization_id=p.organization_id
+            AND pm.member_id=? AND pm.status='ACTIVE'
+            AND (pm.starts_on IS NULL OR pm.starts_on<=CURRENT_DATE)
+            AND (pm.ends_on IS NULL OR pm.ends_on>=CURRENT_DATE)
           WHERE p.organization_id = ?
           ORDER BY FIELD(p.status, 'ACTIVE', 'DRAFT', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'), p.name ASC`
         : `SELECT p.id, p.name, p.project_code, p.start_date,
@@ -90,7 +125,7 @@ export class ProjectAccessRepository {
             AND (pm.ends_on IS NULL OR pm.ends_on >= CURRENT_DATE)
           ORDER BY FIELD(p.status, 'ACTIVE', 'DRAFT', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'), p.name ASC`,
       organizationWideProjectAccess
-        ? [organizationId]
+        ? [memberId, organizationId]
         : [organizationId, memberId],
     );
     return rows;

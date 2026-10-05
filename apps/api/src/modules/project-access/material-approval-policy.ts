@@ -22,7 +22,18 @@ export async function findMaterialApprovalMembers(
   connection?: DatabaseConnection,
 ) {
   return database.query<MaterialApprovalMember>(
-    `SELECT om.id memberId, om.user_id userId, u.name, r.name roleName,
+    materialApprovalSql(connection),
+    [projectId, projectId, organizationId],
+    connection,
+  );
+}
+
+function materialApprovalSql(
+  connection?: DatabaseConnection,
+  batchIds?: readonly string[],
+) {
+  const projectRef = batchIds ? "scoped.id" : "?";
+  return `SELECT ${batchIds ? "scoped.id projectId," : ""} om.id memberId, om.user_id userId, u.name, r.name roleName,
       ((o.type = 'BUILDER' AND r.name = 'Organization Owner') OR
        (o.type = 'CONTRACTOR' AND r.name = 'Independent Contractor Owner')) isOwner,
       (ma.member_id IS NOT NULL) delegated,
@@ -37,26 +48,42 @@ export async function findMaterialApprovalMembers(
           SELECT 1 FROM project_member_permission_grants g WHERE g.organization_id = om.organization_id
           AND g.project_id = pm.project_id AND g.member_id = om.id AND g.permission_key = 'materials:approve-final'${connection ? " FOR UPDATE" : ""}))
       )) canApprove
-     FROM organization_members om
+     FROM ${batchIds ? "projects scoped INNER JOIN organization_members om ON om.organization_id=scoped.organization_id" : "organization_members om"}
      INNER JOIN organizations o ON o.id = om.organization_id AND o.status = 'ACTIVE'
      INNER JOIN role r ON r.id = om.role_id
      INNER JOIN \`user\` u ON u.id = om.user_id AND u.isActive = 1
      LEFT JOIN project_members pm ON pm.organization_id = om.organization_id
-       AND pm.project_id = ? AND pm.member_id = om.id AND pm.status = 'ACTIVE'
+       AND pm.project_id = ${projectRef} AND pm.member_id = om.id AND pm.status = 'ACTIVE'
        AND (pm.starts_on IS NULL OR pm.starts_on <= CURRENT_DATE)
        AND (pm.ends_on IS NULL OR pm.ends_on >= CURRENT_DATE)
      LEFT JOIN project_material_approvers ma ON ma.organization_id = om.organization_id
-       AND ma.project_id = ? AND ma.member_id = om.id
-     WHERE om.organization_id = ? AND om.status = 'ACTIVE'
+       AND ma.project_id = ${projectRef} AND ma.member_id = om.id
+     WHERE ${batchIds ? `scoped.id IN (${batchIds.map(() => "?").join(",")}) AND om.id = ? AND` : ""} om.organization_id = ? AND om.status = 'ACTIVE'
        AND (om.organization_wide_project_access = 1 OR pm.id IS NOT NULL)
        AND EXISTS (SELECT 1 FROM permission p WHERE p.roleId = om.role_id
          AND p.resource = 'materials' AND p.action = 'read'${connection ? " FOR UPDATE" : ""})
        AND (pm.permission_mode IS NULL OR pm.permission_mode = 'ROLE_DEFAULT' OR EXISTS (
          SELECT 1 FROM project_member_permission_grants g WHERE g.organization_id = om.organization_id
          AND g.project_id = pm.project_id AND g.member_id = om.id AND g.permission_key = 'materials:read'${connection ? " FOR UPDATE" : ""}))
-     ORDER BY u.name, om.id${connection ? " FOR UPDATE" : ""}`,
-    [projectId, projectId, organizationId],
-    connection,
+     ORDER BY u.name, om.id${connection ? " FOR UPDATE" : ""}`;
+}
+
+export async function findMaterialApprovalForMemberProjects(
+  database: DatabaseService,
+  organizationId: string,
+  memberId: string,
+  projectIds: readonly string[],
+) {
+  if (!projectIds.length) return new Set<string>();
+  const rows = await database.query<
+    MaterialApprovalMember & { projectId: string }
+  >(materialApprovalSql(undefined, projectIds), [
+    ...projectIds,
+    memberId,
+    organizationId,
+  ]);
+  return new Set(
+    rows.filter((row) => Boolean(row.canApprove)).map((row) => row.projectId),
   );
 }
 

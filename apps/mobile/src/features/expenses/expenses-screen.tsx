@@ -1,80 +1,1135 @@
-import { usePdfExport } from '../../lib/exports/use-pdf-export';
-import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS, EXPENSE_STATUSES, EXPENSE_WORKFLOW_MODES, type ExpenseCategory, type ExpensePaymentMethod, type ExpenseStatus, type ExpenseWorkflowMode, type SiteExpense, type SiteExpenseSummary } from '@nirman-app/shared';
-import { router, type Href } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { usePdfExport } from "../../lib/exports/use-pdf-export";
+import {
+  isCalendarDate,
+  EXPENSE_CATEGORIES,
+  EXPENSE_PAYMENT_METHODS,
+  EXPENSE_STATUSES,
+  EXPENSE_WORKFLOW_MODES,
+  type ExpenseCategory,
+  type ExpensePaymentMethod,
+  type ExpenseStatus,
+  type ExpenseWorkflowMode,
+  type SiteExpense,
+  type SiteExpenseSummary,
+} from "@nirman-app/shared";
+import { router, type Href } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
+import { useTranslation } from "react-i18next";
 
-import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, BottomSheet, Button, Card, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, SearchableSelect, StatusBadge } from '../../components/ui';
-import { formatDate as formatDateTyped, formatInr as formatInrTyped, formatNumber as formatNumberTyped, getLocalizedErrorMessage, type SupportedLanguage } from '../../i18n';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
-import { useLocalization, useSession } from '../../providers';
-import { mobileText, mobileTheme } from '../../theme';
-import { CustomerTabBar } from '../home/components';
-import { ProjectContextCard } from '../projects';
-import { ExpenseFormSheet } from './expense-form-sheet';
-import { expenseTone, mutationKey } from './expenses-ui';
-import { configureExpenseSettings, exportExpensesPdf, fetchExpenseSettings, fetchExpenses, fetchExpenseSummary } from './services';
-import type { ExpenseSettings } from './types';
+import {
+  AppliedFilterChip,
+  AppliedFilters,
+  AppIcon,
+  AppText,
+  BottomSheet,
+  Button,
+  Card,
+  CompactScreenHeader,
+  DateInput,
+  EmptyState,
+  FormError,
+  FormField,
+  IconButton,
+  ListControls,
+  ListFilterBar,
+  ListFilterSheet,
+  LoadingState,
+  NirmanScreenBackground,
+  OperationalEntityCard,
+  SearchField,
+  SearchableSelect,
+  StatusBadge,
+} from "../../components/ui";
+import {
+  formatDate as formatDateTyped,
+  formatInr as formatInrTyped,
+  formatNumber as formatNumberTyped,
+  getLocalizedErrorMessage,
+  type SupportedLanguage,
+} from "../../i18n";
+import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { useLocalization, useSession } from "../../providers";
+import { mobileText, mobileTheme } from "../../theme";
+import { CustomerTabBar } from "../home/components";
+import { fetchProjectMembers } from "../members/services";
+import type { ProjectMember } from "../members/types";
+import type { ExpensesQuery } from "./types";
+import { ProjectContextCard } from "../projects";
+import { useExpenseCommand } from "./use-expense-command";
+import { ExpenseFormSheet } from "./expense-form-sheet";
+import { expenseTone, mutationKey } from "./expenses-ui";
+import {
+  configureExpenseSettings,
+  exportExpensesPdf,
+  fetchExpenseSettings,
+  fetchExpenses,
+  fetchExpenseSummary,
+} from "./services";
+import type { ExpenseSettings } from "./types";
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
-const formatDate = (value: Date, language: string) => formatDateTyped(value, language as SupportedLanguage);
-const formatInr = (value: number, language: string) => formatInrTyped(value, language as SupportedLanguage);
-const formatNumber = (value: number, language: string) => formatNumberTyped(value, language as SupportedLanguage);
-const ALL_FILTER_VALUE = '__ALL__' as const;
+const formatDate = (value: Date, language: string) =>
+  formatDateTyped(value, language as SupportedLanguage);
+const formatInr = (value: number, language: string) =>
+  formatInrTyped(value, language as SupportedLanguage);
+const formatNumber = (value: number, language: string) =>
+  formatNumberTyped(value, language as SupportedLanguage);
+const ALL_FILTER_VALUE = "__ALL__" as const;
 
 export function ExpensesScreen() {
-  const { t } = useTranslation('expenses'); const { t: tCommon } = useTranslation('common'); const { language } = useLocalization(); const { session } = useSession();
-  const project = getActiveProject(session); const permissions = getActiveProjectPermissions(session); const organizationId = session?.activeOrganization?.id ?? null; const projectId = project?.id ?? null; const token = session?.accessToken ?? null;
-  const canRead = permissions.includes('expenses:read'); const canCreate = permissions.includes('expenses:create') && project?.status === 'ACTIVE'; const canConfigure = permissions.includes('expenses:configure') && project?.status === 'ACTIVE'; const canExport = permissions.includes('expenses:export');
-  const [items, setItems] = useState<SiteExpense[]>([]); const [summary, setSummary] = useState<SiteExpenseSummary | null>(null); const [settings, setSettings] = useState<ExpenseSettings | null>(null);
-  const [search, setSearch] = useState(''); const [status, setStatus] = useState<ExpenseStatus | undefined>(); const [category, setCategory] = useState<ExpenseCategory | undefined>(); const [paymentMethod, setPaymentMethod] = useState<ExpensePaymentMethod | undefined>(); const [expenseFrom, setExpenseFrom] = useState(''); const [expenseTo, setExpenseTo] = useState('');
-  const [draftStatus, setDraftStatus] = useState<ExpenseStatus | undefined>(); const [draftCategory, setDraftCategory] = useState<ExpenseCategory | undefined>(); const [draftPaymentMethod, setDraftPaymentMethod] = useState<ExpensePaymentMethod | undefined>(); const [draftExpenseFrom, setDraftExpenseFrom] = useState(''); const [draftExpenseTo, setDraftExpenseTo] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(false); const [createOpen, setCreateOpen] = useState(false); const [settingsOpen, setSettingsOpen] = useState(false); const [page, setPage] = useState(1); const [totalPages, setTotalPages] = useState(1); const [loading, setLoading] = useState(true); const [refreshing, setRefreshing] = useState(false); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState(''); const pdfExport = usePdfExport(`${organizationId}:${projectId}`); const exporting = pdfExport.busy; const sequence = useRef(0);
-  const activeFilterCount = Number(Boolean(status)) + Number(Boolean(category)) + Number(Boolean(paymentMethod)) + Number(Boolean(expenseFrom)) + Number(Boolean(expenseTo)); const draftDateRangeInvalid = Boolean(draftExpenseFrom && draftExpenseTo && draftExpenseFrom > draftExpenseTo);
-  const query = useMemo(() => ({ pageSize: 20, search: search.trim() || undefined, status, category, paymentMethod, expenseFrom: expenseFrom || undefined, expenseTo: expenseTo || undefined, sortBy: 'expenseDate' as const, sortOrder: 'desc' as const }), [category, expenseFrom, expenseTo, paymentMethod, search, status]);
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const { language } = useLocalization();
+  const { session } = useSession();
+  const project = getActiveProject(session);
+  const permissions = getActiveProjectPermissions(session);
+  const organizationId = session?.activeOrganization?.id ?? null;
+  const projectId = project?.id ?? null;
+  const token = session?.accessToken ?? null;
+  const canRead = permissions.includes("expenses:read");
+  const canCreate =
+    permissions.includes("expenses:create") && project?.status === "ACTIVE";
+  const canConfigure =
+    permissions.includes("expenses:configure") && project?.status === "ACTIVE";
+  const canExport = permissions.includes("expenses:export");
+  const [items, setItems] = useState<SiteExpense[]>([]);
+  const [summary, setSummary] = useState<SiteExpenseSummary | null>(null);
+  const [settings, setSettings] = useState<ExpenseSettings | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ExpenseStatus | undefined>();
+  const [category, setCategory] = useState<ExpenseCategory | undefined>();
+  const [paymentMethod, setPaymentMethod] = useState<
+    ExpensePaymentMethod | undefined
+  >();
+  const [expenseFrom, setExpenseFrom] = useState("");
+  const [expenseTo, setExpenseTo] = useState("");
+  const [draftStatus, setDraftStatus] = useState<ExpenseStatus | undefined>();
+  const [draftCategory, setDraftCategory] = useState<
+    ExpenseCategory | undefined
+  >();
+  const [draftPaymentMethod, setDraftPaymentMethod] = useState<
+    ExpensePaymentMethod | undefined
+  >();
+  const [draftExpenseFrom, setDraftExpenseFrom] = useState("");
+  const [draftExpenseTo, setDraftExpenseTo] = useState("");
+  const [recorder, setRecorder] = useState("");
+  const [draftRecorder, setDraftRecorder] = useState("");
+  const [sortBy, setSortBy] =
+    useState<NonNullable<ExpensesQuery["sortBy"]>>("expenseDate");
+  const [draftSortBy, setDraftSortBy] =
+    useState<NonNullable<ExpensesQuery["sortBy"]>>("expenseDate");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [draftSortOrder, setDraftSortOrder] = useState<"asc" | "desc">("desc");
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [membersError, setMembersError] = useState("");
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersRetry, setMembersRetry] = useState(0);
+  const canReadMembers = permissions.includes("project-members:read");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const pdfExport = usePdfExport(`${organizationId}:${projectId}`);
+  const exporting = pdfExport.busy;
+  const sequence = useRef(0);
+  const activeFilterCount =
+    Number(Boolean(status)) +
+    Number(Boolean(category)) +
+    Number(Boolean(paymentMethod)) +
+    Number(Boolean(expenseFrom)) +
+    Number(Boolean(expenseTo)) +
+    Number(Boolean(recorder)) +
+    Number(sortBy !== "expenseDate") +
+    Number(sortOrder !== "desc");
+  const draftDateRangeInvalid = Boolean(
+    (draftExpenseFrom && !isCalendarDate(draftExpenseFrom)) ||
+    (draftExpenseTo && !isCalendarDate(draftExpenseTo)) ||
+    (draftExpenseFrom && draftExpenseTo && draftExpenseFrom > draftExpenseTo),
+  );
+  const query = useMemo(
+    () => ({
+      pageSize: 20,
+      search: search.trim() || undefined,
+      status,
+      category,
+      paymentMethod,
+      expenseFrom: expenseFrom || undefined,
+      expenseTo: expenseTo || undefined,
+      recordedByMemberId: recorder || undefined,
+      sortBy,
+      sortOrder,
+    }),
+    [
+      category,
+      expenseFrom,
+      expenseTo,
+      paymentMethod,
+      search,
+      status,
+      recorder,
+      sortBy,
+      sortOrder,
+    ],
+  );
 
-  const load = useCallback(async (nextPage = 1, append = false) => {
-    if (!organizationId || !projectId || !token || !canRead) { setLoading(false); return; }
-    const request = ++sequence.current; append ? setLoadingMore(true) : setLoading(true); setError('');
-    try { const [list, nextSummary, nextSettings] = await Promise.all([fetchExpenses(organizationId, projectId, token, { ...query, page: nextPage }), append ? Promise.resolve(null) : fetchExpenseSummary(organizationId, projectId, token, query), append ? Promise.resolve(null) : fetchExpenseSettings(organizationId, projectId, token)]); if (request !== sequence.current) return; setItems((current) => append ? [...current, ...list.items.filter((item) => !current.some((row) => row.id === item.id))] : list.items); setPage(list.pagination.page); setTotalPages(list.pagination.totalPages); if (nextSummary) setSummary(nextSummary); if (nextSettings) setSettings(nextSettings); }
-    catch (loadError) { if (request === sequence.current) setError(getLocalizedErrorMessage(loadError, t('errors.loadFailed'))); }
-    finally { if (request === sequence.current) { setLoading(false); setRefreshing(false); setLoadingMore(false); } }
-  }, [canRead, organizationId, projectId, query, t, token]);
-  useEffect(() => { setItems([]); setSummary(null); setPage(1); void load(1); return () => { sequence.current += 1; }; }, [load]);
+  const load = useCallback(
+    async (nextPage = 1, append = false) => {
+      if (!organizationId || !projectId || !token || !canRead) {
+        setLoading(false);
+        return;
+      }
+      const request = ++sequence.current;
+      append ? setLoadingMore(true) : setLoading(true);
+      setError("");
+      try {
+        const [list, nextSummary, nextSettings] = await Promise.all([
+          fetchExpenses(organizationId, projectId, token, {
+            ...query,
+            page: nextPage,
+          }),
+          append
+            ? Promise.resolve(null)
+            : fetchExpenseSummary(organizationId, projectId, token, query),
+          append
+            ? Promise.resolve(null)
+            : fetchExpenseSettings(organizationId, projectId, token),
+        ]);
+        if (request !== sequence.current) return;
+        setItems((current) =>
+          append
+            ? [
+                ...current,
+                ...list.items.filter(
+                  (item) => !current.some((row) => row.id === item.id),
+                ),
+              ]
+            : list.items,
+        );
+        setPage(list.pagination.page);
+        setTotalPages(list.pagination.totalPages);
+        if (nextSummary) setSummary(nextSummary);
+        if (nextSettings) setSettings(nextSettings);
+      } catch (loadError) {
+        if (request === sequence.current)
+          setError(getLocalizedErrorMessage(loadError, t("errors.loadFailed")));
+      } finally {
+        if (request === sequence.current) {
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [canRead, organizationId, projectId, query, t, token],
+  );
+  useEffect(() => {
+    setItems([]);
+    setSummary(null);
+    setPage(1);
+    void load(1);
+    return () => {
+      sequence.current += 1;
+    };
+  }, [load]);
+
+  useEffect(() => {
+    setMembers([]);
+    setRecorder("");
+    setSortBy("expenseDate");
+    setSortOrder("desc");
+    setSettings(null);
+    setCreateOpen(false);
+    setSettingsOpen(false);
+    setFiltersOpen(false);
+  }, [organizationId, projectId]);
+  useEffect(() => {
+    if (
+      !filtersOpen ||
+      !canReadMembers ||
+      !organizationId ||
+      !projectId ||
+      !token
+    )
+      return;
+    let cancelled = false;
+    setMembersLoading(true);
+    setMembersError("");
+    void fetchProjectMembers(organizationId, projectId, token)
+      .then((next) => {
+        if (!cancelled) setMembers(next);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setMembersError(getLocalizedErrorMessage(e, t("errors.loadFailed")));
+      })
+      .finally(() => {
+        if (!cancelled) setMembersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    filtersOpen,
+    canReadMembers,
+    organizationId,
+    projectId,
+    token,
+    t,
+    membersRetry,
+  ]);
 
   async function exportPdf() {
-    if (!organizationId || !projectId || !token || exporting || !canExport) return;
-    await pdfExport.run((signal) => exportExpensesPdf(organizationId, projectId, token, query, signal), `${t('export.title')} · ${project?.name ?? projectId}`);
+    if (!organizationId || !projectId || !token || exporting || !canExport)
+      return;
+    await pdfExport.run(
+      (signal) =>
+        exportExpensesPdf(organizationId, projectId, token, query, signal),
+      `${t("export.title")} · ${project?.name ?? projectId}`,
+    );
   }
 
-  function openFilters() { setDraftStatus(status); setDraftCategory(category); setDraftPaymentMethod(paymentMethod); setDraftExpenseFrom(expenseFrom); setDraftExpenseTo(expenseTo); setFiltersOpen(true); }
-  function clearFilters() { setDraftStatus(undefined); setDraftCategory(undefined); setDraftPaymentMethod(undefined); setDraftExpenseFrom(''); setDraftExpenseTo(''); setStatus(undefined); setCategory(undefined); setPaymentMethod(undefined); setExpenseFrom(''); setExpenseTo(''); setFiltersOpen(false); }
-  const selectCopy = (field: string) => ({ accessibilityLabel: field, emptyDescription: t('select.emptyDescription'), emptyTitle: t('select.emptyTitle'), placeholder: t('select.choose', { field }), searchAccessibilityLabel: t('select.searchA11y', { field }), searchPlaceholder: t('select.search', { field }), title: t('select.choose', { field }) });
+  function openFilters() {
+    setDraftRecorder(recorder);
+    setDraftSortBy(sortBy);
+    setDraftSortOrder(sortOrder);
+    setDraftStatus(status);
+    setDraftCategory(category);
+    setDraftPaymentMethod(paymentMethod);
+    setDraftExpenseFrom(expenseFrom);
+    setDraftExpenseTo(expenseTo);
+    setFiltersOpen(true);
+  }
+  function clearFilters() {
+    setRecorder("");
+    setDraftRecorder("");
+    setSortBy("expenseDate");
+    setDraftSortBy("expenseDate");
+    setSortOrder("desc");
+    setDraftSortOrder("desc");
+    setDraftStatus(undefined);
+    setDraftCategory(undefined);
+    setDraftPaymentMethod(undefined);
+    setDraftExpenseFrom("");
+    setDraftExpenseTo("");
+    setStatus(undefined);
+    setCategory(undefined);
+    setPaymentMethod(undefined);
+    setExpenseFrom("");
+    setExpenseTo("");
+    setFiltersOpen(false);
+  }
+  const selectCopy = (field: string) => ({
+    accessibilityLabel: field,
+    emptyDescription: t("select.emptyDescription"),
+    emptyTitle: t("select.emptyTitle"),
+    placeholder: t("select.choose", { field }),
+    searchAccessibilityLabel: t("select.searchA11y", { field }),
+    searchPlaceholder: t("select.search", { field }),
+    title: t("select.choose", { field }),
+  });
 
-  const header = <View style={styles.header}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project?.name ?? t('screen.chooseProject')} action={<View style={styles.headerActions}>{canConfigure ? <IconButton accessibilityLabel={t('settings.openA11y')} icon="cog-outline" variant="glass" onPress={() => setSettingsOpen(true)} /> : null}{canCreate ? <IconButton accessibilityLabel={t('create.openA11y')} icon="plus" variant="primary" onPress={() => settings?.configured ? setCreateOpen(true) : setSettingsOpen(true)} /> : null}</View>} /><ProjectContextCard compact showSwitchAction />{project?.status !== 'ACTIVE' ? <Card style={styles.notice}><AppText style={styles.noticeText}>{t('screen.readOnly')}</AppText></Card> : null}{settings && !settings.configured ? <Card style={styles.notice}><View style={styles.noticeIcon}><AppIcon name="tune-variant" size={24} color={mobileTheme.color.status.warning.foreground} /></View><View style={styles.noticeCopy}><AppText style={styles.noticeTitle} weight={700}>{t('settings.requiredTitle')}</AppText><AppText style={styles.noticeText}>{t('settings.notConfigured')}</AppText></View>{canConfigure ? <Button label={t('settings.configureNow')} size="sm" fullWidth={false} variant="secondary" onPress={() => setSettingsOpen(true)} /> : null}</Card> : null}{summary ? <ExpenseSummaryCard summary={summary} language={language} /> : null}<ListControls><ListFilterBar search={<SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.search')} value={search} onChangeText={setSearch} />} filterLabel={tCommon('listFilters.action')} filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: activeFilterCount })} activeFilterCount={activeFilterCount} expanded={filtersOpen} onOpenFilters={openFilters} />{activeFilterCount ? <AppliedFilters>{status ? <AppliedFilterChip label={t(`status.${status}`)} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t(`status.${status}`) })} onRemove={() => setStatus(undefined)} /> : null}{category ? <AppliedFilterChip label={t(`category.${category}`)} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t(`category.${category}`) })} onRemove={() => setCategory(undefined)} /> : null}{paymentMethod ? <AppliedFilterChip label={t(`payment.${paymentMethod}`)} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t(`payment.${paymentMethod}`) })} onRemove={() => setPaymentMethod(undefined)} /> : null}{expenseFrom ? <AppliedFilterChip label={t('filters.fromChip', { date: formatDate(dateValue(expenseFrom), language) })} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t('filters.from') })} onRemove={() => setExpenseFrom('')} /> : null}{expenseTo ? <AppliedFilterChip label={t('filters.toChip', { date: formatDate(dateValue(expenseTo), language) })} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t('filters.to') })} onRemove={() => setExpenseTo('')} /> : null}</AppliedFilters> : null}</ListControls>{canExport ? <Button label={exporting ? t('export.preparing') : t('export.action')} variant="secondary" leadingIcon="file-pdf-box" disabled={exporting} onPress={() => void exportPdf()} /> : null}</View>;
+  const header = (
+    <View style={styles.header}>
+      <CompactScreenHeader
+        leading={
+          <IconButton
+            accessibilityLabel={tCommon("actions.back")}
+            icon="arrow-left"
+            variant="glass"
+            onPress={() => router.back()}
+          />
+        }
+        title={t("screen.title")}
+        subtitle={project?.name ?? t("screen.chooseProject")}
+        action={
+          <View style={styles.headerActions}>
+            {canConfigure ? (
+              <IconButton
+                accessibilityLabel={t("settings.openA11y")}
+                icon="cog-outline"
+                variant="glass"
+                onPress={() => setSettingsOpen(true)}
+              />
+            ) : null}
+            {canCreate ? (
+              <IconButton
+                accessibilityLabel={t("create.openA11y")}
+                icon="plus"
+                variant="primary"
+                onPress={() =>
+                  settings?.configured
+                    ? setCreateOpen(true)
+                    : canConfigure
+                      ? setSettingsOpen(true)
+                      : Alert.alert(
+                          t("settings.requiredTitle"),
+                          t("settings.notConfigured"),
+                        )
+                }
+              />
+            ) : null}
+          </View>
+        }
+      />
+      <ProjectContextCard compact showSwitchAction />
+      {project?.status !== "ACTIVE" ? (
+        <Card style={styles.notice}>
+          <AppText style={styles.noticeText}>{t("screen.readOnly")}</AppText>
+        </Card>
+      ) : null}
+      {settings && !settings.configured ? (
+        <Card style={styles.notice}>
+          <View style={styles.noticeIcon}>
+            <AppIcon
+              name="tune-variant"
+              size={24}
+              color={mobileTheme.color.status.warning.foreground}
+            />
+          </View>
+          <View style={styles.noticeCopy}>
+            <AppText style={styles.noticeTitle} weight={700}>
+              {t("settings.requiredTitle")}
+            </AppText>
+            <AppText style={styles.noticeText}>
+              {t("settings.notConfigured")}
+            </AppText>
+          </View>
+          {canConfigure ? (
+            <Button
+              label={t("settings.configureNow")}
+              size="sm"
+              fullWidth={false}
+              variant="secondary"
+              onPress={() => setSettingsOpen(true)}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+      {summary ? (
+        <ExpenseSummaryCard summary={summary} language={language} />
+      ) : null}
+      <ListControls>
+        <ListFilterBar
+          search={
+            <SearchField
+              accessibilityLabel={t("filters.searchA11y")}
+              placeholder={t("filters.search")}
+              value={search}
+              onChangeText={setSearch}
+            />
+          }
+          filterLabel={tCommon("listFilters.action")}
+          filterAccessibilityLabel={tCommon("listFilters.actionA11y", {
+            count: activeFilterCount,
+          })}
+          activeFilterCount={activeFilterCount}
+          expanded={filtersOpen}
+          onOpenFilters={openFilters}
+        />
+        {activeFilterCount ? (
+          <AppliedFilters>
+            {recorder ? (
+              <AppliedFilterChip
+                label={`${t("filters.recorder")}: ${members.find((m) => m.memberId === recorder)?.user.name ?? recorder}`}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t("filters.recorder"),
+                })}
+                onRemove={() => setRecorder("")}
+              />
+            ) : null}
+            {sortBy !== "expenseDate" || sortOrder !== "desc" ? (
+              <AppliedFilterChip
+                label={`${t(`filters.sort.${sortBy}`)} · ${t(`filters.${sortOrder}`)}`}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t("filters.sortBy"),
+                })}
+                onRemove={() => {
+                  setSortBy("expenseDate");
+                  setSortOrder("desc");
+                }}
+              />
+            ) : null}
+            {status ? (
+              <AppliedFilterChip
+                label={t(`status.${status}`)}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t(`status.${status}`),
+                })}
+                onRemove={() => setStatus(undefined)}
+              />
+            ) : null}
+            {category ? (
+              <AppliedFilterChip
+                label={t(`category.${category}`)}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t(`category.${category}`),
+                })}
+                onRemove={() => setCategory(undefined)}
+              />
+            ) : null}
+            {paymentMethod ? (
+              <AppliedFilterChip
+                label={t(`payment.${paymentMethod}`)}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t(`payment.${paymentMethod}`),
+                })}
+                onRemove={() => setPaymentMethod(undefined)}
+              />
+            ) : null}
+            {expenseFrom ? (
+              <AppliedFilterChip
+                label={t("filters.fromChip", {
+                  date: formatDate(dateValue(expenseFrom), language),
+                })}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t("filters.from"),
+                })}
+                onRemove={() => setExpenseFrom("")}
+              />
+            ) : null}
+            {expenseTo ? (
+              <AppliedFilterChip
+                label={t("filters.toChip", {
+                  date: formatDate(dateValue(expenseTo), language),
+                })}
+                removeAccessibilityLabel={tCommon("listFilters.removeA11y", {
+                  filter: t("filters.to"),
+                })}
+                onRemove={() => setExpenseTo("")}
+              />
+            ) : null}
+          </AppliedFilters>
+        ) : null}
+      </ListControls>
+      {canExport ? (
+        <Button
+          label={exporting ? t("export.preparing") : t("export.action")}
+          variant="secondary"
+          leadingIcon="file-pdf-box"
+          disabled={exporting}
+          onPress={() => void exportPdf()}
+        />
+      ) : null}
+    </View>
+  );
 
-  if (!project || !projectId) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} /><ProjectContextCard compact showSwitchAction /><EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} /></NirmanScreenBackground>;
-  if (!canRead) return <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />}><CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={project.name} /><EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} /></NirmanScreenBackground>;
+  if (!project || !projectId)
+    return (
+      <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />}>
+        <CompactScreenHeader
+          leading={
+            <IconButton
+              accessibilityLabel={tCommon("actions.back")}
+              icon="arrow-left"
+              variant="glass"
+              onPress={() => router.back()}
+            />
+          }
+          title={t("screen.title")}
+        />
+        <ProjectContextCard compact showSwitchAction />
+        <EmptyState
+          title={t("empty.noProjectTitle")}
+          description={t("empty.noProjectDescription")}
+        />
+      </NirmanScreenBackground>
+    );
+  if (!canRead)
+    return (
+      <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />}>
+        <CompactScreenHeader
+          leading={
+            <IconButton
+              accessibilityLabel={tCommon("actions.back")}
+              icon="arrow-left"
+              variant="glass"
+              onPress={() => router.back()}
+            />
+          }
+          title={t("screen.title")}
+          subtitle={project.name}
+        />
+        <EmptyState
+          title={t("empty.permissionTitle")}
+          description={t("empty.permissionDescription")}
+        />
+      </NirmanScreenBackground>
+    );
 
-  return <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />} scroll={false}>{pdfExport.popup}<FlatList data={items} keyExtractor={(item) => item.id} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header} ListEmptyComponent={loading ? <LoadingState label={t('loading.list')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={t('empty.title')} description={t('empty.description')} actionLabel={canCreate ? t('create.action') : undefined} onAction={canCreate ? () => settings?.configured ? setCreateOpen(true) : setSettingsOpen(true) : undefined} />} ListFooterComponent={loadingMore ? <LoadingState label={t('loading.more')} /> : null} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(1); }} />} onEndReachedThreshold={0.35} onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }} renderItem={({ item }) => <OperationalEntityCard compact accessibilityLabel={t('list.openA11y', { description: item.description, status: t(`status.${item.status}`), amount: formatInr(Number(item.recognizedAmount), language) })} contextLeading={t(`category.${item.category}`)} contextTrailing={formatDate(dateValue(item.expenseDate), language)} title={item.description} supporting={`${item.vendorPayee || t('list.noVendor')} · ${item.recordedBy}`} value={formatInr(Number(item.recognizedAmount), language)} valueLabel={t('list.recognized')} footerLeading={item.paymentMethod ? t(`payment.${item.paymentMethod}`) : t('payment.NONE')} footerTrailing={<View style={styles.cardFooter}><StatusBadge label={t(`status.${item.status}`)} tone={expenseTone(item.status)} /><AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} /></View>} tone={expenseTone(item.status)} onPress={() => router.push({ pathname: '/(app)/expense-detail', params: { expenseId: item.id } } as Href)} />} />
-    <ListFilterSheet visible={filtersOpen} title={tCommon('listFilters.title')} description={t('filters.description')} clearLabel={tCommon('listFilters.clearAll')} applyLabel={tCommon('listFilters.apply')} onClear={clearFilters} onApply={() => { if (draftDateRangeInvalid) return; setStatus(draftStatus); setCategory(draftCategory); setPaymentMethod(draftPaymentMethod); setExpenseFrom(draftExpenseFrom); setExpenseTo(draftExpenseTo); setFiltersOpen(false); }} onClose={() => setFiltersOpen(false)}><FormError message={draftDateRangeInvalid ? t('filters.dateRangeError') : ''} /><FormField label={t('filters.status')}><SearchableSelect<ExpenseStatus | typeof ALL_FILTER_VALUE> value={draftStatus ?? ALL_FILTER_VALUE} options={[{ value: ALL_FILTER_VALUE, label: t('filters.allStatuses') }, ...EXPENSE_STATUSES.map((value) => ({ value, label: t(`status.${value}`) }))]} {...selectCopy(t('filters.status'))} onChange={(value) => setDraftStatus(value === ALL_FILTER_VALUE ? undefined : value)} /></FormField><FormField label={t('filters.category')}><SearchableSelect<ExpenseCategory | typeof ALL_FILTER_VALUE> value={draftCategory ?? ALL_FILTER_VALUE} options={[{ value: ALL_FILTER_VALUE, label: t('filters.allCategories') }, ...EXPENSE_CATEGORIES.map((value) => ({ value, label: t(`category.${value}`) }))]} {...selectCopy(t('filters.category'))} onChange={(value) => setDraftCategory(value === ALL_FILTER_VALUE ? undefined : value)} /></FormField><FormField label={t('filters.payment')}><SearchableSelect<ExpensePaymentMethod | typeof ALL_FILTER_VALUE> value={draftPaymentMethod ?? ALL_FILTER_VALUE} options={[{ value: ALL_FILTER_VALUE, label: t('filters.allPayments') }, ...EXPENSE_PAYMENT_METHODS.map((value) => ({ value, label: t(`payment.${value}`) }))]} {...selectCopy(t('filters.payment'))} onChange={(value) => setDraftPaymentMethod(value === ALL_FILTER_VALUE ? undefined : value)} /></FormField><FormField label={t('filters.from')}><DateInput accessibilityLabel={t('filters.fromA11y')} value={draftExpenseFrom} onChangeText={setDraftExpenseFrom} /></FormField><FormField label={t('filters.to')} error={draftDateRangeInvalid ? t('filters.dateRangeError') : undefined}><DateInput accessibilityLabel={t('filters.toA11y')} invalid={draftDateRangeInvalid} minimumDate={draftExpenseFrom ? dateValue(draftExpenseFrom) : undefined} value={draftExpenseTo} onChangeText={setDraftExpenseTo} /></FormField></ListFilterSheet>
-    {createOpen && organizationId && token ? <ExpenseFormSheet visible organizationId={organizationId} projectId={projectId} accessToken={token} onClose={() => setCreateOpen(false)} onSaved={() => load(1)} /> : null}{settingsOpen && organizationId && token ? <SettingsSheet visible settings={settings} organizationId={organizationId} projectId={projectId} accessToken={token} onClose={() => setSettingsOpen(false)} onSaved={(next) => { setSettings(next); setSettingsOpen(false); }} /> : null}</NirmanScreenBackground>;
+  return (
+    <NirmanScreenBackground
+      footer={<CustomerTabBar activeKey="expenses" />}
+      scroll={false}
+    >
+      {pdfExport.popup}
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.list,
+          !items.length && !loading && styles.emptyList,
+        ]}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          loading ? (
+            <LoadingState label={t("loading.list")} />
+          ) : error ? (
+            <EmptyState
+              title={t("errors.title")}
+              description={error}
+              actionLabel={tCommon("actions.retry")}
+              onAction={() => void load(1)}
+            />
+          ) : (
+            <EmptyState
+              title={t("empty.title")}
+              description={t("empty.description")}
+              actionLabel={canCreate ? t("create.action") : undefined}
+              onAction={
+                canCreate
+                  ? () =>
+                      settings?.configured
+                        ? setCreateOpen(true)
+                        : canConfigure
+                          ? setSettingsOpen(true)
+                          : Alert.alert(
+                              t("settings.requiredTitle"),
+                              t("settings.notConfigured"),
+                            )
+                  : undefined
+              }
+            />
+          )
+        }
+        ListFooterComponent={
+          loadingMore ? <LoadingState label={t("loading.more")} /> : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void load(1);
+            }}
+          />
+        }
+        onEndReachedThreshold={0.35}
+        onEndReached={() => {
+          if (!loading && !loadingMore && page < totalPages)
+            void load(page + 1, true);
+        }}
+        renderItem={({ item }) => (
+          <OperationalEntityCard
+            compact
+            accessibilityLabel={t("list.openA11y", {
+              description: item.description,
+              status: t(`status.${item.status}`),
+              amount: formatInr(Number(item.recognizedAmount), language),
+            })}
+            contextLeading={t(`category.${item.category}`)}
+            contextTrailing={formatDate(dateValue(item.expenseDate), language)}
+            title={item.description}
+            supporting={`${item.vendorPayee || t("list.noVendor")} · ${item.recordedBy}`}
+            value={formatInr(Number(item.recognizedAmount), language)}
+            valueLabel={t("list.recognized")}
+            footerLeading={
+              item.paymentMethod
+                ? t(`payment.${item.paymentMethod}`)
+                : t("payment.NONE")
+            }
+            footerTrailing={
+              <View style={styles.cardFooter}>
+                <StatusBadge
+                  label={t(`status.${item.status}`)}
+                  tone={expenseTone(item.status)}
+                />
+                <AppIcon
+                  name="chevron-right"
+                  size={20}
+                  color={mobileTheme.color.text.muted}
+                />
+              </View>
+            }
+            tone={expenseTone(item.status)}
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/expense-detail",
+                params: { expenseId: item.id },
+              } as Href)
+            }
+          />
+        )}
+      />
+      <ListFilterSheet
+        visible={filtersOpen}
+        title={tCommon("listFilters.title")}
+        description={t("filters.description")}
+        clearLabel={tCommon("listFilters.clearAll")}
+        applyLabel={tCommon("listFilters.apply")}
+        onClear={clearFilters}
+        onApply={() => {
+          if (draftDateRangeInvalid) return;
+          setRecorder(draftRecorder);
+          setSortBy(draftSortBy);
+          setSortOrder(draftSortOrder);
+          setStatus(draftStatus);
+          setCategory(draftCategory);
+          setPaymentMethod(draftPaymentMethod);
+          setExpenseFrom(draftExpenseFrom);
+          setExpenseTo(draftExpenseTo);
+          setFiltersOpen(false);
+        }}
+        onClose={() => setFiltersOpen(false)}
+      >
+        <FormError
+          message={draftDateRangeInvalid ? t("filters.dateRangeError") : ""}
+        />
+        <FormField label={t("filters.status")}>
+          <SearchableSelect<ExpenseStatus | typeof ALL_FILTER_VALUE>
+            value={draftStatus ?? ALL_FILTER_VALUE}
+            options={[
+              { value: ALL_FILTER_VALUE, label: t("filters.allStatuses") },
+              ...EXPENSE_STATUSES.map((value) => ({
+                value,
+                label: t(`status.${value}`),
+              })),
+            ]}
+            {...selectCopy(t("filters.status"))}
+            onChange={(value) =>
+              setDraftStatus(value === ALL_FILTER_VALUE ? undefined : value)
+            }
+          />
+        </FormField>
+        <FormField label={t("filters.category")}>
+          <SearchableSelect<ExpenseCategory | typeof ALL_FILTER_VALUE>
+            value={draftCategory ?? ALL_FILTER_VALUE}
+            options={[
+              { value: ALL_FILTER_VALUE, label: t("filters.allCategories") },
+              ...EXPENSE_CATEGORIES.map((value) => ({
+                value,
+                label: t(`category.${value}`),
+              })),
+            ]}
+            {...selectCopy(t("filters.category"))}
+            onChange={(value) =>
+              setDraftCategory(value === ALL_FILTER_VALUE ? undefined : value)
+            }
+          />
+        </FormField>
+        <FormField label={t("filters.payment")}>
+          <SearchableSelect<ExpensePaymentMethod | typeof ALL_FILTER_VALUE>
+            value={draftPaymentMethod ?? ALL_FILTER_VALUE}
+            options={[
+              { value: ALL_FILTER_VALUE, label: t("filters.allPayments") },
+              ...EXPENSE_PAYMENT_METHODS.map((value) => ({
+                value,
+                label: t(`payment.${value}`),
+              })),
+            ]}
+            {...selectCopy(t("filters.payment"))}
+            onChange={(value) =>
+              setDraftPaymentMethod(
+                value === ALL_FILTER_VALUE ? undefined : value,
+              )
+            }
+          />
+        </FormField>
+        <FormField label={t("filters.from")}>
+          <DateInput
+            accessibilityLabel={t("filters.fromA11y")}
+            value={draftExpenseFrom}
+            onChangeText={setDraftExpenseFrom}
+          />
+        </FormField>
+        <FormField
+          label={t("filters.to")}
+          error={
+            draftDateRangeInvalid ? t("filters.dateRangeError") : undefined
+          }
+        >
+          <DateInput
+            accessibilityLabel={t("filters.toA11y")}
+            invalid={draftDateRangeInvalid}
+            minimumDate={
+              draftExpenseFrom ? dateValue(draftExpenseFrom) : undefined
+            }
+            value={draftExpenseTo}
+            onChangeText={setDraftExpenseTo}
+          />
+        </FormField>
+        {canReadMembers ? (
+          <FormField label={t("filters.recorder")}>
+            <SearchableSelect
+              value={draftRecorder || ALL_FILTER_VALUE}
+              options={[
+                { value: ALL_FILTER_VALUE, label: t("filters.allRecorders") },
+                ...(draftRecorder &&
+                !members.some((m) => m.memberId === draftRecorder)
+                  ? [{ value: draftRecorder, label: draftRecorder }]
+                  : []),
+                ...members.map((m) => ({
+                  value: m.memberId,
+                  label: m.user.name,
+                })),
+              ]}
+              {...selectCopy(t("filters.recorder"))}
+              onChange={(value) =>
+                setDraftRecorder(value === ALL_FILTER_VALUE ? "" : value)
+              }
+            />
+            {membersLoading ? (
+              <LoadingState label={t("filters.membersLoading")} />
+            ) : null}
+            <FormError message={membersError} />
+            {membersError ? (
+              <Button
+                label={tCommon("actions.retry")}
+                variant="secondary"
+                onPress={() => setMembersRetry((value) => value + 1)}
+              />
+            ) : null}
+          </FormField>
+        ) : null}
+        <FormField label={t("filters.sortBy")}>
+          <SearchableSelect
+            value={draftSortBy}
+            options={(
+              ["expenseDate", "amount", "updatedAt", "description"] as const
+            ).map((value) => ({ value, label: t(`filters.sort.${value}`) }))}
+            {...selectCopy(t("filters.sortBy"))}
+            onChange={setDraftSortBy}
+          />
+        </FormField>
+        <FormField label={t("filters.sortOrder")}>
+          <SearchableSelect
+            value={draftSortOrder}
+            options={(["desc", "asc"] as const).map((value) => ({
+              value,
+              label: t(`filters.${value}`),
+            }))}
+            {...selectCopy(t("filters.sortOrder"))}
+            onChange={setDraftSortOrder}
+          />
+        </FormField>
+      </ListFilterSheet>
+      {createOpen && organizationId && token ? (
+        <ExpenseFormSheet
+          key={`${organizationId}:${projectId}`}
+          visible
+          allowed={canCreate}
+          organizationId={organizationId}
+          projectId={projectId}
+          accessToken={token}
+          onClose={() => setCreateOpen(false)}
+          onSaved={() => load(1)}
+        />
+      ) : null}
+      {settingsOpen && organizationId && token ? (
+        <SettingsSheet
+          key={`${organizationId}:${projectId}`}
+          allowed={canConfigure}
+          visible
+          settings={settings}
+          organizationId={organizationId}
+          projectId={projectId}
+          accessToken={token}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={(next) => {
+            setSettings(next);
+            setSettingsOpen(false);
+          }}
+        />
+      ) : null}
+    </NirmanScreenBackground>
+  );
 }
 
-function ExpenseSummaryCard({ summary, language }: { summary: SiteExpenseSummary; language: string }) { const { t } = useTranslation('expenses'); return <Card style={styles.summary}><View style={styles.summaryHero}><View style={styles.summaryCopy}><AppText style={styles.summaryEyebrow} weight={700}>{t('summary.recognized')}</AppText><AppText adjustsFontSizeToFit minimumFontScale={0.78} numberOfLines={1} style={styles.summaryAmount} weight={700}>{formatInr(Number(summary.recognizedAmount), language)}</AppText></View><View style={styles.summaryIcon}><AppIcon name="cash-check" size={28} color={mobileTheme.color.action.primary} /></View></View><View style={styles.summaryDivider} /><View style={styles.summaryGrid}><SummaryMetric label={t('summary.pending')} value={formatInr(Number(summary.pendingAmount), language)} helper={t('summary.pendingCount', { count: formatNumber(summary.pendingCount, language) })} warning={summary.pendingCount > 0} /><SummaryMetric label={t('summary.adjustments')} value={formatInr(Number(summary.adjustmentTotal), language)} helper={t('summary.original', { amount: formatInr(Number(summary.approvedOriginalAmount), language) })} /></View></Card>; }
-function SummaryMetric({ label, value, helper, warning = false }: { label: string; value: string; helper: string; warning?: boolean }) { return <View accessible accessibilityLabel={`${label}: ${value}. ${helper}`} style={styles.metric}><AppText style={styles.metricLabel} weight={700}>{label}</AppText><AppText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.metricValue, warning && styles.warning]} weight={700}>{value}</AppText><AppText style={styles.metricHelper}>{helper}</AppText></View>; }
-function SettingsSheet({ visible, settings, organizationId, projectId, accessToken, onClose, onSaved }: { visible: boolean; settings: ExpenseSettings | null; organizationId: string; projectId: string; accessToken: string; onClose: () => void; onSaved: (settings: ExpenseSettings) => void }) {
-  const { t } = useTranslation('expenses'); const { t: tCommon } = useTranslation('common');
-  const [mode, setMode] = useState<ExpenseWorkflowMode>(settings?.workflowMode ?? 'DIRECT'); const [key, setKey] = useState(mutationKey('expense-settings')); const [working, setWorking] = useState(false); const [error, setError] = useState('');
-  useEffect(() => { if (visible) { setMode(settings?.workflowMode ?? 'DIRECT'); setKey(mutationKey('expense-settings')); setError(''); } }, [settings?.workflowMode, visible]);
-  async function save() { setWorking(true); setError(''); try { onSaved(await configureExpenseSettings(organizationId, projectId, accessToken, mode, key)); } catch (saveError) { setError(getLocalizedErrorMessage(saveError, t('errors.settingsFailed'))); } finally { setWorking(false); } }
-  const field = t('fields.workflow');
-  return <BottomSheet visible={visible} title={t('settings.title')} description={t('settings.description')} scroll showCloseButton={false} onClose={onClose} footer={<View style={styles.sheetFooter}><Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" disabled={working} onPress={onClose} /><Button style={styles.footerButton} label={working ? t('loading.saving') : t('settings.save')} disabled={working} onPress={() => void save()} /></View>}><FormError message={error} /><FormField label={field} required><SearchableSelect value={mode} options={EXPENSE_WORKFLOW_MODES.map((value) => ({ value, label: t(`workflow.${value}.label`), description: t(`workflow.${value}.description`) }))} accessibilityLabel={field} emptyDescription={t('select.emptyDescription')} emptyTitle={t('select.emptyTitle')} placeholder={t('select.choose', { field })} searchAccessibilityLabel={t('select.searchA11y', { field })} searchPlaceholder={t('select.search', { field })} title={t('select.choose', { field })} onChange={(value) => { setMode(value); setKey(mutationKey('expense-settings')); }} /></FormField><Card variant="blueprint"><AppText style={styles.workflowDescription}>{t(`workflow.${mode}.description`)}</AppText></Card></BottomSheet>;
+function ExpenseSummaryCard({
+  summary,
+  language,
+}: {
+  summary: SiteExpenseSummary;
+  language: string;
+}) {
+  const { t } = useTranslation("expenses");
+  return (
+    <Card style={styles.summary}>
+      <View style={styles.summaryHero}>
+        <View style={styles.summaryCopy}>
+          <AppText style={styles.summaryEyebrow} weight={700}>
+            {t("summary.recognized")}
+          </AppText>
+          <AppText
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+            numberOfLines={1}
+            style={styles.summaryAmount}
+            weight={700}
+          >
+            {formatInr(Number(summary.recognizedAmount), language)}
+          </AppText>
+        </View>
+        <View style={styles.summaryIcon}>
+          <AppIcon
+            name="cash-check"
+            size={28}
+            color={mobileTheme.color.action.primary}
+          />
+        </View>
+      </View>
+      <View style={styles.summaryDivider} />
+      <View style={styles.summaryGrid}>
+        <SummaryMetric
+          label={t("summary.pending")}
+          value={formatInr(Number(summary.pendingAmount), language)}
+          helper={t("summary.pendingCount", {
+            count: formatNumber(summary.pendingCount, language),
+          })}
+          warning={summary.pendingCount > 0}
+        />
+        <SummaryMetric
+          label={t("summary.adjustments")}
+          value={formatInr(Number(summary.adjustmentTotal), language)}
+          helper={t("summary.original", {
+            amount: formatInr(Number(summary.approvedOriginalAmount), language),
+          })}
+        />
+      </View>
+    </Card>
+  );
+}
+function SummaryMetric({
+  label,
+  value,
+  helper,
+  warning = false,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  warning?: boolean;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${value}. ${helper}`}
+      style={styles.metric}
+    >
+      <AppText style={styles.metricLabel} weight={700}>
+        {label}
+      </AppText>
+      <AppText
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
+        style={[styles.metricValue, warning && styles.warning]}
+        weight={700}
+      >
+        {value}
+      </AppText>
+      <AppText style={styles.metricHelper}>{helper}</AppText>
+    </View>
+  );
+}
+function SettingsSheet({
+  visible,
+  settings,
+  organizationId,
+  projectId,
+  accessToken,
+  onClose,
+  onSaved,
+  allowed,
+}: {
+  allowed: boolean;
+  visible: boolean;
+  settings: ExpenseSettings | null;
+  organizationId: string;
+  projectId: string;
+  accessToken: string;
+  onClose: () => void;
+  onSaved: (settings: ExpenseSettings) => void;
+}) {
+  const { t } = useTranslation("expenses");
+  const { t: tCommon } = useTranslation("common");
+  const [mode, setMode] = useState<ExpenseWorkflowMode>(
+    settings?.workflowMode ?? "DIRECT",
+  );
+  const command = useExpenseCommand<{
+    workflowMode: ExpenseWorkflowMode;
+    idempotencyKey: string;
+  }>(t("errors.settingsFailed"));
+  const { working, error } = command;
+  const close = () =>
+    command.requestClose(
+      onClose,
+      mode !== (settings?.workflowMode ?? "DIRECT"),
+    );
+  async function save() {
+    if (!allowed || !command.canSubmit) return;
+    let next: ExpenseSettings | undefined;
+    await command.run(
+      { workflowMode: mode, idempotencyKey: mutationKey("expense-settings") },
+      async (original) => {
+        next = await configureExpenseSettings(
+          organizationId,
+          projectId,
+          accessToken,
+          original.workflowMode,
+          original.idempotencyKey,
+        );
+      },
+      () => {
+        if (next) onSaved(next);
+      },
+    );
+  }
+  const field = t("fields.workflow");
+  return (
+    <BottomSheet
+      visible={visible}
+      title={t("settings.title")}
+      description={t("settings.description")}
+      scroll
+      showCloseButton={false}
+      onClose={close}
+      footer={
+        <View style={styles.sheetFooter}>
+          <Button
+            style={styles.footerButton}
+            label={tCommon("actions.cancel")}
+            variant="secondary"
+            disabled={!command.canClose}
+            onPress={close}
+          />
+          <Button
+            style={styles.footerButton}
+            label={
+              working
+                ? t("loading.saving")
+                : (command.retryLabel ?? t("settings.save"))
+            }
+            disabled={!command.canSubmit || !allowed}
+            onPress={() => void save()}
+          />
+        </View>
+      }
+    >
+      <FormError message={error} />
+      {command.recovery()}
+      <View pointerEvents={command.locked || !allowed ? "none" : "auto"}>
+        <FormField label={field} required>
+          <SearchableSelect
+            value={mode}
+            options={EXPENSE_WORKFLOW_MODES.map((value) => ({
+              value,
+              label: t(`workflow.${value}.label`),
+              description: t(`workflow.${value}.description`),
+            }))}
+            accessibilityLabel={field}
+            emptyDescription={t("select.emptyDescription")}
+            emptyTitle={t("select.emptyTitle")}
+            placeholder={t("select.choose", { field })}
+            searchAccessibilityLabel={t("select.searchA11y", { field })}
+            searchPlaceholder={t("select.search", { field })}
+            title={t("select.choose", { field })}
+            onChange={setMode}
+          />
+        </FormField>
+        <Card variant="blueprint">
+          <AppText style={styles.workflowDescription}>
+            {t(`workflow.${mode}.description`)}
+          </AppText>
+        </Card>
+      </View>
+    </BottomSheet>
+  );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] }, emptyList: { flexGrow: 1 }, header: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[4] }, headerActions: { flexDirection: 'row', gap: mobileTheme.spacing[2] }, cardFooter: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
-  notice: { alignItems: 'center', backgroundColor: mobileTheme.color.status.warning.background, flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] }, noticeIcon: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 }, noticeCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 180 }, noticeTitle: { ...mobileText.label, color: mobileTheme.color.status.warning.foreground }, noticeText: { ...mobileText.caption, color: mobileTheme.color.status.warning.foreground },
-  summary: { gap: mobileTheme.spacing[3], overflow: 'hidden' }, summaryHero: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[3], justifyContent: 'space-between' }, summaryCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 }, summaryEyebrow: { ...mobileText.label, color: mobileTheme.color.text.secondary, textTransform: 'uppercase' }, summaryAmount: { ...mobileText.title, color: mobileTheme.color.text.primary, fontVariant: ['tabular-nums'] }, summaryIcon: { alignItems: 'center', backgroundColor: mobileTheme.color.status.success.background, borderRadius: mobileTheme.radius.full, height: 48, justifyContent: 'center', width: 48 }, summaryDivider: { backgroundColor: mobileTheme.color.border.subtle, height: 1 }, summaryGrid: { flexDirection: 'row', gap: mobileTheme.spacing[4] }, metric: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 }, metricLabel: { ...mobileText.caption, color: mobileTheme.color.text.secondary }, metricValue: { ...mobileText.sectionTitle, fontVariant: ['tabular-nums'] }, metricHelper: { ...mobileText.caption }, warning: { color: mobileTheme.color.status.warning.foreground }, sheetFooter: { flex: 1, flexDirection: 'row', gap: mobileTheme.spacing[3] }, footerButton: { flex: 1 }, workflowDescription: { ...mobileText.body },
+  list: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] },
+  emptyList: { flexGrow: 1 },
+  header: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[4] },
+  headerActions: { flexDirection: "row", gap: mobileTheme.spacing[2] },
+  cardFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: mobileTheme.spacing[2],
+  },
+  notice: {
+    alignItems: "center",
+    backgroundColor: mobileTheme.color.status.warning.background,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileTheme.spacing[3],
+  },
+  noticeIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 44,
+  },
+  noticeCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 180 },
+  noticeTitle: {
+    ...mobileText.label,
+    color: mobileTheme.color.status.warning.foreground,
+  },
+  noticeText: {
+    ...mobileText.caption,
+    color: mobileTheme.color.status.warning.foreground,
+  },
+  summary: { gap: mobileTheme.spacing[3], overflow: "hidden" },
+  summaryHero: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: mobileTheme.spacing[3],
+    justifyContent: "space-between",
+  },
+  summaryCopy: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
+  summaryEyebrow: {
+    ...mobileText.label,
+    color: mobileTheme.color.text.secondary,
+    textTransform: "uppercase",
+  },
+  summaryAmount: {
+    ...mobileText.title,
+    color: mobileTheme.color.text.primary,
+    fontVariant: ["tabular-nums"],
+  },
+  summaryIcon: {
+    alignItems: "center",
+    backgroundColor: mobileTheme.color.status.success.background,
+    borderRadius: mobileTheme.radius.full,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  summaryDivider: {
+    backgroundColor: mobileTheme.color.border.subtle,
+    height: 1,
+  },
+  summaryGrid: { flexDirection: "row", gap: mobileTheme.spacing[4] },
+  metric: { flex: 1, gap: mobileTheme.spacing[1], minWidth: 0 },
+  metricLabel: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+  },
+  metricValue: { ...mobileText.sectionTitle, fontVariant: ["tabular-nums"] },
+  metricHelper: { ...mobileText.caption },
+  warning: { color: mobileTheme.color.status.warning.foreground },
+  sheetFooter: { flex: 1, flexDirection: "row", gap: mobileTheme.spacing[3] },
+  footerButton: { flex: 1 },
+  workflowDescription: { ...mobileText.body },
 });

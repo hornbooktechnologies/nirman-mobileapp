@@ -94,3 +94,15 @@ cost after signed corrections.
 - authenticated Mobile workflow, conflict/idempotency, timeout, physical-device, screen-reader,
   largest-text, landscape, and fluent Hindi/Gujarati acceptance;
 - Web, offline sync, Files/Media receipts, and authenticated browser acceptance.
+
+## Mobile payment/form parity follow-up - 2026-10-05
+
+Mobile retry, conflict review, unsaved-change handling and effective-permission parity implemented. Required payment date, bounded amount, duplicate-tap and 408 retry safeguards verified statically. Mobile typecheck, locale parity and focused recovery tests passed. Authenticated read-only checks show local ledger support and missing ledger fields on both deployed API origins; Record Payment remains unavailable there until the existing paid-spending API release is deployed. No financial writes, database mutations or deployment performed. Device and live payment acceptance remain pending. See current-task.md / PROGRESS_LEDGER.md for evidence.
+
+## API payment safeguards follow-up - 2026-10-05
+
+API expense detail now uses one consistent snapshot for cost/version/history/payment balances. Payment amount validation and strict expense calendar-date/reason validation align with the clients. Web payment error-status/408/duplicate-submit handling corrected. Verified: 45 API suites / 340 tests (12 isolated HTTP cases), API build/typecheck, client typechecks, scoped lint and eight Web expense tests. Authenticated read-only local API/report checks passed. Live API remains on pre-payment-support commit 49b3f5e; updated application deployment and physical-device acceptance remain pending. No database or real financial mutations performed.
+
+## Cross-client audit follow-up - 2026-10-05
+
+API inactive-project actions and database amount bounds fixed. Web/Mobile payment conflicts now require refreshed ledger review via shared recovery classification. Mobile workflow retries/permission checks, project/expense scope cleanup and Web-equivalent recorder/sort filters implemented with en/hi/gu parity. Verification: 354 API tests, 11 Web tests, two Mobile retry tests, shared/API/Web production builds, API/Web/Mobile typechecks, scoped lint and locale checks. Authenticated browser verified Record Payment enabled/open against updated local API via temporary browser-only request routing; zero-value rejection and 390x844 layout passed without financial writes. Production API/Web publishing awaits the user's asynchronous deployment choice. Physical-device/offline acceptance remains separate. See current task/ledger for evidence and remote-proxy diagnosis.

@@ -12,6 +12,8 @@ describe("ProjectAccessService project permission grants", () => {
   } as unknown as jest.Mocked<OrganizationsRepository>;
   const accessRepo = {
     findAccessibleProjects: jest.fn(),
+    findPermissionGrantsForProjects: jest.fn().mockResolvedValue(new Map()),
+    findMaterialApprovalProjects: jest.fn().mockResolvedValue(new Set()),
     canApproveMaterials: jest.fn().mockResolvedValue(false),
     findPermissionsForMemberRole: jest.fn(),
     findProjectById: jest.fn(),
@@ -155,17 +157,59 @@ describe("ProjectAccessService project permission grants", () => {
         id: "project-id",
         name: "Tower A",
         status: "ACTIVE",
-        permission_mode: null,
+        permission_mode: "CUSTOM",
       },
     ] as never);
     accessRepo.findProjectMemberPermissionGrants.mockResolvedValue([
       "workers:read",
     ]);
+    accessRepo.findPermissionGrantsForProjects.mockResolvedValue(
+      new Map([["project-id", ["workers:read"]]]),
+    );
     const summary = await service.getProjectAccessSummary(
       actor,
       "organization-id",
     );
     expect(summary.projects[0].permissionMode).toBe("CUSTOM");
     expect(summary.projects[0].permissions).toEqual(["workers:read"]);
+  });
+  it("checks an additional source read permission using the same context", async () => {
+    accessRepo.findProjectMemberPermissionGrants.mockResolvedValue([
+      "workers:create",
+    ]);
+    await expect(
+      service.resolveProjectAccess(
+        actor,
+        "organization-id",
+        "project-id",
+        "workers:create",
+        ["workers:read"],
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(accessRepo.findProjectById).toHaveBeenCalledTimes(1);
+  });
+  it("batches multiple project grants and approval decisions without per-project reads", async () => {
+    accessRepo.findAccessibleProjects.mockResolvedValue([
+      { id: "p1", name: "A", status: "ACTIVE", permission_mode: "CUSTOM" },
+      {
+        id: "p2",
+        name: "B",
+        status: "ACTIVE",
+        permission_mode: "ROLE_DEFAULT",
+      },
+    ] as never);
+    accessRepo.findPermissionGrantsForProjects.mockResolvedValue(
+      new Map([["p1", ["workers:read", "wages:mark-paid"]]]),
+    );
+    accessRepo.findMaterialApprovalProjects.mockResolvedValue(new Set(["p2"]));
+    const result = await service.getProjectAccessSummary(
+      actor,
+      "organization-id",
+    );
+    expect(result.projects[0].permissions).toEqual(["workers:read"]);
+    expect(result.projects[1].permissions).toContain("materials:approve-final");
+    expect(accessRepo.findActiveProjectMember).not.toHaveBeenCalled();
+    expect(accessRepo.findProjectMemberPermissionGrants).not.toHaveBeenCalled();
+    expect(accessRepo.findMaterialApprovalProjects).toHaveBeenCalledTimes(1);
   });
 });

@@ -125,6 +125,18 @@
     "NOTIFICATION_DEVICE_TOKEN_INVALID": "This device could not be registered for push notifications.",
     "NOTIFICATION_DEVICE_NOT_FOUND": "This notification device is no longer registered.",
     "PROJECT_STATUS_INVALID": "This action requires an active Project.",
-    "MATERIAL_APPROVER_REQUIRED": "No eligible approver is available. Ask the organization Owner to delegate Materials approval."
+    "MATERIAL_APPROVER_REQUIRED": "No eligible approver is available. Ask the organization Owner to delegate Materials approval.",
+    "PAYMENT_SOURCE_NOT_FOUND": "Payment source not found. Refresh the record.",
+    "PAYMENT_IDEMPOTENCY_CONFLICT": "This retry key conflicts with another payment. Refresh and try again.",
+    "PAYMENT_VERSION_CONFLICT": "The record changed. Refresh before recording a payment.",
+    "PAYMENT_NOT_FOUND": "Payment not found. Refresh the record.",
+    "PAYMENT_ALREADY_VOIDED": "This payment has already been voided.",
+    "PAYMENT_SOURCE_INVALID": "Payments require an eligible material purchase or approved site expense.",
+    "PAYMENT_COST_REQUIRED": "Record the purchase total before recording a payment.",
+    "PAYMENT_AMOUNT_INVALID": "Payment must be positive and cannot exceed the remaining amount.",
+    "PAYMENT_DATE_INVALID": "Choose a valid payment date that is not in the future.",
+    "PAYMENT_ADJUSTMENT_BELOW_PAID": "Void mistaken payments before reducing the cost below the paid amount.",
+    "EXPENSE_CATEGORY_RETIRED": "Record material purchases in Materials and worker wages in Wages.",
+    "PAYMENT_TRACKING_UNAVAILABLE": "Payment tracking is awaiting setup."
   }
 }

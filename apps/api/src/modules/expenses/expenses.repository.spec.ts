@@ -1,3 +1,4 @@
+import { SourcePaymentsRepository } from "../source-payments/source-payments.repository";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import { DatabaseService } from "../../database/database.service";
 import { AuditService } from "../audit/audit.service";
@@ -18,7 +19,21 @@ describe("ExpensesRepository transactional guards", () => {
     createMany: jest.fn(),
     findProjectRecipients: jest.fn(),
   } as unknown as jest.Mocked<NotificationsService>;
-  const repository = new ExpensesRepository(database, audit, notifications);
+  const payments = {
+    ledger: jest.fn().mockResolvedValue({
+      payments: [],
+      paidAmount: "0.00",
+      remainingAmount: "400.00",
+      paymentStatus: "UNPAID",
+      version: 1,
+    }),
+  };
+  const repository = new ExpensesRepository(
+    database,
+    audit,
+    notifications,
+    payments as unknown as SourcePaymentsRepository,
+  );
   const organizationId = "00000000-0000-4000-8000-000000000010";
   const projectId = "00000000-0000-4000-8000-000000000020";
   const expenseId = "00000000-0000-4000-8000-000000000030";
@@ -253,5 +268,67 @@ describe("ExpensesRepository transactional guards", () => {
     ).rejects.toThrow("EXPENSE_RECOGNIZED_AMOUNT_NEGATIVE");
     expect(database.execute).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
+  });
+  it("rejects an expense adjustment below active payments", async () => {
+    payments.ledger.mockResolvedValueOnce({
+      payments: [],
+      paidAmount: "350.00",
+      remainingAmount: "50.00",
+      paymentStatus: "PARTIALLY_PAID",
+      version: 3,
+    });
+    database.query.mockImplementation(async (sql: string) =>
+      sql.includes("FROM site_expenses e")
+        ? ([{ ...row, status: "APPROVED", version: 3 }] as any)
+        : [],
+    );
+    await expect(
+      repository.adjust(
+        organizationId,
+        projectId,
+        expenseId,
+        {
+          expectedVersion: 3,
+          amount: -100,
+          reason: "Cost correction",
+          idempotencyKey: "paid-floor-001",
+        },
+        actor,
+      ),
+    ).rejects.toThrow("Void mistaken payments");
+    expect(database.execute).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+  it("reads cost, version, history and payment balance in one snapshot", async () => {
+    database.query.mockImplementation(async (sql: string) =>
+      sql.includes("FROM site_expenses e") ? ([row] as any) : [],
+    );
+    const detail = await repository.findDetail(
+      organizationId,
+      projectId,
+      expenseId,
+    );
+    expect(database.transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      true,
+    );
+    expect(
+      database.query.mock.calls.every((call) => call[2] === connection),
+    ).toBe(true);
+    expect(payments.ledger).toHaveBeenCalledWith(
+      "expenses",
+      organizationId,
+      projectId,
+      expenseId,
+      "400.00",
+      row.version,
+      connection,
+    );
+    expect(detail).toMatchObject({
+      paidAmount: "0.00",
+      remainingAmount: "400.00",
+      paymentStatus: "UNPAID",
+      payments: [],
+    });
   });
 });

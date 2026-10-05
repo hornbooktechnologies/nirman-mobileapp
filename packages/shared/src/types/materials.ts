@@ -1,3 +1,4 @@
+import type { PaymentLedger } from './total-expenses';
 import type {
   MaterialEventType,
   MaterialRequestStatus,
@@ -16,7 +17,7 @@ export type MaterialRequestEvent = {
   createdAt: string;
 };
 
-export type MaterialPurchase = {
+export type MaterialPurchase = PaymentLedger & {
   id: string;
   orderedQuantity: string;
   vendorName: string | null;

@@ -27,7 +27,11 @@
     "db:verify:notifications": "ts-node scripts/verify-notifications.ts",
     "db:verify:dashboards": "ts-node scripts/verify-role-dashboards.ts",
     "verify:dashboards:runtime": "ts-node scripts/verify-role-dashboard-runtime.ts",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "verify:paid-spending:readonly": "ts-node scripts/verify-paid-spending-readonly.ts",
+    "db:verify:paid-spending": "ts-node scripts/verify-paid-spending-schema.ts",
+    "verify:paid-spending:runtime": "ts-node scripts/verify-paid-spending-runtime.ts",
+    "db:audit:performance": "ts-node scripts/audit-performance-readonly.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1070.0",

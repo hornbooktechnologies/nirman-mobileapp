@@ -33,6 +33,7 @@ const permissionActionTranslationKeys = {
   mark: 'permissionAction.mark',
   'correct-locked': 'permissionAction.correct-locked',
   generate: 'permissionAction.generate',
+  'void-payment': 'permissionAction.void-payment',
   'mark-paid': 'permissionAction.mark-paid',
   'update-organization': 'permissionAction.update-organization',
   'update-project': 'permissionAction.update-project',

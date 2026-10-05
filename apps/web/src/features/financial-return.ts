@@ -9,5 +9,10 @@ export function financialListHref(projectId: string, module: "materials" | "expe
 
 export function safeFinancialReturn(value: string | null, projectId: string, module: "materials" | "expenses") {
   const fallback = `/projects/${encodeURIComponent(projectId)}/${module}`;
-  return value && (value === fallback || value.startsWith(`${fallback}?`)) && !value.includes("#") && !value.includes("\\") && !value.includes("//") ? value : fallback;
+  return totalExpensesReturn(value, projectId) ?? (value && (value === fallback || value.startsWith(`${fallback}?`)) && !value.includes("#") && !value.includes("\\") && !value.includes("//") ? value : fallback);
+}
+
+export function totalExpensesReturn(value: string | null | undefined, projectId: string): string | null {
+ const path=`/projects/${encodeURIComponent(projectId)}/total-expenses`;
+ return value && (value===path || value.startsWith(`${path}?`)) && !value.includes('#') && !value.includes('\\') && !value.includes('//') ? value : null;
 }

@@ -1,3 +1,4 @@
+import { SourcePaymentsRepository } from "../source-payments/source-payments.repository";
 import { findMaterialApprovalMembers } from "../project-access/material-approval-policy";
 import { Injectable } from "@nestjs/common";
 import { createHash, randomUUID } from "node:crypto";
@@ -116,6 +117,7 @@ export class MaterialsRepository {
     private readonly database: DatabaseService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly payments: SourcePaymentsRepository,
   ) {}
 
   async findSettings(organizationId: string, projectId: string) {
@@ -433,6 +435,17 @@ export class MaterialsRepository {
       [organizationId, projectId, materialRequestId],
       connection,
     );
+    const ledgers = await this.payments.ledgers(
+      "materials",
+      organizationId,
+      projectId,
+      purchases.map((row) => ({
+        id: row.id,
+        payable: row.totalCost,
+        version: rows[0].version,
+      })),
+      connection,
+    );
     return {
       ...this.mapRequest(rows[0]),
       events: events.map((row) => ({
@@ -440,6 +453,7 @@ export class MaterialsRepository {
         createdAt: row.createdAt.toISOString(),
       })),
       purchases: purchases.map((row) => ({
+        ...ledgers.get(row.id)!,
         ...row,
         purchasedOn: this.date(row.purchasedOn),
         createdAt: row.createdAt.toISOString(),

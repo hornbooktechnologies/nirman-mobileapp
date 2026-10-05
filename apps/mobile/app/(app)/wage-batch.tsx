@@ -1,16 +1,8 @@
-import { Redirect } from 'expo-router';
-
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { WageBatchDetailScreen } from '../../src/features/wages/wage-batch-detail-screen';
-import { getActiveProjectPermissions } from '../../src/lib/auth';
+import { getRouteProject } from '../../src/lib/auth';
 import { useSession } from '../../src/providers';
-
-export default function WageBatchRoute() {
-  const { session } = useSession();
-  const permissions = getActiveProjectPermissions(session);
-
-  if (!permissions.includes('wages:read')) {
-    return <Redirect href="/(app)/dashboard" />;
-  }
-
-  return <WageBatchDetailScreen />;
+export default function Page() {
+ const {session}=useSession();const {projectId}=useLocalSearchParams<{projectId?:string}>();const project=getRouteProject(session,projectId);
+ return project?.permissions.includes('wages:read') ? <WageBatchDetailScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${project.id}`}/> : <Redirect href="/(app)/menu"/>;
 }

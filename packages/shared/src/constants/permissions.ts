@@ -20,6 +20,7 @@ export const PERMISSION_RESOURCES = [
   "kharchi",
   "materials",
   "expenses",
+  "total-expenses",
   "progress",
   "gallery",
   "leads",
@@ -50,6 +51,7 @@ export const PERMISSION_ACTIONS = [
   "generate",
   "mark",
   "mark-paid",
+  "void-payment",
   "switch",
   "view-all",
   "view-own",
@@ -109,6 +111,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   kharchi: "Kharchi",
   materials: "Materials",
   expenses: "Site Expenses",
+  "total-expenses": "Total Expenses",
   progress: "Project Progress",
   gallery: "Site Gallery",
   leads: "Leads",
@@ -317,9 +320,13 @@ export const MATERIAL_PERMISSIONS = [
   "materials:record-purchase",
   "materials:record-delivery",
   "materials:export",
+  "materials:mark-paid",
+  "materials:void-payment",
 ] as const satisfies readonly PermissionKey[];
 
 export type MaterialPermissionKey = (typeof MATERIAL_PERMISSIONS)[number];
+
+export const TOTAL_EXPENSE_PERMISSIONS = ["total-expenses:read"] as const satisfies readonly PermissionKey[];
 
 export const EXPENSE_PERMISSIONS = [
   "expenses:read",
@@ -330,6 +337,8 @@ export const EXPENSE_PERMISSIONS = [
   "expenses:reject",
   "expenses:adjust",
   "expenses:export",
+  "expenses:mark-paid",
+  "expenses:void-payment",
 ] as const satisfies readonly PermissionKey[];
 
 export type ExpensePermissionKey = (typeof EXPENSE_PERMISSIONS)[number];
@@ -395,6 +404,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...KHARCHI_PERMISSIONS,
   ...MATERIAL_PERMISSIONS,
   ...EXPENSE_PERMISSIONS,
+  ...TOTAL_EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
   ...GALLERY_PERMISSIONS,
   ...SALES_PERMISSIONS,
@@ -404,6 +414,7 @@ export type ProjectDelegatablePermissionKey =
   (typeof PROJECT_DELEGATABLE_PERMISSIONS)[number];
 
 export const PROJECT_PERMISSION_GROUPS = [
+  { key: "TOTAL_EXPENSES", label: "Total Expenses (all paid financial sources)", permissions: TOTAL_EXPENSE_PERMISSIONS },
   {
     key: "PROJECT",
     label: "Project",
@@ -496,6 +507,7 @@ export const ALL_PERMISSIONS = [
   ...KHARCHI_PERMISSIONS,
   ...MATERIAL_PERMISSIONS,
   ...EXPENSE_PERMISSIONS,
+  ...TOTAL_EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
   ...GALLERY_PERMISSIONS,
   ...SALES_PERMISSIONS,
@@ -505,6 +517,11 @@ export const ALL_PERMISSIONS = [
 export type KnownPermissionKey = (typeof ALL_PERMISSIONS)[number];
 
 export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
+  "total-expenses:read": "Read all paid Wages, Materials and Site Expenses for an accessible project.",
+  "materials:mark-paid": "Record payments against material purchases.",
+  "materials:void-payment": "Void mistaken material purchase payments with an audit reason.",
+  "expenses:mark-paid": "Record payments against approved site expenses.",
+  "expenses:void-payment": "Void mistaken site expense payments with an audit reason.",
   "platform-organizations:read": "Read organizations as a platform operator.",
   "platform-organizations:create":
     "Create customer organizations as a platform operator.",

@@ -1,3 +1,4 @@
+import { SourcePaymentsRepository } from "../source-payments/source-payments.repository";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/require-await */
 import "reflect-metadata";
 import { validate } from "class-validator";
@@ -41,6 +42,16 @@ describe("Materials approval pool", () => {
     database as any,
     audit as any,
     notifications as any,
+    {
+      ledgers: jest.fn().mockResolvedValue(new Map()),
+      ledger: jest.fn().mockResolvedValue({
+        payments: [],
+        paidAmount: "0.00",
+        remainingAmount: "0.00",
+        paymentStatus: "UNPAID",
+        version: 1,
+      }),
+    } as unknown as SourcePaymentsRepository,
   );
   const command = {
     organizationId: "org",

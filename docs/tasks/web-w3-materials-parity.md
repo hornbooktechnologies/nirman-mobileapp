@@ -2,6 +2,7 @@
 
 ## 1. Status
 
+- 2026-10-05: removed the internal request UUID from Web Materials detail metadata; the record version remains visible. `git diff --check` passed; authenticated browser acceptance was not run.
 - 2026-09-17: implemented in source; focused verification recorded below; authenticated/browser/cross-client acceptance pending.
 - Scope: `apps/web` and documentation only. No Mobile, API, shared contract, database, migration, seed, dependency, commit, push, or deployment changes.
 - Audited current Mobile Materials screens/services, API controller/DTO/service/repository, shared Materials vocabulary, project access, Web API client/components, CODEX, and the W3 implementation slice. No applicable AGENTS.md was found.

@@ -1,3 +1,4 @@
+import type { PaymentLedger } from './total-expenses';
 import type {
   ExpenseAvailableAction,
   ExpenseCategory,
@@ -52,7 +53,7 @@ export type SiteExpense = {
   updatedAt: string;
 };
 
-export type SiteExpenseDetail = SiteExpense & {
+export type SiteExpenseDetail = SiteExpense & PaymentLedger & {
   availableActions: ExpenseAvailableAction[];
   events: ExpenseEvent[];
   adjustments: ExpenseAdjustment[];
@@ -76,3 +77,19 @@ export type SiteExpenseSummary = {
   pendingCount: number;
   countsByStatus: Partial<Record<ExpenseStatus, number>>;
 };
+
+// Merge immutable source records without duplicating adjustment workflow events.
+export function siteExpenseTimeline(detail: Pick<SiteExpenseDetail, "events" | "adjustments"> & Partial<PaymentLedger>) {
+  const adjustments = detail.adjustments ?? [];
+  return [
+    ...(detail.events ?? []).filter(event => event.eventType !== "ADJUSTED" || adjustments.length === 0).map(event => ({
+      id: `event:${event.id}`, eventType: event.eventType,
+      amount: null as string | null, comment: event.comment, actorName: event.actorName, createdAt: event.createdAt,
+    })),
+    ...adjustments.map(a => ({ id: `adjustment:${a.id}`, eventType: "ADJUSTED" as const, amount: a.amount, comment: a.reason, actorName: a.recordedBy, createdAt: a.createdAt })),
+    ...(detail.payments ?? []).flatMap(p => [
+      { id: `payment:${p.id}`, eventType: "PAYMENT_RECORDED" as const, amount: p.amount, comment: [p.paymentMethod, p.paymentDate, p.reference].filter(Boolean).join(" · "), actorName: p.recordedBy, createdAt: p.recordedAt },
+      ...(p.voidedAt ? [{ id: `void:${p.id}`, eventType: "PAYMENT_VOIDED" as const, amount: p.amount, comment: p.voidReason, actorName: p.voidedBy ?? "", createdAt: p.voidedAt }] : []),
+    ]),
+  ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}

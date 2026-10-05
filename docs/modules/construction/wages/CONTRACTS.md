@@ -74,3 +74,9 @@ Migration `026_wage_batch_cancellation.sql` adds the cancellation reason, immuta
 ## On-demand PDF export - 2026-10-01
 
 User-approved addition: `GET /organizations/:organizationId/projects/:projectId/wages/batches/:batchId/export/pdf` accepts the existing export scope/query and requires `wages:export`. It returns an API-generated `application/pdf` attachment, without a JSON envelope or PDF persistence. CSV remains available through the existing route. Both formats use the same authorized dataset; financial values are unchanged. Web and Mobile only download/save/share the returned bytes. PDFs use project names and readable date/filter scope; Wages includes both batch items and payment history. PDF exports have explicit row/concurrency limits without silent truncation. See `docs/tasks/pdf-export-implementation-plan.md` for implementation and unrun acceptance gates.
+
+## 2026-10-05 — Paid spending integration
+
+Approved addition: follow `docs/modules/construction/total-expenses/CONTRACTS.md`. Total Expenses consumes actual dated payments (partial included), with dedicated cross-source report visibility. Materials/Expenses gain source-scoped payment recording and audited voids; approval does not establish payment. No inferred historical payments or automatic cross-module entries. Wage payment/cancellation behavior and Kharchi deductions remain unchanged.
+
+The report reuses existing wage_payments and groups by batch, including paid portions of CONFIRMED/PARTIALLY_PAID/PAID batches and excluding DRAFT/CANCELLED. Period paid uses payment dates; source period and lifetime outstanding remain separate. No wage calculation, allocation or cancellation semantic changes. `total-expenses:read` reveals this source’s financial report data without its detail-read permission; opening detail still requires the existing source-read permission. No historical inference, cross-module creation or automatic links.

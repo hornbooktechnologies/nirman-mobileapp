@@ -1,9 +1,11 @@
+import { siteExpenseTimeline, type PermissionKey } from "@nirman-app/shared";
+import { SourcePaymentsPanel } from "../total-expenses/source-payments-panel";
 import type {
   ExpenseAvailableAction,
   SiteExpenseDetail,
 } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -26,8 +28,9 @@ import {
   StatusBadge,
 } from "../../components/ui";
 import { formatDate, formatInr, getLocalizedErrorMessage } from "../../i18n";
-import { ApiRequestError } from "../../lib/api";
-import { getActiveProject } from "../../lib/auth";
+import { useExpenseCommand } from "./use-expense-command";
+import type { ExpenseCommandInput, ExpenseAdjustmentInput } from "./types";
+import { getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
@@ -52,12 +55,15 @@ const actions: ExpenseAvailableAction[] = [
 ];
 
 export function ExpenseDetailScreen() {
-  const { expenseId } = useLocalSearchParams<{ expenseId?: string }>();
+  const { expenseId, projectId: requestedProjectId } = useLocalSearchParams<{
+    expenseId?: string;
+    projectId?: string;
+  }>();
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const project = getRouteProject(session, requestedProjectId);
   const organizationId = session?.activeOrganization?.id;
   const projectId = project?.id;
   const token = session?.accessToken;
@@ -66,26 +72,42 @@ export function ExpenseDetailScreen() {
   const [error, setError] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [action, setAction] = useState<ExpenseAvailableAction | null>(null);
+  const loadSequence = useRef(0);
   const load = useCallback(async () => {
     if (!expenseId || !organizationId || !projectId || !token) {
       setLoading(false);
       return;
     }
+    const request = ++loadSequence.current;
     setLoading(true);
     setError("");
     try {
-      setDetail(
-        await fetchExpenseDetail(organizationId, projectId, expenseId, token),
+      const next = await fetchExpenseDetail(
+        organizationId,
+        projectId,
+        expenseId,
+        token,
       );
+      if (request === loadSequence.current) setDetail(next);
     } catch (loadError) {
-      setError(getLocalizedErrorMessage(loadError, t("errors.detailFailed")));
+      if (request === loadSequence.current)
+        setError(getLocalizedErrorMessage(loadError, t("errors.detailFailed")));
+      throw loadError;
     } finally {
-      setLoading(false);
+      if (request === loadSequence.current) setLoading(false);
     }
   }, [expenseId, organizationId, projectId, t, token]);
   useEffect(() => {
-    void load();
+    void load().catch(() => undefined);
+    return () => {
+      loadSequence.current += 1;
+    };
   }, [load]);
+  useEffect(() => {
+    setDetail(null);
+    setEditOpen(false);
+    setAction(null);
+  }, [organizationId, projectId, expenseId]);
   function success(
     next: SiteExpenseDetail,
     completedAction: Exclude<ExpenseAvailableAction, "EDIT">,
@@ -95,6 +117,23 @@ export function ExpenseDetailScreen() {
     Alert.alert(t("success.title"), t(`success.${completedAction}`));
   }
 
+  const actionPermissions: Record<ExpenseAvailableAction, PermissionKey> = {
+    EDIT: "expenses:update",
+    SUBMIT: "expenses:update",
+    CANCEL: "expenses:update",
+    APPROVE: "expenses:approve",
+    REJECT: "expenses:reject",
+    ADJUST: "expenses:adjust",
+  };
+  const allowedActions =
+    detail?.availableActions.filter(
+      (value) =>
+        !loading &&
+        !error &&
+        project?.status === "ACTIVE" &&
+        project.permissions.includes(actionPermissions[value]),
+    ) ?? [];
+  const timeline = detail ? siteExpenseTimeline(detail) : [];
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="expenses" />}>
       <CompactScreenHeader
@@ -109,7 +148,7 @@ export function ExpenseDetailScreen() {
         title={t("detail.title")}
         subtitle={detail ? t(`category.${detail.category}`) : project?.name}
         action={
-          detail?.availableActions.includes("EDIT") ? (
+          allowedActions.includes("EDIT") ? (
             <Button
               label={t("action.EDIT")}
               fullWidth={false}
@@ -121,15 +160,21 @@ export function ExpenseDetailScreen() {
           ) : undefined
         }
       />
-      <ProjectContextCard compact />
-      {loading ? (
+      {requestedProjectId ? (
+        <Card>
+          <AppText weight={700}>{project?.name}</AppText>
+        </Card>
+      ) : (
+        <ProjectContextCard compact />
+      )}
+      {loading && !detail ? (
         <LoadingState label={t("loading.detail")} />
-      ) : error ? (
+      ) : error && !detail ? (
         <EmptyState
           title={t("errors.title")}
           description={error}
           actionLabel={tCommon("actions.retry")}
-          onAction={() => void load()}
+          onAction={() => void load().catch(() => undefined)}
         />
       ) : !detail ? (
         <EmptyState
@@ -138,6 +183,7 @@ export function ExpenseDetailScreen() {
         />
       ) : (
         <>
+          <FormError message={error} />
           <Card style={styles.hero}>
             <View style={styles.heroTop}>
               <View style={styles.heroCopy}>
@@ -237,13 +283,12 @@ export function ExpenseDetailScreen() {
               </View>
             ) : null}
           </Card>
-          {detail.availableActions.length ? (
+          {detail.status !== "APPROVED" && allowedActions.length ? (
             <View style={styles.section}>
               <SectionTitle title={t("detail.availableActions")} />
               {actions
                 .filter(
-                  (value) =>
-                    value !== "EDIT" && detail.availableActions.includes(value),
+                  (value) => value !== "EDIT" && allowedActions.includes(value),
                 )
                 .map((value) => (
                   <ActionListItem
@@ -266,88 +311,80 @@ export function ExpenseDetailScreen() {
                 ))}
             </View>
           ) : null}
-          <View style={styles.section}>
-            <SectionTitle
-              title={t("detail.adjustments")}
-              count={detail.adjustments.length}
+          <Card style={styles.sectionCard}>
+            <SourcePaymentsPanel
+              compact
+              key={`${organizationId}:${projectId}:${detail.id}`}
+              org={organizationId!}
+              project={projectId!}
+              token={token!}
+              source="expenses"
+              id={detail.id}
+              ledger={detail}
+              version={detail.version}
+              permissions={project?.permissions ?? []}
+              active={
+                project?.status === "ACTIVE" && detail.status === "APPROVED"
+              }
+              timezone={
+                session?.activeOrganization?.workingTimezone ??
+                session?.activeOrganization?.timezone ??
+                "Asia/Kolkata"
+              }
+              onSaved={load}
+              adjustmentAction={
+                project?.status === "ACTIVE" &&
+                project.permissions.includes("expenses:adjust") &&
+                detail.availableActions.includes("ADJUST") ? (
+                  <Button
+                    label={t("action.ADJUST")}
+                    variant="secondary"
+                    onPress={() => setAction("ADJUST")}
+                  />
+                ) : null
+              }
             />
-            {detail.adjustments.length ? (
-              detail.adjustments.map((adjustment) => (
-                <Card key={adjustment.id} style={styles.historyCard}>
-                  <View style={styles.historyTop}>
-                    <View style={styles.adjustmentTitle}>
-                      <AppIcon
-                        name={
-                          Number(adjustment.amount) >= 0
-                            ? "plus-circle-outline"
-                            : "minus-circle-outline"
-                        }
-                        size={20}
-                        color={
-                          Number(adjustment.amount) >= 0
-                            ? mobileTheme.color.status.success.foreground
-                            : mobileTheme.color.status.danger.foreground
-                        }
-                      />
-                      <AppText weight={700}>
-                        {Number(adjustment.amount) >= 0
-                          ? t("adjustment.increase")
-                          : t("adjustment.decrease")}
-                      </AppText>
-                    </View>
-                    <AppText
-                      style={[
-                        styles.adjustmentAmount,
-                        Number(adjustment.amount) < 0 && styles.negative,
-                      ]}
-                      weight={700}
-                    >
-                      {formatInr(Number(adjustment.amount), language)}
-                    </AppText>
-                  </View>
-                  <AppText style={styles.body}>{adjustment.reason}</AppText>
-                  <AppText style={styles.caption}>
-                    {adjustment.recordedBy} ·{" "}
-                    {formatDate(dateTime(adjustment.createdAt), language, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                      timeZone: "Asia/Kolkata",
-                    })}
-                  </AppText>
-                </Card>
-              ))
-            ) : (
-              <AppText style={styles.emptyText}>
-                {t("detail.noAdjustments")}
-              </AppText>
-            )}
-          </View>
+          </Card>
           <View style={styles.section}>
             <SectionTitle
               title={t("detail.timeline")}
-              count={detail.events.length}
+              count={timeline.length}
             />
-            {detail.events.map((event, index) => (
+            {timeline.map((event, index) => (
               <View key={event.id} style={styles.timelineRow}>
                 <View style={styles.timelineRail}>
                   <View style={styles.timelineDot} />
-                  {index < detail.events.length - 1 ? (
+                  {index < timeline.length - 1 ? (
                     <View style={styles.timelineLine} />
                   ) : null}
                 </View>
                 <Card style={styles.eventCard}>
-                  <View style={styles.historyTop}>
-                    <AppText weight={700}>
+                  <View style={styles.timelineHeader}>
+                    <AppText style={styles.timelineTitle} weight={700}>
                       {t(`event.${event.eventType}`)}
                     </AppText>
                     <AppText style={styles.caption}>
                       {formatDate(dateTime(event.createdAt), language, {
                         dateStyle: "medium",
                         timeStyle: "short",
-                        timeZone: "Asia/Kolkata",
+                        timeZone:
+                          session?.activeOrganization?.workingTimezone ??
+                          session?.activeOrganization?.timezone ??
+                          "Asia/Kolkata",
                       })}
                     </AppText>
                   </View>
+                  {event.amount !== null ? (
+                    <AppText
+                      style={[
+                        styles.adjustmentAmount,
+                        Number(event.amount) < 0 && styles.negative,
+                      ]}
+                      weight={700}
+                    >
+                      {formatInr(Number(event.amount), language)}
+                    </AppText>
+                  ) : null}
                   <AppText style={styles.caption}>{event.actorName}</AppText>
                   {event.comment ? (
                     <AppText style={styles.body}>{event.comment}</AppText>
@@ -360,6 +397,7 @@ export function ExpenseDetailScreen() {
       )}
       {editOpen && detail && organizationId && projectId && token ? (
         <ExpenseFormSheet
+          key={`${organizationId}:${projectId}:${detail.id}`}
           visible
           organizationId={organizationId}
           projectId={projectId}
@@ -368,11 +406,13 @@ export function ExpenseDetailScreen() {
           onClose={() => setEditOpen(false)}
           onSaved={load}
           onConflict={load}
+          allowed={allowedActions.includes("EDIT")}
         />
       ) : null}
       {action && detail && organizationId && projectId && token ? (
         action === "ADJUST" ? (
           <AdjustmentSheet
+            key={`${organizationId}:${projectId}:${detail.id}:adjust`}
             detail={detail}
             organizationId={organizationId}
             projectId={projectId}
@@ -380,9 +420,11 @@ export function ExpenseDetailScreen() {
             onClose={() => setAction(null)}
             onSaved={(next) => success(next, action)}
             onConflict={load}
+            allowed={allowedActions.includes(action)}
           />
         ) : action === "EDIT" ? null : (
           <CommandSheet
+            key={`${organizationId}:${projectId}:${detail.id}:${action}`}
             action={action}
             detail={detail}
             organizationId={organizationId}
@@ -391,6 +433,7 @@ export function ExpenseDetailScreen() {
             onClose={() => setAction(null)}
             onSaved={(next) => success(next, action)}
             onConflict={load}
+            allowed={allowedActions.includes(action)}
           />
         )
       ) : null}
@@ -406,6 +449,7 @@ type SheetBase = {
   onClose: () => void;
   onSaved: (detail: SiteExpenseDetail) => void;
   onConflict: () => Promise<void>;
+  allowed: boolean;
 };
 function CommandSheet({
   action,
@@ -416,48 +460,44 @@ function CommandSheet({
   onClose,
   onSaved,
   onConflict,
+  allowed,
 }: SheetBase & { action: Exclude<ExpenseAvailableAction, "EDIT" | "ADJUST"> }) {
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
   const [reason, setReason] = useState("");
-  const [key] = useState(mutationKey(`${detail.id}-${action}`));
-  const [working, setWorking] = useState(false);
-  const [error, setError] = useState("");
+  const command = useExpenseCommand<ExpenseCommandInput>(
+    t("errors.actionFailed"),
+  );
+  const { working, error, setError } = command;
+  const close = () => command.requestClose(onClose, Boolean(reason.trim()));
   const required = action === "REJECT" || action === "CANCEL";
   async function submit() {
-    if (required && reason.trim().length < 2) {
+    if (!allowed || !command.canSubmit) return;
+    if (!command.retryLabel && required && reason.trim().length < 2) {
       setError(t("validation.reasonRequired"));
       return;
     }
-    setWorking(true);
-    setError("");
-    try {
-      onSaved(
-        await runExpenseCommand(
+    let next: SiteExpenseDetail | undefined;
+    await command.run(
+      {
+        expectedVersion: detail.version,
+        reason: reason.trim() || null,
+        idempotencyKey: mutationKey(`${detail.id}-${action}`),
+      },
+      async (original) => {
+        next = await runExpenseCommand(
           organizationId,
           projectId,
           detail.id,
           action.toLowerCase() as "submit" | "approve" | "reject" | "cancel",
           accessToken,
-          {
-            expectedVersion: detail.version,
-            reason: reason.trim() || null,
-            idempotencyKey: key,
-          },
-        ),
-      );
-    } catch (commandError) {
-      setError(
-        getLocalizedErrorMessage(commandError, t("errors.actionFailed")),
-      );
-      if (
-        commandError instanceof ApiRequestError &&
-        commandError.code === "EXPENSE_VERSION_CONFLICT"
-      )
-        await onConflict();
-    } finally {
-      setWorking(false);
-    }
+          original,
+        );
+      },
+      () => {
+        if (next) onSaved(next);
+      },
+    );
   }
   return (
     <BottomSheet
@@ -466,19 +506,26 @@ function CommandSheet({
       description={t(`confirm.${action}.description`)}
       scroll
       showCloseButton={false}
-      onClose={onClose}
+      onClose={close}
       footer={
         <SheetFooter
           cancel={tCommon("actions.cancel")}
-          save={working ? t("loading.working") : t(`action.${action}`)}
+          save={
+            working
+              ? t("loading.working")
+              : (command.retryLabel ?? t(`action.${action}`))
+          }
           working={working}
+          cancelDisabled={!command.canClose}
+          saveDisabled={!command.canSubmit || !allowed}
           danger={action === "REJECT" || action === "CANCEL"}
-          onCancel={onClose}
+          onCancel={close}
           onSave={() => void submit()}
         />
       }
     >
       <FormError message={error} />
+      {command.recovery(onConflict)}
       <FormField
         label={t("fields.reason")}
         required={required}
@@ -489,6 +536,7 @@ function CommandSheet({
         }
       >
         <Input
+          editable={!command.locked && allowed}
           multiline
           numberOfLines={4}
           maxLength={2000}
@@ -508,6 +556,7 @@ function AdjustmentSheet({
   onClose,
   onSaved,
   onConflict,
+  allowed,
 }: SheetBase) {
   const { t } = useTranslation("expenses");
   const { t: tCommon } = useTranslation("common");
@@ -517,20 +566,32 @@ function AdjustmentSheet({
   );
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
-  const [key] = useState(mutationKey(`${detail.id}-adjustment`));
-  const [working, setWorking] = useState(false);
-  const [error, setError] = useState("");
+  const command = useExpenseCommand<ExpenseAdjustmentInput>(
+    t("errors.adjustmentFailed"),
+  );
+  const { working, error, setError } = command;
+  const close = () =>
+    command.requestClose(
+      onClose,
+      Boolean(reason.trim() || amount || direction !== "INCREASE"),
+    );
   async function save() {
+    if (!allowed || !command.canSubmit) return;
     const numeric = Number(amount);
     if (
-      !Number.isFinite(numeric) ||
-      numeric <= 0 ||
-      !/^\d+(\.\d{1,2})?$/.test(amount)
+      !command.retryLabel &&
+      (!Number.isFinite(numeric) ||
+        numeric <= 0 ||
+        !/^\d+(\.\d{1,2})?$/.test(amount))
     ) {
       setError(t("validation.adjustmentAmount"));
       return;
     }
-    if (direction === "DECREASE" && numeric > Number(detail.recognizedAmount)) {
+    if (
+      !command.retryLabel &&
+      direction === "DECREASE" &&
+      numeric > Number(detail.recognizedAmount)
+    ) {
       setError(
         t("validation.adjustmentMaximum", {
           amount: formatInr(Number(detail.recognizedAmount), language),
@@ -538,33 +599,31 @@ function AdjustmentSheet({
       );
       return;
     }
-    if (reason.trim().length < 2) {
+    if (!command.retryLabel && reason.trim().length < 2) {
       setError(t("validation.reasonRequired"));
       return;
     }
-    setWorking(true);
-    setError("");
-    try {
-      onSaved(
-        await adjustExpense(organizationId, projectId, detail.id, accessToken, {
-          expectedVersion: detail.version,
-          amount: direction === "DECREASE" ? -numeric : numeric,
-          reason: reason.trim(),
-          idempotencyKey: key,
-        }),
-      );
-    } catch (saveError) {
-      setError(
-        getLocalizedErrorMessage(saveError, t("errors.adjustmentFailed")),
-      );
-      if (
-        saveError instanceof ApiRequestError &&
-        saveError.code === "EXPENSE_VERSION_CONFLICT"
-      )
-        await onConflict();
-    } finally {
-      setWorking(false);
-    }
+    let next: SiteExpenseDetail | undefined;
+    await command.run(
+      {
+        expectedVersion: detail.version,
+        amount: direction === "DECREASE" ? -numeric : numeric,
+        reason: reason.trim(),
+        idempotencyKey: mutationKey(`${detail.id}-adjustment`),
+      },
+      async (original) => {
+        next = await adjustExpense(
+          organizationId,
+          projectId,
+          detail.id,
+          accessToken,
+          original,
+        );
+      },
+      () => {
+        if (next) onSaved(next);
+      },
+    );
   }
   return (
     <BottomSheet
@@ -575,31 +634,42 @@ function AdjustmentSheet({
       })}
       scroll
       showCloseButton={false}
-      onClose={onClose}
+      onClose={close}
       footer={
         <SheetFooter
           cancel={tCommon("actions.cancel")}
-          save={working ? t("loading.working") : t("adjustment.save")}
+          save={
+            working
+              ? t("loading.working")
+              : (command.retryLabel ?? t("adjustment.save"))
+          }
           working={working}
-          onCancel={onClose}
+          cancelDisabled={!command.canClose}
+          saveDisabled={!command.canSubmit || !allowed}
+          onCancel={close}
           onSave={() => void save()}
         />
       }
     >
       <FormError message={error} />
+      {command.recovery(onConflict)}
       <View accessibilityRole="radiogroup" style={styles.directionRow}>
         <View style={styles.directionOption}>
           <FilterOption
             label={t("adjustment.increase")}
             selected={direction === "INCREASE"}
-            onPress={() => setDirection("INCREASE")}
+            onPress={() => {
+              if (!command.locked && allowed) setDirection("INCREASE");
+            }}
           />
         </View>
         <View style={styles.directionOption}>
           <FilterOption
             label={t("adjustment.decrease")}
             selected={direction === "DECREASE"}
-            onPress={() => setDirection("DECREASE")}
+            onPress={() => {
+              if (!command.locked && allowed) setDirection("DECREASE");
+            }}
           />
         </View>
       </View>
@@ -615,6 +685,7 @@ function AdjustmentSheet({
         }
       >
         <Input
+          editable={!command.locked && allowed}
           keyboardType="decimal-pad"
           value={amount}
           onChangeText={(value) => setAmount(value.replace(/[^0-9.]/g, ""))}
@@ -622,6 +693,7 @@ function AdjustmentSheet({
       </FormField>
       <FormField label={t("fields.reason")} required>
         <Input
+          editable={!command.locked && allowed}
           multiline
           numberOfLines={4}
           maxLength={2000}
@@ -638,6 +710,8 @@ function SheetFooter({
   save,
   working,
   danger = false,
+  cancelDisabled = false,
+  saveDisabled = false,
   onCancel,
   onSave,
 }: {
@@ -645,6 +719,8 @@ function SheetFooter({
   save: string;
   working: boolean;
   danger?: boolean;
+  cancelDisabled?: boolean;
+  saveDisabled?: boolean;
   onCancel: () => void;
   onSave: () => void;
 }) {
@@ -654,14 +730,14 @@ function SheetFooter({
         style={styles.footerButton}
         label={cancel}
         variant="secondary"
-        disabled={working}
+        disabled={working || cancelDisabled}
         onPress={onCancel}
       />
       <Button
         style={styles.footerButton}
         label={save}
         variant={danger ? "danger" : "primary"}
-        disabled={working}
+        disabled={working || saveDisabled}
         onPress={onSave}
       />
     </View>
@@ -710,7 +786,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     fontSize: 16,
   },
-  description: { ...mobileText.sectionTitle, fontSize: 14, fontWeight: "normal" },
+  description: {
+    ...mobileText.sectionTitle,
+    fontSize: 14,
+    fontWeight: "normal",
+  },
   amountHero: {
     alignItems: "center",
     flexDirection: "row",
@@ -805,7 +885,9 @@ const styles = StyleSheet.create({
     marginVertical: mobileTheme.spacing[1],
     width: 2,
   },
-  eventCard: { flex: 1, gap: mobileTheme.spacing[2] },
+  eventCard: { flex: 1, minWidth: 0, gap: mobileTheme.spacing[2] },
+  timelineHeader: { gap: mobileTheme.spacing[1] },
+  timelineTitle: { ...mobileText.body, flexShrink: 1 },
   multiline: {
     minHeight: 112,
     paddingTop: mobileTheme.spacing[3],

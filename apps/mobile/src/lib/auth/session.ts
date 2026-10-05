@@ -313,3 +313,9 @@ export async function clearStoredSession() {
   await deleteSecureValue(SESSION_STORAGE_KEY);
   await deleteSecureValue(ACTIVE_PROJECT_STORAGE_KEY);
 }
+
+/** Resolve an explicit route within accessible projects; unknown IDs never fall back to another site. */
+export function getRouteProject(session: MobileSession | null, projectId?: string) {
+  if (projectId !== undefined) return typeof projectId === 'string' ? session?.projectAccess.projects.find(project => project.id === projectId) ?? null : null;
+  return getActiveProject(session);
+}

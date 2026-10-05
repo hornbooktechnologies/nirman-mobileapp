@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { memo, type ReactNode, type Ref } from 'react';
 import {
   Image,
   Animated,
@@ -8,6 +8,7 @@ import {
   type StyleProp,
   type ViewProps,
   type ViewStyle,
+  type ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ const DASHBOARD_LAYER_SOURCE = require('../../../assets/brand/background1.png');
 type NirmanScreenBackgroundProps = Omit<ViewProps, 'style'> & {
   footer?: ReactNode;
   scrollY?: Animated.Value;
+  scrollRef?: Ref<ScrollView>;
   scroll?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'dashboard';
@@ -39,6 +41,7 @@ const BackgroundImage = memo(function BackgroundImage() {
 export function NirmanScreenBackground({
   footer,
   scrollY,
+  scrollRef,
   scroll = true,
   children,
   style,
@@ -65,6 +68,7 @@ export function NirmanScreenBackground({
       <SafeAreaView style={styles.safeArea}>
         {scroll ? (
           <Animated.ScrollView
+            ref={scrollRef}
             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
