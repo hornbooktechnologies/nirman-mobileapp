@@ -1,3 +1,5 @@
+import { TotalExpensesModule } from './modules/total-expenses/total-expenses.module';
+import { SourcePaymentsModule } from './modules/source-payments/source-payments.module';
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DatabaseModule } from "./database/database.module";
@@ -53,6 +55,8 @@ import { PdfExportModule } from "./common/exports/pdf-export.module";
     ProgressModule,
     DashboardModule,
     GalleryModule,
+    SourcePaymentsModule,
+    TotalExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

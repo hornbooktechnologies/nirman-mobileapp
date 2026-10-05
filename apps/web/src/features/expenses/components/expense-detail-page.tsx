@@ -1,10 +1,17 @@
 "use client";
+import { SourcePaymentsPanel } from "@/features/total-expenses/source-payments-panel";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { ExpenseAvailableAction } from "@nirman-app/shared";
+import {
+  siteExpenseTimeline,
+  type ExpenseAvailableAction,
+} from "@nirman-app/shared";
 import { Button, Card, LoadingState } from "@/components/ui";
-import { safeFinancialReturn } from "@/features/financial-return";
+import {
+  safeFinancialReturn,
+  totalExpensesReturn,
+} from "@/features/financial-return";
 import { useExpenseDetail } from "../hooks/use-expenses";
 import { expenseActions, label } from "../expense-rules";
 import { ExpensesWorkspace, type ExpensesContext } from "./expenses-workspace";
@@ -48,6 +55,7 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
       />
     );
   const d = query.data;
+  const timeline = siteExpenseTimeline(d);
   const actions = expenseActions(
     d.availableActions,
     context.permissions,
@@ -65,9 +73,15 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
     <div className="space-y-5">
       <Link
         className="underline"
-        href={safeFinancialReturn(search.get("returnTo"), context.project, "expenses")}
+        href={safeFinancialReturn(
+          search.get("returnTo"),
+          context.project,
+          "expenses",
+        )}
       >
-        Back to Site Expenses
+        {totalExpensesReturn(search.get("returnTo"), context.project)
+          ? "Back to Total Expenses"
+          : "Back to Site Expenses"}
       </Link>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -97,11 +111,22 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
       {query.isError && (
         <Failure error={query.error} retry={() => void query.refetch()} />
       )}
-      <Card className="space-y-3">
-        <h2 className="text-lg font-semibold">Current state and next step</h2>
-        <p className="text-sm text-sub">{d.status === "PENDING_APPROVAL" ? "Awaiting approval. Eligible owners can approve their own expenses; other recorders need an authorized reviewer." : d.status === "APPROVED" ? "Recognized cost includes the approved original amount and signed adjustments." : d.status === "DRAFT" ? "Draft expense. Submit when the details are ready." : d.status === "REJECTED" ? "Rejected expense. Review the reason and available actions." : "Cancelled expense. No further changes are allowed."}</p>
-        {actions.length ? <div aria-label="Available expense actions" className="flex flex-wrap gap-3">{actions.map(value => <Button key={value} variant={value === "APPROVE" || value === "SUBMIT" ? "primary" : value === "CANCEL" || value === "REJECT" ? "danger" : "outline"} disabled={query.isFetching} onClick={() => setAction(value as ExpenseAvailableAction)}>{label(value)}</Button>)}</div> : <p className="text-sm text-sub">No actions available for this expense.</p>}
-      </Card>
+      {d.status !== "APPROVED" && (
+        <Card className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            {actions.map((value) => (
+              <Button
+                key={value}
+                variant="outline"
+                disabled={query.isFetching}
+                onClick={() => setAction(value as ExpenseAvailableAction)}
+              >
+                {label(value)}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
       <section
         aria-label="Expense amounts"
         className="grid gap-3 sm:grid-cols-3"
@@ -143,70 +168,59 @@ function Detail({ context, id }: { context: ExpensesContext; id: string }) {
           </div>
         )}
       </Card>
-      {d.status === "APPROVED" && (
-        <p className="text-sm text-sub">
-          Approved expenses are immutable. Authorized users can record a signed
-          adjustment.
-        </p>
-      )}
-      {d.status === "CANCELLED" && (
-        <p className="text-sm text-sub">
-          This expense is cancelled and cannot be changed.
-        </p>
-      )}
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card className="space-y-4">
-          <h2 className="text-lg font-semibold">
-            Adjustments ({d.adjustments.length})
-          </h2>
-          {!d.adjustments.length ? (
-            <p>No adjustments recorded.</p>
-          ) : (
-            <ol className="space-y-4">
-              {d.adjustments.map((a) => (
-                <li
-                  key={a.id}
-                  className="space-y-1 border-b border-hairline pb-4 last:border-0"
-                >
-                  <p className="font-semibold tabular-nums">
-                    {Number(a.amount) < 0 ? "Decrease" : "Increase"} ·{" "}
-                    {money(a.amount)}
-                  </p>
-                  <p className="whitespace-pre-wrap break-words">{a.reason}</p>
-                  <p className="text-sm text-sub">
-                    {a.recordedBy} · {timestamp(a.createdAt)}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Card>
-        <Card className="space-y-4">
-          <h2 className="text-lg font-semibold">History ({d.events.length})</h2>
-          <ol className="space-y-4">
-            {d.events.map((e) => (
-              <li
-                key={e.id}
-                className="space-y-1 border-l-2 border-hairline pl-4"
+      <Card>
+        <SourcePaymentsPanel
+          compact
+          org={context.org}
+          project={context.project}
+          source="expenses"
+          id={d.id}
+          ledger={d}
+          version={d.version}
+          permissions={context.permissions}
+          active={context.active && !query.isError && d.status === "APPROVED"}
+          timezone={context.timezone}
+          onSaved={async () => {
+            const latest = await refresh();
+            if (!latest) throw new Error("Could not reload the expense.");
+          }}
+          adjustmentAction={
+            actions.includes("ADJUST") ? (
+              <Button
+                variant="outline"
+                disabled={query.isFetching}
+                onClick={() => setAction("ADJUST")}
               >
-                <p className="font-semibold">{label(e.eventType)}</p>
-                <p className="text-sm">
-                  {e.previousStatus ? `${label(e.previousStatus)} → ` : ""}
-                  {label(e.nextStatus)}
+                Record adjustment
+              </Button>
+            ) : null
+          }
+        />
+      </Card>
+      <Card className="space-y-4">
+        <h2 className="text-lg font-semibold">Timeline ({timeline.length})</h2>
+        <ol className="space-y-4">
+          {timeline.map((entry) => (
+            <li
+              key={entry.id}
+              className="space-y-1 border-l-2 border-hairline pl-4"
+            >
+              <p className="font-semibold">
+                {label(entry.eventType)}
+                {entry.amount !== null ? ` · ${money(entry.amount)}` : ""}
+              </p>
+              {entry.comment && (
+                <p className="whitespace-pre-wrap break-words">
+                  {entry.comment}
                 </p>
-                {e.comment && (
-                  <p className="whitespace-pre-wrap break-words">{e.comment}</p>
-                )}
-                <p className="text-sm text-sub">
-                  {e.actorName} · {timestamp(e.createdAt)}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      </div>
-      {context.permissions.includes("materials:read") && <Card className="space-y-2"><h2 className="text-lg font-semibold">Related project work</h2><p className="text-sm text-sub">This expense has no automatic link to a Materials purchase.</p><Link className="underline" href={`/projects/${context.project}/materials`}>View project Materials</Link></Card>}
-      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Created {timestamp(d.createdAt)} · Updated {timestamp(d.updatedAt)} · Version {d.version}</p><p className="break-all">Expense ID {d.id}</p></details>
+              )}
+              <p className="text-sm text-sub">
+                {entry.actorName} · {timestamp(entry.createdAt)}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </Card>
       {action && (
         <ExpenseForm
           context={{ ...context, active: context.active && !query.isError }}

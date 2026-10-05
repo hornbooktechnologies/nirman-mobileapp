@@ -169,45 +169,37 @@ export class ProjectAccessService {
       access.membership.id,
       access.organizationWideProjectAccess,
     );
-    const projectsWithPermissions = await Promise.all(
-      projects.map(async (project) => {
-        const assignment = access.organizationWideProjectAccess
-          ? await this.accessRepo.findActiveProjectMember(
-              organizationId,
-              project.id,
-              access.membership.id,
-            )
-          : null;
-        const permissionMode =
-          assignment?.permission_mode ??
-          project.permission_mode ??
-          "ROLE_DEFAULT";
-        const grantedPermissions =
+    const ids = projects.map((project) => project.id);
+    const [grants, approvalProjects] = await Promise.all([
+      this.accessRepo.findPermissionGrantsForProjects(
+        organizationId,
+        access.membership.id,
+        projects
+          .filter((project) => project.permission_mode === "CUSTOM")
+          .map((project) => project.id),
+      ),
+      this.accessRepo.findMaterialApprovalProjects(
+        organizationId,
+        access.membership.id,
+        ids,
+      ),
+    ]);
+    const projectsWithPermissions = projects.map((project) => {
+      const permissionMode = project.permission_mode ?? "ROLE_DEFAULT";
+      const grantedPermissions = grants.get(project.id) ?? [];
+      return {
+        ...project,
+        permissionMode,
+        permissions: withMaterialApprovalPermissions(
           permissionMode === "CUSTOM"
-            ? await this.accessRepo.findProjectMemberPermissionGrants(
-                organizationId,
-                project.id,
-                access.membership.id,
+            ? access.permissions.filter((permission) =>
+                grantedPermissions.includes(permission),
               )
-            : [];
-        return {
-          ...project,
-          permissionMode,
-          permissions: withMaterialApprovalPermissions(
-            permissionMode === "CUSTOM"
-              ? access.permissions.filter((permission) =>
-                  grantedPermissions.includes(permission),
-                )
-              : access.permissions,
-            await this.accessRepo.canApproveMaterials(
-              organizationId,
-              project.id,
-              access.membership.id,
-            ),
-          ),
-        };
-      }),
-    );
+            : access.permissions,
+          approvalProjects.has(project.id),
+        ),
+      };
+    });
     const activeProjects = projectsWithPermissions.filter(
       (project) => project.status === "ACTIVE",
     );
@@ -242,32 +234,34 @@ export class ProjectAccessService {
     organizationId: string,
     projectId: string,
     requiredPermission: PermissionKey,
+    additionalPermissions: readonly PermissionKey[] = [],
   ): Promise<ResolvedProjectAccess> {
     const access = await this.resolveProjectContext(
       user,
       organizationId,
       projectId,
     );
-    if (
-      !access.rolePermissions.includes(requiredPermission) &&
-      !(
-        ["materials:approve-final", "materials:reject"].includes(
-          requiredPermission,
-        ) && access.permissions.includes(requiredPermission)
-      )
-    ) {
-      throw new ForbiddenException({
-        code: "PROJECT_PERMISSION_DENIED",
-        message: "Your Organization Role does not allow this action",
-      });
+    for (const permission of [...additionalPermissions, requiredPermission]) {
+      if (
+        !access.rolePermissions.includes(permission) &&
+        !(
+          ["materials:approve-final", "materials:reject"].includes(
+            permission,
+          ) && access.permissions.includes(permission)
+        )
+      ) {
+        throw new ForbiddenException({
+          code: "PROJECT_PERMISSION_DENIED",
+          message: "Your Organization Role does not allow this action",
+        });
+      }
+      if (!access.permissions.includes(permission)) {
+        throw new ForbiddenException({
+          code: "MEMBER_MODULE_ACCESS_DENIED",
+          message: "This action is not granted for your Project assignment",
+        });
+      }
     }
-    if (!access.permissions.includes(requiredPermission)) {
-      throw new ForbiddenException({
-        code: "MEMBER_MODULE_ACCESS_DENIED",
-        message: "This action is not granted for your Project assignment",
-      });
-    }
-
     return access;
   }
 

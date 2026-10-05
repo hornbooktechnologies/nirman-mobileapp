@@ -11,8 +11,10 @@ function client() {
   });
   const exports = {};
   new Function("require", "exports", outputText)((id) => {
-    assert.equal(id, "axios");
-    return axios;
+    if(id==="axios")return axios;
+    assert.equal(id,"./financial-events");
+    const helper=ts.transpileModule(readFileSync(new URL("./financial-events.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+    const result={};new Function("exports",helper)(result);return result;
   }, exports);
   return exports;
 }

@@ -357,6 +357,7 @@ export function DashboardScreen() {
 
 export function ProjectDetailScreen() {
   const { t } = useTranslation('projects');
+  const { t: tSpending } = useTranslation('totalExpenses');
   const { t: tCommon } = useTranslation('common');
   const { refreshSession, session } = useSession();
   const params = useLocalSearchParams<{ projectId?: string }>();
@@ -439,6 +440,7 @@ export function ProjectDetailScreen() {
 
           <QuickActionGrid
             items={[
+              ...(selectedProject.permissions.includes("total-expenses:read") ? [{key:"totalExpenses",label:tSpending("title"),accessibilityLabel:tSpending("title"),icon:"chart-bar" as const,tone:"info" as const,onPress:()=>router.push({pathname:"/(app)/total-expenses",params:{projectId:selectedProject.id}})}] : []),
               ...(selectedProject.permissions.includes('project-members:read') || selectedProject.permissions.includes('workers:read') ? [{
                 key: 'team',
                 label: t('detail.team'),
@@ -514,7 +516,7 @@ export function MenuScreen() {
   const navigation = visibleNavigation(session, t);
   const notificationItem = organizationNavigation.find((item) => item.key === 'notifications');
   const mainItems = navigation.filter((item) => ['home', 'team', 'project'].includes(item.key));
-  const workforceItems = navigation.filter((item) => ['workers', 'attendance', 'wages', 'kharchi', 'materials', 'expenses'].includes(item.key));
+  const workforceItems = navigation.filter((item) => ['workers', 'attendance', 'wages', 'kharchi', 'materials', 'expenses', 'totalExpenses'].includes(item.key));
   const projectItems = navigation.filter((item) => ['progress', 'gallery', 'sales'].includes(item.key));
   const organizationItems = organizationNavigation.filter((item) => item.key !== 'notifications');
   const activeMemberships = session?.memberships.filter((membership) => membership.memberStatus === 'ACTIVE') ?? [];

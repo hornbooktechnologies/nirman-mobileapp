@@ -29,7 +29,7 @@ import {
 } from "../../components/ui";
 import { formatDate, formatInr } from "../../i18n";
 import { getLocalizedErrorMessage } from "../../i18n/errors";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
@@ -63,10 +63,10 @@ export function WageBatchDetailScreen() {
   const { t } = useTranslation("wages");
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
-  const { batchId } = useLocalSearchParams<{ batchId?: string }>();
+  const { batchId, projectId: requestedProjectId } = useLocalSearchParams<{ batchId?: string; projectId?: string }>();
   const { session } = useSession();
-  const activeProject = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const activeProject = getRouteProject(session, requestedProjectId);
+  const permissions = activeProject?.permissions ?? [];
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
   const canPay = permissions.includes("wages:mark-paid");

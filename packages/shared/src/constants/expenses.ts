@@ -82,3 +82,6 @@ export const EXPENSE_AVAILABLE_ACTIONS = [
 ] as const;
 
 export type ExpenseAvailableAction = (typeof EXPENSE_AVAILABLE_ACTIONS)[number];
+
+// Preserve legacy category vocabulary for reads and filters.
+export const ACTIVE_EXPENSE_CATEGORIES = EXPENSE_CATEGORIES.filter(category => category !== "MATERIAL_PURCHASE" && category !== "LABOUR_RELATED");

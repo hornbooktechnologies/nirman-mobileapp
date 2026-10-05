@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
 import {
-  EXPENSE_CATEGORIES,
+  ACTIVE_EXPENSE_CATEGORIES,
   EXPENSE_PAYMENT_METHODS,
   type ExpenseAvailableAction,
   type SiteExpenseDetail,
@@ -362,7 +362,7 @@ export function ExpenseForm({
                   value={values.category}
                   onChange={(e) => change("category", e.target.value)}
                 >
-                  {EXPENSE_CATEGORIES.map((v) => (
+                  {(detail && ["MATERIAL_PURCHASE", "LABOUR_RELATED"].includes(detail.category) ? [...ACTIVE_EXPENSE_CATEGORIES, detail.category] : ACTIVE_EXPENSE_CATEGORIES).map((v) => (
                     <option key={v} value={v}>
                       {label(v)}
                     </option>

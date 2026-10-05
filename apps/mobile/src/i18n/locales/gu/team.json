@@ -113,7 +113,8 @@
     "MATERIALS": "સામગ્રી",
     "EXPENSES": "સાઇટ ખર્ચ",
     "PROGRESS": "પ્રોજેક્ટ પ્રગતિ",
-    "GALLERY": "સાઇટ ગેલેરી"
+    "GALLERY": "સાઇટ ગેલેરી",
+    "TOTAL_EXPENSES": "કુલ ખર્ચ"
   },
   "permissionAction": {
     "read": "જુઓ",
@@ -128,11 +129,10 @@
     "export": "નિકાસ કરો",
     "configure": "ગોઠવો",
     "approve": "મંજૂર કરો",
-    "reject": "નકારો",
+    "reject": "નામંજૂર કરો",
     "adjust": "સમાયોજિત કરો",
     "approve-level-1": "ચકાસો",
     "approve-final": "અંતિમ મંજૂરી",
-    "reject": "નામંજૂર કરો",
     "record-purchase": "ખરીદી નોંધો",
     "record-delivery": "ડિલિવરી નોંધો",
     "mark": "હાજરી નોંધો",
@@ -152,7 +152,8 @@
     "request-block": "હોલ્ડની વિનંતી કરો",
     "block": "હોલ્ડ મંજૂર અથવા રિલીઝ કરો",
     "book": "બુક કરો",
-    "upload": "અપલોડ કરો"
+    "upload": "અપલોડ કરો",
+    "void-payment": "ખોટી ચુકવણી રદ કરો"
   },
   "errors": {
     "load": "પ્રોજેક્ટ ટીમ લોડ થઈ શકી નથી",

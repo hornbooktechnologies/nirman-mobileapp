@@ -74,6 +74,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Wages", href: "/wages", icon: Banknote, permission: "wages:read" },
       { label: "Kharchi", href: "/kharchi", icon: Wallet, permission: "kharchi:read" },
+      { label: "Total Expenses", href: "/total-expenses", icon: Receipt, permission: "total-expenses:read" },
       { label: "Site Expenses", href: "/expenses", icon: Receipt, permission: "expenses:read" },
     ],
   },

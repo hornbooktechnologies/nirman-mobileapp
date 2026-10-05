@@ -1,4 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { SourcePaymentsRepository } from "../source-payments/source-payments.repository";
+import { moneyPaise, paiseMoney } from "@nirman-app/shared";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { createHash, randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
 import type {
@@ -99,6 +101,7 @@ export class ExpensesRepository {
     private readonly database: DatabaseService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly payments: SourcePaymentsRepository,
   ) {}
 
   async findSettings(
@@ -306,6 +309,23 @@ export class ExpensesRepository {
     expenseId: string,
     connection?: DatabaseConnection,
   ) {
+    // Keep version, recognized cost, history and payment balance from one snapshot.
+    // Mutations already supply their locked transaction connection.
+    if (!connection)
+      return this.database.transaction(
+        (snapshot) =>
+          this.readDetail(organizationId, projectId, expenseId, snapshot),
+        true,
+      );
+    return this.readDetail(organizationId, projectId, expenseId, connection);
+  }
+
+  private async readDetail(
+    organizationId: string,
+    projectId: string,
+    expenseId: string,
+    connection: DatabaseConnection,
+  ) {
     const [row] = await this.database.query<ExpenseRow>(
       `${this.expenseSelect()} WHERE e.organization_id = ? AND e.project_id = ? AND e.id = ?`,
       [organizationId, projectId, expenseId],
@@ -333,6 +353,18 @@ export class ExpensesRepository {
     );
     return {
       ...this.mapExpense(row),
+      ...(await this.payments.ledger(
+        "expenses",
+        organizationId,
+        projectId,
+        expenseId,
+        paiseMoney(
+          moneyPaise(String(row.amount)) +
+            moneyPaise(String(row.adjustmentTotal)),
+        ),
+        row.version,
+        connection,
+      )),
       events: events.map((event) => ({
         id: event.id,
         eventType: event.eventType,
@@ -751,6 +783,30 @@ export class ExpensesRepository {
         this.fail("EXPENSE_ADJUSTMENT_INVALID");
       if (currentRecognized + dto.amount < 0)
         this.fail("EXPENSE_RECOGNIZED_AMOUNT_NEGATIVE");
+      const ledger = await this.payments.ledger(
+        "expenses",
+        organizationId,
+        projectId,
+        expenseId,
+        paiseMoney(
+          moneyPaise(String(row.amount)) +
+            moneyPaise(String(row.adjustmentTotal)),
+        ),
+        row.version,
+        connection,
+      );
+      if (
+        moneyPaise(String(row.amount)) +
+          moneyPaise(String(row.adjustmentTotal)) +
+          moneyPaise(dto.amount.toFixed(2)) <
+        moneyPaise(ledger.paidAmount)
+      ) {
+        throw new BadRequestException({
+          code: "PAYMENT_ADJUSTMENT_BELOW_PAID",
+          message:
+            "Void mistaken payments before reducing the cost below its paid amount",
+        });
+      }
       const id = randomUUID();
       await this.database.execute(
         `INSERT INTO site_expense_adjustments (

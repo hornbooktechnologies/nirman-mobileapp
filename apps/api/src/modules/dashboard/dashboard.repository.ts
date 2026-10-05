@@ -42,10 +42,8 @@ export class DashboardRepository {
         : Promise.resolve({} as MetricRow),
       include.expenses
         ? this.one(
-            `SELECT COALESCE(SUM(e.amount + COALESCE(a.adjustment, 0)), 0) amount
-        FROM site_expenses e LEFT JOIN (
-          SELECT site_expense_id, SUM(amount) adjustment FROM site_expense_adjustments GROUP BY site_expense_id
-        ) a ON a.site_expense_id = e.id
+            `SELECT COALESCE(SUM(e.amount + COALESCE((SELECT SUM(a.amount) FROM site_expense_adjustments a WHERE a.site_expense_id=e.id AND a.organization_id=e.organization_id AND a.project_id=e.project_id), 0)), 0) amount
+        FROM site_expenses e
         WHERE e.organization_id = ? AND e.project_id = ? AND e.expense_date = ? AND e.status = 'APPROVED'`,
             [organizationId, projectId, date],
           )
@@ -105,10 +103,8 @@ export class DashboardRepository {
           : Promise.resolve({} as MetricRow),
         include.expenses
           ? this.one(
-              `SELECT COALESCE(SUM(e.amount + COALESCE(a.adjustment, 0)), 0) amount
-        FROM site_expenses e LEFT JOIN (
-          SELECT site_expense_id, SUM(amount) adjustment FROM site_expense_adjustments GROUP BY site_expense_id
-        ) a ON a.site_expense_id = e.id
+              `SELECT COALESCE(SUM(e.amount + COALESCE((SELECT SUM(a.amount) FROM site_expense_adjustments a WHERE a.site_expense_id=e.id AND a.organization_id=e.organization_id AND a.project_id=e.project_id), 0)), 0) amount
+        FROM site_expenses e
         WHERE e.organization_id = ? AND e.project_id = ? AND e.expense_date BETWEEN ? AND ? AND e.status = 'APPROVED'`,
               [organizationId, projectId, monthStart, today],
             )

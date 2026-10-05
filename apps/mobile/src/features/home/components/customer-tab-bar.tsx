@@ -19,6 +19,7 @@ export type CustomerRoute =
   | "/(app)/wages"
   | "/(app)/kharchi"
   | "/(app)/materials"
+  | "/(app)/total-expenses"
   | "/(app)/expenses"
   | "/(app)/progress"
   | "/(app)/gallery"
@@ -149,6 +150,9 @@ const customerNavigation: readonly CustomerNavigationDefinition[] = [
     icon: "package-variant-closed",
     href: "/(app)/materials",
     permission: "materials:read",
+  },
+  {
+    key: "totalExpenses", labelKey: "items.totalExpenses.title", titleKey: "items.totalExpenses.title", descriptionKey: "items.totalExpenses.description", icon: "chart-bar", href: "/(app)/total-expenses", permission: "total-expenses:read",
   },
   {
     key: "expenses",

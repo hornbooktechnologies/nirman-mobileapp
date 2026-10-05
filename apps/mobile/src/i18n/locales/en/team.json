@@ -113,7 +113,8 @@
     "MATERIALS": "Materials",
     "EXPENSES": "Site Expenses",
     "PROGRESS": "Project Progress",
-    "GALLERY": "Site Gallery"
+    "GALLERY": "Site Gallery",
+    "TOTAL_EXPENSES": "Total Expenses"
   },
   "permissionAction": {
     "read": "Read",
@@ -132,7 +133,6 @@
     "adjust": "Adjust",
     "approve-level-1": "Verify",
     "approve-final": "Final approve",
-    "reject": "Reject",
     "record-purchase": "Record purchase",
     "record-delivery": "Record delivery",
     "mark": "Mark attendance",
@@ -152,7 +152,8 @@
     "request-block": "Request hold",
     "block": "Approve or release hold",
     "book": "Book",
-    "upload": "Upload"
+    "upload": "Upload",
+    "void-payment": "Void mistaken payment"
   },
   "errors": {
     "load": "Unable to load Project Team",

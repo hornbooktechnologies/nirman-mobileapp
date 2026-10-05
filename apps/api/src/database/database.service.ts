@@ -64,9 +64,11 @@ export class DatabaseService implements OnModuleDestroy {
 
   async transaction<T>(
     callback: (connection: DatabaseTransaction) => Promise<T>,
+    consistentSnapshot = false,
   ): Promise<T> {
     const connection = await this.pool.getConnection();
     try {
+      if (consistentSnapshot) await connection.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY");
       await connection.beginTransaction();
       const result = await callback(connection);
       await connection.commit();

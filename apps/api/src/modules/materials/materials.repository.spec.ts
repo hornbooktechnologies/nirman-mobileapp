@@ -1,3 +1,4 @@
+import { SourcePaymentsRepository } from "../source-payments/source-payments.repository";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import { createHash } from "node:crypto";
 import { DatabaseService } from "../../database/database.service";
@@ -19,7 +20,16 @@ describe("MaterialsRepository transactional guards", () => {
     createMany: jest.fn(),
     findProjectRecipients: jest.fn(),
   } as unknown as jest.Mocked<NotificationsService>;
-  const repository = new MaterialsRepository(database, audit, notifications);
+  const repository = new MaterialsRepository(database, audit, notifications, {
+    ledgers: jest.fn().mockResolvedValue(new Map()),
+    ledger: jest.fn().mockResolvedValue({
+      payments: [],
+      paidAmount: "0.00",
+      remainingAmount: "400.00",
+      paymentStatus: "UNPAID",
+      version: 1,
+    }),
+  } as unknown as SourcePaymentsRepository);
   const organizationId = "00000000-0000-4000-8000-000000000010";
   const projectId = "00000000-0000-4000-8000-000000000020";
   const requestId = "00000000-0000-4000-8000-000000000030";

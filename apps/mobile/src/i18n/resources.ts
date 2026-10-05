@@ -1,3 +1,6 @@
+import totalExpensesEn from "./locales/en/totalExpenses.json";
+import totalExpensesHi from "./locales/hi/totalExpenses.json";
+import totalExpensesGu from "./locales/gu/totalExpenses.json";
 import authEn from "./locales/en/auth.json";
 import commonEn from "./locales/en/common.json";
 import errorsEn from "./locales/en/errors.json";
@@ -74,6 +77,7 @@ export const resources = {
     kharchi: kharchiEn,
     materials: materialsEn,
     expenses: expensesEn,
+    totalExpenses: totalExpensesEn,
     progress: progressEn,
     gallery: galleryEn,
     notifications: notificationsEn,
@@ -95,6 +99,7 @@ export const resources = {
     kharchi: kharchiHi,
     materials: materialsHi,
     expenses: expensesHi,
+    totalExpenses: totalExpensesHi,
     progress: progressHi,
     gallery: galleryHi,
     notifications: notificationsHi,
@@ -116,6 +121,7 @@ export const resources = {
     kharchi: kharchiGu,
     materials: materialsGu,
     expenses: expensesGu,
+    totalExpenses: totalExpensesGu,
     progress: progressGu,
     gallery: galleryGu,
     notifications: notificationsGu,
@@ -139,6 +145,7 @@ export const namespaces = [
   "kharchi",
   "materials",
   "expenses",
+  "totalExpenses",
   "progress",
   "gallery",
   "notifications",

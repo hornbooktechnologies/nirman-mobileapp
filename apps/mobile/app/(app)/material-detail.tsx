@@ -1,11 +1,8 @@
-import { Redirect } from 'expo-router';
-
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { MaterialDetailScreen } from '../../src/features/materials';
-import { getActiveProjectPermissions } from '../../src/lib/auth';
+import { getRouteProject } from '../../src/lib/auth';
 import { useSession } from '../../src/providers';
-
-export default function MaterialDetailRoute() {
-  const { session } = useSession();
-  if (!getActiveProjectPermissions(session).includes('materials:read')) return <Redirect href="/(app)/menu" />;
-  return <MaterialDetailScreen />;
+export default function Page() {
+ const {session}=useSession();const {projectId}=useLocalSearchParams<{projectId?:string}>();const project=getRouteProject(session,projectId);
+ return project?.permissions.includes('materials:read') ? <MaterialDetailScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${project.id}`}/> : <Redirect href="/(app)/menu"/>;
 }
