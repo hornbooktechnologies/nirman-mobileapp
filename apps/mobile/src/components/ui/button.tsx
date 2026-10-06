@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   label: {
+    flexShrink: 1,
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',

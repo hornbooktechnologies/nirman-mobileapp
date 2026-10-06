@@ -113,7 +113,7 @@ function FollowUps({ c }: { c: SalesContext }) {
           <ul className="grid gap-4 lg:grid-cols-2">
             {query.data.map((f) => (
               <li key={f.id}>
-                <Card>
+                <Card className="flex h-full flex-col">
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
                       className="font-semibold underline"
@@ -163,16 +163,17 @@ function FollowUps({ c }: { c: SalesContext }) {
                       ))}
                   </dl>
                   {c.active && c.permissions.includes("followups:manage") && (
-                    <Button
-                      className="mt-3"
-                      variant="outline"
-                      onClick={() => {
-                        snapshot.current = f;
-                        setSelected(f);
-                      }}
-                    >
-                      Update follow-up
-                    </Button>
+                    <div className="mt-auto pt-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          snapshot.current = f;
+                          setSelected(f);
+                        }}
+                      >
+                        Update follow-up
+                      </Button>
+                    </div>
                   )}
                 </Card>
               </li>

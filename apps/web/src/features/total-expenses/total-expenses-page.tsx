@@ -193,11 +193,11 @@ function Report({
               onChange={(e) => selectPeriod(e.target.value as SpendingPeriod)}
             >
               {[
+                ["ALL_TIME", "All time"],
                 ["THIS_MONTH", "This month"],
                 ["PREVIOUS_MONTH", "Previous month"],
                 ["YEAR", "Calendar year"],
                 ["CUSTOM", "Custom range"],
-                ["ALL_TIME", "All time"],
               ].map(([v, n]) => (
                 <option key={v} value={v}>
                   {n}

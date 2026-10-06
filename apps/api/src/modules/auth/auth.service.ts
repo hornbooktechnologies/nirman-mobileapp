@@ -114,13 +114,10 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const emailHash = this.hashToken(email);
     const requestedIpHash = requestIp ? this.hashToken(requestIp) : null;
-    const since = new Date(
-      Date.now() - PASSWORD_RESET_RATE_WINDOW_MINUTES * 60 * 1000,
-    );
     const rate = await this.authRepo.countRecentPasswordResetRequests(
       emailHash,
       requestedIpHash,
-      since,
+      PASSWORD_RESET_RATE_WINDOW_MINUTES,
     );
     if (
       rate.emailTotal >= PASSWORD_RESET_MAX_PER_EMAIL ||
@@ -144,7 +141,7 @@ export class AuthService {
     });
 
     if (recoverableUser) {
-      void this.emailService.sendPasswordReset(requestId, {
+      await this.emailService.sendPasswordReset(requestId, {
         recipientName: recoverableUser.name,
         recipientEmail: recoverableUser.email,
         expiresAt: expiresAt.toISOString(),
@@ -206,15 +203,14 @@ export class AuthService {
 
   private webPasswordResetUrl(token: string) {
     const configuredBase =
-      process.env.PUBLIC_WEB_APP_URL ??
-      process.env.FRONTEND_URL?.split(',')[0]?.trim() ??
-      'http://localhost:3000';
+      process.env.PUBLIC_WEB_APP_URL?.trim() ||
+      'https://nirman-mobileapp-web.vercel.app';
     return `${configuredBase.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
   }
 
   private mobilePasswordResetUrl(token: string) {
     const expoGoProjectUrl = process.env.EXPO_GO_PROJECT_URL?.trim();
-    if (expoGoProjectUrl) {
+    if (expoGoProjectUrl && process.env.NODE_ENV !== 'production') {
       return `${expoGoProjectUrl.replace(/\/$/, '')}/--/reset-password?token=${encodeURIComponent(token)}`;
     }
     const scheme = process.env.MOBILE_APP_SCHEME ?? 'nirmansite';

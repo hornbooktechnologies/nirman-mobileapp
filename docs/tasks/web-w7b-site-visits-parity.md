@@ -2,6 +2,8 @@
 
 Date: 2026-09-21. Status: implemented; focused checks passed; authenticated acceptance pending.
 
+2026-10-06 layout refinement: Site Visit cards fill their grid row for equal heights and consistent 16px gaps. Lead history links and Update visit buttons sit in a bottom-aligned footer with at least 12px separation from content; final read-only labels remain above the footer. Existing semantic components used because ui-ux-pro-max is unavailable. Web type-check, scoped ESLint and diff whitespace checks passed; browser visual acceptance was not run.
+
 ## Scope and dependencies
 
 Audited current Mobile Sales/list/lead screens and services, Sales controller/DTO/service/repository, shared statuses/permissions, and existing Web Sales foundation before editing. No applicable AGENTS.md was found. Existing project access, timezone conversion, per-user/organization/project cache, dialogs, forms, lead detail/history and API transport were sufficient; no substantial Web prerequisite was missing. Only apps/web and task documentation changed. Existing Mobile/EAS/root configuration edits were preserved. No backend/database/Mobile changes, commit, push or deployment.

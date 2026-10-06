@@ -2,6 +2,8 @@
 
 Date: 2026-09-18. Status: implemented; focused checks passed; authenticated acceptance and backend limitations remain open. This is an implementation/review checklist, not a new business contract.
 
+2026-10-06 spacing fix: follow-up cards fill their grid row so cards with different amounts of detail have equal heights within each row and consistent 16px gaps. Update follow-up actions sit at the bottom with a minimum 12px separation from content. Web type-check, scoped ESLint and diff whitespace checks passed; browser visual acceptance was not run.
+
 ## Scope and audit
 
 Web routes: `/sales/leads`, `/sales/follow-ups`, `/projects/[id]/sales/leads`, `/projects/[id]/sales/leads/[leadId]`, `/projects/[id]/sales/follow-ups`. Feature: `apps/web/src/features/sales`. Sales sidebar and Project Detail links use effective project permissions.

@@ -1,3 +1,7 @@
+## 2026-10-06 - Mobile Total Expenses controls and loader
+
+Fixed uneven source buttons with a consistent two-column layout; period/refresh actions use matching widths and icons. Button labels wrap within available width. An 88px loader now appears below source filters on all reads, including cached-summary category/page changes; Refresh shows a spinner and pagination waits for loading. Shared animation failure falls back to a native spinner, with accessible busy feedback. Mobile typecheck, 19-namespace en/hi/gu validation, two summary-request tests and diff checks passed. Physical-device visual/animation verification remains pending. See Total Expenses STATUS.md. No API/DB/deployment change.
+
 ## 2026-10-05 - Cross-client Site Expenses audit and remaining parity fixes
 
 Audit classifications: EXISTING approved create/draft/edit/submit/approve/reject/cancel/adjust, immutable payment/void endpoints, ledger snapshots, safe expense retries and timeline; NEEDS_CHANGE payment conflict review, Mobile workflow retry/permissions, recorder/sort filters and scope cleanup; DEFERRED offline writes/receipts and physical-device acceptance. Dependencies remain Project Access, Audit, Calendar, source payments and Total Expenses; no new cross-module writes or schema changes.

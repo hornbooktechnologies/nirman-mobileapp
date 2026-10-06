@@ -1,5 +1,9 @@
 # Site Gallery / Project Diary Status
 
+## Web upload simplification - 2026-10-06
+
+Removed the separate "Take a photo" capture input from the Web Add site photo dialog at the user's request. The existing required Photo picker retains JPEG/PNG/WebP selection, validation and preview; metadata and queued upload behavior remain unchanged. Mobile camera capture remains unchanged. Scoped Web lint and diff checks passed; live deployment/browser acceptance remains pending. Existing design components were used; ui-ux-pro-max was unavailable.
+
 > Last updated: 2026-09-07
 >
 > State: implementation, database rollout, configured storage, and an authenticated real-user upload/media read are verified; the redesigned Gallery device acceptance remains pending.

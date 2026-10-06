@@ -1,3 +1,7 @@
+## 2026-10-06 - Mobile Total Expenses controls and loader
+
+Aligned source filters and period/refresh buttons into even two-column rows, enabled constrained label wrapping, added visible list loading for initial/refresh/category/page requests, Refresh busy feedback and animation failure fallback. Mobile typecheck, 19-namespace en/hi/gu validation, two existing summary-request tests and diff checks passed. Physical-device visual/animation acceptance remains pending; no API/DB/deployment change.
+
 ## 2026-10-05 - Cross-client Site Expenses audit and remaining parity fixes
 
 Audit classifications: EXISTING approved create/draft/edit/submit/approve/reject/cancel/adjust, immutable payment/void endpoints, ledger snapshots, safe expense retries and timeline; NEEDS_CHANGE payment conflict review, Mobile workflow retry/permissions, recorder/sort filters and scope cleanup; DEFERRED offline writes/receipts and physical-device acceptance. Dependencies remain Project Access, Audit, Calendar, source payments and Total Expenses; no new cross-module writes or schema changes.
@@ -796,3 +800,23 @@ Shared build, Web/Mobile typechecks, scoped Web lint, timeline/ledger regression
 Authenticated GET-only comparison, using an existing active Owner/approved expense and a short-lived in-memory JWT, confirms both live Web-proxied and direct API expense details return HTTP 200 but omit payments, paymentStatus and remainingAmount. Local API returns the complete ledger for the same expense. Vercel production API is still deployed from commit 49b3f5e (older source); no client-side financial defaults can safely restore recording against that API. No tokens, expense amounts or personal data are printed by the new reproducible read-only verification script.
 
 Current API build and all four focused expense/source-payment suites (40 tests) passed. Production API rollout to nirman-mobileapp-api remains required; no deployment, financial writes, migrations or session mutations were performed. Current local API and ledger UI retain existing version, permissions, overpayment and idempotency checks.
+
+## 2026-10-06 SMTP sender configuration
+
+At the owner's explicit request, configured contact@hornbooktechnologies.com as the SMTP username and sender in both git-ignored API environment files and the seven existing email settings in the configured database. Retained smtp.gmail.com with port 587 and required STARTTLS. Used the supplied credential without recording it in tracked source or documentation. SMTP connection/TLS/authentication verification passed; database setting readback passed. No email was sent, migrations executed, or deployment performed. Invitation/reset inbox delivery and production API database/environment alignment remain to verify. Previously identified settings API password exposure/storage hardening remains outstanding.
+
+## 2026-10-06 Live email destinations
+
+Configured both git-ignored environment files and the environment example to use https://nirman-mobileapp-web.vercel.app for invitation and recovery Web links, with nirmansite installed-app links and no local Expo override. Auth/onboarding email URL defaults now use the live Web origin instead of FRONTEND_URL/localhost; production ignores Expo Go overrides. API type-check, 14 existing auth/onboarding tests and four direct URL checks passed. No email sent or deployment performed; deployed API environment/restart and installed-device acceptance remain pending. Previously sent messages keep their original links.
+
+## 2026-10-06 Live reset-email investigation
+
+Confirmed local Web targets the live API through the live Web proxy; local source/env corrections therefore do not establish production email behavior. Vercel project nirman-mobileapp-api was identified, but environment inspection was rejected with 403 for the hornbooktechnologies-projects scope. CLI fallback has no existing credentials and awaits user device authorization. No production setting/deployment changed and no reset email triggered. Production PUBLIC_WEB_APP_URL/PUBLIC_ACTIVATION_WEB_URL and installed-app scheme must be applied and activated by redeployment before new mail can be verified.
+
+## 2026-10-06 Production email URLs activated
+
+After user-completed Vercel authorization, updated nirman-mobileapp-api PUBLIC_WEB_APP_URL and PUBLIC_ACTIVATION_WEB_URL to https://nirman-mobileapp-web.vercel.app and MOBILE_APP_SCHEME to nirmansite. Rebuilt the existing production deployment with current project environment settings; deployment dpl_6BoxKbT4RyUunoSMFTE26gErCgab reached READY and owns nirman-mobileapp-api.vercel.app. No local uncommitted source uploaded. Live activation and reset Web routes returned HTTP 200. No email sent, invitation generated, password reset requested, database migration or financial write performed. Actual new-email href/inbox and physical-device app opening remain user acceptance checks; old messages retain their original URLs.
+
+## 2026-10-06 Password reset email runtime fix
+
+Investigated live reset requests and confirmed SMTP authentication passes; production logs include accepted SMTP delivery. Found DB session timestamps are IST while deployed Node binds UTC Date values, extending the nominal 15-minute email/IP throttle by 5.5 hours. AuthRepository now measures both windows with database CURRENT_TIMESTAMP and a parameterized minute interval. AuthService awaits password-reset SMTP completion so serverless response completion cannot suspend the send. Generic responses and existing limits preserved. Corrected read-only repository query returned zero recent requests for the screenshot account. API type-check, six auth tests including delayed SMTP regression, and diff checks passed. Deployed isolated snapshot of existing production commit ea1ee805 with only auth repository/service/test and prior onboarding URL changes; dpl_EwF2XXgbbvBEXwte9vFPSgWXXKin READY and aliased to nirman-mobileapp-api.vercel.app. No reset email initiated, credential changed, migration, financial write, or unrelated workspace source deployed. New-email inbox/device acceptance remains user verification.

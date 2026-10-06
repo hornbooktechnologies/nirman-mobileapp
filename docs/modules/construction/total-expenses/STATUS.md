@@ -1,5 +1,11 @@
 # Total Expenses status
 
+## 2026-10-06 Mobile controls and loading feedback
+
+Period/refresh controls and source filters now use even two-column rows instead of spaced wrapping buttons. Shared button labels can shrink/wrap with icons and larger text. The report renders an 88px loader below source filters during initial reads, refresh, category and page changes, including when the summary is cached and the list has been cleared. Refresh shows busy feedback and pagination is disabled while loading. Shared Lottie loading has a native spinner fallback on animation failure; loading states announce busy status. Existing scoped summary reuse, report permissions and financial behavior are preserved.
+
+Verification: Mobile typecheck, en/hi/gu validation (19 namespaces), two existing summary-request tests and diff checks passed. Physical-device visual/animation acceptance remains pending. No API, database or deployment changes. The ui-ux-pro-max companion skill was unavailable; existing theme/components were used.
+
 2026-10-05: implementation_complete_schema_verified_runtime_acceptance_partial.
 
 Migration 028 is now applied following the user’s rollout authorization. Authenticated local owner report reads and failure-path smoke passed. Full browser/device/delegated/payment-write acceptance and remote application deployments remain pending.
