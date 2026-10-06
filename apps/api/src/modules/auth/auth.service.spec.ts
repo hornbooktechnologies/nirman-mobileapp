@@ -76,6 +76,28 @@ describe("AuthService password recovery", () => {
     expect(emailService.sendPasswordReset).not.toHaveBeenCalled();
   });
 
+  it("waits for SMTP delivery before completing the reset request", async () => {
+    authRepo.findUserByEmail.mockResolvedValue({
+      id: "user-id", name: "Test User", email: "user@example.test", isActive: true,
+    } as never);
+    let finishDelivery!: (status: "EMAIL_SENT") => void;
+    emailService.sendPasswordReset.mockReturnValueOnce(new Promise((resolve) => {
+      finishDelivery = resolve;
+    }));
+    let completed = false;
+    const request = service.requestPasswordReset({ email: "user@example.test" })
+      .then(() => { completed = true; });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(emailService.sendPasswordReset).toHaveBeenCalled();
+    expect(completed).toBe(false);
+    finishDelivery("EMAIL_SENT");
+    await request;
+    expect(completed).toBe(true);
+    expect(authRepo.countRecentPasswordResetRequests).toHaveBeenCalledWith(
+      expect.any(String), null, 15,
+    );
+  });
+
   it("silently throttles repeated requests", async () => {
     authRepo.countRecentPasswordResetRequests.mockResolvedValue({
       emailTotal: 3,

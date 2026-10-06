@@ -291,15 +291,14 @@ export class OrganizationOnboardingService {
   private webActivationUrl(token: string) {
     const configuredBase =
       process.env.PUBLIC_ACTIVATION_WEB_URL?.trim() ||
-      (process.env.PUBLIC_WEB_APP_URL ??
-        process.env.FRONTEND_URL?.split(",")[0]?.trim() ??
-        "http://localhost:3000");
+      process.env.PUBLIC_WEB_APP_URL?.trim() ||
+      "https://nirman-mobileapp-web.vercel.app";
     return `${configuredBase.replace(/\/$/, "")}/activate?token=${encodeURIComponent(token)}`;
   }
 
   private mobileActivationUrl(token: string) {
     const expoGoProjectUrl = process.env.EXPO_GO_PROJECT_URL?.trim();
-    if (expoGoProjectUrl) {
+    if (expoGoProjectUrl && process.env.NODE_ENV !== "production") {
       return `${expoGoProjectUrl.replace(/\/$/, "")}/--/activate?token=${encodeURIComponent(token)}`;
     }
     const scheme = process.env.MOBILE_APP_SCHEME ?? "nirmansite";

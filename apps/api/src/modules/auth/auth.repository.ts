@@ -121,21 +121,23 @@ export class AuthRepository {
   async countRecentPasswordResetRequests(
     emailHash: string,
     requestedIpHash: string | null,
-    since: Date,
+    windowMinutes: number,
   ) {
     const emailRows = await this.database.query<CountRow>(
       `SELECT COUNT(*) AS total
       FROM password_reset_requests
-      WHERE email_hash = ? AND created_at >= ?`,
-      [emailHash, since],
+      WHERE email_hash = ?
+        AND created_at >= DATE_SUB(CURRENT_TIMESTAMP(3), INTERVAL ? MINUTE)`,
+      [emailHash, windowMinutes],
     );
     let ipTotal = 0;
     if (requestedIpHash) {
       const ipRows = await this.database.query<CountRow>(
         `SELECT COUNT(*) AS total
         FROM password_reset_requests
-        WHERE requested_ip_hash = ? AND created_at >= ?`,
-        [requestedIpHash, since],
+        WHERE requested_ip_hash = ?
+          AND created_at >= DATE_SUB(CURRENT_TIMESTAMP(3), INTERVAL ? MINUTE)`,
+        [requestedIpHash, windowMinutes],
       );
       ipTotal = Number(ipRows[0]?.total ?? 0);
     }

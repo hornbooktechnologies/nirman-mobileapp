@@ -94,7 +94,6 @@ export function UploadPanel({ context: c, uploaded }: { context: GalleryContext;
     <Dialog open={open} title="Add site photo" description="JPEG, PNG or WebP, up to 10 MiB. Photos publish directly after upload." onOpenChange={close}>
       <form onSubmit={enqueue} className="space-y-4 text-base">
         <label className="block">Photo *<Input required={!file} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const selected = e.target.files?.[0]; if (selected) { const invalid = fileError(selected); setError(invalid); if (!invalid) setFile(selected); else { setFile(null); e.target.value = ""; } } }} /></label>
-        <label className="block">Take a photo<Input type="file" capture="environment" accept="image/jpeg,image/png,image/webp" onChange={e => { const selected = e.target.files?.[0]; if (selected) { const invalid = fileError(selected); setError(invalid); if (!invalid) setFile(selected); } }} /></label>
         {file && preview && <img src={preview} alt="Selected photo preview" className="max-h-64 w-full rounded-card object-contain" />}
         <label className="block">Category *<Select value={category} onChange={e => setCategory(e.target.value as GalleryCategory)}>{GALLERY_CATEGORIES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></label>
         <label className="block">Stage<Select value={stage} onChange={e => setStage(e.target.value)}><option value="">No stage</option>{PROJECT_PROGRESS_STAGES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></label>

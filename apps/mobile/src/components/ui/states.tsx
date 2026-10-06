@@ -24,12 +24,12 @@ export function EmptyState({ title, description, actionLabel, onAction, style, .
   );
 }
 
-export function LoadingState({ label, style, ...props }: ViewProps & { label?: string }) {
+export function LoadingState({ label, loaderSize, style, ...props }: ViewProps & { label?: string; loaderSize?: number }) {
   const { t } = useTranslation('common');
 
   return (
-    <View style={[styles.loading, style]} {...props}>
-      <LottieLoader />
+    <View accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[styles.loading, style]} {...props}>
+      <LottieLoader size={loaderSize} />
       <AppText style={styles.description} weight={500}>{label ?? t('loading.default')}</AppText>
     </View>
   );

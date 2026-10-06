@@ -128,7 +128,7 @@ function Visits({ c }: { c: SalesContext }) {
           <ul className="grid gap-4 lg:grid-cols-2">
             {visible.map((v) => (
               <li key={v.id}>
-                <Card>
+                <Card className="flex h-full flex-col">
                   <div className="flex flex-wrap justify-between gap-2">
                     <Link
                       className="font-semibold underline"
@@ -143,7 +143,7 @@ function Visits({ c }: { c: SalesContext }) {
                     {v.assignedSalespersonName} ·{" "}
                     {v.attendeeCount ?? "Unspecified"} attendees
                   </p>
-                  <dl className="my-3 space-y-2">
+                  <dl className="mt-3 space-y-2">
                     {[
                       ["Customer feedback", v.customerFeedback],
                       ["Objections and concerns", v.objectionsConcerns],
@@ -165,7 +165,12 @@ function Visits({ c }: { c: SalesContext }) {
                         </div>
                       ))}
                   </dl>
-                  <div className="flex flex-wrap items-center gap-4">
+                  {!visitActionable(v.status) && (
+                    <p className="mt-2 text-sm text-sub">
+                      Final outcome · read-only
+                    </p>
+                  )}
+                  <div className="mt-auto flex flex-wrap items-center gap-4 pt-3">
                     <Link
                       className="underline"
                       href={salesDetailUrl(`/projects/${c.project}/sales/leads/${v.leadId}`, salesListUrl(pathname, params, { visit: "" }))}
@@ -183,11 +188,6 @@ function Visits({ c }: { c: SalesContext }) {
                         </Button>
                       )}
                   </div>
-                  {!visitActionable(v.status) && (
-                    <p className="mt-2 text-sm text-sub">
-                      Final outcome · read-only
-                    </p>
-                  )}
                 </Card>
               </li>
             ))}

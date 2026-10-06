@@ -268,9 +268,11 @@ function Report({
         </Card>
       ) : (
         <View style={styles.stack}>
-          <View style={styles.row}>
+          <View style={styles.controls}>
             <Button
               fullWidth={false}
+              style={styles.control}
+              leadingIcon="calendar-range"
               label={t("filters")}
               variant="secondary"
               onPress={() => {
@@ -283,9 +285,11 @@ function Report({
             />
             <Button
               fullWidth={false}
+              style={styles.control}
+              leadingIcon="refresh"
               label={t("refresh")}
               variant="secondary"
-              disabled={loading}
+              loading={loading}
               onPress={() => void load(true)}
             />
           </View>
@@ -300,8 +304,6 @@ function Report({
               <FormError message={error} />
               <Button label={t("retry")} onPress={() => void load(true)} />
             </Card>
-          ) : loading && !summary ? (
-            <LoadingState />
           ) : summary ? (
             <>
               <View style={styles.stats}>
@@ -348,11 +350,12 @@ function Report({
               </Card>
             </>
           ) : null}
-          <View style={styles.row}>
+          <View style={styles.controls}>
             {sources.map((s) => (
               <Button
                 key={s}
                 fullWidth={false}
+                style={styles.control}
                 label={t(s)}
                 variant={filters.source === s ? "primary" : "secondary"}
                 accessibilityState={{ selected: filters.source === s }}
@@ -362,7 +365,7 @@ function Report({
               />
             ))}
           </View>
-          {loading && list ? <AppText>{t("refresh")}…</AppText> : null}
+          {loading ? <LoadingState loaderSize={88} /> : null}
           {list && (
             <>
               {!list.items.length ? (
@@ -438,7 +441,7 @@ function Report({
                   fullWidth={false}
                   label={t("previous")}
                   variant="secondary"
-                  disabled={filters.page <= 1}
+                  disabled={loading || filters.page <= 1}
                   onPress={() =>
                     setFilters((f) => ({ ...f, page: f.page - 1 }))
                   }
@@ -453,7 +456,7 @@ function Report({
                   fullWidth={false}
                   label={t("next")}
                   variant="secondary"
-                  disabled={filters.page >= list.pagination.totalPages}
+                  disabled={loading || filters.page >= list.pagination.totalPages}
                   onPress={() =>
                     setFilters((f) => ({ ...f, page: f.page + 1 }))
                   }
@@ -524,6 +527,19 @@ function Report({
 }
 const styles = StyleSheet.create({
   stack: { gap: 12 },
+  controls: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileTheme.spacing[2],
+  },
+  control: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    alignSelf: "stretch",
+    paddingVertical: mobileTheme.spacing[2],
+  },
   row: {
     flexDirection: "row",
     flexWrap: "wrap",
