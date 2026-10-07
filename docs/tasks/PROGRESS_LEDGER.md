@@ -1,3 +1,9 @@
+## 2026-10-07 - Branded transactional email UI
+
+Applied the supplied cream/dark-brown/orange reference to the owner invitation, member invitation, password reset and password changed scenarios through one shared API HTML layout. Reused the approved horizontal logo from the public Web origin, table-based layout, serif header with italic orange accent, detail rows, olive callout, rounded CTA buttons and brand footer. Subjects, plain-text bodies, dynamic role/account instructions, activation/reset destinations and sending/authentication behavior remain unchanged. No DB or client workflow changes.
+
+Verified: four focused API suites / 21 tests, API typecheck, scoped email ESLint and diff check passed. Browser screenshot reviewed at 390px; logo loaded and page width stayed 390px. Four sample-only HTML previews are in docs/design/email-previews. Real SMTP/inbox rendering (including Outlook) and deployment were not performed. Shared layout uses an absolute PUBLIC_WEB_APP_URL brand image with the existing production Web URL as fallback. The ui-ux-pro-max companion skill was unavailable; supplied references and approved repository artwork guided the presentation.
+
 ## 2026-10-06 - Mobile Total Expenses controls and loader
 
 Aligned source filters and period/refresh buttons into even two-column rows, enabled constrained label wrapping, added visible list loading for initial/refresh/category/page requests, Refresh busy feedback and animation failure fallback. Mobile typecheck, 19-namespace en/hi/gu validation, two existing summary-request tests and diff checks passed. Physical-device visual/animation acceptance remains pending; no API/DB/deployment change.
