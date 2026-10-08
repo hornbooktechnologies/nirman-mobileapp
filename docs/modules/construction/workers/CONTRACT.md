@@ -1191,3 +1191,7 @@ Deferred functionality:
 - Attendance, wages, and Kharchi implementation.
 - Effective-dated rate-history entity, owned by Wages.
 - Offline worker write strategy, owned by Attendance and broader offline-sync architecture.
+
+## 2026-10-08 search compatibility update
+
+Worker directory and project-roster `search` match name, worker code, mobile and trade using parameterized LIKE predicates, combined with existing readable-project/assignment/date filters. Native worker directory and Kharchi eligibility pickers send the applied search to the API and read subsequent returned pages; searches must not stop silently at 100 rows. No assignment, write permission or schema behavior changed.

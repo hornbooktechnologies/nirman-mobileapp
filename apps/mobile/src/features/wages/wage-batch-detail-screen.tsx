@@ -1,3 +1,4 @@
+import { RefreshFlatList } from "../../components/ui/refresh-control";
 import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import {
   WAGE_PAYMENT_METHODS,
@@ -5,7 +6,7 @@ import {
 } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -403,7 +404,7 @@ export function WageBatchDetailScreen() {
         footer={<CustomerTabBar activeKey="wages" />}
         scroll={false}
       >
-        <FlatList
+        <RefreshFlatList busy={isLoading}
           data={error ? [] : (detail?.items ?? [])}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={header}
@@ -476,7 +477,7 @@ export function WageBatchDetailScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshing={false}
-          onRefresh={() => void loadDetail()}
+          onRefresh={() => loadDetail()}
         />
       </NirmanScreenBackground>
 

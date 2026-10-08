@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 
 import Link from "next/link";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -86,7 +88,7 @@ export function WorkerAttendancePanel({
 
   if (access.isLoading) return <LoadingState label="Checking attendance access" />;
   if (access.isError) return <NotificationBanner variant="danger" title="Attendance access could not be loaded" action={<Button onClick={() => void access.refetch()}>Retry</Button>} />;
-  if (!activeOrganizationTimezone) return <NotificationBanner variant="warning" title="Organization timezone unavailable" description="Refresh access before selecting attendance dates." action={<Button onClick={() => void refreshUser()}>Refresh access</Button>} />;
+  if (!activeOrganizationTimezone) return <NotificationBanner variant="warning" title="Organization timezone unavailable" description="Refresh access before selecting attendance dates." action={<RefreshButton onRefresh={() => refreshUser()}>Refresh access</RefreshButton>} />;
   if (requestedProjectId && !projectId) return <NotificationBanner variant="warning" title="Project attendance access required" description="This project is unavailable with your current effective permissions." />;
   if (projects.length === 0) {
     return (
@@ -160,10 +162,10 @@ export function WorkerAttendancePanel({
           title="Worker attendance could not be loaded"
           description={errorMessage(attendance.error)}
           action={
-            <Button variant="outline" onClick={() => attendance.refetch()}>
+            <RefreshButton busy={attendance.isFetching} variant="outline" onRefresh={() => attendance.refetch()}>
               <RefreshCw size={15} aria-hidden="true" />
               Retry
-            </Button>
+            </RefreshButton>
           }
         />
       ) : attendance.data?.exceptions.length === 0 ? (

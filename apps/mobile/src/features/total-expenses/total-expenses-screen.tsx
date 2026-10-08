@@ -1,3 +1,6 @@
+import { refreshTogether } from '@nirman-app/shared';
+
+import { RefreshButton } from "../../components/ui/refresh-button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   router,
@@ -144,7 +147,7 @@ function Report({
             ),
           refreshSummary,
         );
-        const [s, l] = await Promise.all([
+        const [s, l] = await refreshTogether([
           summaryPromise,
           fetchSpending<TotalExpensesList>(
             org,
@@ -283,14 +286,14 @@ function Report({
                 setOpen(true);
               }}
             />
-            <Button
+            <RefreshButton busy={loading}
               fullWidth={false}
               style={styles.control}
               leadingIcon="refresh"
               label={t("refresh")}
               variant="secondary"
               loading={loading}
-              onPress={() => void load(true)}
+              onRefresh={() => load(true)}
             />
           </View>
           <AppText>

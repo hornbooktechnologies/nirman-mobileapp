@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -137,13 +139,13 @@ function Inbox() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
+          <RefreshButton
             variant="outline"
             disabled={Boolean(pending) || list.isFetching}
-            onClick={() => void refresh()}
+            onRefresh={() => refresh()}
           >
             {list.isFetching ? "Refreshing…" : "Refresh"}
-          </Button>
+          </RefreshButton>
           <Button
             disabled={
               Boolean(pending) || summary.isError || !summary.data?.unreadCount
@@ -177,15 +179,12 @@ function Inbox() {
       {error && (
         <Card>
           <p role="alert">{error}</p>
-          <Button
+          <RefreshButton
             variant="outline"
-            onClick={() => {
-              void refreshUser();
-              void refresh();
-            }}
+            busy={list.isFetching} onRefresh={async () => { await Promise.allSettled([refreshUser(), refresh()]); }}
           >
             Refresh access and inbox
-          </Button>
+          </RefreshButton>
         </Card>
       )}
       {fallback && (

@@ -1,3 +1,5 @@
+import { refreshTogether } from '@nirman-app/shared';
+import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import {
   GALLERY_CATEGORIES,
   PROJECT_PROGRESS_STAGES,
@@ -9,17 +11,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Image,
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  SectionList,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Image, InteractionManager, Pressable, SectionList, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -141,7 +133,7 @@ export function GalleryScreen() {
       append ? setLoadingMore(true) : setLoading(true);
       setError("");
       try {
-        const [list, nextSummary] = await Promise.all([
+        const [list, nextSummary] = await refreshTogether([
           fetchGalleryEntries(organizationId, projectId, token, {
             page: nextPage,
             pageSize: 48,
@@ -195,7 +187,7 @@ export function GalleryScreen() {
         await uploadGalleryEntry(item, token);
         await removeGalleryQueue(item.entryId);
         setSuccess(t("success.uploaded"));
-        await Promise.all([refreshQueue(), load(1)]);
+        await refreshTogether([refreshQueue(), load(1)]);
       } catch (uploadError) {
         await updateGalleryQueue(item.entryId, {
           state: "FAILED",
@@ -391,11 +383,11 @@ export function GalleryScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
         refreshControl={
-          <RefreshControl
+          <GuardedRefreshControl busy={loading || refreshing}
             refreshing={refreshing}
-            onRefresh={() => {
+            onRefresh={async () => {
               setRefreshing(true);
-              void Promise.all([load(1), refreshQueue()]);
+              await Promise.allSettled([load(1), refreshQueue()]);
             }}
           />
         }

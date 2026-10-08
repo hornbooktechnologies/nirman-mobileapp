@@ -155,6 +155,7 @@ export class CreateActivityDto {
 }
 
 export class QueryScheduledSalesDto {
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(160) search?: string;
   @IsOptional() @IsIn(FOLLOW_UP_STATUSES) status?: FollowUpStatus;
   @IsOptional() @IsUUID() assignedTo?: string;
   @IsOptional() @IsDateString() from?: string;
@@ -187,6 +188,7 @@ export class CreateSiteVisitDto {
 }
 
 export class QuerySiteVisitsDto {
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(160) search?: string;
   @IsOptional() @IsIn(SITE_VISIT_STATUSES) status?: SiteVisitStatus;
   @IsOptional() @IsUUID() assignedSalesperson?: string;
   @IsOptional() @IsDateString() scheduledFrom?: string;

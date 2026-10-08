@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { downloadPdf } from "@/lib/exports/pdf";
 import { ExportProgress } from "@/components/common/export-progress";
 import Link from "next/link";
@@ -70,6 +72,7 @@ function List({ context }: { context: ExpensesContext }) {
       ) ?? "expenseDate",
     sortOrder: params.get("sortOrder") === "asc" ? "asc" : "desc",
   }));
+  const [searchReset, setSearchReset] = useState(0);
   const [search, setSearch] = useState(query.search ?? "");
   const [memberSearch, setMemberSearch] = useState("");
   const [create, setCreate] = useState(false);
@@ -84,18 +87,6 @@ function List({ context }: { context: ExpensesContext }) {
       exportController.current?.abort();
     };
   }, []);
-  useEffect(() => {
-    const timer = setTimeout(
-      () =>
-        setQuery((q) =>
-          q.search === (search.trim() || undefined)
-            ? q
-            : { ...q, page: 1, search: search.trim() || undefined },
-        ),
-      300,
-    );
-    return () => clearTimeout(timer);
-  }, [search]);
   useEffect(() => {
     const next = new URLSearchParams();
     Object.entries(query).forEach(([key, value]) => {
@@ -164,19 +155,16 @@ function List({ context }: { context: ExpensesContext }) {
           <p className="text-sub">Site spending, approvals, and corrections</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
+          <RefreshButton busy={list.isFetching || summary.isFetching || settings.isFetching}
             variant="outline"
-            onClick={() => {
-              void cache.invalidateQueries({
+            onRefresh={async () => { await Promise.allSettled([cache.invalidateQueries({
                 queryKey: expenseKey(context.org, context.project),
-              });
-              void cache.invalidateQueries({
+              }), cache.invalidateQueries({
                 queryKey: ["expenses-access", context.org],
-              });
-            }}
+              })]); }}
           >
             Refresh
-          </Button>
+          </RefreshButton>
           {can("configure") && context.active && (
             <Button
               variant="outline"
@@ -253,8 +241,8 @@ function List({ context }: { context: ExpensesContext }) {
           </section>
         ))}
       <Card className="space-y-4">
-        <ExpensesCollectionFilters
-          query={query} search={search} onSearch={setSearch}
+        <ExpensesCollectionFilters key={searchReset}
+          query={query} search={search} onSearch={value => { setSearch(value); setQuery(q => ({ ...q, page: 1, search: value || undefined })); }}
           onApply={setQuery} members={members.data ?? []}
           canReadMembers={canReadMembers} memberSearch={memberSearch}
           onMemberSearch={setMemberSearch}
@@ -262,7 +250,7 @@ function List({ context }: { context: ExpensesContext }) {
         />
         {invalidRange && <p role="alert" className="text-danger">Choose valid dates with the end on or after the start.</p>}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => { setSearch(""); setMemberSearch(""); setQuery(defaultQuery); }}>Clear all</Button>
+          <Button variant="outline" onClick={() => { setSearchReset(n => n + 1); setSearch(""); setMemberSearch(""); setQuery(defaultQuery); }}>Clear all</Button>
           {can("export") && <Button variant="outline" disabled={exporting.isPending || invalidRange} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing PDF…" : "Export filtered PDF"}</Button>}
         </div>
         {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered PDF to retry.</p>}

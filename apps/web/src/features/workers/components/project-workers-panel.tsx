@@ -1,4 +1,5 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
 
 import Link from "next/link";
 import { workerError, workerToday, workerRate } from "../worker-utils";
@@ -393,14 +394,13 @@ function ProjectWorkersContent({
 
       {!focusedWorker ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Input
+          <SearchInput
             className="w-full sm:w-72"
-            type="search"
             placeholder="Search organization workers"
             aria-label="Search organization workers"
             value={workerSearch}
-            onChange={(event) => {
-              setWorkerSearch(event.target.value);
+            onValueChange={(event) => {
+              setWorkerSearch(event);
               setPage(1);
             }}
           />

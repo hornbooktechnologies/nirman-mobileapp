@@ -1,4 +1,5 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import { useEffect, useRef, useState } from "react";
 import { PROJECT_PROGRESS_STAGES, type ProjectProgressStage, type ProjectProgressSummary } from "@nirman-app/shared";
 import { Button, Dialog, Input, Select, Textarea } from "@/components/ui";
@@ -71,7 +72,7 @@ export function ProgressForm({ context, summary, close, saved, reload }: {
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Refresh failed. Retry."); }
     finally { locked.current = false; if (mounted.current) setBusy(false); }
   }
-  return <Dialog open title="Record progress" description="Updates are retained in history. A correction creates a new entry." onOpenChange={requestClose} footer={<><Button variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button>{mode === "stale" ? <Button disabled={busy} onClick={() => void review()}>Reload latest values</Button> : <Button disabled={busy || mode === "denied"} onClick={() => void submit()}>{busy ? "Saving…" : mode === "uncertain" ? "Retry original update" : "Save update"}</Button>}</>}>
+  return <Dialog open title="Record progress" description="Updates are retained in history. A correction creates a new entry." onOpenChange={requestClose} footer={<><Button variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button>{mode === "stale" ? <RefreshButton disabled={busy} onRefresh={() => review()}>Reload latest values</RefreshButton> : <Button disabled={busy || mode === "denied"} onClick={() => void submit()}>{busy ? "Saving…" : mode === "uncertain" ? "Retry original update" : "Save update"}</Button>}</>}>
     <form className="space-y-4 text-base [&_input]:text-base [&_input]:min-h-11 [&_select]:text-base [&_select]:min-h-11 [&_textarea]:text-base" onSubmit={e => { e.preventDefault(); void submit(); }}>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {mode === "uncertain" && <p role="alert">The outcome is unknown. Retry sends the exact original update and key.</p>}

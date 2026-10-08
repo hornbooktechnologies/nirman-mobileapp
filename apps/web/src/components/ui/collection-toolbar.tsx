@@ -1,10 +1,10 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
 
 import { SlidersHorizontal } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "./button";
 import { Drawer } from "./drawer";
-import { Input } from "./input";
 import { FieldLabel } from "./typography";
 
 export interface CollectionFilters<T> {
@@ -32,6 +32,7 @@ export function CollectionToolbar<T>({
     onChange: (value: string) => void;
     placeholder?: string;
     maxLength?: number;
+    debounceMs?: number;
   };
   scope?: ReactNode;
   filters: CollectionFilters<T>;
@@ -52,14 +53,14 @@ export function CollectionToolbar<T>({
             <FieldLabel htmlFor={`${id}-search`} className="mb-1 block">
               Search {name}
             </FieldLabel>
-            <Input
+            <SearchInput
               id={`${id}-search`}
-              type="search"
+              debounceMs={search.debounceMs}
               value={search.value}
               disabled={disabled}
               placeholder={search.placeholder}
               maxLength={search.maxLength}
-              onChange={(event) => search.onChange(event.target.value)}
+              onValueChange={(event) => search.onChange(event)}
             />
           </div>
         ) : null}

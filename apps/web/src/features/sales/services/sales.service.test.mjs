@@ -35,6 +35,7 @@ test("visits preserve scoped filters, abort signals and exact workflow payloads"
   });
   const signal = new AbortController().signal;
   const filters = {
+    search: "Customer 9876",
     status: "RESCHEDULED",
     assignedSalesperson: "u",
     scheduledFrom: "2026-09-21T00:00:00Z",

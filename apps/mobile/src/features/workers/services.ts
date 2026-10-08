@@ -1,3 +1,4 @@
+import { readSearchPages } from '../../lib/read-search-pages';
 import { apiRequest } from '../../lib/api';
 import type {
   AssignWorkerToProjectInput,
@@ -21,29 +22,25 @@ type ApiEnvelope<TData> = {
   data: TData;
 };
 
-export async function fetchProjectWorkers(
-  organizationId: string,
-  projectId: string,
-  accessToken: string,
-) {
-  const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
-    `/organizations/${organizationId}/projects/${projectId}/workers?pageSize=100&assignmentScope=ALL_ACTIVE`,
-    {},
-    { accessToken },
-  );
-  return response.data;
+export async function fetchProjectWorkers(organizationId: string, projectId: string, accessToken: string) {
+  return readSearchPages<ProjectWorkerRosterResponse['data'][number], ProjectWorkerRosterResponse>(async page => {
+    const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
+      `/organizations/${organizationId}/projects/${projectId}/workers?pageSize=100&assignmentScope=ALL_ACTIVE&page=${page}`,
+      {}, { accessToken },
+    );
+    return response.data;
+  });
 }
 
-export async function fetchOrganizationWorkers(
-  organizationId: string,
-  accessToken: string,
-) {
-  const response = await apiRequest<ApiEnvelope<WorkerListResponse>>(
-    `/organizations/${organizationId}/workers?status=ACTIVE&pageSize=100&sortBy=name&sortOrder=asc`,
-    {},
-    { accessToken },
-  );
-  return response.data;
+export async function fetchOrganizationWorkers(organizationId: string, accessToken: string, search = '') {
+  return readSearchPages<WorkerListResponse['data'][number], WorkerListResponse>(async page => {
+    const params = new URLSearchParams({ status: 'ACTIVE', pageSize: '100', sortBy: 'name', sortOrder: 'asc', page: String(page) });
+    if (search.trim()) params.set('search', search.trim());
+    const response = await apiRequest<ApiEnvelope<WorkerListResponse>>(
+      `/organizations/${organizationId}/workers?${params}`, {}, { accessToken },
+    );
+    return response.data;
+  });
 }
 
 export async function fetchWorkerDetail(

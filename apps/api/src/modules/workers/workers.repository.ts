@@ -190,9 +190,10 @@ export class WorkersRepository {
 
     if (query.search) {
       where.push(
-        "(w.name LIKE ? OR w.worker_code LIKE ? OR w.mobile_number LIKE ?)",
+        "(w.name LIKE ? OR w.worker_code LIKE ? OR w.mobile_number LIKE ? OR w.trade LIKE ?)",
       );
       whereParams.push(
+        `%${query.search}%`,
         `%${query.search}%`,
         `%${query.search}%`,
         `%${query.search}%`,
@@ -288,9 +289,10 @@ export class WorkersRepository {
     }
     if (query.search) {
       where.push(
-        "(w.name LIKE ? OR w.worker_code LIKE ? OR w.mobile_number LIKE ?)",
+        "(w.name LIKE ? OR w.worker_code LIKE ? OR w.mobile_number LIKE ? OR w.trade LIKE ?)",
       );
       params.push(
+        `%${query.search}%`,
         `%${query.search}%`,
         `%${query.search}%`,
         `%${query.search}%`,

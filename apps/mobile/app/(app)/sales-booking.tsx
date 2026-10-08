@@ -14,5 +14,5 @@ export default function SalesBookingRoute() {
       permission === "leads:read-all",
   );
   if (!canRead) return <Redirect href="/(app)/dashboard" />;
-  return <SalesBookingScreen />;
+  return <SalesBookingScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
 }

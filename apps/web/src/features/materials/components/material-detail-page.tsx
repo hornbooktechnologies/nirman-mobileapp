@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { SourcePaymentsPanel } from "@/features/total-expenses/source-payments-panel";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -86,13 +88,13 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <MaterialStatus status={d.status} />
-          <Button
+          <RefreshButton busy={query.isFetching}
             variant="outline"
             disabled={query.isFetching}
-            onClick={() => void query.refetch()}
+            onRefresh={() => query.refetch()}
           >
             {query.isFetching ? "Refreshing…" : "Refresh"}
-          </Button>
+          </RefreshButton>
         </div>
       </header>
       {notice && (

@@ -14,8 +14,9 @@ export const salesKey = (org: string, project: string) =>
   ["sales", org, project] as const;
 export const assignmentPermission = (assignedTo: string | null) =>
   assignedTo ? "leads:reassign" : "leads:assign";
+const displayLabels: Record<string, string> = { WALK_IN: "Walk-in", GOOGLE_ADS: "Google Ads", WHATSAPP: "WhatsApp", FOLLOW_UP_SCHEDULED: "Follow-up scheduled", FOLLOW_UP_COMPLETED: "Follow-up completed" };
 export const label = (value: string) =>
-  value
+  displayLabels[value] ?? value
     .toLowerCase()
     .replaceAll("_", " ")
     .replace(/^./, (s) => s.toUpperCase());

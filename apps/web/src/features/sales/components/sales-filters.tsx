@@ -3,6 +3,7 @@
 import { CollectionToolbar } from "@/components/ui/collection-toolbar";
 import { Input, Select } from "@/components/ui";
 import { label } from "../sales-rules";
+import { namedFilterLabel } from "../sales-filter-options";
 import { useState } from "react";
 
 export type SalesFilterField = {
@@ -11,6 +12,8 @@ export type SalesFilterField = {
   options?: readonly string[];
   optionLabels?: Record<string, string>;
   emptyLabel?: string;
+  loading?: boolean;
+  optionsMessage?: string;
   type?: "date";
 };
 
@@ -63,14 +66,15 @@ export function SalesFilters({
                   <Select
                     id={`${id}-${field.key}`}
                     value={draft[field.key] ?? ""}
+                    disabled={field.loading}
                     onChange={(event) => update({ ...draft, [field.key]: event.target.value })}
                   >
                     <option value="">{field.emptyLabel ?? `All ${field.name.toLowerCase()}`}</option>
                     {draft[field.key] && !field.options.includes(draft[field.key]) && (
-                      <option value={draft[field.key]}>{field.optionLabels?.[draft[field.key]] ?? draft[field.key]}</option>
+                      <option value={draft[field.key]}>{field.optionLabels ? namedFilterLabel(draft[field.key], field.optionLabels, field.name, field.loading) : label(draft[field.key])}</option>
                     )}
                     {field.options.map((option) => (
-                      <option key={option} value={option}>{field.optionLabels?.[option] ?? label(option)}</option>
+                      <option key={option} value={option}>{field.optionLabels ? namedFilterLabel(option, field.optionLabels, field.name, field.loading) : label(option)}</option>
                     ))}
                   </Select>
                 ) : (
@@ -81,6 +85,8 @@ export function SalesFilters({
                     onChange={(event) => update({ ...draft, [field.key]: event.target.value })}
                   />
                 )}
+                {field.loading && <span role="status" className="text-sm text-sub">Loading {field.name.toLowerCase()} options…</span>}
+                {field.optionsMessage && <span role="status" className="text-sm text-sub">{field.optionsMessage}</span>}
               </label>
             ))}
           </div>

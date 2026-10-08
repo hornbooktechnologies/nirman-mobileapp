@@ -1,7 +1,8 @@
+import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type { AttendanceException, WorkerAttendancePeriodResponse } from '@nirman-app/shared';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -196,13 +197,13 @@ export function WorkerAttendanceScreen() {
     : !requestedProjectAccessible
       ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={t('actions.backToSummary')} onAction={() => router.replace('/(app)/attendance' as Href)} />
     : !canRead
-      ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onAction={() => void refreshSession()} />
+      ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onRefresh={() => refreshSession()} />
       : null;
   const exceptions = blockingState || error || invalidRange ? [] : period?.exceptions ?? [];
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="attendance" />} scroll={false}>
-      <FlatList
+      <RefreshFlatList busy={isLoading || isRefreshing}
         data={exceptions}
         keyExtractor={(exception) => exception.id}
         renderItem={({ item }) => <ExceptionCard exception={item} locale={locale} />}
@@ -215,7 +216,7 @@ export function WorkerAttendanceScreen() {
         contentContainerStyle={styles.listContent}
         refreshing={false}
         showsVerticalScrollIndicator={false}
-        onRefresh={() => void load(true)}
+        onRefresh={() => load(true)}
       />
     </NirmanScreenBackground>
   );

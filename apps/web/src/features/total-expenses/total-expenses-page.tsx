@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -172,16 +174,13 @@ function Report({
           <h1 className="text-2xl font-semibold">Total Expenses</h1>
           <p className="text-sub">Paid project spending</p>
         </div>
-        <Button
+        <RefreshButton busy={summary.isFetching || list.isFetching}
           variant="outline"
-          onClick={() => {
-            void summary.refetch();
-            void list.refetch();
-          }}
+          onRefresh={async () => { await Promise.allSettled([summary.refetch(), list.refetch()]); }}
           disabled={summary.isFetching || list.isFetching}
         >
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       <Card>
         <div className="flex flex-wrap items-end gap-3">

@@ -193,7 +193,7 @@ export function BookingCreate({
             <LoadingState label="Loading available units" />
           )}
           {pickUnit && units.isError && (
-            <Failure error={units.error} retry={() => void units.refetch()} />
+            <Failure error={units.error} retry={() => units.refetch()} />
           )}
         </SalesForm>
       )}

@@ -1,7 +1,8 @@
+import { RefreshButton } from '../../components/ui/refresh-button';
 import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { AppText, Button } from '../../components/ui';
+import { AppText } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { ApiRequestError } from '../../lib/api';
 import { ExpenseAttempt, expenseFailure } from './command-attempt';
@@ -60,7 +61,7 @@ export function useExpenseCommand<T>(fallback: string) {
     recovery: (refresh?: () => void | Promise<unknown>) => <>
       {failure === 'uncertain' ? <AppText>{t('recovery.uncertain')}</AppText> : null}
       {failure === 'denied' ? <AppText>{t('recovery.denied')}</AppText> : null}
-      {failure === 'stale' ? <><AppText>{t('recovery.stale')}</AppText>{refresh ? <Button label={t('recovery.reload')} disabled={refreshing} variant="secondary" onPress={() => void review(refresh)} /> : null}</> : null}
+      {failure === 'stale' ? <><AppText>{t('recovery.stale')}</AppText>{refresh ? <RefreshButton label={t('recovery.reload')} disabled={refreshing} variant="secondary" onRefresh={() => review(refresh)} /> : null}</> : null}
     </>,
   };
 }

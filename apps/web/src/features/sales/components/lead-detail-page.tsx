@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -81,7 +83,7 @@ function LeadDetail({
   }
   if (lead.isPending) return <LoadingState label="Loading lead" />;
   if (lead.isError)
-    return <Failure error={lead.error} retry={() => void lead.refetch()} />;
+    return <Failure error={lead.error} retry={() => lead.refetch()} />;
   const l = lead.data;
   const can = (permission: string) =>
     canWriteLead(c.permissions, c.active, permission, l, c.user);
@@ -89,6 +91,7 @@ function LeadDetail({
     snapshot.current = l;
     setDialog(value);
   }
+  const phone = /^\+?[\d\s()-]{7,24}$/.test(l.primaryMobile) ? l.primaryMobile.replace(/[^+\d]/g, "") : null;
   const rows = [
     ["Source", label(l.source)],
     ["Source detail", l.sourceDetail],
@@ -118,16 +121,16 @@ function LeadDetail({
           </h1>
           <Status value={l.currentStage} />
         </div>
-        <Button
+        <RefreshButton busy={lead.isFetching || activities.isFetching}
           variant="outline"
-          onClick={() =>
-            void cache.invalidateQueries({
+          onRefresh={() =>
+            cache.invalidateQueries({
               queryKey: salesKey(c.org, c.project),
             })
           }
         >
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       {success && <p role="status">{success}</p>}
       <Card className="space-y-3">
@@ -140,6 +143,7 @@ function LeadDetail({
       </Card>
       <section className="space-y-3" aria-label="Customer actions">
         <h2 className="text-lg font-semibold">Next actions</h2>
+        {phone && <a className="inline-flex min-h-11 items-center rounded-control border border-hairline px-4 font-semibold underline" href={`tel:${phone}`}>Call</a>}
         <div className="flex flex-wrap gap-3">
         <BookingCreate c={c} lead={l} returnTo={salesDetailUrl(`/projects/${c.project}/sales/leads/${id}`, returnTo)} />
         {can("site-visits:manage") && (
@@ -191,7 +195,7 @@ function LeadDetail({
         ) : activities.isError ? (
           <Failure
             error={activities.error}
-            retry={() => void activities.refetch()}
+            retry={() => activities.refetch()}
           />
         ) : (
           <>

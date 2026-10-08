@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,14 +29,14 @@ function ProjectGallery({ context: c }: { context: GalleryContext }) {
   const summary = useGallerySummary(c.org, c.project);
   const cache = useQueryClient(); const [selected, setSelected] = useState<GalleryEntry | null>(null);
   const [notice, setNotice] = useState("");
-  const refresh = () => { void cache.invalidateQueries({ queryKey: galleryKey(c.org, c.project) }); };
+  const refresh = () => cache.invalidateQueries({ queryKey: galleryKey(c.org, c.project) });
   function filter(key: string, value: string) { const next = new URLSearchParams(params.toString()); if (value) next.set(key, value); else next.delete(key); if (key !== "page") next.delete("page"); router.replace(`${pathname}?${next}`, { scroll: false }); }
   function applyFilters(value: GalleryFiltersValue) { router.replace(activityFilterHref(pathname, new URLSearchParams(params.toString()), value, ["category", "stage", "status", "dateFrom", "dateTo"]), { scroll: false }); }
   const groups = new Map<string, GalleryEntry[]>();
   for (const entry of list.data?.items ?? []) { const day = galleryDayKey(entry.capturedAt); groups.set(day, [...(groups.get(day) ?? []), entry]); }
   return <div className="space-y-5">
     <ProjectActivityNavigation projectId={c.project} permissions={c.permissions} current="gallery" origin={activityOrigin(pathname, new URLSearchParams(params.toString()))} returnTo={params.get("returnTo")} />
-    <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Gallery</h1><p className="text-sub">Your project diary, one photo at a time.</p></div><Button variant="outline" onClick={refresh}>Refresh</Button></header>
+    <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">Gallery</h1><p className="text-sub">Your project diary, one photo at a time.</p></div><RefreshButton variant="outline" busy={list.isFetching || summary.isFetching} onRefresh={refresh}>Refresh</RefreshButton></header>
     {summary.isPending ? <LoadingState label="Loading gallery summary" /> : summary.isError ? <Card><p role="alert">{summary.error.message}</p><Button onClick={() => void summary.refetch()}>Retry summary</Button></Card> : <Card><dl className="grid gap-4 sm:grid-cols-3">{[["Published photos", summary.data.totalApproved], ["Legacy pending review", summary.data.pendingReview], ["Uploaded today", summary.data.uploadedToday]].map(([name,value]) => <div key={name}><dt className="text-sm text-sub">{name}</dt><dd className="text-2xl font-semibold tabular-nums">{value}</dd></div>)}</dl><p className="mt-3 text-sm text-sub">New permitted uploads publish immediately. Pending review reflects older compatibility records.</p></Card>}
     {notice && <p role="status">{notice}</p>}
     <UploadPanel context={c} uploaded={refresh} />

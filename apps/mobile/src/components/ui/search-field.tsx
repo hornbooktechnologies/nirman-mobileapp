@@ -1,9 +1,11 @@
+import { useSearchDraft } from '../../lib/use-search-draft';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { mobileTheme } from '../../theme';
 import { AppIcon } from './app-icon';
 
-export function SearchField({ style, ...props }: TextInputProps) {
+export function SearchField({ style, value = '', onChangeText, onSubmitEditing, debounceMs, editable, ...props }: TextInputProps & { debounceMs?: number }) {
+  const search = useSearchDraft(value, onChangeText ?? (() => undefined), debounceMs, editable === false);
   return (
     <View style={styles.shell}>
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -14,8 +16,13 @@ export function SearchField({ style, ...props }: TextInputProps) {
         clearButtonMode="while-editing"
         placeholderTextColor={mobileTheme.color.text.muted}
         returnKeyType="search"
+        maxLength={160}
         style={[styles.input, style]}
         {...props}
+        editable={editable}
+        value={search.text}
+        onChangeText={search.edit}
+        onSubmitEditing={event => { search.flush(); onSubmitEditing?.(event); }}
       />
     </View>
   );

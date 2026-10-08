@@ -1,7 +1,8 @@
+import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type { AttendanceSummaryResponse, AttendanceSummaryRow, DerivedAttendanceState } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, FlatList, findNodeHandle, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, findNodeHandle, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -126,7 +127,7 @@ export function AttendanceMarkScreen() {
   );
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), search.trim() ? 300 : 0);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -327,7 +328,7 @@ export function AttendanceMarkScreen() {
         </Card>
       ) : null}
       <ListControls>
-        <SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
+        <SearchField debounceMs={0} accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
       </ListControls>
       {!canCreate && !canUpdate && canRead ? <Card><AppText style={styles.cardNote} weight={500}>{t('markScreen.readOnly')}</AppText></Card> : null}
       {isRefreshing ? (
@@ -343,13 +344,13 @@ export function AttendanceMarkScreen() {
   const noContext = !session?.activeOrganization || !activeProject
     ? <EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} />
     : !canRead
-      ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onAction={() => void refreshSession()} />
+      ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onRefresh={() => refreshSession()} />
       : null;
   const rows = noContext || error ? [] : summary?.rows ?? [];
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="attendance" />} scroll={false}>
-      <FlatList
+      <RefreshFlatList busy={isLoading || isRefreshing}
         data={rows}
         keyExtractor={(row) => row.workerAssignmentId}
         renderItem={({ item }) => <DailyWorkerCard canCreate={canCreate} canUpdate={canUpdate} row={item} onEdit={openSheet} onRestore={confirmRestore} />}
@@ -366,7 +367,7 @@ export function AttendanceMarkScreen() {
         keyboardShouldPersistTaps="handled"
         refreshing={false}
         showsVerticalScrollIndicator={false}
-        onRefresh={() => void load(1, true)}
+        onRefresh={() => load(1, true)}
       />
 
       {editingRow ? (

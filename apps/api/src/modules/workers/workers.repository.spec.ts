@@ -41,6 +41,17 @@ describe("WorkersRepository", () => {
     ]);
   });
 
+  it("searches mobile and trade across the directory while preserving readable-project scope", async () => {
+    database.query.mockResolvedValue([]);
+    await repository.findAll("organization-id", { search: "Helper" }, [
+      "readable-project",
+    ]);
+    const [sql, params] = database.query.mock.calls[0];
+    expect(sql).toContain("w.mobile_number LIKE ? OR w.trade LIKE ?");
+    expect(sql).toContain("current_wpa.project_id IN (?)");
+    expect(params?.filter((value) => value === "%Helper%")).toHaveLength(4);
+  });
+
   it("returns an empty organization worker page when no project is readable", async () => {
     await expect(
       repository.findAll("organization-id", {}, []),

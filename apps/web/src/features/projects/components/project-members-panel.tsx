@@ -1,4 +1,5 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
 
 import { useMemo, useState } from "react";
 import { LoadingState } from "@/components/ui";
@@ -204,12 +205,12 @@ export function ProjectMembersPanel({
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Input
+          <SearchInput
             className="w-full sm:w-64"
             placeholder="Search assigned team"
             aria-label="Search assigned team"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onValueChange={(event) => setSearch(event)}
           />
           {canAssign ? (
             <Button onClick={() => setShowAssign(true)}>
@@ -304,11 +305,10 @@ export function ProjectMembersPanel({
                 <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                   Find organization member
                 </span>
-                <Input
-                  type="search"
+                <SearchInput
                   placeholder="Search by name, email, mobile, role or designation"
                   value={memberSearch}
-                  onChange={(event) => setMemberSearch(event.target.value)}
+                  onValueChange={(event) => setMemberSearch(event)}
                 />
               </label>
               <p className="text-[11px] text-sub">

@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -44,9 +46,9 @@ function Leads({ c }: { c: SalesContext }) {
       <header className="flex flex-wrap justify-between gap-3">
         <h1 className="text-2xl font-semibold">Sales leads</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void query.refetch()}>
+          <RefreshButton variant="outline" busy={query.isFetching} onRefresh={() => query.refetch()}>
             Refresh
-          </Button>
+          </RefreshButton>
           {c.active && c.permissions.includes("leads:create") && (
             <Button onClick={() => setOpen(true)}>Create lead</Button>
           )}
@@ -66,7 +68,7 @@ function Leads({ c }: { c: SalesContext }) {
       {query.isPending ? (
         <LoadingState label="Loading leads" />
       ) : query.isError ? (
-        <Failure error={query.error} retry={() => void query.refetch()} />
+        <Failure error={query.error} retry={() => query.refetch()} />
       ) : (
         <>
           {query.isFetching && <p role="status">Refreshing leads…</p>}

@@ -77,7 +77,7 @@ for (const moduleName of ['attendance', 'wages', 'kharchi', 'materials', 'expens
     assert.equal(web[`${moduleName}Service`].exportPdf(...webArgs), result);
     assert.equal(calls[0][0], `/organizations/o/projects/p/${moduleName}/${moduleName === 'wages' ? 'batches/batch/' : ''}export/pdf`);
     assert.equal(calls[0][2], signal);
-    const native = load(`../../../../mobile/src/features/${moduleName}/services.ts`, { '../../lib/exports/pdf': { requestPdf }, '../../lib/api': { apiRequest() {}, ApiRequestError: Error }, '../../config': { appConfig: {} } });
+    const native = load(`../../../../mobile/src/features/${moduleName}/services.ts`, { '../../lib/read-search-pages': load('../../../../mobile/src/lib/read-search-pages.ts'), '../../lib/exports/pdf': { requestPdf }, '../../lib/api': { apiRequest() {}, ApiRequestError: Error }, '../../config': { appConfig: {} } });
     const nativeArgs = moduleName === 'attendance' ? ['o', 'p', '2026-09-01', '2026-09-30', 'token', signal] : moduleName === 'wages' ? ['o', 'p', 'batch', 'token', signal] : ['o', 'p', 'token', { search: 'Site' }, signal];
     const name = moduleName === 'wages' ? 'exportWageBatchPdf' : `export${moduleName[0].toUpperCase() + moduleName.slice(1)}Pdf`;
     assert.equal(native[name](...nativeArgs), result);

@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -15,6 +17,7 @@ import { SiteVisitForm } from "./site-visit-form";
 import { Failure, Status, dateTime } from "./sales-ui";
 import { SalesFilters } from "./sales-filters";
 import { salesDetailUrl, salesListUrl } from "../sales-view";
+import { siteVisitSalespeople } from "../sales-filter-options";
 function Visits({ c }: { c: SalesContext }) {
   const params = useSearchParams(),
     router = useRouter(),
@@ -49,27 +52,18 @@ function Visits({ c }: { c: SalesContext }) {
     c.project,
     {
       status,
+      search: search || undefined,
       scheduledFrom,
       scheduledTo,
       assignedSalesperson: salesperson || undefined,
     },
     !error,
   );
-  const rows = (query.data ?? []).filter(
-    (v) =>
-      (!salesperson || v.assignedSalesperson === salesperson) &&
-      `${v.customerName} ${v.assignedSalespersonName}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-  );
-  const people = Array.from(
-    new Map(
-      (query.data ?? []).map((v) => [
-        v.assignedSalesperson,
-        v.assignedSalespersonName,
-      ]),
-    ).entries(),
-  );
+  const rows = query.data ?? [];
+  // Keep the directory independent of the selected salesperson/date/status/search.
+  // This uses the same scoped endpoint and never widens access to project members.
+  const directory = useSiteVisits(c.org, c.project, {}, team);
+  const people = siteVisitSalespeople(directory.data ?? []);
   const detail = params.get("visit");
   const visible = detail ? rows.filter((v) => v.id === detail) : rows;
   function filter(name: string, value: string) {
@@ -79,9 +73,9 @@ function Visits({ c }: { c: SalesContext }) {
     <div className="space-y-5">
       <header className="flex flex-wrap justify-between gap-3">
         <h1 className="text-2xl font-semibold">Site Visits</h1>
-        <Button variant="outline" onClick={() => void query.refetch()}>
+        <RefreshButton variant="outline" disabled={Boolean(error)} busy={query.isFetching || (team && directory.isFetching)} onRefresh={async () => { await Promise.allSettled([query.refetch(), ...(team ? [directory.refetch()] : [])]); }}>
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       <p>
         Schedule visits from a{" "}
@@ -93,14 +87,14 @@ function Visits({ c }: { c: SalesContext }) {
       {success && <p role="status">{success}</p>}
       <SalesFilters
         name="site visits"
-        scope={`Visit dates use ${c.timezone}. Search applies to retrieved visits.`}
-        search={{ value: search, placeholder: "Customer or salesperson", onChange: (value) => filter("search", value) }}
+        scope={`Visit dates use ${c.timezone}.`}
+        search={{ value: search, placeholder: "Customer, mobile or salesperson", onChange: (value) => filter("search", value) }}
         value={{ status: status ?? "", from, to, ...(team ? { salesperson } : {}) }}
         fields={[
           { key: "status", name: "Status", options: SITE_VISIT_STATUSES },
           { key: "from", name: "From date", type: "date" },
           { key: "to", name: "To date", type: "date" },
-          ...(team ? [{ key: "salesperson", name: "Salesperson", options: people.map(([id]) => id), optionLabels: Object.fromEntries(people.map(([id, name]) => [id, name])) }] : []),
+          ...(team ? [{ key: "salesperson", name: "Salesperson", options: people.map(person => person.value), optionLabels: Object.fromEntries(people.map(person => [person.value, person.label])), loading: directory.isPending, optionsMessage: directory.isError ? "Could not load salesperson options. Refresh to retry." : undefined }] : []),
         ]}
         validate={(value) => value.from && value.to && value.from > value.to ? "End date must be on or after start date." : null}
         onApply={(value) => router.replace(salesListUrl(pathname, params, value, ["visit"]), { scroll: false })}
@@ -111,13 +105,12 @@ function Visits({ c }: { c: SalesContext }) {
       ) : query.isPending ? (
         <LoadingState label="Loading site visits" />
       ) : query.isError ? (
-        <Failure error={query.error} retry={() => void query.refetch()} />
+        <Failure error={query.error} retry={() => query.refetch()} />
       ) : (
         <>
           {query.isFetching && <p role="status">Refreshing visits…</p>}
           <p className="text-sm text-sub">
-            {visible.length} visits · all matching records. Search applies to
-            retrieved visits.
+            {visible.length} visits · all matching records.
           </p>
           {!visible.length && (
             <Card>

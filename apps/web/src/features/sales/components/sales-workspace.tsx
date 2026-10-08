@@ -60,7 +60,7 @@ function Access({
   if (!org || !user) return <Card>Select an organization to view Sales.</Card>;
   if (access.isPending) return <LoadingState label="Checking Sales access" />;
   if (access.isError)
-    return <Failure error={access.error} retry={() => void access.refetch()} />;
+    return <Failure error={access.error} retry={() => access.refetch()} />;
   const projects = access.data.projects.filter((p) =>
     section === "inventory"
       ? p.permissions.includes("inventory:read")

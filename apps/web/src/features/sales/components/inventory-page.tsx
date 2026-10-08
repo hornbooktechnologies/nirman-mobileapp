@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -52,13 +54,13 @@ function Inventory({ c }: { c: SalesContext }) {
         fields={[{ key: "status", name: "Status", options: UNIT_STATUSES }]}
         onApply={(value) => router.replace(salesListUrl(pathname, params, value), { scroll: false })}
       />
-      <Button variant="outline" disabled={units.isFetching} onClick={() => void units.refetch()}>
+      <RefreshButton busy={units.isFetching} variant="outline" disabled={units.isFetching} onRefresh={() => units.refetch()}>
         {units.isFetching ? "Refreshing…" : "Refresh"}
-      </Button>
+      </RefreshButton>
       {units.isPending ? (
         <LoadingState label="Loading inventory" />
       ) : units.isError ? (
-        <Failure error={units.error} retry={() => void units.refetch()} />
+        <Failure error={units.error} retry={() => units.refetch()} />
       ) : (
         <>
           <p className="text-sm text-sub">

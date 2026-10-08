@@ -1,7 +1,8 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
 
 import { CollectionToolbar } from "@/components/ui/collection-toolbar";
-import { Input, Select } from "@/components/ui";
+import { Select } from "@/components/ui";
 
 export type AdministrationFilterField = {
   key: string;
@@ -21,7 +22,7 @@ export function AdministrationFilters({ name, scope, search, fields, value, onAp
 }) {
   if (!fields.length) return <div className="space-y-2">
     {scope && <p className="text-sm text-sub">{scope}</p>}
-    {search && <label className="grid max-w-md gap-1 text-sm font-medium">Search {name}<Input type="search" value={search.value} placeholder={search.placeholder} maxLength={160} onChange={(event) => search.onChange(event.target.value)} disabled={disabled} /></label>}
+    {search && <label className="grid max-w-md gap-1 text-sm font-medium">Search {name}<SearchInput value={search.value} placeholder={search.placeholder} maxLength={160} onValueChange={(event) => search.onChange(event)} disabled={disabled} /></label>}
   </div>;
   const defaults = Object.fromEntries(fields.map((field) => [field.key, ""]));
   return <CollectionToolbar

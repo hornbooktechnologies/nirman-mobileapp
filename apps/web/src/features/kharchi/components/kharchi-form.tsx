@@ -1,4 +1,6 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
+import { kharchiPaymentMethodLabels } from "../kharchi-labels";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { KHARCHI_PAYMENT_METHODS, type KharchiAdvanceDetail, type KharchiPaymentMethod } from "@nirman-app/shared";
@@ -14,7 +16,7 @@ export function KharchiForm({ context, detail, close, saved, refresh }: { contex
   const [date, setDate] = useState(() => workToday("Asia/Kolkata"));
   const [worker, setWorker] = useState("");
   const [search, setSearch] = useState("");
-  const [workerSearch, setWorkerSearch] = useState("");
+  const workerSearch = search;
   const [page, setPage] = useState(1);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<KharchiPaymentMethod>("CASH");
@@ -26,7 +28,6 @@ export function KharchiForm({ context, detail, close, saved, refresh }: { contex
   const lock = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const mutation = useKharchiWrite(context.org, context.project, detail?.id);
-  useEffect(() => { const timer = setTimeout(() => setWorkerSearch(search), 300); return () => clearTimeout(timer); }, [search]);
   const roster = useQuery({ queryKey: [...kharchiKey(context.org, context.project), "eligible", date, workerSearch, page], queryFn: () => kharchiService.eligible(context.org, context.project, date, workerSearch, page), enabled: !detail && validDate(date) && context.permissions.includes("workers:read") });
   const dirty = Boolean(amount || worker || reference || notes || attempt);
   useEffect(() => {
@@ -61,20 +62,20 @@ export function KharchiForm({ context, detail, close, saved, refresh }: { contex
     } finally { lock.current = false; }
   }
   const error = (name: string) => errors[name] ? <p id={`${name}-error`} role="alert" className="text-sm text-danger">{errors[name]}</p> : null;
-  return <Dialog open title={detail ? "Correct advance" : "Record paid advance"} description="Record money already given to the worker. Corrections are permanent history entries." onOpenChange={requestClose} footer={<><Button variant="outline" disabled={mutation.isPending} onClick={requestClose}>Cancel</Button><Button type="submit" form="kharchi-form" disabled={mutation.isPending || (!detail && !attempt && (roster.isFetching || !context.permissions.includes("workers:read")))}>{mutation.isPending ? "Saving…" : attempt ? "Retry original request" : "Save record"}</Button></>}>
+  return <Dialog open title={detail ? "Add adjustment" : "Record paid Kharchi"} description={detail ? "This correction becomes permanent financial history and does not rewrite the original paid amount." : "This records money as already paid. It cannot be cancelled or deleted; corrections are added as adjustments."} onOpenChange={requestClose} footer={<><Button variant="outline" disabled={mutation.isPending} onClick={requestClose}>Cancel</Button><Button type="submit" form="kharchi-form" disabled={mutation.isPending || (!detail && !attempt && (roster.isFetching || !context.permissions.includes("workers:read")))}>{mutation.isPending ? "Saving…" : attempt ? "Retry original request" : "Save record"}</Button></>}>
     <form id="kharchi-form" ref={form} onSubmit={submit} className="space-y-4 text-base">
       {mutation.isError && <p role="alert" className="text-danger">{mutation.error.message}</p>}
       {attempt && mutation.isError && <p role="status">The result is uncertain. Retry the original request to safely recover its result. Inputs remain locked to avoid a duplicate.</p>}
       <fieldset disabled={mutation.isPending || Boolean(attempt)} className="space-y-4">
         {!detail && <><label className="block">Date paid *<Input name="date" type="date" required value={date} invalid={Boolean(errors.date)} aria-describedby="date-error" onChange={e => { setDate(e.target.value); setWorker(""); setPage(1); }} />{error("date")}</label>
-        {!context.permissions.includes("workers:read") ? <p role="alert">Worker selection requires workers:read for this project. Ask an administrator for access.</p> : <><label className="block">Find worker<Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); setWorker(""); }} /></label>
+        {!context.permissions.includes("workers:read") ? <p role="alert">Worker selection requires workers:read for this project. Ask an administrator for access.</p> : <><label className="block">Find worker<SearchInput value={search} onValueChange={(e) => { setSearch(e); setPage(1); setWorker(""); }} /></label>
         {roster.isError && <p role="alert">{roster.error.message} <Button onClick={() => void roster.refetch()}>Retry worker lookup</Button></p>}
         <label className="block">Worker *<Select name="worker" required value={worker} disabled={roster.isFetching} invalid={Boolean(errors.worker)} aria-describedby="worker-error" onChange={e => setWorker(e.target.value)}><option value="">{roster.isFetching ? "Loading workers…" : "Choose worker"}</option>{roster.data?.data.map(w => <option key={w.currentAssignment.id} value={w.currentAssignment.id}>{w.name} · {w.workerCode} · {w.trade}</option>)}</Select>{error("worker")}</label>
         {roster.isSuccess && !roster.data.data.length && <p>No eligible workers match this date and search.</p>}
         <div className="flex items-center gap-3"><Button variant="outline" disabled={page <= 1} onClick={() => { setPage(page - 1); setWorker(""); }}>Previous workers</Button><span>{page} / {roster.data?.meta.pageCount || 1}</span><Button variant="outline" disabled={page >= (roster.data?.meta.pageCount || 1)} onClick={() => { setPage(page + 1); setWorker(""); }}>Next workers</Button></div></>}</>}
-        {detail && <label className="block">Correction type<Select value={decrease ? "decrease" : "increase"} onChange={e => setDecrease(e.target.value === "decrease")}><option value="increase">Increase advance</option><option value="decrease">Decrease advance</option></Select><span className="text-sm">Outstanding: ₹{detail.outstandingAmount}</span></label>}
-        <label className="block">Amount (INR) *<Input name="amount" inputMode="decimal" required value={amount} invalid={Boolean(errors.amount)} aria-describedby="amount-error" onChange={e => setAmount(e.target.value)} />{error("amount")}</label>
-        {!detail && <><label className="block">Payment method *<Select value={method} onChange={e => setMethod(e.target.value as KharchiPaymentMethod)}>{KHARCHI_PAYMENT_METHODS.map(m => <option key={m} value={m}>{m.replaceAll("_", " ")}</option>)}</Select></label><label className="block">Payment reference<Input maxLength={120} value={reference} onChange={e => setReference(e.target.value)} /></label></>}
+        {detail && <label className="block">Adjustment type<Select value={decrease ? "decrease" : "increase"} onChange={e => setDecrease(e.target.value === "decrease")}><option value="increase">Increase</option><option value="decrease">Decrease</option></Select><span className="text-sm">Outstanding: ₹{detail.outstandingAmount}</span></label>}
+        <label className="block">{detail ? "Adjustment amount (INR) *" : "Amount (INR) *"}<Input name="amount" inputMode="decimal" required value={amount} invalid={Boolean(errors.amount)} aria-describedby="amount-error" onChange={e => setAmount(e.target.value)} />{error("amount")}</label>
+        {!detail && <><label className="block">Payment method *<Select value={method} onChange={e => setMethod(e.target.value as KharchiPaymentMethod)}>{KHARCHI_PAYMENT_METHODS.map(m => <option key={m} value={m}>{kharchiPaymentMethodLabels[m]}</option>)}</Select></label><label className="block">Payment reference<Input maxLength={120} value={reference} onChange={e => setReference(e.target.value)} /></label></>}
         <label className="block">{detail ? "Reason *" : "Notes"}<Textarea name="notes" required={Boolean(detail)} maxLength={detail ? 500 : 2000} value={notes} aria-invalid={Boolean(errors.notes)} aria-describedby="notes-error" onChange={e => setNotes(e.target.value)} />{error("notes")}</label>
       </fieldset>
     </form>

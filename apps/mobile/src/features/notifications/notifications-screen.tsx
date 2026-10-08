@@ -1,7 +1,8 @@
+import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import type { NotificationItem } from '@nirman-app/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, IconButton, LoadingState, NirmanScreenBackground, StatusBadge } from '../../components/ui';
 import { formatDate, getLocalizedErrorMessage, type SupportedLanguage } from '../../i18n';
@@ -96,7 +97,7 @@ export function NotificationsScreen() {
 
   return <NirmanScreenBackground footer={<CustomerTabBar activeKey="notifications" />} scroll={false}>
     <FlatList data={items} keyExtractor={(item) => item.id} removeClippedSubviews={false} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void Promise.all([load(1), refreshUnreadCount()]); }} />}
+      refreshControl={<GuardedRefreshControl busy={loading || refreshing} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.allSettled([load(1), refreshUnreadCount()]); }} />}
       ListEmptyComponent={loading ? <LoadingState label={t('loading')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={unreadOnly ? t('empty.unreadTitle') : t('empty.title')} description={unreadOnly ? t('empty.unreadDescription') : t('empty.description')} />}
       ListFooterComponent={loadingMore ? <LoadingState label={t('loadingMore')} /> : null}
       onEndReachedThreshold={0.35} onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}

@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { downloadPdf } from "@/lib/exports/pdf";
 import { ExportProgress } from "@/components/common/export-progress";
 
@@ -119,7 +121,7 @@ function AttendanceWorkspace() {
   useEffect(() => {
     const timer = window.setTimeout(
       () => setDebouncedSearch(search.trim()),
-      300,
+      search.trim() ? 300 : 0,
     );
     return () => window.clearTimeout(timer);
   }, [search]);
@@ -202,7 +204,7 @@ function AttendanceWorkspace() {
         variant="warning"
         title="Organization timezone unavailable"
         action={
-          <Button onClick={() => void refreshUser()}>Refresh access</Button>
+          <RefreshButton onRefresh={() => refreshUser()}>Refresh access</RefreshButton>
         }
       />
     );
@@ -407,6 +409,7 @@ function AttendanceContent({
           search={{
             value: search,
             onChange: setSearch,
+            debounceMs: 0,
             placeholder: "Name, code or trade",
             maxLength: 160,
           }}
@@ -526,10 +529,10 @@ function AttendanceContent({
           title="Attendance could not be loaded"
           description={errorMessage(summary.error)}
           action={
-            <Button variant="outline" onClick={() => summary.refetch()}>
+            <RefreshButton busy={summary.isFetching} variant="outline" onRefresh={() => summary.refetch()}>
               <RefreshCw size={15} aria-hidden="true" />
               Retry
-            </Button>
+            </RefreshButton>
           }
         />
       ) : summary.data?.rows.length === 0 ? (

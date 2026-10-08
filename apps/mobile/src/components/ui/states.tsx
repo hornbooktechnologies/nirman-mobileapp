@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { Button } from './button';
+import { RefreshButton } from './refresh-button';
 import { Card } from './card';
 import { AppText } from './app-text';
 import { LottieLoader } from './lottie-loader';
@@ -12,14 +13,15 @@ type EmptyStateProps = ViewProps & {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  onRefresh?: () => unknown;
 };
 
-export function EmptyState({ title, description, actionLabel, onAction, style, ...props }: EmptyStateProps) {
+export function EmptyState({ title, description, actionLabel, onAction, onRefresh, style, ...props }: EmptyStateProps) {
   return (
     <Card style={[styles.state, style]} {...props}>
       <AppText style={styles.title} weight={700}>{title}</AppText>
       {description ? <AppText style={styles.description} weight={500}>{description}</AppText> : null}
-      {actionLabel && onAction ? <Button label={actionLabel} fullWidth={false} onPress={onAction} /> : null}
+      {actionLabel && onRefresh ? <RefreshButton label={actionLabel} fullWidth={false} onRefresh={onRefresh} /> : actionLabel && onAction ? <Button label={actionLabel} fullWidth={false} onPress={onAction} /> : null}
     </Card>
   );
 }

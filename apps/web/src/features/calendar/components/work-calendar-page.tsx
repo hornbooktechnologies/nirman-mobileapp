@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Pencil, Plus } from "lucide-react";
@@ -86,7 +88,7 @@ function CalendarContent() {
   if (!activeOrganizationId) return <div className="space-y-4"><PageHeader title="Work Calendar" description="Set the normal working week and date exceptions." /><EmptyState title="No active organization" description="Select an organization before opening Work Calendar." /></div>;
   if (access.isLoading) return <LoadingState label="Loading calendar access" />;
   if (access.isError) return <NotificationBanner variant="danger" title="Calendar access could not be loaded" action={<Button onClick={() => void access.refetch()}>Retry</Button>} />;
-  if (!timezone) return <NotificationBanner variant="warning" title="Organization timezone unavailable" action={<Button onClick={() => void refreshUser()}>Refresh access</Button>} />;
+  if (!timezone) return <NotificationBanner variant="warning" title="Organization timezone unavailable" action={<RefreshButton onRefresh={() => refreshUser()}>Refresh access</RefreshButton>} />;
   if (requestedProjectId && !selectedProject) return <NotificationBanner variant="warning" title="Project calendar access required" description="This project is unavailable with your effective permissions." action={<Button onClick={() => replaceQuery({ projectId: null })}>Choose an accessible project</Button>} />;
   if (!canRead) return <div className="space-y-4"><PageHeader title="Work Calendar" description="Set the normal working week and date exceptions." /><NotificationBanner variant="warning" title="Work Calendar access required" description="Ask an administrator for work-calendar:read permission." /></div>;
 

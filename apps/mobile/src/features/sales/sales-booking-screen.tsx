@@ -1,5 +1,7 @@
+
+import { RefreshIconButton, RefreshButton } from "../../components/ui/refresh-button";
 import { LEAD_STAGES, type LeadStage } from "@nirman-app/shared";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -19,6 +21,8 @@ import {
   OperationalEntityCard,
 } from "../../components/ui";
 import { formatDate, formatInr } from "../../i18n/formatters";
+
+
 import { getLocalizedErrorMessage } from "../../i18n";
 import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
 import { useSession } from "../../providers";
@@ -62,6 +66,10 @@ export function SalesBookingScreen() {
   const [cancellationFieldErrors, setCancellationFieldErrors] =
     useState<CancellationFieldErrors>({});
   const requestSequence = useRef(0);
+  const lock = useRef(false), alive = useRef(true);
+  const [review, setReview] = useState(false);
+  const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const load = useCallback(
     async (quiet = false) => {
@@ -77,7 +85,7 @@ export function SalesBookingScreen() {
           bookingId,
           accessToken,
         );
-        if (sequence === requestSequence.current) setBooking(nextBooking);
+        if (sequence === requestSequence.current) { setBooking(nextBooking); return true; }
       } catch (cause) {
         if (sequence === requestSequence.current)
           setError(getLocalizedErrorMessage(cause, t("errors.load")));
@@ -91,13 +99,7 @@ export function SalesBookingScreen() {
     [accessToken, activeOrganizationId, activeProjectId, bookingId, t],
   );
 
-  useEffect(() => {
-    setBooking(null);
-    void load();
-    return () => {
-      requestSequence.current += 1;
-    };
-  }, [load]);
+  useFocusEffect(useCallback(() => { void load(); return () => { requestSequence.current += 1; }; }, [load]));
 
   function openCancellation() {
     if (!booking) return;
@@ -119,7 +121,7 @@ export function SalesBookingScreen() {
   }
 
   async function confirmCancellation() {
-    if (!booking || !session?.activeOrganization || !project) return;
+    if (lock.current || review || !booking || booking.status !== 'CONFIRMED' || !session?.activeOrganization || !project || project.status !== 'ACTIVE' || !permissions.includes('leads:convert') || (booking.unitId && !permissions.includes('inventory:book'))) return;
 
     const nextFieldErrors: CancellationFieldErrors = {};
     if (!cancellationReason.trim()) {
@@ -144,9 +146,12 @@ export function SalesBookingScreen() {
     setCancellationFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length > 0) return;
 
-    setWorking(true);
+    lock.current = true; setWorking(true);
     setError(null);
     try {
+      const current = await fetchBooking(session.activeOrganization.id, project.id, booking.id, session.accessToken);
+      if (!alive.current) return;
+      if (current.status !== booking.status || current.updatedAt !== booking.updatedAt || current.leadCurrentStage !== booking.leadCurrentStage || current.unitCurrentStatus !== booking.unitCurrentStatus) { setBooking(current); setReview(true); throw new Error(t('parity.stale')); }
       const next = await cancelBooking(
         session.activeOrganization.id,
         project.id,
@@ -158,6 +163,7 @@ export function SalesBookingScreen() {
           ...(booking.unitId ? { restoredUnitStatus } : {}),
         },
       );
+      if (!alive.current) return;
       setBooking(next);
       setShowCancellation(false);
       Alert.alert(
@@ -167,7 +173,7 @@ export function SalesBookingScreen() {
     } catch (cause) {
       setError(getLocalizedErrorMessage(cause, t("errors.save")));
     } finally {
-      setWorking(false);
+      lock.current = false; if (alive.current) setWorking(false);
     }
   }
 
@@ -193,8 +199,10 @@ export function SalesBookingScreen() {
     );
   }
 
+  function requestClose() { if (lock.current) return; Alert.alert(t('parity.discardTitle'), review ? t('parity.uncertain') : t('parity.discardDescription'), [{ text: tCommon('actions.cancel'), style: 'cancel' }, { text: tCommon('actions.close'), style: 'destructive', onPress: () => setShowCancellation(false) }]); }
+
   const canCancel = Boolean(
-    booking?.status === "CONFIRMED" &&
+    project?.status === "ACTIVE" && booking?.status === "CONFIRMED" &&
     permissions.includes("leads:convert") &&
     (!booking.unitId || permissions.includes("inventory:book")),
   );
@@ -213,17 +221,19 @@ export function SalesBookingScreen() {
         title={t("bookings.detailTitle")}
         subtitle={booking?.bookingReference ?? project.name}
         action={
-          <IconButton
+          <RefreshIconButton busy={loading || refreshing}
             icon="refresh"
             accessibilityLabel={t("bookings.refresh")}
-            disabled={refreshing}
+            disabled={loading || refreshing}
             variant="glass"
-            onPress={() => void load(true)}
+            onRefresh={() => load(true)}
           />
         }
       />
       <ProjectContextCard compact showSwitchAction />
       <FormError message={error} />
+      {project.status !== 'ACTIVE' ? <FormError message={t('parity.readOnly')} /> : null}
+      {review ? <RefreshButton busy={loading || refreshing} label={t('refresh')} variant="secondary" onRefresh={() => load(true).then(ok => { if (ok && alive.current) setReview(false); })} /> : null}
       {loading ? (
         <LoadingState label={t("loading")} />
       ) : booking ? (
@@ -241,13 +251,13 @@ export function SalesBookingScreen() {
               booking.bookingAmount == null
                 ? undefined
                 : formatInr(booking.bookingAmount, language, {
-                    maximumFractionDigits: 0,
+                    maximumFractionDigits: 2,
                   })
             }
             valueLabel={
               booking.bookingAmount == null ? undefined : t("bookings.amount")
             }
-            footerLeading={formatDate(booking.bookingDate, language)}
+            footerLeading={formatDate(`${booking.bookingDate.slice(0, 10)}T12:00:00`, language)}
             tone={booking.status === "CONFIRMED" ? "success" : "danger"}
           />
 
@@ -258,6 +268,11 @@ export function SalesBookingScreen() {
             />
             <SalesDetailRows
               rows={[
+                { label: t('parity.firstConvertedBy'), value: booking.convertedByName },
+                { label: t('fields.unitType'), value: booking.unitType },
+                { label: t('parity.createdAt'), value: formatDate(booking.createdAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) },
+                { label: t('parity.updatedAt'), value: formatDate(booking.updatedAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) },
+
                 {
                   label: t("fields.customerMobile"),
                   value: booking.customerMobile,
@@ -272,14 +287,14 @@ export function SalesBookingScreen() {
                 },
                 {
                   label: t("fields.bookedBy"),
-                  value: booking.bookedByName ?? booking.convertedByName,
+                  value: booking.bookedByName,
                 },
                 {
-                  label: t("fields.convertedAt"),
+                  label: t("parity.firstConvertedAt"),
                   value: booking.convertedAt
                     ? formatDate(booking.convertedAt, language, {
                         dateStyle: "medium",
-                        timeStyle: "short",
+                        timeStyle: "short", timeZone: timezone,
                       })
                     : null,
                 },
@@ -307,6 +322,7 @@ export function SalesBookingScreen() {
                 },
               ]}
             />
+            {booking.unitId && permissions.includes('inventory:read') ? <Button label={t('parity.openUnit')} variant="secondary" onPress={() => router.push({ pathname: '/(app)/sales-unit', params: { unitId: booking.unitId! } })} /> : null}
             <Button
               label={t("bookings.openLead")}
               variant="secondary"
@@ -336,7 +352,7 @@ export function SalesBookingScreen() {
                     value: booking.cancelledAt
                       ? formatDate(booking.cancelledAt, language, {
                           dateStyle: "medium",
-                          timeStyle: "short",
+                          timeStyle: "short", timeZone: timezone,
                         })
                       : null,
                   },
@@ -379,18 +395,18 @@ export function SalesBookingScreen() {
           description={t("bookings.cancelDescription")}
           scroll
           showCloseButton={false}
-          onClose={() => setShowCancellation(false)}
+          onClose={requestClose}
           footer={
             <View style={styles.footer}>
               <Button
                 style={styles.footerButton}
                 label={tCommon("actions.cancel")}
                 variant="secondary"
-                onPress={() => setShowCancellation(false)}
+                onPress={requestClose}
               />
               <Button
                 style={styles.footerButton}
-                disabled={working}
+                disabled={working || review}
                 label={
                   working ? t("bookings.cancelling") : t("bookings.confirmCancellation")
                 }
@@ -401,6 +417,9 @@ export function SalesBookingScreen() {
           }
         >
           <FormError message={error} />
+          {review ? <RefreshButton busy={loading || refreshing} label={t('refresh')} variant="secondary" disabled={working} onRefresh={() => load(true).then(ok => { if (ok && alive.current) setReview(false); })} /> : null}
+          <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
+
           <FormField
             label={t("fields.cancellationReason")}
             required
@@ -470,6 +489,7 @@ export function SalesBookingScreen() {
               ))}
             </FormField>
           ) : null}
+          </View>
         </BottomSheet>
       ) : null}
     </NirmanScreenBackground>

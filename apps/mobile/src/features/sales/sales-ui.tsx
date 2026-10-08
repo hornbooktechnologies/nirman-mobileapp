@@ -5,14 +5,29 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon, AppText, OperationalEntityCard, type AppIconName } from '../../components/ui';
 import { formatDate } from '../../i18n/formatters';
 import { mobileText, mobileTheme } from '../../theme';
-import { salesActivityDisplayAt } from './sales-activity';
+import { useSession } from '../../providers';
+import { salesActivityDetails } from './sales-activity';
 import type { SalesActivity } from './types';
 
 export function SalesActivityCard({ activity }: { activity: SalesActivity }) {
   const { t, i18n } = useTranslation('sales');
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
 
-  return <OperationalEntityCard compact contextLeading={t(`activity.${activity.activityType}`)} contextTrailing={formatDate(salesActivityDisplayAt(activity), language, { dateStyle: 'medium', timeStyle: 'short' })} title={activity.summary} supporting={activity.actorName ?? t('leadDetail.system')} tone={activity.activityType === 'LEAD_BOOKED' ? 'success' : activity.activityType === 'LEAD_LOST' || activity.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />;
+  const { session } = useSession();
+  const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
+  const translate = t as unknown as (key: string) => string;
+  const labelKeys: Record<string, string> = { details: 'fields.notes', notes: 'fields.notes', source: 'fields.source', from: 'fields.previousLeadStage', to: 'fields.currentLeadStage', restoredLeadStage: 'fields.restoredLeadStage', restoredUnitStatus: 'fields.restoredUnitStatus', scheduledAt: 'parity.scheduledAt', type: 'fields.followUpType', outcome: 'fields.outcome', reason: 'fields.cancellationReason', status: 'parity.status', assignedFrom: 'parity.previousOwner', assignedTo: 'parity.assignedUser', bookingReference: 'fields.bookingReference', unit: 'fields.unit' };
+  const rows = salesActivityDetails(activity).map(row => {
+    let value = row.value;
+    if (row.key === 'scheduledAt' && !Number.isNaN(Date.parse(value))) value = formatDate(value, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone });
+    else if (row.key === 'source') value = translate(`source.${value}`);
+    else if (['from', 'to', 'restoredLeadStage'].includes(row.key)) value = translate(`stage.${value}`);
+    else if (row.key === 'restoredUnitStatus') value = translate(`unitStatus.${value}`);
+    else if (row.key === 'type') value = translate(`followUpType.${value}`);
+    else if (row.key === 'status') { const prefix = ['unitInterestStatus', 'followUpStatus', 'visitStatus', 'unitStatus', 'bookingStatus'].find(group => i18n.exists(`sales:${group}.${value}`)); value = prefix ? translate(`${prefix}.${value}`) : value.toLowerCase().replaceAll('_', ' '); }
+    return { label: translate(labelKeys[row.key] ?? 'parity.details'), value };
+  });
+  return <OperationalEntityCard compact details={<SalesDetailRows rows={rows} />} contextLeading={t(`activity.${activity.activityType}`)} contextTrailing={formatDate(activity.occurredAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone })} title={activity.summary} supporting={activity.actorName ?? t('leadDetail.system')} tone={activity.activityType === 'LEAD_BOOKED' ? 'success' : activity.activityType === 'LEAD_LOST' || activity.activityType === 'BOOKING_CANCELLED' ? 'danger' : 'neutral'} />;
 }
 
 export function SalesSectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
@@ -24,7 +39,8 @@ export function SalesChoice({ label, description, icon = 'chevron-right', select
 }
 
 export function SalesDetailRows({ rows }: { rows: Array<{ label: string; value: string | null | undefined }> }) {
-  return <View style={styles.rows}>{rows.filter((row) => row.value).map((row) => <View key={row.label} style={styles.row}><AppText style={styles.rowLabel} weight={600}>{row.label}</AppText><AppText style={styles.rowValue} weight={600}>{row.value}</AppText></View>)}</View>;
+  const { t } = useTranslation('sales');
+  return <View style={styles.rows}>{rows.map((row, index) => <View key={`${row.label}:${index}`} style={styles.row}><AppText style={styles.rowLabel} weight={600}>{row.label}</AppText><AppText style={styles.rowValue} weight={600}>{row.value || t('parity.notProvided')}</AppText></View>)}</View>;
 }
 
 const styles = StyleSheet.create({

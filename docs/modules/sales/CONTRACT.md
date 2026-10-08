@@ -79,6 +79,8 @@ POST  /leads/:leadId/follow-ups
 PATCH /leads/:leadId/follow-ups/:followUpId
 ```
 
+The follow-up list accepts optional `search` (customer name/mobile, up to 160 characters), `status`, `assignedTo`, `from`, and `to`, combined with existing organization/project/access scope.
+
 Exact duplicate lead/assignee/time/type follow-ups are rejected. Completion records outcome, optional next action time, completion time, and timeline evidence.
 
 ### Site Visits
@@ -91,7 +93,7 @@ PATCH /leads/:leadId/site-visits/:visitId
 
 Scheduling derives `SITE_VISIT_SCHEDULED` unless the lead is already terminal. Completion derives `SITE_VISIT_COMPLETED` and records timeline evidence.
 
-The list accepts optional `status`, `assignedSalesperson`, `scheduledFrom`, and `scheduledTo` filters. Own-lead actors remain restricted to their own assigned visits even if another salesperson identifier is supplied. Owner/admin/team visibility may filter by salesperson to satisfy Project oversight.
+The list accepts optional `search` (customer name/mobile or salesperson name, up to 160 characters), `status`, `assignedSalesperson`, `scheduledFrom`, and `scheduledTo` filters. Own-lead actors remain restricted to their own assigned visits even if another salesperson identifier is supplied. Owner/admin/team visibility may filter by salesperson to satisfy Project oversight.
 
 Only `SCHEDULED` or `RESCHEDULED` visits are actionable. They may become `COMPLETED`, `CANCELLED`, `NO_SHOW`, or `RESCHEDULED`; terminal outcomes cannot be changed. A `RESCHEDULED` update requires a new `scheduledAt`. Updates may also record `attendeeCount`, `customerFeedback`, `objectionsConcerns`, and `nextAction`.
 
@@ -186,3 +188,7 @@ Sales errors are registered in `packages/shared/src/constants/errors.ts`, includ
 - No migration/seed is executed without separate approval for the exact database target.
 - `pnpm --filter @nirman-app/api db:verify:unit-inventory` performs a read-only check of the four Unit inventory/hold tables, pricing columns, unique concurrency indexes, customer-role grants, Sales User approval separation, and platform-role exclusion.
 - `pnpm --filter @nirman-app/api db:verify:booking-linkage` performs a read-only check of booking snapshot columns, idempotency/status indexes, audit persistence, customer-role grants, and platform-role exclusion.
+
+## 2026-10-08 client parity implementation evidence
+
+The approved API contract is unchanged. Web/Mobile supported filters, fields, authorized actions, organization-timezone scheduling, native import-template access and booking retry/cancellation handling have been aligned in client source. See [Sales cross-client checklist](../../tasks/sales-cross-client-parity.md) for source evidence, API-blocked backlog and acceptance cases. 44 Sales tests, Mobile typecheck, Web production build/scoped lint, Android export and all locale validation pass. Authenticated cross-client/role, physical-device and full disposable workflow acceptance remain pending; this entry does not claim runtime completion.

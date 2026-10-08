@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { SearchInput } from "@/components/ui/search-input";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, LoadingState } from "@/components/ui";
+import { Button, LoadingState } from "@/components/ui";
 import { SalesForm, type Field } from "./sales-form";
 import { Failure } from "./sales-ui";
 import type { SalesContext } from "./sales-workspace";
@@ -32,13 +33,9 @@ export function UnitWorkflowForm({
   save: (v: WorkflowValues) => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
-  const [term, setTerm] = useState("");
+  const term = search;
   const [page, setPage] = useState(1);
   const pickLead = (action === "interest" || action === "block") && !interest;
-  useEffect(() => {
-    const timer = setTimeout(() => setTerm(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
   const leads = useQuery({
     queryKey: [...salesKey(c.org, c.project), "inventory-leads", term, page],
     queryFn: ({ signal }) =>
@@ -168,10 +165,10 @@ export function UnitWorkflowForm({
           <div className="space-y-3">
             <label>
               Find customer
-              <Input
+              <SearchInput
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                onValueChange={(e) => {
+                  setSearch(e);
                   setPage(1);
                 }}
               />
@@ -200,7 +197,7 @@ export function UnitWorkflowForm({
             {leads.isPending ? (
               <LoadingState label="Loading leads" />
             ) : leads.isError ? (
-              <Failure error={leads.error} retry={() => void leads.refetch()} />
+              <Failure error={leads.error} retry={() => leads.refetch()} />
             ) : (
               !leads.data.data.length && <p>No matching leads.</p>
             )}

@@ -1,4 +1,6 @@
-import { Button, Card, StatusBadge } from "@/components/ui";
+
+import { RefreshButton } from "@/components/ui/refresh-button";
+import { Card, StatusBadge } from "@/components/ui";
 import { failureMessage, label } from "../sales-rules";
 import { salesTone } from "../sales-view";
 export function Failure({
@@ -11,9 +13,9 @@ export function Failure({
   return (
     <Card>
       <p role="alert">{failureMessage(error)}</p>
-      <Button variant="outline" onClick={retry}>
+      <RefreshButton variant="outline" onRefresh={retry}>
         Refresh / retry
-      </Button>
+      </RefreshButton>
     </Card>
   );
 }

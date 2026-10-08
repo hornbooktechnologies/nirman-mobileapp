@@ -393,6 +393,11 @@ export class SalesRepository {
       where.push("f.scheduled_at <= ?");
       params.push(query.to);
     }
+    if (query.search) {
+      where.push("(l.customer_name LIKE ? OR l.primary_mobile LIKE ?)");
+      const term = `%${query.search.trim()}%`;
+      params.push(term, term);
+    }
     return this.database.query<Row>(
       `SELECT f.id, f.lead_id leadId, f.assigned_user_id assignedUserId, f.scheduled_at scheduledAt,
               f.type, f.status, f.outcome, f.notes, f.next_follow_up_at nextFollowUpAt,
@@ -522,6 +527,13 @@ export class SalesRepository {
     if (query.scheduledTo) {
       where.push("v.scheduled_at <= ?");
       params.push(query.scheduledTo);
+    }
+    if (query.search) {
+      where.push(
+        "(l.customer_name LIKE ? OR l.primary_mobile LIKE ? OR assignee.name LIKE ?)",
+      );
+      const term = `%${query.search.trim()}%`;
+      params.push(term, term, term);
     }
     return this.database.query<Row>(
       `SELECT v.id, v.lead_id leadId, v.scheduled_at scheduledAt,

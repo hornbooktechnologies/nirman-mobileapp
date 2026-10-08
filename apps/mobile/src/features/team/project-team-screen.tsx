@@ -3,27 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import {
-  AppIcon,
-  AppText,
-  ActionListItem,
-  Badge,
-  BottomSheet,
-  Button,
-  CollectionPickerModal,
-  CompactScreenHeader,
-  EmptyState,
-  FormError,
-  FormField,
-  NirmanScreenBackground,
-  IconButton,
-  ListControls,
-  LoadingState,
-  OperationalEntityCard,
-  SearchField,
-  StatusBadge,
-  getStatusTone,
-} from '../../components/ui';
+import { AppIcon, ActionListItem, Badge, BottomSheet, Button, CollectionPickerModal, CompactScreenHeader, EmptyState, FormError, FormField, NirmanScreenBackground, IconButton, ListControls, LoadingState, OperationalEntityCard, SearchField, StatusBadge, getStatusTone } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { isValidDateOnly } from '../../lib/validation';
@@ -131,6 +111,7 @@ export function ProjectTeamScreen() {
       !needle ||
       member.user.name.toLowerCase().includes(needle) ||
       member.user.email?.toLowerCase().includes(needle) ||
+      member.user.phone?.toLowerCase().includes(needle) ||
       member.role.name.toLowerCase().includes(needle) ||
       member.roleLabel?.toLowerCase().includes(needle)
     );
@@ -297,7 +278,7 @@ function ProjectMemberEditorSheet({ mode, member, availableMembers = [], roles, 
   const rolePermissions = roles.find((role) => role.id === roleId)?.permissions ?? [];
   const filteredMembers = availableMembers.filter((candidate) => {
     const needle = memberSearch.trim().toLowerCase();
-    return !needle || candidate.user?.name.toLowerCase().includes(needle) || candidate.role?.name.toLowerCase().includes(needle);
+    return !needle || candidate.user?.name.toLowerCase().includes(needle) || candidate.user?.email?.toLowerCase().includes(needle) || candidate.user?.phone?.toLowerCase().includes(needle) || candidate.designation?.toLowerCase().includes(needle) || candidate.role?.name.toLowerCase().includes(needle);
   });
 
   async function submit() {

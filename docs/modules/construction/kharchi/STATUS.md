@@ -1,5 +1,11 @@
 # Kharchi / Worker Advances Module Status
 
+## 2026-10-08 - Kharchi export recorder names
+
+Fixed the shared server-generated Kharchi PDF/CSV table using the existing `recordedByName` supplied by its scoped repository query for Recorded By, instead of the internal recorder UUID. Missing/blank names use `Name unavailable`; actor IDs remain available in API audit records. Existing report columns, amounts, filtering, authorization and layout are preserved for both Web and Mobile downloads. No schema, data writes or deployment.
+
+Verification: API typecheck and 28 scoped Kharchi/repository/PDF service/controller tests passed. Regression cases cover actual recorder names in CSV and null/undefined/blank-name report fallbacks without UUID leakage. Scoped ESLint has no errors and retains five existing fixture warnings. Real PDF rendering tests passed with synthetic reports; authenticated Kharchi download/device verification was not performed. Download an updated report to see the corrected column; already downloaded files remain unchanged.
+
 ## Web W2 update — 2026-09-17
 
 Web functionality is implemented using the existing API. Focused financial/retry/permission tests pass; whole-Web checks have unrelated failures, and authenticated browser/cross-client acceptance is pending. See [Web parity and review](../../../tasks/web-w2-kharchi-parity.md). This update does not re-verify historical database rollout evidence below.

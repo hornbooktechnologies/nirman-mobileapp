@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshPreview } from "./refresh-preview";
 import { Button } from "../button";
 import { CollectionToolbar, CollectionPagination } from "../collection-toolbar";
 import { PageHeader, SectionHeader } from "../layout";
@@ -63,6 +64,7 @@ export function CollectionPreview({ framed = false }: { framed?: boolean }) {
     );
   return (
     <main className="space-y-6 p-6">
+      <RefreshPreview />
       <p>
         Development fixture — synthetic data, no API requests or business
         actions.

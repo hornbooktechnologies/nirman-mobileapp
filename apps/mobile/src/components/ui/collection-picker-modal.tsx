@@ -60,6 +60,8 @@ export function CollectionPickerModal<TItem>({
           <Badge label={`${data.length}`} tone="info" />
         </View>
         <SearchField
+          key={String(visible)}
+          editable={visible}
           accessibilityLabel={accessibilityLabel}
           placeholder={searchPlaceholder}
           value={searchValue}

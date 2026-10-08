@@ -3,17 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import {
-  AppIcon,
-  AppText,
-  Badge,
-  BottomSheet,
-  Button,
-  Card,
-  FormError,
-  Input,
-  StatusBadge,
-} from '../../components/ui';
+import { AppIcon, AppText, Badge, BottomSheet, Button, Card, FormError, SearchField, StatusBadge } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { isValidDateOnly } from '../../lib/validation';
 import { mobileText, mobileTheme } from '../../theme';
@@ -205,7 +195,7 @@ export function MemberProjectAssignmentsSheet({
             <Badge label={t('assignments.selected', { count: selectedIds.length })} tone={selectedIds.length ? 'info' : 'neutral'} />
             <AppText style={styles.caption} weight={500}>{t('assignments.saveTogether')}</AppText>
           </View>
-          <Input
+          <SearchField
             accessibilityLabel={t('assignments.searchA11y')}
             placeholder={t('assignments.searchPlaceholder')}
             value={search}

@@ -1,4 +1,7 @@
 "use client";
+import { refreshTogether } from "@nirman-app/shared";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -42,7 +45,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
   const leadActions = canReadSales(c.permissions) && can("leads:update");
   async function refresh() {
     setRefreshError(null);
-    const [current] = await Promise.all([
+    const [current] = await refreshTogether([
       inventoryService.units(c.org, c.project),
       inventoryService.interests(c.org, c.project, id),
     ]);
@@ -142,7 +145,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
   }
   if (units.isPending) return <LoadingState label="Loading unit" />;
   if (units.isError)
-    return <Failure error={units.error} retry={() => void units.refetch()} />;
+    return <Failure error={units.error} retry={() => units.refetch()} />;
   if (!unit)
     return (
       <Card>
@@ -171,7 +174,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
       {refreshError != null && (
         <Failure
           error={refreshError}
-          retry={() => void refresh().catch(setRefreshError)}
+          retry={() => refresh().catch(setRefreshError)}
         />
       )}
       <Card className="space-y-3">
@@ -199,7 +202,9 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
                 ? dateTime(unit.blockExpiresAt, c.timezone)
                 : null,
             ],
-            ["Blocked by", unit.blockedBy],
+            ["Blocked by", unit.blockedBy ? "Name unavailable" : null],
+            ["Interested customers", String(unit.interestCount)],
+            ["Pending hold requests", String(unit.pendingHoldRequestCount)],
           ].map(([name, value]) => (
             <div key={name}>
               <dt className="text-sm text-sub">{name}</dt>
@@ -228,13 +233,13 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
       <section className="space-y-3" aria-label="Unit actions">
         <h2 className="text-lg font-semibold">Next actions</h2>
         <div className="flex flex-wrap gap-3">
-        <Button
+        <RefreshButton
           variant="outline"
-          onClick={() => void refresh().catch(setRefreshError)}
-          disabled={units.isFetching}
+          onRefresh={() => refresh().catch(setRefreshError)}
+          disabled={units.isFetching || interests.isFetching}
         >
           Refresh
-        </Button>
+        </RefreshButton>
         {leadActions && can("inventory:interest") && openUnit(unit.status) && (
           <Button onClick={() => open("interest")}>Record interest</Button>
         )}
@@ -273,7 +278,7 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
         ) : interests.isError ? (
           <Failure
             error={interests.error}
-            retry={() => void interests.refetch()}
+            retry={() => interests.refetch()}
           />
         ) : !interests.data.length ? (
           <Card>No interests visible to you for this unit.</Card>
