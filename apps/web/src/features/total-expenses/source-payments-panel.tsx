@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { type ReactNode, useRef, useState } from "react";
 import {
   calendarToday,
@@ -151,16 +153,16 @@ export function SourcePaymentsPanel({
         <p className="text-sm text-sub">
           Payment tracking is unavailable. Refresh to check again.
         </p>
-        <Button
+        <RefreshButton
           variant="outline"
-          onClick={() => {
-            void Promise.resolve()
+          onRefresh={async () => {
+            await Promise.resolve()
               .then(onSaved)
               .catch(() => setError("Could not refresh the record."));
           }}
         >
           Refresh
-        </Button>
+        </RefreshButton>
         {error && <p role="alert">{error}</p>}
       </div>
     );
@@ -340,11 +342,11 @@ export function SourcePaymentsPanel({
                 This record changed. Refresh and review the latest balance
                 before recording again.
               </p>
-              <Button
+              <RefreshButton
                 variant="outline"
                 disabled={busy}
-                onClick={() => {
-                  void Promise.resolve()
+                onRefresh={async () => {
+                  await Promise.resolve()
                     .then(onSaved)
                     .then(() => {
                       setFailure("");
@@ -356,7 +358,7 @@ export function SourcePaymentsPanel({
                 }}
               >
                 Refresh record
-              </Button>
+              </RefreshButton>
             </div>
           )}
           {failure === "denied" && (

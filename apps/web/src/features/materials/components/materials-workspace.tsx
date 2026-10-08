@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import {
@@ -103,7 +105,7 @@ function Access({
     return (
       <Card>
         <p role="alert">Organization working timezone is unavailable.</p>
-        <Button onClick={() => void refreshUser()}>Refresh access</Button>
+        <RefreshButton onRefresh={() => refreshUser()}>Refresh access</RefreshButton>
       </Card>
     );
   return (

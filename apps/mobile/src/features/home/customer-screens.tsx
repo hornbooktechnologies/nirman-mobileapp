@@ -1,3 +1,5 @@
+
+import { RefreshButton } from "../../components/ui/refresh-button";
 import type { DashboardActionKey, GalleryEntry, RoleDashboardResponse } from '@nirman-app/shared';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -343,7 +345,7 @@ export function DashboardScreen() {
       ) : null}
 
       {dashboardFailed ? (
-        <Button fullWidth={false} label={tHome('data.retry')} leadingIcon="refresh" size="sm" variant="secondary" onPress={() => void loadDashboard()} />
+        <RefreshButton fullWidth={false} label={tHome('data.retry')} leadingIcon="refresh" size="sm" variant="secondary" onRefresh={() => loadDashboard()} />
       ) : null}
 
       </DashboardBackdrop>
@@ -556,12 +558,12 @@ export function MenuScreen() {
     <NirmanScreenBackground
       footer={
         <GlassCard padding="sm" variant="strong" style={styles.menuFooter}>
-          <Button
+          <RefreshButton busy={isRefreshing}
             label={isRefreshing ? t('menu.refreshingAccess') : t('menu.refreshAccess')}
             leadingIcon="sync"
             variant="brand"
             disabled={isRefreshing}
-            onPress={() => void refreshSession()}
+            onRefresh={() => refreshSession()}
           />
           <Button label={t('menu.signOut')} leadingIcon="logout" variant="danger" onPress={signOut} />
         </GlassCard>

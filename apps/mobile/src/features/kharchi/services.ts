@@ -1,3 +1,4 @@
+import { readSearchPages } from '../../lib/read-search-pages';
 import { requestPdf } from '../../lib/exports/pdf';
 import type {
   KharchiAdvanceDetail,
@@ -70,14 +71,15 @@ export async function createKharchiAdjustment(organizationId: string, projectId:
   return response.data;
 }
 
-export async function fetchEligibleKharchiWorkers(organizationId: string, projectId: string, requestDate: string, accessToken: string) {
-  const params = new URLSearchParams({ date: requestDate, assignmentScope: 'CURRENT', status: 'ACTIVE', pageSize: '100', sortBy: 'name', sortOrder: 'asc' });
-  const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
-    `/organizations/${organizationId}/projects/${projectId}/workers?${params.toString()}`,
-    {},
-    { accessToken },
-  );
-  return response.data;
+export async function fetchEligibleKharchiWorkers(organizationId: string, projectId: string, requestDate: string, accessToken: string, search = '') {
+  return readSearchPages<ProjectWorkerRosterResponse['data'][number], ProjectWorkerRosterResponse>(async page => {
+    const params = new URLSearchParams({ date: requestDate, assignmentScope: 'CURRENT', status: 'ACTIVE', pageSize: '100', sortBy: 'name', sortOrder: 'asc', page: String(page) });
+    if (search.trim()) params.set('search', search.trim());
+    const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
+      `/organizations/${organizationId}/projects/${projectId}/workers?${params}`, {}, { accessToken },
+    );
+    return response.data;
+  });
 }
 
 export async function exportKharchiCsv(organizationId: string, projectId: string, accessToken: string, query: KharchiQuery = {}, signal?: AbortSignal) {

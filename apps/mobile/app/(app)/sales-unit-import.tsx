@@ -8,5 +8,5 @@ export default function SalesUnitImportRoute() {
   const { session } = useSession();
   const permissions = getActiveProjectPermissions(session);
   if (!permissions.includes('inventory:manage')) return <Redirect href="/(app)/sales" />;
-  return <SalesUnitImportScreen />;
+  return <SalesUnitImportScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
 }

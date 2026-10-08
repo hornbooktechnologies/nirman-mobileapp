@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -92,13 +94,10 @@ function DashboardWorkspace() {
       `/dashboard?${new URLSearchParams({ organizationId, projectId })}`,
     );
   }
-  const refresh = () => {
-    void access.refetch();
-    if (project)
-      void queryClient.invalidateQueries({
-        queryKey: ["dashboard", user?.id ?? "", organizationId, project.id],
-      });
-  };
+  const refresh = () => Promise.allSettled([
+    access.refetch(),
+    ...(project ? [queryClient.invalidateQueries({ queryKey: ["dashboard", user?.id ?? "", organizationId, project.id] })] : []),
+  ]);
   if (!organizationId)
     return (
       <div className="space-y-4">
@@ -149,13 +148,13 @@ function DashboardWorkspace() {
     <div className="space-y-5 pb-6">
       <DashboardOverviewHeader
         actions={
-          <Button
+          <RefreshButton
             variant="outline"
             disabled={access.isFetching || snapshot.isFetching}
-            onClick={refresh}
+            onRefresh={refresh}
           >
             Refresh overview
-          </Button>
+          </RefreshButton>
         }
       />
       {access.isPending ? (

@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { downloadPdf } from "@/lib/exports/pdf";
 import { ExportProgress } from "@/components/common/export-progress";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -62,7 +64,7 @@ function ProjectProgress({ context: c }: { context: ProgressContext }) {
   const canUpdate = canUpdateProgress(c.permissions, c.active);
   return <div className="space-y-5">
     <ProjectActivityNavigation projectId={c.project} permissions={c.permissions} current="progress" date={summary.data?.latestUpdate?.updateDate} origin={activityOrigin(pathname, new URLSearchParams(params.toString()))} returnTo={params.get("returnTo")} />
-    <ExportProgress active={exporting} /><header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">Project Progress</h1><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { void cache.invalidateQueries(); }}>Refresh</Button>{canUpdate && <Button disabled={!summary.data || summary.isError} onClick={() => setOpen(true)}>Record progress</Button>}</div></header>
+    <ExportProgress active={exporting} /><header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">Project Progress</h1><div className="flex flex-wrap gap-2"><RefreshButton variant="outline" busy={summary.isFetching || history.isFetching} onRefresh={() => cache.invalidateQueries({ queryKey: progressKey(c.org, c.project) })}>Refresh</RefreshButton>{canUpdate && <Button disabled={!summary.data || summary.isError} onClick={() => setOpen(true)}>Record progress</Button>}</div></header>
     {success && <p role="status">{success}</p>}
     {summary.isPending ? <LoadingState label="Loading progress summary" /> : summary.isError ? <Failure error={summary.error} retry={() => void summary.refetch()} /> : <>
       <Card><div className="grid gap-5 sm:grid-cols-3"><div><p className="text-sm text-sub">Overall progress</p><p className="text-3xl font-semibold tabular-nums">{summary.data.overallPercentage}%</p></div><div><p className="text-sm text-sub">Stage coverage</p><p>{summary.data.updatedStages} of {summary.data.stages.length} updated · {summary.data.completedStages} complete</p></div><div><p className="text-sm text-sub">Latest update</p><p>{summary.data.latestUpdate ? `${stageLabel(summary.data.latestUpdate.stage)} · ${dateLabel(summary.data.latestUpdate.updateDate)}` : "No updates yet"}</p></div></div><p className="mt-4 text-sm text-sub">Overall progress includes all nine stages equally. Stages without updates contribute 0%.</p></Card>

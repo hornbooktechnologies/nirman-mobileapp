@@ -16,13 +16,14 @@ async function data<T>(path: string, accessToken: string, init: RequestInit = {}
   return (await apiRequest<ApiEnvelope<T>>(path, init, { accessToken })).data;
 }
 
-export async function fetchLeads(organizationId: string, projectId: string, accessToken: string, query: { search?: string; stage?: LeadStage; page?: number } = {}) {
+export async function fetchLeads(organizationId: string, projectId: string, accessToken: string, query: { search?: string; stage?: LeadStage; assignedTo?: string; page?: number } = {}) {
   const params = new URLSearchParams({
     page: String(query.page ?? 1),
     limit: '50',
   });
   if (query.search) params.set('search', query.search);
   if (query.stage) params.set('stage', query.stage);
+  if (query.assignedTo) params.set('assignedTo', query.assignedTo);
   const response = await apiRequest<PageEnvelope<SalesLead>>(`${base(organizationId, projectId)}/leads?${params}`, {}, { accessToken });
   return { data: response.data, meta: response.meta };
 }
@@ -70,7 +71,11 @@ export const addActivity = (
     body: JSON.stringify(input),
   });
 
-export const fetchFollowUps = (o: string, p: string, token: string) => data<SalesFollowUp[]>(`${base(o, p)}/follow-ups`, token);
+export const fetchFollowUps = (o: string, p: string, token: string, query: { search?: string; status?: FollowUpStatus; assignedTo?: string; from?: string; to?: string } = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => { if (value) params.set(key, value); });
+  return data<SalesFollowUp[]>(`${base(o, p)}/follow-ups?${params}`, token);
+};
 export const createFollowUp = (
   o: string,
   p: string,
@@ -106,6 +111,7 @@ export const fetchSiteVisits = (
   p: string,
   token: string,
   query: {
+    search?: string;
     status?: SiteVisitStatus;
     assignedSalesperson?: string;
     scheduledFrom?: string;
@@ -113,6 +119,7 @@ export const fetchSiteVisits = (
   } = {},
 ) => {
   const params = new URLSearchParams();
+  if (query.search) params.set('search', query.search.trim());
   if (query.status) params.set('status', query.status);
   if (query.assignedSalesperson) params.set('assignedSalesperson', query.assignedSalesperson);
   if (query.scheduledFrom) params.set('scheduledFrom', query.scheduledFrom);
@@ -155,6 +162,7 @@ export const updateSiteVisit = (
 export async function fetchUnits(o: string, p: string, token: string, query: { search?: string; status?: UnitStatus } = {}) {
   const params = new URLSearchParams();
   if (query.search) params.set('search', query.search);
+  if (query.search) params.set('search', query.search.trim());
   if (query.status) params.set('status', query.status);
   const queryString = params.toString();
   const suffix = queryString ? `?${queryString}` : '';
@@ -221,6 +229,7 @@ export const fetchBookings = (
   } = {},
 ) => {
   const params = new URLSearchParams();
+  if (query.search) params.set('search', query.search.trim());
   if (query.status) params.set('status', query.status);
   if (query.search) params.set('search', query.search);
   if (query.bookedFrom) params.set('bookedFrom', query.bookedFrom);

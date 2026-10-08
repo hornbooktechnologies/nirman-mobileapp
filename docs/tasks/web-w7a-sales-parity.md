@@ -1,3 +1,5 @@
+> 2026-10-08 cross-client update: this stage is included in the approved Sales Web/Mobile client parity implementation. See [the current source checklist and verification evidence](sales-cross-client-parity.md). 44 Sales tests, Mobile typecheck, scoped Web lint, Web production build, Android bundle and locale validation pass. Authenticated same-fixture roles/workflows and browser/device acceptance remain pending; historical evidence below is retained. API-blocked items remain a separate reviewed backlog.
+
 # W7a Web Sales Leads, Activities and Follow-ups
 
 Date: 2026-09-18. Status: implemented; focused checks passed; authenticated acceptance and backend limitations remain open. This is an implementation/review checklist, not a new business contract.

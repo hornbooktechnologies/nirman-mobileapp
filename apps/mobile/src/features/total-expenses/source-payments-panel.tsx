@@ -1,3 +1,5 @@
+
+import { RefreshButton } from "../../components/ui/refresh-button";
 import { type ReactNode, useRef, useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -167,11 +169,11 @@ export function SourcePaymentsPanel({
           <Button label={t("record")} variant="secondary" disabled />
         ) : null}
         <AppText>{t("trackingUnavailable")}</AppText>
-        <Button
+        <RefreshButton
           label={t("refresh")}
           variant="secondary"
-          onPress={() => {
-            void Promise.resolve(onSaved()).catch(() => setError(t("failed")));
+          onRefresh={async () => {
+            await Promise.resolve(onSaved()).catch(() => setError(t("failed")));
           }}
         />
         <FormError message={error} />
@@ -309,12 +311,12 @@ export function SourcePaymentsPanel({
           {failure === "stale" ? (
             <>
               <AppText>{t("paymentStale")}</AppText>
-              <Button
+              <RefreshButton
                 label={t("refresh")}
                 disabled={busy}
                 variant="secondary"
-                onPress={() => {
-                  void Promise.resolve()
+                onRefresh={async () => {
+                  await Promise.resolve()
                     .then(onSaved)
                     .then(() => {
                       setFailure("");

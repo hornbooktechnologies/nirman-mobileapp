@@ -80,6 +80,9 @@ web_modules/
 # Next.js build output
 .next
 out
+# Temporary Sales verification artifacts
+/.tmp/sales-parity-android/
+/.tmp/*-route-check.html
 # Copied from the installed Lottie renderer before Web dev/build.
 apps/web/public/animations/dotlottie-player.wasm
 

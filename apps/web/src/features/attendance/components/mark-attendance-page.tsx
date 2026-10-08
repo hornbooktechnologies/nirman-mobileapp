@@ -1,4 +1,7 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
+import { SearchInput } from "@/components/ui/search-input";
 
 import { AttendanceNavigation } from "./attendance-navigation";
 import Link from "next/link";
@@ -141,7 +144,7 @@ function DailyAttendance() {
   useEffect(() => {
     const timer = window.setTimeout(
       () => setDebouncedSearch(search.trim()),
-      300,
+      search.trim() ? 300 : 0,
     );
     return () => window.clearTimeout(timer);
   }, [search]);
@@ -403,7 +406,7 @@ function DailyAttendance() {
           variant="warning"
           title="Organization timezone unavailable"
           action={
-            <Button onClick={() => void refreshUser()}>Refresh access</Button>
+            <RefreshButton onRefresh={() => refreshUser()}>Refresh access</RefreshButton>
           }
         />
       ) : !selectedProject ? (
@@ -468,12 +471,11 @@ function DailyAttendance() {
                     size={16}
                     aria-hidden="true"
                   />
-                  <Input
+                  <SearchInput debounceMs={0}
                     className="pl-9"
-                    type="search"
                     maxLength={160}
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onValueChange={(event) => setSearch(event)}
                     placeholder="Name, code or trade"
                   />
                 </span>
@@ -538,10 +540,10 @@ function DailyAttendance() {
               title="Daily attendance could not be loaded"
               description={errorMessage(summary.error)}
               action={
-                <Button variant="outline" onClick={() => summary.refetch()}>
+                <RefreshButton busy={summary.isFetching} variant="outline" onRefresh={() => summary.refetch()}>
                   <RefreshCw size={15} aria-hidden="true" />
                   Retry
-                </Button>
+                </RefreshButton>
               }
             />
           ) : rows.length === 0 ? (

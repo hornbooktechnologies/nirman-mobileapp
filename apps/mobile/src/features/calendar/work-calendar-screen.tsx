@@ -303,7 +303,7 @@ export function WorkCalendarScreen() {
       {!session?.activeOrganization ? <EmptyState title={t('empty.noOrganizationTitle')} description={t('empty.noOrganizationDescription')} />
         : session.projectAccess.projects.length === 0 ? <EmptyState title={t('empty.noAccessibleProjectsTitle')} description={t('empty.noAccessibleProjectsDescription')} />
         : !activeProject ? <EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} />
-          : !canRead ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onAction={() => void refreshSession()} />
+          : !canRead ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onRefresh={() => refreshSession()} />
             : <>
               <View accessibilityRole="tablist" style={styles.scopeTabs}>
                 {(['PROJECT', 'ORGANIZATION'] as const).map((value) => (

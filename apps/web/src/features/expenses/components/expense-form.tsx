@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { useRef, useState, type FormEvent } from "react";
 import {
   ACTIVE_EXPENSE_CATEGORIES,
@@ -325,13 +327,13 @@ export function ExpenseForm({
                 : "The expense changed. Reload and review its latest amount, status, and history before submitting again. Your inputs are preserved."}
             </p>
             {action !== "CREATE" && (
-              <Button
+              <RefreshButton
                 variant="outline"
                 disabled={refreshing}
-                onClick={() => void reviewLatest()}
+                onRefresh={() => reviewLatest()}
               >
                 {refreshing ? "Reloading…" : "Reload latest expense"}
-              </Button>
+              </RefreshButton>
             )}
           </div>
         )}

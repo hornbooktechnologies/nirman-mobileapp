@@ -1,3 +1,5 @@
+> 2026-10-08 cross-client update: this stage is included in the approved Sales Web/Mobile client parity implementation. See [the current source checklist and verification evidence](sales-cross-client-parity.md). 44 Sales tests, Mobile typecheck, scoped Web lint, Web production build, Android bundle and locale validation pass. Authenticated same-fixture roles/workflows and browser/device acceptance remain pending; historical evidence below is retained. API-blocked items remain a separate reviewed backlog.
+
 # W7b Web Site Visits parity and review
 
 Date: 2026-09-21. Status: implemented; focused checks passed; authenticated acceptance pending.
@@ -57,3 +59,7 @@ No pagination/export exists on either client. Reminder/offline work remains outs
 - Pending: Owner/Sales/Viewer/CUSTOM direct-route/action matrix; Web schedule → Mobile outcome → Web refresh and inverse; expired session/lost-response recovery; keyboard/focus, 375/768/1024/1440/1920 widths and 200% zoom; two-client concurrency after API correction.
 
 Review: source implemented and focused checks passed, not fully accepted. Whole-Web baseline blockers and API integrity/access limitations remain open.
+
+### 2026-10-08 salesperson filter correction
+
+The named salesperson catalog now comes from an independent, unfiltered read of the existing scoped Site Visits endpoint. Applying salesperson/status/date/search filters changes results without shrinking available salesperson choices. Loading/unavailable labels no longer reveal a selected UUID; failed catalog loads explain recovery through Refresh. Four regression cases cover catalog deduplication, readable loading/missing labels and the actual page's filtered results versus independent catalog/own-role eligibility. Web typecheck and scoped lint passed; authenticated visual acceptance remains pending.

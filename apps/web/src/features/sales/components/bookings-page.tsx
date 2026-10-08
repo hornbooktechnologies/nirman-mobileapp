@@ -1,9 +1,11 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BOOKING_STATUSES } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState } from "@/components/ui";
 import { CollectionPagination } from "@/components/ui/collection-toolbar";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { useBookings } from "../hooks/use-bookings";
@@ -48,13 +50,13 @@ function Bookings({ c }: { c: SalesContext }) {
             cancellation history here.
           </p>
         </div>
-        <Button
+        <RefreshButton busy={bookings.isFetching}
           variant="outline"
           disabled={bookings.isFetching || invalid}
-          onClick={() => void bookings.refetch()}
+          onRefresh={() => bookings.refetch()}
         >
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       {c.active && c.permissions.includes("leads:convert") && (
         <Link className="underline" href={`/projects/${c.project}/sales/leads`}>
@@ -80,7 +82,7 @@ function Bookings({ c }: { c: SalesContext }) {
       ) : bookings.isPending ? (
         <LoadingState label="Loading bookings" />
       ) : bookings.isError ? (
-        <Failure error={bookings.error} retry={() => void bookings.refetch()} />
+        <Failure error={bookings.error} retry={() => bookings.refetch()} />
       ) : (
         <>
           <p role="status" className="text-sm text-sub">

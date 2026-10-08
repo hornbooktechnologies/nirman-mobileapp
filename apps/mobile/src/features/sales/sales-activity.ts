@@ -25,3 +25,17 @@ export function salesActivityDisplayAt(activity: SalesActivity) {
     ? scheduledAt
     : activity.occurredAt;
 }
+
+export function salesActivityDetails(activity: SalesActivity): Array<{ key: string; value: string }> {
+  const values = activityDetails(activity.details);
+  if (!values) return typeof activity.details === 'string' ? [{ key: 'notes', value: activity.details }] : [];
+  const rows: Array<{ key: string; value: string }> = [];
+  if (values.bookingId) rows.push({ key: 'bookingReference', value: activity.bookingReference || activity.bookingDate || '—' });
+  if (activity.unitNumber) rows.push({ key: 'unit', value: activity.unitNumber });
+  for (const key of ['details', 'source', 'from', 'to', 'restoredLeadStage', 'restoredUnitStatus', 'scheduledAt', 'type', 'outcome', 'notes', 'reason', 'status']) {
+    const value = values[key];
+    if (typeof value === 'string' && value) rows.push({ key, value });
+  }
+  for (const key of ['assignedFrom', 'assignedTo']) if (key in values) rows.push({ key, value: values[key] == null ? '—' : (key === 'assignedFrom' ? activity.assignedFromName : activity.assignedToName) || '—' });
+  return rows;
+}

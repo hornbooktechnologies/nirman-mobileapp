@@ -1,4 +1,7 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
+import { SearchInput } from "@/components/ui/search-input";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MATERIAL_UNITS, type MaterialRequestDetail } from "@nirman-app/shared";
@@ -374,13 +377,13 @@ export function MaterialForm({
                 : "The request changed. Reload it and review the latest quantities and history before submitting again. Your inputs are preserved."}
             </p>
             {action !== "CREATE" && (
-              <Button
+              <RefreshButton
                 variant="outline"
                 disabled={refreshing}
-                onClick={() => void reviewLatest()}
+                onRefresh={() => reviewLatest()}
               >
                 {refreshing ? "Reloading…" : "Reload latest record"}
-              </Button>
+              </RefreshButton>
             )}
           </div>
         )}
@@ -422,9 +425,9 @@ export function MaterialForm({
                 <div className="space-y-2 sm:col-span-2">
                   <label>
                     Find responsible member
-                    <Input
+                    <SearchInput
                       value={memberSearch}
-                      onChange={(e) => setMemberSearch(e.target.value)}
+                      onValueChange={(e) => setMemberSearch(e)}
                     />
                   </label>
                   {members.isPending && <p role="status">Loading members…</p>}

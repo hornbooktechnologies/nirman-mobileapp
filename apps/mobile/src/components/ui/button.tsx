@@ -4,7 +4,7 @@ import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
 import { AppText } from './app-text';
 
-type ButtonProps = PressableProps & {
+export type ButtonProps = PressableProps & {
   label: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'brand' | 'info' | 'secondary' | 'glass' | 'outline' | 'dark' | 'success' | 'danger' | 'ghost';

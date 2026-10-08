@@ -196,3 +196,70 @@ describe("SalesRepository booking linkage", () => {
     );
   });
 });
+
+describe("SalesRepository dynamic scheduled searches", () => {
+  const database = {
+    query: jest.fn(),
+  } as unknown as jest.Mocked<DatabaseService>;
+  const repository = new SalesRepository(database, {} as AuditService);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    database.query.mockResolvedValue([]);
+  });
+  it("searches follow-up customer/mobile while retaining project, dates and own scope", async () => {
+    await repository.listFollowUps(
+      "org",
+      "project",
+      {
+        search: "  9876  ",
+        status: "SCHEDULED",
+        from: "2026-10-08T00:00:00Z",
+        to: "2026-10-08T23:59:59Z",
+      },
+      "own-user",
+    );
+    const [sql, params] = database.query.mock.calls[0];
+    expect(sql).toContain("f.organization_id = ?");
+    expect(sql).toContain("f.project_id = ?");
+    expect(sql).toContain("f.assigned_user_id = ?");
+    expect(sql).toContain("l.primary_mobile LIKE ?");
+    expect(sql).toContain("f.scheduled_at >= ?");
+    expect(params).toEqual([
+      "org",
+      "project",
+      "SCHEDULED",
+      "own-user",
+      "2026-10-08T00:00:00Z",
+      "2026-10-08T23:59:59Z",
+      "%9876%",
+      "%9876%",
+    ]);
+  });
+  it("searches visit customer/mobile/salesperson without overriding own scope", async () => {
+    await repository.listSiteVisits(
+      "org",
+      "project",
+      { search: "Shiv", assignedSalesperson: "another-user" },
+      "own-user",
+    );
+    const [sql, params] = database.query.mock.calls[0];
+    expect(sql).toContain("l.customer_name LIKE ?");
+    expect(sql).toContain("l.primary_mobile LIKE ?");
+    expect(sql).toContain("assignee.name LIKE ?");
+    expect(sql).toContain("v.assigned_salesperson = ?");
+    expect(params).toEqual([
+      "org",
+      "project",
+      "own-user",
+      "%Shiv%",
+      "%Shiv%",
+      "%Shiv%",
+    ]);
+  });
+  it("never interpolates search text into SQL", async () => {
+    await repository.listFollowUps("org", "project", { search: "' OR 1=1 --" });
+    const [sql, params] = database.query.mock.calls[0];
+    expect(sql).not.toContain("' OR 1=1 --");
+    expect(params).toContain("%' OR 1=1 --%");
+  });
+});

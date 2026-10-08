@@ -89,7 +89,7 @@ export function LeadInventory({
       ) : interests.isError ? (
         <Failure
           error={interests.error}
-          retry={() => void interests.refetch()}
+          retry={() => interests.refetch()}
         />
       ) : !interests.data.length ? (
         <Card>No unit interests recorded.</Card>
@@ -227,7 +227,7 @@ export function LeadInventory({
           {units.isPending ? (
             <LoadingState label="Loading units" />
           ) : units.isError ? (
-            <Failure error={units.error} retry={() => void units.refetch()} />
+            <Failure error={units.error} retry={() => units.refetch()} />
           ) : (
             <p>
               {action === "interest"

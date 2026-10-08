@@ -1,3 +1,5 @@
+> 2026-10-08 cross-client update: this stage is included in the approved Sales Web/Mobile client parity implementation. See [the current source checklist and verification evidence](sales-cross-client-parity.md). 44 Sales tests, Mobile typecheck, scoped Web lint, Web production build, Android bundle and locale validation pass. Authenticated same-fixture roles/workflows and browser/device acceptance remain pending; historical evidence below is retained. API-blocked items remain a separate reviewed backlog.
+
 # W7d Web Bookings parity and review
 
 Date: 2026-09-21. Status: implemented; focused verification passed; authenticated acceptance pending.

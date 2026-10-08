@@ -1,18 +1,26 @@
-import { BOOKING_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES, SITE_VISIT_STATUSES, UNIT_PRICE_BASES, UNIT_PRICE_INPUT_UNITS, type BookingStatus, type LeadPriority, type LeadSource, type SiteVisitStatus, type UnitPriceInputUnit } from '@nirman-app/shared';
-import { router } from 'expo-router';
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { RefreshFlatList } from "../../components/ui/refresh-control";
+
+import { RefreshButton } from "../../components/ui/refresh-button";
+import { LEAD_PRIORITIES, LEAD_SOURCES, SITE_VISIT_STATUSES, UNIT_PRICE_BASES, UNIT_PRICE_INPUT_UNITS, type BookingStatus, type LeadStage, type FollowUpStatus, type UnitStatus, type LeadPriority, type LeadSource, type SiteVisitStatus, type UnitPriceInputUnit } from '@nirman-app/shared';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppIcon, BottomSheet, Button, Card, Chip, CompactScreenHeader, DateInput, EmptyState, FormError, FormField, IconButton, Input, ListControls, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField } from '../../components/ui';
 import { formatDate, formatInr, formatNumber } from '../../i18n/formatters';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
-import { isValidEmail, isValidNonNegativeNumber, isValidPhone, sanitizePhoneInput } from '../../lib/validation';
+import { isValidEmail, isValidNonNegativeNumber, isValidPhone } from '../../lib/validation';
 import { useSession } from '../../providers';
 import { mobileTheme } from '../../theme';
 import { ProjectContextCard } from '../projects';
-import { createLead, createUnit, fetchBookings, fetchFollowUps, fetchLeads, fetchSiteVisits, fetchUnits, releaseUnitBlock, updateFollowUp, updateSiteVisit, updateUnit } from './services';
+import { createLead, createUnit, fetchBookings, fetchLead, fetchFollowUps, fetchLeads, fetchSiteVisits, fetchUnits, releaseUnitBlock, updateSiteVisit, updateUnit } from './services';
+import { FollowUpUpdateSheet } from './follow-up-update-sheet';
+import { LeadAdditionalFields } from './lead-additional-fields';
+import { SalesListFilters, type SalesFiltersValue } from './sales-filters';
+import { ApiRequestError } from '../../lib/api';
+import { callableNumber, canWriteLead, uncertainWrite, dateRange, localTime, scheduleInstant } from './sales-rules';
 import { SalesChoice, SalesDetailRows, SalesSectionHeading } from './sales-ui';
 import type { LeadInput, SalesBooking, SalesFollowUp, SalesLead, SalesSiteVisit, SalesUnit, UnitInput } from './types';
 
@@ -68,21 +76,6 @@ function isUnit(item: ListItem): item is SalesUnit {
   return 'unitNumber' in item && 'unitType' in item && !('bookingDate' in item);
 }
 
-function localScheduleParts(value: string) {
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return { date: `${year}-${month}-${day}`, time: `${hours}:${minutes}` };
-}
-
-function toScheduleIso(date: string, time: string) {
-  const value = new Date(`${date}T${/^\d{2}:\d{2}$/.test(time) ? time : '10:00'}:00`);
-  return Number.isNaN(value.getTime()) ? null : value.toISOString();
-}
-
 export function SalesScreen() {
   const { t, i18n } = useTranslation('sales');
   const { t: tCommon } = useTranslation('common');
@@ -94,6 +87,21 @@ export function SalesScreen() {
   const projectId = project?.id;
   const accessToken = session?.accessToken;
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
+  const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
+  const active = project?.status === 'ACTIVE';
+  const team = permissions.includes('leads:read-all') || permissions.includes('leads:read-team');
+  const [filters, setFilters] = useState<SalesFiltersValue>({});
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const requestSequence = useRef(0);
+  const lastRead = useRef('');
+  const writeLock = useRef(false);
+  const alive = useRef(true);
+  const [visitError, setVisitError] = useState('');
+  const [visitReview, setVisitReview] = useState(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const localScheduleParts = (value: string) => { const wall = localTime(value, timezone); return { date: wall.slice(0, 10), time: wall.slice(11) }; };
+  const toScheduleIso = (date: string, time: string) => scheduleInstant(`${date}T${time}`, timezone);
   const [view, setView] = useState<ViewKey>('leads');
   const [items, setItems] = useState<ListItem[]>([]);
   const [search, setSearch] = useState('');
@@ -110,9 +118,10 @@ export function SalesScreen() {
   const [unitPriceAmount, setUnitPriceAmount] = useState('');
   const [unitPriceInputUnit, setUnitPriceInputUnit] = useState<UnitPriceInputUnit>('LAKH');
   const [working, setWorking] = useState(false);
+  const [commandReview, setCommandReview] = useState(false);
   const [selectedFollowUp, setSelectedFollowUp] = useState<SalesFollowUp | null>(null);
   const [selectedVisit, setSelectedVisit] = useState<SalesSiteVisit | null>(null);
-  const [visitFilter, setVisitFilter] = useState<SiteVisitStatus | undefined>();
+
   const [visitStatus, setVisitStatus] = useState<Exclude<SiteVisitStatus, 'SCHEDULED'>>('COMPLETED');
   const [visitFeedback, setVisitFeedback] = useState('');
   const [visitObjections, setVisitObjections] = useState('');
@@ -120,9 +129,9 @@ export function SalesScreen() {
   const [visitDate, setVisitDate] = useState('');
   const [visitTime, setVisitTime] = useState('');
   const [visitAttendeeCount, setVisitAttendeeCount] = useState('');
-  const [bookingFilter, setBookingFilter] = useState<BookingStatus | undefined>();
-  const [outcome, setOutcome] = useState('');
-  const deferredSearch = useDeferredValue(search);
+
+  const [completeMode, setCompleteMode] = useState(false);
+  const deferredSearch = search;
   const displayPrice = (value: number) =>
     value >= 10_000_000
       ? t('pricing.croreValue', {
@@ -142,40 +151,38 @@ export function SalesScreen() {
   const canManageFollowUps = permissions.includes('followups:manage');
   const canManageSiteVisits = permissions.includes('site-visits:manage');
   const canReadInventory = permissions.includes('inventory:read');
-  const availableViews = useMemo(() => [...(canReadLeads ? ['leads' as const] : []), ...(canManageFollowUps ? ['followUps' as const] : []), ...(canManageSiteVisits ? ['visits' as const] : []), ...(canReadInventory ? ['units' as const] : []), ...(canReadLeads ? ['bookings' as const] : [])], [canManageFollowUps, canManageSiteVisits, canReadInventory, canReadLeads]);
+  const availableViews = useMemo(() => [...(canReadLeads ? ['leads' as const] : []), ...(canReadLeads ? ['followUps' as const] : []), ...(canReadLeads ? ['visits' as const] : []), ...(canReadInventory ? ['units' as const] : []), ...(canReadLeads ? ['bookings' as const] : [])], [canManageFollowUps, canManageSiteVisits, canReadInventory, canReadLeads]);
 
   const load = useCallback(
     async (quiet = false) => {
       if (!organizationId || !projectId || !accessToken) return;
       if (!availableViews.includes(view)) return;
+      const sequence = ++requestSequence.current;
       quiet ? setRefreshing(true) : setLoading(true);
       setError(null);
       try {
         const args = [organizationId, projectId, accessToken] as const;
-        if (view === 'leads') setItems((await fetchLeads(...args, { search: deferredSearch })).data);
-        if (view === 'followUps') setItems(await fetchFollowUps(...args));
-        if (view === 'visits') setItems(await fetchSiteVisits(...args, { status: visitFilter }));
-        if (view === 'units') setItems(await fetchUnits(...args, { search: deferredSearch }));
-        if (view === 'bookings')
-          setItems(
-            await fetchBookings(...args, {
-              search: deferredSearch,
-              status: bookingFilter,
-            }),
-          );
+        const range = dateRange(filters.from ?? '', filters.to ?? '', timezone);
+        let next: ListItem[];
+        if (view === 'leads') {
+          const result = await fetchLeads(...args, { search: deferredSearch, stage: filters.status as LeadStage | undefined, assignedTo: team ? filters.assignedTo : undefined, page });
+          next = result.data;
+          if (sequence === requestSequence.current) setTotal(result.meta.total);
+        } else if (view === 'followUps') next = await fetchFollowUps(...args, { search: deferredSearch, status: filters.status as FollowUpStatus | undefined, assignedTo: team ? filters.assignedTo : undefined, ...range });
+        else if (view === 'visits') next = await fetchSiteVisits(...args, { search: deferredSearch, status: filters.status as SiteVisitStatus | undefined, assignedSalesperson: team ? filters.assignedTo : undefined, scheduledFrom: range.from, scheduledTo: range.to });
+        else if (view === 'units') next = await fetchUnits(...args, { search: deferredSearch, status: filters.status as UnitStatus | undefined });
+        else next = await fetchBookings(...args, { search: deferredSearch, status: filters.status as BookingStatus | undefined, bookedFrom: filters.from || undefined, bookedTo: filters.to || undefined });
+        if (sequence === requestSequence.current) { setItems(next); setCommandReview(false); }
       } catch (cause) {
-        setError(getLocalizedErrorMessage(cause, t('errors.load')));
+        if (sequence === requestSequence.current) setError(getLocalizedErrorMessage(cause, t('errors.load')));
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (sequence === requestSequence.current) { setLoading(false); setRefreshing(false); }
       }
     },
-    [accessToken, availableViews, bookingFilter, deferredSearch, organizationId, projectId, t, view, visitFilter],
+    [accessToken, availableViews, deferredSearch, organizationId, projectId, t, view, filters, page, team, timezone],
   );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(useCallback(() => { const identity = JSON.stringify([organizationId, projectId, view, filters, page, deferredSearch]); const quiet = lastRead.current === identity; lastRead.current = identity; void load(quiet); return () => { requestSequence.current += 1; }; }, [load, organizationId, projectId, view, filters, page, deferredSearch]));
   useEffect(() => {
     setItems([]);
   }, [project?.id, view]);
@@ -183,18 +190,10 @@ export function SalesScreen() {
     if (!availableViews.includes(view) && availableViews[0]) setView(availableViews[0]);
   }, [availableViews, view]);
 
-  const visibleItems =
-    view === 'leads' || view === 'units'
-      ? items
-      : items.filter((item) => {
-          const value = 'customerName' in item ? item.customerName : 'unitNumber' in item ? item.unitNumber : '';
-          const salesperson = isVisit(item) ? item.assignedSalespersonName : '';
-          const needle = deferredSearch.trim().toLocaleLowerCase();
-          return value.toLocaleLowerCase().includes(needle) || salesperson.toLocaleLowerCase().includes(needle);
-        });
+  const visibleItems = items;
 
   async function saveLead() {
-    if (!leadDraft || !session?.activeOrganization || !project) return;
+    if (writeLock.current || commandReview || !active || !permissions.includes('leads:create') || !leadDraft || !session?.activeOrganization || !project) return;
     setLeadFormError('');
     const nextFieldErrors: LeadFieldErrors = {};
     if (!leadDraft.customerName.trim())
@@ -206,28 +205,29 @@ export function SalesScreen() {
       nextFieldErrors.primaryMobile = tCommon('validation.required', {
         field: t('fields.primaryMobile'),
       });
-    else if (!isValidPhone(leadDraft.primaryMobile)) nextFieldErrors.primaryMobile = tCommon('validation.phone');
+    else if (!callableNumber(leadDraft.primaryMobile)) nextFieldErrors.primaryMobile = tCommon('validation.phone');
     if (leadDraft.email?.trim() && !isValidEmail(leadDraft.email)) nextFieldErrors.email = tCommon('validation.email');
     if (leadDraft.budgetMin !== undefined && !isValidNonNegativeNumber(String(leadDraft.budgetMin))) nextFieldErrors.budgetMin = tCommon('validation.number');
     if (leadDraft.budgetMax !== undefined && !isValidNonNegativeNumber(String(leadDraft.budgetMax))) nextFieldErrors.budgetMax = tCommon('validation.number');
     if (leadDraft.budgetMin !== undefined && leadDraft.budgetMax !== undefined && leadDraft.budgetMax < leadDraft.budgetMin) nextFieldErrors.budgetMax = tErrors('api.LEAD_BUDGET_RANGE_INVALID');
     setLeadFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) return;
-    setWorking(true);
+    writeLock.current = true; setWorking(true);
     try {
       await createLead(session.activeOrganization.id, project.id, session.accessToken, { ...leadDraft, primaryMobile: leadDraft.primaryMobile.trim() });
+      if (!alive.current) return;
       setLeadDraft(null);
       setLeadFieldErrors({});
       await load(true);
     } catch (cause) {
-      setLeadFormError(getLocalizedErrorMessage(cause, t('errors.save')));
+      if (alive.current) { if (uncertainWrite(cause instanceof ApiRequestError ? cause.status : undefined)) setCommandReview(true); setLeadFormError(getLocalizedErrorMessage(cause, t('parity.uncertain'))); }
     } finally {
-      setWorking(false);
+      writeLock.current = false; if (alive.current) setWorking(false);
     }
   }
 
   async function saveUnit() {
-    if (!unitDraft || !session?.activeOrganization || !project) return;
+    if (writeLock.current || commandReview || !active || !permissions.includes('inventory:manage') || !unitDraft || !session?.activeOrganization || !project) return;
     setUnitFormError('');
     const nextFieldErrors: UnitFieldErrors = {};
     if (!unitDraft.unitNumber.trim())
@@ -245,7 +245,7 @@ export function SalesScreen() {
     if (priceBasis === 'PER_SQFT' && (!Number.isFinite(unitDraft.ratePerSqft) || !unitDraft.ratePerSqft || unitDraft.ratePerSqft <= 0)) nextFieldErrors.ratePerSqft = t('unitImport.errorCodes.POSITIVE_NUMBER');
     setUnitFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) return;
-    setWorking(true);
+    writeLock.current = true; setWorking(true);
     try {
       const { id, ...draft } = unitDraft;
       const input: UnitInput =
@@ -259,52 +259,34 @@ export function SalesScreen() {
           : {
               ...draft,
               priceBasis,
-              basePrice: unitDraft.areaSqft! * unitDraft.ratePerSqft!,
+              basePrice: undefined,
             };
+      if (id) { const current = (await fetchUnits(session.activeOrganization.id, project.id, session.accessToken)).find(row => row.id === id); if (!alive.current) return; if (!current || ['BLOCKED', 'BOOKED'].includes(current.status)) throw new Error(t('parity.stale')); }
       if (id) await updateUnit(session.activeOrganization.id, project.id, id, session.accessToken, input);
       else await createUnit(session.activeOrganization.id, project.id, session.accessToken, input);
       setUnitDraft(null);
       setUnitFieldErrors({});
       await load(true);
     } catch (cause) {
-      setUnitFormError(getLocalizedErrorMessage(cause, t('errors.save')));
+      if (alive.current) { if (uncertainWrite(cause instanceof ApiRequestError ? cause.status : undefined)) setCommandReview(true); setUnitFormError(getLocalizedErrorMessage(cause, t('parity.uncertain'))); }
     } finally {
-      setWorking(false);
+      writeLock.current = false; if (alive.current) setWorking(false);
     }
   }
 
+  function confirmClose(close: () => void) { if (writeLock.current) return; Alert.alert(t('parity.discardTitle'), t('parity.discardDescription'), [{ text: tCommon('actions.cancel'), style: 'cancel' }, { text: tCommon('actions.close'), style: 'destructive', onPress: close }]); }
+
   function closeLeadForm() {
-    setLeadDraft(null);
-    setLeadFormError('');
-    setLeadFieldErrors({});
+    confirmClose(() => setLeadDraft(null));
   }
 
   function closeUnitForm() {
-    setUnitDraft(null);
-    setUnitFormError('');
-    setUnitFieldErrors({});
-    setUnitPriceAmount('');
-    setUnitPriceInputUnit('LAKH');
-  }
-
-  async function completeFollowUp() {
-    if (!selectedFollowUp || !session?.activeOrganization || !project) return;
-    setWorking(true);
-    try {
-      await updateFollowUp(session.activeOrganization.id, project.id, selectedFollowUp.leadId, selectedFollowUp.id, session.accessToken, { status: 'COMPLETED', outcome: outcome.trim() || undefined });
-      setSelectedFollowUp(null);
-      setOutcome('');
-      await load(true);
-    } catch (cause) {
-      Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.save')));
-    } finally {
-      setWorking(false);
-    }
+    confirmClose(() => setUnitDraft(null));
   }
 
   function openVisitOutcome(item: SalesSiteVisit) {
     const schedule = localScheduleParts(item.scheduledAt);
-    setSelectedVisit(item);
+    setVisitError(''); setVisitReview(false); setSelectedVisit(item);
     setVisitStatus('COMPLETED');
     setVisitFeedback(item.customerFeedback ?? '');
     setVisitObjections(item.objectionsConcerns ?? '');
@@ -315,11 +297,17 @@ export function SalesScreen() {
   }
 
   async function saveVisitOutcome() {
-    if (!selectedVisit || !session?.activeOrganization || !project) return;
+    if (writeLock.current || visitReview || !active || !permissions.includes('site-visits:manage') || !selectedVisit || !session?.activeOrganization || !project) return;
     const scheduledAt = visitStatus === 'RESCHEDULED' ? toScheduleIso(visitDate, visitTime) : undefined;
-    if (visitStatus === 'RESCHEDULED' && !scheduledAt) return;
-    setWorking(true);
+    if (visitStatus === 'RESCHEDULED' && !scheduledAt) { setVisitError(tCommon('validation.date')); return; }
+    if (visitAttendeeCount && (!Number.isInteger(Number(visitAttendeeCount)) || Number(visitAttendeeCount) < 1 || Number(visitAttendeeCount) > 1000)) { setVisitError(t('leadDetail.attendeeCountError')); return; }
+    writeLock.current = true; setWorking(true); setVisitError('');
     try {
+      const lead = await fetchLead(session.activeOrganization.id, project.id, selectedVisit.leadId, session.accessToken);
+      const current = (await fetchSiteVisits(session.activeOrganization.id, project.id, session.accessToken)).find(row => row.id === selectedVisit.id);
+      if (!alive.current) return;
+      if (!canWriteLead(permissions, active, 'site-visits:manage', lead, session.user.id)) throw new Error(t('parity.accessDenied'));
+      if (!current || !['SCHEDULED', 'RESCHEDULED'].includes(current.status) || JSON.stringify(current) !== JSON.stringify(selectedVisit)) { setVisitReview(true); throw new Error(t('parity.stale')); }
       await updateSiteVisit(session.activeOrganization.id, project.id, selectedVisit.leadId, selectedVisit.id, session.accessToken, {
         status: visitStatus,
         ...(scheduledAt ? { scheduledAt } : {}),
@@ -328,17 +316,18 @@ export function SalesScreen() {
         objectionsConcerns: visitObjections.trim() || undefined,
         nextAction: visitNextAction.trim() || undefined,
       });
+      if (!alive.current) return;
       setSelectedVisit(null);
       await load(true);
     } catch (cause) {
-      Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.save')));
+      if (alive.current) { if (uncertainWrite(cause instanceof ApiRequestError ? cause.status : undefined)) setVisitReview(true); setVisitError(getLocalizedErrorMessage(cause, t('parity.uncertain'))); }
     } finally {
-      setWorking(false);
+      writeLock.current = false; if (alive.current) setWorking(false);
     }
   }
 
   async function releaseBlock(item: SalesUnit) {
-    if (!item.activeBlockId || !session?.activeOrganization || !project) return;
+    if (writeLock.current || !active || !permissions.includes('inventory:block') || !item.activeBlockId || !session?.activeOrganization || !project) return;
     Alert.alert(t('units.releaseTitle'), t('units.releaseConfirm', { unit: item.unitNumber }), [
       { text: tCommon('actions.cancel'), style: 'cancel' },
       {
@@ -346,12 +335,17 @@ export function SalesScreen() {
         style: 'destructive',
         onPress: () =>
           void (async () => {
+            if (writeLock.current || !alive.current) return;
+            writeLock.current = true;
             try {
+              const current = (await fetchUnits(session.activeOrganization!.id, project.id, session.accessToken)).find(row => row.id === item.id);
+              if (!alive.current) return;
+              if (!current || current.status !== 'BLOCKED' || current.activeBlockId !== item.activeBlockId) throw new Error(t('parity.stale'));
               await releaseUnitBlock(session.activeOrganization!.id, project.id, item.activeBlockId!, session.accessToken);
               await load(true);
             } catch (cause) {
-              Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('errors.save')));
-            }
+              if (alive.current) Alert.alert(t('errors.title'), getLocalizedErrorMessage(cause, t('parity.uncertain')));
+            } finally { writeLock.current = false; }
           })(),
       },
     ]);
@@ -392,23 +386,12 @@ export function SalesScreen() {
           title={item.customerName}
           supporting={formatDate(item.scheduledAt, language, {
             dateStyle: 'medium',
-            timeStyle: 'short',
+            timeStyle: 'short', timeZone: timezone,
           })}
           footerLeading={item.notes ?? t('followUps.noNotes')}
-          footerTrailing={
-            item.status === 'SCHEDULED' ? (
-              <Button
-                fullWidth={false}
-                label={t('followUps.complete')}
-                size="sm"
-                variant="success"
-                onPress={() => {
-                  setOutcome('');
-                  setSelectedFollowUp(item);
-                }}
-              />
-            ) : undefined
-          }
+          details={<SalesDetailRows rows={[{ label: t('fields.outcome'), value: item.outcome }, { label: t('fields.notes'), value: item.notes }, { label: t('parity.nextTime'), value: item.nextFollowUpAt ? formatDate(item.nextFollowUpAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) : null }, { label: t('parity.completedAt'), value: item.completedAt ? formatDate(item.completedAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) : null }]} />}
+          onPress={() => router.push({ pathname: '/(app)/sales-lead', params: { leadId: item.leadId } })}
+          footerTrailing={active && canManageFollowUps ? <View style={styles.headingActions}><Button fullWidth={false} label={t('parity.update')} size="sm" variant="secondary" onPress={() => { setCompleteMode(false); setSelectedFollowUp(item); }} />{item.status === 'SCHEDULED' ? <Button fullWidth={false} label={t('followUps.complete')} size="sm" variant="success" onPress={() => { setCompleteMode(true); setSelectedFollowUp(item); }} /> : null}</View> : undefined}
           tone={item.status === 'COMPLETED' ? 'success' : new Date(item.scheduledAt) < new Date() && item.status === 'SCHEDULED' ? 'danger' : 'warning'}
         />
       );
@@ -425,12 +408,14 @@ export function SalesScreen() {
           title={item.customerName}
           supporting={formatDate(item.scheduledAt, language, {
             dateStyle: 'medium',
-            timeStyle: 'short',
+            timeStyle: 'short', timeZone: timezone,
           })}
+          details={<SalesDetailRows rows={[{ label: t('fields.objectionsConcerns'), value: item.objectionsConcerns }, { label: t('fields.nextAction'), value: item.nextAction }, { label: t('parity.completedAt'), value: item.completedAt ? formatDate(item.completedAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) : null }]} />}
+          onPress={() => router.push({ pathname: '/(app)/sales-lead', params: { leadId: item.leadId } })}
           value={item.customerFeedback ?? undefined}
           valueLabel={item.customerFeedback ? t('fields.customerFeedback') : undefined}
           footerLeading={item.attendeeCount ? t('visits.attendees', { count: item.attendeeCount }) : t('visits.noAttendeeCount')}
-          footerTrailing={item.status === 'SCHEDULED' || item.status === 'RESCHEDULED' ? <Button fullWidth={false} label={t('visits.update')} size="sm" variant="secondary" onPress={() => openVisitOutcome(item)} /> : undefined}
+          footerTrailing={active && canManageSiteVisits && (item.status === 'SCHEDULED' || item.status === 'RESCHEDULED') ? <Button fullWidth={false} label={t('visits.update')} size="sm" variant="secondary" onPress={() => openVisitOutcome(item)} /> : undefined}
           tone={item.status === 'COMPLETED' ? 'success' : item.status === 'CANCELLED' || item.status === 'NO_SHOW' ? 'danger' : 'warning'}
         />
       );
@@ -463,7 +448,7 @@ export function SalesScreen() {
               ? t('units.expires', {
                   date: formatDate(item.blockExpiresAt, language, {
                     dateStyle: 'medium',
-                    timeStyle: 'short',
+                    timeStyle: 'short', timeZone: timezone,
                   }),
                 })
               : t('units.openForSale'),
@@ -472,9 +457,9 @@ export function SalesScreen() {
             }),
           ].join(' · ')}
           footerTrailing={
-            item.status === 'BLOCKED' && item.activeBlockId && permissions.includes('inventory:block') ? (
+            active && item.status === 'BLOCKED' && item.activeBlockId && permissions.includes('inventory:block') ? (
               <Button fullWidth={false} label={t('units.release')} size="sm" variant="danger" onPress={() => releaseBlock(item)} />
-            ) : permissions.includes('inventory:manage') ? (
+            ) : active && permissions.includes('inventory:manage') && !['BLOCKED', 'BOOKED'].includes(item.status) ? (
               <Button
                 fullWidth={false}
                 label={t('units.edit')}
@@ -527,11 +512,11 @@ export function SalesScreen() {
           item.bookingAmount == null
             ? undefined
             : formatInr(item.bookingAmount, language, {
-                maximumFractionDigits: 0,
+                maximumFractionDigits: 2,
               })
         }
         valueLabel={t('bookings.amount')}
-        footerLeading={formatDate(item.bookingDate, language)}
+        footerLeading={formatDate(`${item.bookingDate.slice(0, 10)}T12:00:00`, language)}
         footerTrailing={<AppIcon color={mobileTheme.color.text.muted} name="chevron-right" size={20} />}
         tone={item.status === 'CONFIRMED' ? 'success' : 'danger'}
         onPress={() =>
@@ -553,7 +538,7 @@ export function SalesScreen() {
     );
 
   const viewTitle = t(`views.${view}.title`);
-  const canCreate = view === 'leads' ? permissions.includes('leads:create') : view === 'units' ? permissions.includes('inventory:manage') : false;
+  const canCreate = active && (view === 'leads' ? permissions.includes('leads:create') : view === 'units' ? permissions.includes('inventory:manage') : false);
   const createAction = canCreate ? (
     view === 'units' ? (
       <View style={styles.headingActions}>
@@ -587,52 +572,29 @@ export function SalesScreen() {
 
   return (
     <NirmanScreenBackground scroll={false}>
-      <FlatList
+      <RefreshFlatList busy={loading || refreshing}
         style={styles.flatList}
         contentContainerStyle={styles.list}
         data={loading ? [] : visibleItems}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         refreshing={refreshing}
-        onRefresh={() => void load(true)}
+        onRefresh={() => load(true)}
         renderItem={renderItem}
         ListHeaderComponent={
           <View style={styles.headerContent}>
             <CompactScreenHeader leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />} title={t('title')} subtitle={project.name} action={<IconButton icon="view-grid-outline" accessibilityLabel={t('navigation.open')} variant="glass" onPress={() => setShowNavigation(true)} />} />
             <ProjectContextCard compact showSwitchAction />
             <SalesSectionHeading title={viewTitle} description={t(`views.${view}.description`)} action={createAction} />
-            <ListControls>
-              <SearchField accessibilityLabel={t('search.a11y')} placeholder={t('search.placeholder')} value={search} onChangeText={setSearch} onSubmitEditing={() => void load()} />
-              {view === 'visits' ? (
-                <View accessibilityRole="radiogroup" style={styles.chipRow}>
-                  <Chip accessibilityRole="radio" accessibilityState={{ selected: !visitFilter }} label={t('visits.all')} selected={!visitFilter} onPress={() => setVisitFilter(undefined)} />
-                  {SITE_VISIT_STATUSES.map((status) => (
-                    <Chip key={status} accessibilityRole="radio" accessibilityState={{ selected: visitFilter === status }} label={t(`visitStatus.${status}`)} selected={visitFilter === status} onPress={() => setVisitFilter(status)} />
-                  ))}
-                </View>
-              ) : null}
-              {view === 'bookings' ? (
-                <View accessibilityRole="radiogroup" style={styles.chipRow}>
-                  <Chip accessibilityRole="radio" accessibilityState={{ selected: !bookingFilter }} label={t('bookings.all')} selected={!bookingFilter} onPress={() => setBookingFilter(undefined)} />
-                  {BOOKING_STATUSES.map((status) => (
-                    <Chip
-                      key={status}
-                      accessibilityRole="radio"
-                      accessibilityState={{
-                        selected: bookingFilter === status,
-                      }}
-                      label={t(`bookingStatus.${status}`)}
-                      selected={bookingFilter === status}
-                      onPress={() => setBookingFilter(status)}
-                    />
-                  ))}
-                </View>
-              ) : null}
-            </ListControls>
+            {!active ? <FormError message={t('parity.readOnly')} /> : null}
+            <SalesSectionHeading title={t('parity.workingTimezone', { timezone })} />
+            <ListControls><SalesListFilters view={view} value={filters} team={team} timezone={timezone} onApply={next => { setFilters(next); setPage(1); }} search={<SearchField maxLength={view === 'units' ? 120 : 160} accessibilityLabel={t('search.a11y')} placeholder={t('search.placeholder')} value={search} onChangeText={value => { setSearch(value); setPage(1); }} />} /></ListControls>
+
             <FormError message={error} />
             {loading ? <LoadingState label={t('loading')} /> : null}
           </View>
         }
+        ListFooterComponent={view === 'leads' ? <View style={styles.footer}><Button label={t('parity.previous')} variant="secondary" disabled={page <= 1 || loading || refreshing} onPress={() => setPage(page - 1)} /><SalesSectionHeading title={t('parity.page', { page, total })} /><Button label={t('parity.next')} variant="secondary" disabled={page * 50 >= total || loading || refreshing} onPress={() => setPage(page + 1)} /></View> : null}
         ListEmptyComponent={!loading && !error ? <EmptyState title={t(`views.${view}.emptyTitle`)} description={t(`views.${view}.emptyDescription`)} /> : null}
       />
 
@@ -645,7 +607,7 @@ export function SalesScreen() {
             selected={view === key}
             onPress={() => {
               setView(key);
-              setSearch('');
+              setSearch(''); setFilters({}); setPage(1);
               setShowNavigation(false);
             }}
           />
@@ -663,11 +625,13 @@ export function SalesScreen() {
           footer={
             <View style={styles.footer}>
               <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={closeLeadForm} />
-              <Button style={styles.footerButton} disabled={working} label={working ? t('saving') : t('leads.save')} onPress={() => void saveLead()} />
+              <Button style={styles.footerButton} disabled={working || commandReview} label={working ? t('saving') : t('leads.save')} onPress={() => void saveLead()} />
             </View>
           }
         >
+          <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
           <FormError message={leadFormError} />
+          {commandReview ? <><FormError message={t('parity.uncertain')} /><RefreshButton busy={loading || refreshing} label={t('refresh')} disabled={working} variant="secondary" onRefresh={() => load(true)} /></> : null}
           <FormField label={t('fields.customerName')} required error={leadFieldErrors.customerName}>
             <Input
               autoCapitalize="words"
@@ -688,7 +652,7 @@ export function SalesScreen() {
               autoComplete="tel"
               invalid={Boolean(leadFieldErrors.primaryMobile)}
               keyboardType="phone-pad"
-              maxLength={10}
+              maxLength={24}
               placeholder="9876543210"
               textContentType="telephoneNumber"
               value={leadDraft.primaryMobile}
@@ -699,13 +663,13 @@ export function SalesScreen() {
                     ? tCommon('validation.required', {
                         field: t('fields.primaryMobile'),
                       })
-                    : !isValidPhone(leadDraft.primaryMobile)
+                    : !callableNumber(leadDraft.primaryMobile)
                       ? tCommon('validation.phone')
                       : undefined,
                 }))
               }
               onChangeText={(value) => {
-                const primaryMobile = sanitizePhoneInput(value);
+                const primaryMobile = value.replace(/[^+\d\s()-]/g, '');
                 setLeadDraft({ ...leadDraft, primaryMobile });
                 setLeadFieldErrors((current) => ({
                   ...current,
@@ -780,6 +744,8 @@ export function SalesScreen() {
               <SalesChoice key={priority} label={t(`priority.${priority}`)} selected={leadDraft.priority === priority} onPress={() => setLeadDraft({ ...leadDraft, priority })} />
             ))}
           </FormField>
+          <LeadAdditionalFields value={leadDraft} onChange={next => setLeadDraft({ ...leadDraft, ...next })} />
+          </View>
         </BottomSheet>
       ) : null}
 
@@ -793,11 +759,13 @@ export function SalesScreen() {
           footer={
             <View style={styles.footer}>
               <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={closeUnitForm} />
-              <Button style={styles.footerButton} disabled={working} label={working ? t('saving') : t('units.save')} onPress={() => void saveUnit()} />
+              <Button style={styles.footerButton} disabled={working || commandReview} label={working ? t('saving') : t('units.save')} onPress={() => void saveUnit()} />
             </View>
           }
         >
+          <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
           <FormError message={unitFormError} />
+          {commandReview ? <><FormError message={t('parity.uncertain')} /><RefreshButton busy={loading || refreshing} label={t('refresh')} disabled={working} variant="secondary" onRefresh={() => load(true)} /></> : null}
           <FormField label={t('fields.unitNumber')} required error={unitFieldErrors.unitNumber}>
             <Input
               invalid={Boolean(unitFieldErrors.unitNumber)}
@@ -953,27 +921,11 @@ export function SalesScreen() {
               ))}
             </View>
           </FormField>
+          </View>
         </BottomSheet>
       ) : null}
 
-      {selectedFollowUp ? (
-        <BottomSheet
-          visible
-          title={t('followUps.completeTitle')}
-          showCloseButton={false}
-          onClose={() => setSelectedFollowUp(null)}
-          footer={
-            <View style={styles.footer}>
-              <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={() => setSelectedFollowUp(null)} />
-              <Button style={styles.footerButton} disabled={working} label={working ? t('followUps.completing') : t('followUps.complete')} variant="success" onPress={() => void completeFollowUp()} />
-            </View>
-          }
-        >
-          <FormField label={t('fields.outcome')}>
-            <Input multiline numberOfLines={3} value={outcome} onChangeText={setOutcome} style={styles.multiline} />
-          </FormField>
-        </BottomSheet>
-      ) : null}
+      {selectedFollowUp ? <FollowUpUpdateSheet key={selectedFollowUp.id} item={selectedFollowUp} complete={completeMode} close={() => setSelectedFollowUp(null)} saved={() => { setSelectedFollowUp(null); void load(true); }} /> : null}
       {selectedVisit ? (
         <BottomSheet
           visible
@@ -981,14 +933,17 @@ export function SalesScreen() {
           description={t('visits.updateDescription')}
           scroll
           showCloseButton={false}
-          onClose={() => setSelectedVisit(null)}
+          onClose={() => confirmClose(() => setSelectedVisit(null))}
           footer={
             <View style={styles.footer}>
-              <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={() => setSelectedVisit(null)} />
-              <Button style={styles.footerButton} disabled={working || (visitStatus === 'RESCHEDULED' && !toScheduleIso(visitDate, visitTime))} label={working ? t('saving') : t('visits.saveOutcome')} variant={visitStatus === 'CANCELLED' || visitStatus === 'NO_SHOW' ? 'danger' : 'success'} onPress={() => void saveVisitOutcome()} />
+              <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" onPress={() => confirmClose(() => setSelectedVisit(null))} />
+              <Button style={styles.footerButton} disabled={working || visitReview || (visitStatus === 'RESCHEDULED' && !toScheduleIso(visitDate, visitTime))} label={working ? t('saving') : t('visits.saveOutcome')} variant={visitStatus === 'CANCELLED' || visitStatus === 'NO_SHOW' ? 'danger' : 'success'} onPress={() => void saveVisitOutcome()} />
             </View>
           }
         >
+          <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
+          <FormError message={visitError} />
+          {visitReview ? <RefreshButton busy={loading || refreshing} label={t('refresh')} disabled={working} variant="secondary" onRefresh={async () => { if (!organizationId || !projectId || !accessToken) return; await fetchSiteVisits(organizationId, projectId, accessToken).then(rows => { if (!alive.current) return; const current = rows.find(row => row.id === selectedVisit.id); if (current && ['SCHEDULED', 'RESCHEDULED'].includes(current.status)) { setSelectedVisit(current); setVisitReview(false); setVisitError(''); } else setVisitError(t('parity.stale')); }).catch(cause => { if (alive.current) setVisitError(getLocalizedErrorMessage(cause, t('errors.load'))); }); }} /> : null}
           <FormField label={t('fields.visitStatus')} required>
             <View accessibilityRole="radiogroup" style={styles.chipRow}>
               {SITE_VISIT_STATUSES.filter((status) => status !== 'SCHEDULED').map((status) => (
@@ -1018,6 +973,7 @@ export function SalesScreen() {
           <FormField label={t('fields.nextAction')}>
             <Input multiline numberOfLines={2} value={visitNextAction} onChangeText={setVisitNextAction} style={styles.multiline} />
           </FormField>
+          </View>
         </BottomSheet>
       ) : null}
     </NirmanScreenBackground>
@@ -1031,7 +987,7 @@ const styles = StyleSheet.create({
     gap: mobileTheme.spacing[5],
     marginBottom: mobileTheme.spacing[3],
   },
-  headingActions: { flexDirection: 'row', gap: mobileTheme.spacing[2] },
+  headingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[2] },
   fieldRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -4,7 +4,7 @@ import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
 import { AppText } from './app-text';
 
-type IconButtonProps = PressableProps & {
+export type IconButtonProps = PressableProps & {
   label?: string;
   icon?: AppIconName;
   showDot?: boolean;

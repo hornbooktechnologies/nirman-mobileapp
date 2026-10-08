@@ -1,8 +1,10 @@
+import { refreshTogether } from '@nirman-app/shared';
+import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from '../../lib/exports/use-pdf-export';
 import { KHARCHI_BALANCE_STATUSES, KHARCHI_PAYMENT_METHODS } from '@nirman-app/shared';
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppliedFilterChip, AppliedFilters, AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, FilterGroup, FilterOption, IconButton, ListControls, ListFilterBar, ListFilterSheet, LoadingState, NirmanScreenBackground, OperationalEntityCard, SearchField, StatusBadge } from '../../components/ui';
@@ -64,7 +66,7 @@ export function KharchiScreen() {
     append ? setLoadingMore(true) : setLoading(true);
     setError('');
     try {
-      const [list, nextSummary] = await Promise.all([
+      const [list, nextSummary] = await refreshTogether([
         fetchKharchiList(organizationId, projectId, accessToken, { ...query, page: nextPage }),
         append ? Promise.resolve(null) : fetchKharchiSummary(organizationId, projectId, accessToken),
       ]);
@@ -108,7 +110,7 @@ export function KharchiScreen() {
     {summary ? <Card style={styles.summary}><SummaryLine label={t('summary.outstanding')} value={formatInr(Number(summary.outstandingAmount), language)} emphasis /><SummaryLine label={t('summary.advances')} value={formatInr(Number(summary.effectiveAmount), language)} /><SummaryLine label={t('summary.deducted')} value={formatInr(Number(summary.deductedAmount), language)} />{Number(summary.adjustmentAmount) !== 0 ? <SummaryLine label={t('summary.adjustments')} value={formatInr(Number(summary.adjustmentAmount), language)} /> : null}</Card> : null}
     <ListControls>
       <ListFilterBar
-        search={<SearchField accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.search')} value={search} onChangeText={setSearch} />}
+        search={<SearchField maxLength={120} accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.search')} value={search} onChangeText={setSearch} />}
         filterLabel={tCommon('listFilters.action')}
         filterAccessibilityLabel={tCommon('listFilters.actionA11y', { count: activeFilterCount })}
         activeFilterCount={activeFilterCount}
@@ -134,7 +136,7 @@ export function KharchiScreen() {
       ListHeaderComponent={header}
       ListEmptyComponent={loading ? <LoadingState label={t('loading.list')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={t('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={t('empty.title')} description={t('empty.description')} actionLabel={canCreate ? t('create.action') : undefined} onAction={canCreate ? () => setCreateOpen(true) : undefined} />}
       ListFooterComponent={loadingMore ? <LoadingState label={t('loading.more')} /> : null}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(1); }} />}
+      refreshControl={<GuardedRefreshControl busy={loading || refreshing} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(1); }} />}
       onEndReachedThreshold={0.35}
       onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}
       renderItem={({ item }) => <OperationalEntityCard compact accessibilityLabel={t('list.openA11y', { worker: item.workerName, amount: formatInr(Number(item.outstandingAmount), language) })} contextLeading={item.workerCode} contextTrailing={item.trade} title={item.workerName} supporting={formatDate(dateValue(item.requestDate), language)} value={formatInr(Number(item.outstandingAmount), language)} valueLabel={t('list.outstanding')} footerLeading={t(`paymentMethod.${item.paymentMethod}`)} footerTrailing={<View style={styles.footerStatus}><StatusBadge label={t(`status.${item.status}`)} tone={tone(item.status)} /><AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.muted} /></View>} tone={tone(item.status)} onPress={() => router.push({ pathname: '/(app)/kharchi-detail', params: { kharchiId: item.id } } as Href)} />}

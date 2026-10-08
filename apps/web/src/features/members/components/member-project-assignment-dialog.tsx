@@ -1,4 +1,5 @@
 "use client";
+import { SearchInput } from "@/components/ui/search-input";
 
 import { useMemo, useState } from "react";
 import { CalendarDays, FolderKanban } from "lucide-react";
@@ -253,11 +254,11 @@ export function MemberProjectAssignmentDialog({
                 {selectedProjectIds.length} selected
               </p>
             </div>
-            <label className="grid gap-1 text-sm font-medium">Search available projects<Input
+            <label className="grid gap-1 text-sm font-medium">Search available projects<SearchInput
               className="max-w-[280px]"
               placeholder="Search projects"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onValueChange={(event) => setSearch(event)}
             /></label>
           </div>
           <div className="grid max-h-52 gap-2 overflow-y-auto rounded-inner border border-hairline bg-sunken/30 p-3 sm:grid-cols-2">

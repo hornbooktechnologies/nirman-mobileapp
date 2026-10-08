@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -130,7 +132,7 @@ function Detail({
   if (booking.isPending) return <LoadingState label="Loading booking" />;
   if (booking.isError)
     return (
-      <Failure error={booking.error} retry={() => void booking.refetch()} />
+      <Failure error={booking.error} retry={() => booking.refetch()} />
     );
   const b = booking.data;
   const rows: [string, string | null][] = [
@@ -171,17 +173,17 @@ function Detail({
           </h1>
           <Status value={b.status} />
         </div>
-        <Button
+        <RefreshButton
           variant="outline"
           disabled={booking.isFetching}
-          onClick={() =>
-            void cache.invalidateQueries({
+          onRefresh={() =>
+            cache.invalidateQueries({
               queryKey: salesKey(c.org, c.project),
             })
           }
         >
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       {success && <p role="status">{success}</p>}
       <Card className="space-y-3">
@@ -279,7 +281,7 @@ function CancellationAction({
   if (lead.isPending)
     return <LoadingState label="Checking cancellation access" />;
   if (lead.isError)
-    return <Failure error={lead.error} retry={() => void lead.refetch()} />;
+    return <Failure error={lead.error} retry={() => lead.refetch()} />;
   return canWriteLead(
     c.permissions,
     c.active,

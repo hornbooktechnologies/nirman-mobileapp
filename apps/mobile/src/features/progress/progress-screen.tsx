@@ -1,8 +1,10 @@
+import { refreshTogether } from '@nirman-app/shared';
+import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from '../../lib/exports/use-pdf-export';
-import { PROJECT_PROGRESS_STAGES, type ProjectProgressStage, type ProjectProgressSummary, type ProjectProgressUpdate } from '@nirman-app/shared';
+import { type ProjectProgressStage, type ProjectProgressSummary, type ProjectProgressUpdate } from '@nirman-app/shared';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppIcon, AppText, Button, Card, CompactScreenHeader, EmptyState, IconButton, LoadingState, NirmanScreenBackground, OperationalEntityCard, ProgressRing } from '../../components/ui';
@@ -51,7 +53,7 @@ export function ProgressScreen() {
     append ? setLoadingMore(true) : setLoading(true);
     setError('');
     try {
-      const [list, nextSummary] = await Promise.all([
+      const [list, nextSummary] = await refreshTogether([
         fetchProgressHistory(organizationId, projectId, token, { page: nextPage, pageSize: 20, stage }),
         append ? Promise.resolve(null) : fetchProgressSummary(organizationId, projectId, token),
       ]);
@@ -151,7 +153,7 @@ export function ProgressScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={loading ? <LoadingState label={t('loading.list')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={stage ? t('empty.filteredTitle') : t('empty.title')} description={stage ? t('empty.filteredDescription') : t('empty.description')} actionLabel={canUpdate ? t('update.action') : undefined} onAction={canUpdate ? () => setUpdateOpen(true) : undefined} />}
         ListFooterComponent={loadingMore ? <LoadingState label={t('loading.more')} /> : null}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(1); }} />}
+        refreshControl={<GuardedRefreshControl busy={loading || refreshing} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(1); }} />}
         onEndReachedThreshold={0.35}
         onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}
         renderItem={({ item }) => (

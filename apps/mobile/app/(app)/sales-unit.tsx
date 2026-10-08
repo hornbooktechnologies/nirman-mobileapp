@@ -8,5 +8,5 @@ export default function SalesUnitRoute() {
   const { session } = useSession();
   const permissions = getActiveProjectPermissions(session);
   if (!permissions.includes('inventory:read')) return <Redirect href="/(app)/dashboard" />;
-  return <SalesUnitScreen />;
+  return <SalesUnitScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
 }

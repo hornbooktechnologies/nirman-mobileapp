@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 
 import { useRef, useState, type FormEvent } from "react";
 import type { WorkerDetail, WorkerPrimaryProjectPeriod } from "@nirman-app/shared";
@@ -70,7 +72,7 @@ export function WorkerPrimaryPeriods({ organizationId, worker }: { organizationI
           </li>;
         })}
       </ul>}
-      <Button variant="outline" disabled={periods.isFetching} onClick={() => void periods.refetch()}>{periods.isFetching ? "Refreshing…" : "Refresh history"}</Button>
+      <RefreshButton busy={periods.isFetching} variant="outline" disabled={periods.isFetching} onRefresh={() => periods.refetch()}>{periods.isFetching ? "Refreshing…" : "Refresh history"}</RefreshButton>
     </>}
     <Dialog open={Boolean(editor)} title={editor?.kind === "end" ? "End primary-project period" : editor?.kind === "correct" ? "Correct primary-project period" : editor?.kind === "transfer" ? "Change primary project" : "Add primary-project period"} description="Dates must fit the assignment. Changing primary project closes the previous period on the day before the effective date and preserves later scheduled periods." onOpenChange={open => { if (!open) close(); }}>
       <form onSubmit={submit} className="space-y-4 text-base">

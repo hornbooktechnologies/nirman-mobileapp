@@ -153,6 +153,7 @@ export function MembersScreen() {
       !needle ||
       member.user?.name.toLowerCase().includes(needle) ||
       member.user?.email?.toLowerCase().includes(needle) ||
+      member.user?.phone?.toLowerCase().includes(needle) ||
       member.role?.name.toLowerCase().includes(needle) ||
       member.designation?.toLowerCase().includes(needle)
     );

@@ -1,3 +1,5 @@
+import { refreshTogether } from '@nirman-app/shared';
+import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
 import {
   isCalendarDate,
@@ -14,13 +16,7 @@ import {
 } from "@nirman-app/shared";
 import { router, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Alert, FlatList, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -194,7 +190,7 @@ export function ExpensesScreen() {
       append ? setLoadingMore(true) : setLoading(true);
       setError("");
       try {
-        const [list, nextSummary, nextSettings] = await Promise.all([
+        const [list, nextSummary, nextSettings] = await refreshTogether([
           fetchExpenses(organizationId, projectId, token, {
             ...query,
             page: nextPage,
@@ -617,11 +613,11 @@ export function ExpensesScreen() {
           loadingMore ? <LoadingState label={t("loading.more")} /> : null
         }
         refreshControl={
-          <RefreshControl
+          <GuardedRefreshControl busy={loading || refreshing}
             refreshing={refreshing}
-            onRefresh={() => {
+            onRefresh={async () => {
               setRefreshing(true);
-              void load(1);
+              await load(1);
             }}
           />
         }

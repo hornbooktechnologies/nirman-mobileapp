@@ -14,5 +14,5 @@ export default function SalesRoute() {
     return <Redirect href="/(app)/dashboard" />;
   }
 
-  return <SalesScreen />;
+  return <SalesScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
 }

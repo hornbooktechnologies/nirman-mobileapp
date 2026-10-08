@@ -1,6 +1,10 @@
+import { refreshTogether } from '@nirman-app/shared';
+import { RefreshFlatList } from "../../components/ui/refresh-control";
+
+import { RefreshIconButton } from "../../components/ui/refresh-button";
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -122,6 +126,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
   const projectPermissions = activeProject?.permissions ?? getActiveProjectPermissions(session);
+  const workerScope = `${organizationId}:${projectId}:${session?.user.id}:${projectPermissions.join(',')}`;
   const canCreate = projectPermissions.includes('workers:create');
   const canAssign = projectPermissions.includes('workers:assign-project');
   const canUpdateRate = projectPermissions.includes('workers:update-rate');
@@ -168,22 +173,31 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   const [rateSuccess, setRateSuccess] = useState('');
   const [rateFieldErrors, setRateFieldErrors] = useState<RateChangeErrors>({});
   const hasLoaded = useRef(false);
+  const searchSequence = useRef(0);
+  const rosterCache = useRef<{ scope: string; data: ProjectWorkerRosterItem[] } | null>(null);
 
   const loadWorkers = useCallback(async (refresh = false) => {
     if (!session?.accessToken || !organizationId || !projectId) return;
     if (refresh) setIsRefreshing(true);
     else setIsLoading(true);
+    const sequence = ++searchSequence.current;
+    if (rosterCache.current?.scope !== workerScope) { setWorkers([]); setRoster([]); hasLoaded.current = false; }
     setError('');
     setAvailabilityMessage('');
     try {
-      const [organizationWorkers, projectRoster] = await Promise.all([
-        fetchOrganizationWorkers(organizationId, session.accessToken),
-        fetchProjectWorkers(organizationId, projectId, session.accessToken),
+      const [organizationWorkers, projectRoster] = await refreshTogether([
+        fetchOrganizationWorkers(organizationId, session.accessToken, search),
+        !refresh && rosterCache.current?.scope === workerScope
+          ? Promise.resolve({ data: rosterCache.current.data })
+          : fetchProjectWorkers(organizationId, projectId, session.accessToken),
       ]);
+      if (sequence !== searchSequence.current) return;
       setWorkers(organizationWorkers.data);
+      rosterCache.current = { scope: workerScope, data: projectRoster.data };
       setRoster(projectRoster.data);
       hasLoaded.current = true;
     } catch (loadError) {
+      if (sequence !== searchSequence.current) return;
       if (loadError instanceof ApiRequestError && loadError.status === 401) {
         await signOut();
         return;
@@ -201,13 +215,16 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       if (hasLoaded.current) setAvailabilityMessage(message);
       else setError(message);
     } finally {
-      if (refresh) setIsRefreshing(false);
-      else setIsLoading(false);
+      if (sequence === searchSequence.current) {
+        setIsRefreshing(false);
+        setIsLoading(false);
+      }
     }
-  }, [organizationId, projectId, refreshSession, session?.accessToken, signOut, t]);
+  }, [workerScope, search, organizationId, projectId, refreshSession, session?.accessToken, signOut, t]);
 
   useEffect(() => {
     void loadWorkers();
+    return () => { searchSequence.current += 1; };
   }, [loadWorkers]);
 
   const rosterByWorkerId = useMemo(
@@ -223,19 +240,12 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
   );
   const activeFilterCount = Number(filter !== 'all') + Number(tradeFilter !== null);
   const visibleWorkers = workers.filter((worker) => {
-    const needle = search.trim().toLowerCase();
-    const matchesSearch = (
-      !needle ||
-      worker.name.toLowerCase().includes(needle) ||
-      worker.workerCode.toLowerCase().includes(needle) ||
-      worker.trade.toLowerCase().includes(needle)
-    );
     const isAssignedHere = rosterByWorkerId.has(worker.id);
     const isWorkingHere = rosterByWorkerId.get(worker.id)?.isPrimaryForDate === true;
     const matchesFilter = filter === 'all'
       || (filter === 'working_here' ? isWorkingHere : filter === 'assigned_here' ? isAssignedHere : !isAssignedHere);
     const matchesTrade = tradeFilter === null || worker.trade.trim() === tradeFilter;
-    return matchesSearch && matchesFilter && matchesTrade;
+    return matchesFilter && matchesTrade;
   });
   const detailProjectWorker = detailWorker ? rosterByWorkerId.get(detailWorker.id) : undefined;
   const activeDetailAssignments = workerDetail?.assignments.filter((assignment) => assignment.status === 'ACTIVE') ?? [];
@@ -285,7 +295,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
     setRateSuccess('');
     setDetailLoading(true);
     try {
-      const [detail, periods] = await Promise.all([
+      const [detail, periods] = await refreshTogether([
         fetchWorkerDetail(organizationId, worker.id, session.accessToken),
         fetchWorkerPrimaryProjectPeriods(organizationId, worker.id, session.accessToken),
       ]);
@@ -735,11 +745,11 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           <AppText style={styles.subtle} weight={500}>{t('panel.assignedCount', { count: roster.length })}</AppText>
         </View>
         <View style={styles.toolbarActions}>
-          <IconButton
+          <RefreshIconButton busy={isLoading || isRefreshing}
             icon="refresh"
             accessibilityLabel={t('panel.refreshA11y')}
             disabled={isLoading || isRefreshing}
-            onPress={() => void loadWorkers(true)}
+            onRefresh={() => loadWorkers(true)}
           />
           {canCreate && canAssign ? (
             <IconButton icon="account-hard-hat-outline" accessibilityLabel={t('panel.addA11y')} variant="primary" onPress={() => setShowCreate(true)} />
@@ -776,7 +786,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
       {!isLoading && !error ? embedded ? (
         visibleWorkers.length ? <View style={styles.list}>{visibleWorkers.map((worker) => <View key={worker.id}>{renderWorkerCard(worker)}</View>)}</View> : <EmptyState title={search || activeFilterCount ? t('panel.noMatchTitle') : t('panel.noWorkersTitle')} description={search || activeFilterCount ? t('panel.tryAnother') : t('panel.addOnline')} />
       ) : (
-        <FlatList
+        <RefreshFlatList busy={isLoading || isRefreshing}
           contentContainerStyle={[styles.list, !visibleWorkers.length && styles.emptyList]}
           data={visibleWorkers}
           initialNumToRender={10}
@@ -787,7 +797,7 @@ export function WorkersPanel({ embedded = false, projectIdOverride }: { embedded
           renderItem={({ item }) => renderWorkerCard(item)}
           refreshing={isRefreshing}
           showsVerticalScrollIndicator={false}
-          onRefresh={() => void loadWorkers(true)}
+          onRefresh={() => loadWorkers(true)}
           windowSize={7}
         />
       ) : null}

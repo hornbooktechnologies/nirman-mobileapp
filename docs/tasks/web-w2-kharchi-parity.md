@@ -64,3 +64,9 @@ Resolve the unrelated whole-Web compilation/lint errors in their owning slices, 
 ## 9. Recommendation
 
 Proceed with authorized acceptance testing when the environment and test fixtures are available. Preserve the current backend contract.
+
+## 2026-10-08 - Web Kharchi information matches Mobile
+
+Audited Mobile English locale/list/detail/forms against Web and the approved Kharchi contract. Web now displays PAID as Deduction pending, PARTIALLY_DEDUCTED as Partly deducted and DEDUCTED as Fully deducted on list/detail badges and filter options. One typed Web mapping also preserves Cash, UPI, Bank transfer and Other across list/detail/filter/form. Aligned balance, adjustment, payment/history and record-action wording; adjustment history explicitly identifies Increase/Decrease; removed stale CSV filter copy for the current PDF export. Server amounts/status enums, permissions, retry safeguards and financial calculations remain authoritative. Existing additional Web ledger/context information is retained.
+
+Verification: Web typecheck, scoped Kharchi ESLint, five existing rules tests, direct equality comparison with Mobile English status/payment-method resources and diff check passed. React checklist reviewed; ui-ux-pro-max companion unavailable, existing design components used. No API/Mobile/database changes or deployment. Authenticated browser/cross-client and device acceptance remain pending.

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-explicit-any */
+import type { KharchiListResponse } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { KharchiRepository } from "./kharchi.repository";
@@ -172,6 +173,7 @@ describe("KharchiService", () => {
           paymentMethod: "CASH",
           paymentReference: null,
           recordedBy: actor.id,
+          recordedByName: "Nishant",
           paidAt: "2026-08-31T10:00:00.000Z",
           notes: 'Site "A"',
         },
@@ -183,5 +185,36 @@ describe("KharchiService", () => {
 
     expect(result.csv).toContain('"WRK-001","Ravi"');
     expect(result.csv).toContain('"Site ""A"""');
+    expect(result.csv).toContain('"Nishant"');
+    expect(result.csv).not.toContain(actor.id);
   });
+
+  it.each([null, undefined, "", "   "])(
+    "uses a readable export fallback rather than the recorder UUID when the name is %p",
+    async (recordedByName) => {
+      repository.findMany.mockResolvedValue({
+        items: [
+          { workerCode: "WRK-001", recordedBy: actor.id, recordedByName },
+        ],
+        pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
+      } as unknown as KharchiListResponse);
+      const report = await service.exportReport(
+        organizationId,
+        projectId,
+        {},
+        actor,
+      );
+      const table = report.tables[0];
+      expect(table.rows[0][table.headers.indexOf("Recorded By")]).toBe(
+        "Name unavailable",
+      );
+      expect(JSON.stringify(report.tables)).not.toContain(actor.id);
+      expect(projectAccess.resolveProjectAccess).toHaveBeenCalledWith(
+        actor,
+        organizationId,
+        projectId,
+        "kharchi:export",
+      );
+    },
+  );
 });

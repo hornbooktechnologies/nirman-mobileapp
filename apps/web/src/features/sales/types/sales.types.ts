@@ -35,6 +35,7 @@ export type SiteVisitUpdate = {
   nextAction?: string;
 };
 export type SiteVisitQuery = {
+  search?: string;
   status?: SiteVisitStatus;
   assignedSalesperson?: string;
   scheduledFrom?: string;
@@ -144,6 +145,7 @@ export type LeadQuery = {
   limit?: number;
 };
 export type FollowUpQuery = {
+  search?: string;
   status?: string;
   assignedTo?: string;
   from?: string;

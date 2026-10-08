@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -212,11 +214,11 @@ function Import({ c }: { c: SalesContext }) {
       )}
       {!!units.length && !localErrors.length && !success && (
         <div className="flex flex-wrap gap-3">
-          <Button
+          <RefreshButton
             variant="outline"
             disabled={pending}
-            onClick={() =>
-              void run(async () => {
+            onRefresh={() =>
+              run(async () => {
                 setPreview(undefined);
                 const result = await inventoryService.preview(
                   c.org,
@@ -228,7 +230,7 @@ function Import({ c }: { c: SalesContext }) {
             }
           >
             Refresh server preview
-          </Button>
+          </RefreshButton>
           <Button
             disabled={pending || !valid}
             onClick={() =>

@@ -48,7 +48,7 @@ AI agents must read this file before starting new module work.
 
 ## 5. Sales Modules
 
-Web W7a Leads/Activities/Follow-ups is implemented with focused verification; authenticated acceptance and API gaps remain open. See [W7a Sales parity](../tasks/web-w7a-sales-parity.md). W7b/c/d Web delivery is not implied.
+Sales Web/Mobile client parity is source-implemented across Leads/Activities, Follow-ups, Site Visits, Inventory/interests/holds/import and Bookings. 44 Sales tests, Mobile typecheck, Web build/lint, Android export and locale validation pass. Authenticated cross-client/role and physical-device acceptance remain pending; existing API gaps are tracked separately. See [cross-client checklist and evidence](../tasks/sales-cross-client-parity.md) and the historical W7a/b/c/d task records.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |

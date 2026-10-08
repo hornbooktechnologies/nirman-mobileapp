@@ -1,4 +1,7 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
+import { SearchInput } from "@/components/ui/search-input";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, Input, Select, Textarea } from "@/components/ui";
 import { failureMessage, instant, label } from "../sales-rules";
@@ -185,13 +188,11 @@ export function SalesForm({
                   {f.required ? " *" : ""}
                 </label>
                 {f.options && f.options.length > 10 && (
-                  <Input
+                  <SearchInput
                     aria-label={`Search ${f.label.toLowerCase()} choices`}
                     placeholder="Search choices"
                     value={searches[f.name] ?? ""}
-                    onChange={(e) =>
-                      setSearches((s) => ({ ...s, [f.name]: e.target.value }))
-                    }
+                    onValueChange={(e) => setSearches((s) => ({ ...s, [f.name]: e }))}
                     className="mb-2"
                   />
                 )}
@@ -249,11 +250,11 @@ export function SalesForm({
           <div role="alert">
             <p>{error}</p>
             {review && (
-              <Button
+              <RefreshButton
                 type="button"
                 variant="outline"
                 disabled={pending}
-                onClick={async () => {
+                onRefresh={async () => {
                   if (locked.current) return;
                   locked.current = true;
                   setPending(true);
@@ -272,7 +273,7 @@ export function SalesForm({
                 }}
               >
                 Refresh current data
-              </Button>
+              </RefreshButton>
             )}
           </div>
         )}

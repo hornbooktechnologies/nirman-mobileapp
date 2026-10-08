@@ -233,7 +233,7 @@ export class KharchiService {
         row.status,
         row.paymentMethod,
         row.paymentReference ?? "",
-        row.recordedBy,
+        row.recordedByName?.trim() || "Name unavailable",
         row.paidAt,
         row.notes ?? "",
       ]),

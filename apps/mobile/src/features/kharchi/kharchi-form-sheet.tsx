@@ -1,5 +1,5 @@
 import { KHARCHI_PAYMENT_METHODS, type ProjectWorkerRosterItem } from '@nirman-app/shared';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -66,30 +66,32 @@ export function KharchiFormSheet({ visible, organizationId, projectId, accessTok
   const [idempotencyKey, setIdempotencyKey] = useState(mutationKey);
   const [attempted, setAttempted] = useState(false);
 
+  const workerRead = useRef(0);
+  const workerDate = useRef(requestDate);
   const loadWorkers = useCallback(async () => {
     if (!visible) return;
+    const sequence = ++workerRead.current;
+    if (workerDate.current !== requestDate) { setWorker(null); workerDate.current = requestDate; }
     setIsLoadingWorkers(true);
     try {
-      const response = await fetchEligibleKharchiWorkers(organizationId, projectId, requestDate, accessToken);
+      const response = await fetchEligibleKharchiWorkers(organizationId, projectId, requestDate, accessToken, workerSearch);
+      if (sequence !== workerRead.current) return;
       setWorkers(response.data);
-      setWorker((selected) => selected && response.data.some((item) => item.currentAssignment.id === selected.currentAssignment.id) ? selected : null);
+      if (!workerSearch) setWorker((selected) => selected && response.data.some((item) => item.currentAssignment.id === selected.currentAssignment.id) ? selected : null);
       setError('');
     } catch (loadError) {
+      if (sequence !== workerRead.current) return;
       setWorkers([]);
-      setWorker(null);
+      if (!workerSearch) setWorker(null);
       setError(getLocalizedErrorMessage(loadError, t('errors.workersUnavailable')));
     } finally {
-      setIsLoadingWorkers(false);
+      if (sequence === workerRead.current) setIsLoadingWorkers(false);
     }
-  }, [accessToken, organizationId, projectId, requestDate, t, visible]);
+  }, [accessToken, organizationId, projectId, requestDate, t, visible, workerSearch]);
 
-  useEffect(() => { void loadWorkers(); }, [loadWorkers]);
+  useEffect(() => { void loadWorkers(); return () => { workerRead.current += 1; }; }, [loadWorkers]);
 
-  const visibleWorkers = useMemo(() => {
-    const needle = workerSearch.trim().toLocaleLowerCase();
-    if (!needle) return workers;
-    return workers.filter((item) => `${item.workerCode} ${item.name} ${item.trade}`.toLocaleLowerCase().includes(needle));
-  }, [workerSearch, workers]);
+  const visibleWorkers = workers;
 
   function changed() {
     if (attempted) {

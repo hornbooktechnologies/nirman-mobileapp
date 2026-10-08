@@ -1,4 +1,5 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
 /* eslint-disable @next/next/no-img-element -- Local file previews use revocable Blob URLs. */
 import { useEffect, useRef, useState } from "react";
 import { GALLERY_CATEGORIES, PROJECT_PROGRESS_STAGES, type GalleryCategory, type ProjectProgressStage } from "@nirman-app/shared";
@@ -89,7 +90,7 @@ export function UploadPanel({ context: c, uploaded }: { context: GalleryContext;
   return <section className="space-y-3" aria-label="Photo upload">
     {permitted && <Button variant="primary" onClick={() => { setError(""); setOpen(true); }}>Add photo</Button>}
     {message && <p role="status">{message}</p>}
-    {error && !open && <div><p role="alert">{error}</p><Button variant="outline" onClick={() => { setError(""); void refresh().catch(e => setError(e.message)); }}>Reload queue</Button></div>}
+    {error && !open && <div><p role="alert">{error}</p><RefreshButton variant="outline" onRefresh={() => { setError(""); return refresh().catch(e => setError(e.message)); }}>Reload queue</RefreshButton></div>}
     {queue.length > 0 && <Card><h2 className="text-lg font-semibold">Upload queue · {queue.length}</h2><p className="text-sm text-sub">Stored on this browser until uploaded or signed out. Queued photos are not yet published.</p><ul className="mt-3 space-y-3">{queue.map(row => <li key={row.entryId} className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3"><div className="min-w-0"><p className="break-all font-semibold">{row.fileName}</p><p className="text-sm">{busy === row.entryId ? "Uploading…" : label(row.state)} · {row.attempts} attempts</p>{row.lastError && <p className="text-sm" role="alert">{row.lastError}</p>}</div><Button variant="outline" disabled={!permitted || Boolean(busy)} onClick={() => void send(row)}>{busy === row.entryId ? "Uploading…" : "Retry upload"}</Button></li>)}</ul></Card>}
     <Dialog open={open} title="Add site photo" description="JPEG, PNG or WebP, up to 10 MiB. Photos publish directly after upload." onOpenChange={close}>
       <form onSubmit={enqueue} className="space-y-4 text-base">

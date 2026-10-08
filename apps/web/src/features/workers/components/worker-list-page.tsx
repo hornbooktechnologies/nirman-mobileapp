@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -99,9 +101,7 @@ function WorkerList({ organizationId }: { organizationId: string }) {
     );
   }
   function refresh() {
-    void workers.refetch();
-    void access.refetch();
-    if (projectId) void roster.refetch();
+    return Promise.allSettled([workers.refetch(), access.refetch(), ...(projectId ? [roster.refetch()] : [])]);
   }
   const detailHref = (id: string) =>
     `/workers/${id}?${new URLSearchParams({ organizationId, ...(projectId ? { projectId } : {}), returnTo })}`;
@@ -112,13 +112,13 @@ function WorkerList({ organizationId }: { organizationId: string }) {
         description="Worker records, project assignments and current rate context."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button
+            <RefreshButton
               variant="outline"
-              disabled={workers.isFetching || roster.isFetching}
-              onClick={refresh}
+              disabled={workers.isFetching || roster.isFetching || access.isFetching}
+              onRefresh={refresh}
             >
               Refresh
-            </Button>
+            </RefreshButton>
             {hasPermission("workers:create") ? (
               <Link
                 className="inline-flex min-h-11 items-center rounded-inner bg-lime px-4 text-sm font-medium text-lime-ink"
@@ -261,9 +261,9 @@ function WorkerList({ organizationId }: { organizationId: string }) {
           title="Assignment context unavailable"
           description="Choose an accessible project in Filters or refresh access. Unknown assignments are never treated as unassigned."
           action={
-            <Button variant="outline" onClick={refresh}>
+            <RefreshButton busy={workers.isFetching || access.isFetching || roster.isFetching} variant="outline" onRefresh={refresh}>
               Refresh access and roster
-            </Button>
+            </RefreshButton>
           }
         />
       ) : null}

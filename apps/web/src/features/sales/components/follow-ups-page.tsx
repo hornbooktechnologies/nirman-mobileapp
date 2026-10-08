@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import Link from "next/link";
 import { Suspense, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -33,6 +35,7 @@ function FollowUps({ c }: { c: SalesContext }) {
     c.permissions.includes("leads:read-team") ||
     c.permissions.includes("leads:read-all");
   const assignedTo = team ? params.get("assignedTo") || undefined : undefined;
+  const search = params.get("search") ?? "";
   const from = params.get("from") ?? "";
   const to = params.get("to") ?? "";
   let dateError = "";
@@ -51,9 +54,10 @@ function FollowUps({ c }: { c: SalesContext }) {
   const query = useFollowUps(
     c.org,
     c.project,
-    { status, assignedTo, from: start, to: end },
+    { search: search || undefined, status, assignedTo, from: start, to: end },
     !dateError,
   );
+  const rows = query.data ?? [];
   const assignees = useAssignees(c);
   const [selected, setSelected] = useState<SalesFollowUp | null>(null);
   const snapshot = useRef<SalesFollowUp | null>(null);
@@ -70,13 +74,13 @@ function FollowUps({ c }: { c: SalesContext }) {
     <div className="space-y-5">
       <header className="flex flex-wrap justify-between gap-3">
         <h1 className="text-2xl font-semibold">Follow-ups</h1>
-        <Button
+        <RefreshButton busy={query.isFetching}
           variant="outline"
-          disabled={Boolean(dateError)}
-          onClick={() => void query.refetch()}
+          disabled={Boolean(dateError) || query.isFetching}
+          onRefresh={() => query.refetch()}
         >
           Refresh
-        </Button>
+        </RefreshButton>
       </header>
       <p>
         Schedule a follow-up from a lead’s detail page. Dates use {c.timezone}.
@@ -84,6 +88,7 @@ function FollowUps({ c }: { c: SalesContext }) {
       {success && <p role="status">{success}</p>}
       <SalesFilters
         name="follow-ups"
+        search={{ value: search, placeholder: "Customer name or mobile", maxLength: 160, onChange: search => router.replace(salesListUrl(pathname, params, { search }), { scroll: false }) }}
         scope={`Due dates use ${c.timezone}.`}
         value={{ status: status ?? "", from, to, ...(team ? { assignedTo: assignedTo ?? "" } : {}) }}
         fields={[
@@ -100,18 +105,18 @@ function FollowUps({ c }: { c: SalesContext }) {
       ) : query.isPending ? (
         <LoadingState label="Loading follow-ups" />
       ) : query.isError ? (
-        <Failure error={query.error} retry={() => void query.refetch()} />
+        <Failure error={query.error} retry={() => query.refetch()} />
       ) : (
         <>
           {query.isFetching && <p role="status">Refreshing follow-ups…</p>}
           <p className="text-sm text-sub">
-            {query.data.length} follow-ups · all matching records
+            {rows.length} follow-ups · all matching records
           </p>
-          {!query.data.length && (
+          {!rows.length && (
             <Card>No follow-ups match these filters.</Card>
           )}
           <ul className="grid gap-4 lg:grid-cols-2">
-            {query.data.map((f) => (
+            {rows.map((f) => (
               <li key={f.id}>
                 <Card className="flex h-full flex-col">
                   <div className="flex flex-wrap justify-between gap-2">

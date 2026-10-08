@@ -1,4 +1,6 @@
 "use client";
+import { RefreshButton } from "@/components/ui/refresh-button";
+
 import { downloadPdf } from "@/lib/exports/pdf";
 import { ExportProgress } from "@/components/common/export-progress";
 import Link from "next/link";
@@ -67,6 +69,7 @@ function List({ context }: { context: MaterialsContext }) {
       ).find((s) => s === params.get("sortBy")) ?? "updatedAt",
     sortOrder: params.get("sortOrder") === "asc" ? "asc" : "desc",
   }));
+  const [searchReset, setSearchReset] = useState(0);
   const [search, setSearch] = useState(query.search ?? "");
   const [create, setCreate] = useState(false);
   const [configure, setConfigure] = useState(false);
@@ -79,18 +82,6 @@ function List({ context }: { context: MaterialsContext }) {
       mounted.current = false;
     };
   }, []);
-  useEffect(() => {
-    const timer = setTimeout(
-      () =>
-        setQuery((q) =>
-          q.search === (search.trim() || undefined)
-            ? q
-            : { ...q, page: 1, search: search.trim() || undefined },
-        ),
-      300,
-    );
-    return () => clearTimeout(timer);
-  }, [search]);
   useEffect(() => {
     const next = new URLSearchParams();
     Object.entries(query).forEach(([key, value]) => {
@@ -133,16 +124,12 @@ function List({ context }: { context: MaterialsContext }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
+          <RefreshButton
             variant="outline"
-            onClick={() => {
-              void list.refetch();
-              void summary.refetch();
-              void settings.refetch();
-            }}
+            busy={list.isFetching || summary.isFetching || settings.isFetching} onRefresh={() => Promise.allSettled([list.refetch(), summary.refetch(), settings.refetch()])}
           >
             Refresh
-          </Button>
+          </RefreshButton>
           {can("configure") && context.active && (
             <Button
               variant="outline"
@@ -215,15 +202,15 @@ function List({ context }: { context: MaterialsContext }) {
         </section>
       )}
       <Card className="space-y-4">
-        <MaterialsCollectionFilters
-          query={query} search={search} onSearch={setSearch}
+        <MaterialsCollectionFilters key={searchReset}
+          query={query} search={search} onSearch={value => { setSearch(value); setQuery(q => ({ ...q, page: 1, search: value || undefined })); }}
           onApply={setQuery} members={members.data ?? []}
           canReadMembers={context.permissions.includes("project-members:read")}
           memberSearch={memberSearch} onMemberSearch={setMemberSearch}
           memberState={<>{members.isPending && <p role="status">Loading members…</p>}{members.isError && <Failure error={members.error} retry={() => void members.refetch()} />}</>}
         />
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => { setSearch(""); setMemberSearch(""); setQuery(defaultMaterialsQuery); }}>Clear all</Button>
+          <Button variant="outline" onClick={() => { setSearchReset(n => n + 1); setSearch(""); setMemberSearch(""); setQuery(defaultMaterialsQuery); }}>Clear all</Button>
           {can("export") && <Button variant="outline" disabled={exporting.isPending} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing PDF…" : "Export filtered PDF"}</Button>}
         </div>
         {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered PDF to retry.</p>}
@@ -399,7 +386,7 @@ function Settings({
         {mutation.isError && (
           <div className="space-y-2">
             <p role="alert" className="text-danger">{mutation.error.message}</p>
-            <Button variant="outline" onClick={() => { void cache.invalidateQueries({ queryKey: materialKey(context.org, context.project) }); close(); }}>Close and refresh settings</Button>
+            <RefreshButton variant="outline" onRefresh={async () => { await cache.invalidateQueries({ queryKey: materialKey(context.org, context.project) }); close(); }}>Close and refresh settings</RefreshButton>
           </div>
         )}
         <label>
