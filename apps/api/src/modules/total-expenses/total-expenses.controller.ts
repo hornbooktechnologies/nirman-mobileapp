@@ -16,6 +16,19 @@ import { TotalExpensesQueryDto } from "./total-expenses.dto";
 @UseGuards(PermissionsGuard)
 export class TotalExpensesController {
   constructor(private readonly service: TotalExpensesService) {}
+  @Get("materials")
+  @RequirePermissions("total-expenses:read")
+  async materials(
+    @Param("organizationId", new ParseUUIDPipe()) org: string,
+    @Param("projectId", new ParseUUIDPipe()) project: string,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Query() q: TotalExpensesQueryDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.read(org, project, actor, q, "materials"),
+    };
+  }
   @Get()
   @RequirePermissions("total-expenses:read")
   async list(

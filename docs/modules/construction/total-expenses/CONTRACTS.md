@@ -10,6 +10,16 @@ Kharchi is excluded: this report is not every project cash outflow. Refunds, bud
 
 ## B. Domain Terminology
 
+### Materials visibility clarification — 2026-10-09
+
+The owner's Mobile/Web/API Materials-tab fix adds a read-only **all-time material commitment and delivery overview** alongside the existing paid report. It does not change the total-paid accounting rule or infer payments. The Materials tab lists every scoped request, including unpaid/request-only records, grouped by request with explicit workflow status. All/paid cards and summaries retain their payment-date filtering and purchase-level aggregation.
+
+`GET /total-expenses/materials` uses the same report permission and project access, validated pagination (default 1/20, maximum 100), response `{ materials: MaterialExpenseCard[], pagination }` and repeatable-read snapshot. It returns requested/ordered/delivered quantities, awaiting-delivery `max(ordered-delivered,0)`, not-yet-ordered `max(requested-ordered,0)`, request estimate, order cost, lifetime active payments and balance due. Dates/source are not applied to this all-time snapshot; clients send page/pageSize only and explicitly explain that period filters apply to paid totals above. Sort is request date descending then request ID ascending. Request state is visible, including draft/rejected/cancelled; estimates never establish a commitment. Source detail links still require materials:read.
+
+Purchases, deliveries and active payments aggregate independently within tenant/project scope, avoiding multiplication. If any purchase total is missing, order cost and balance are null with an unpriced-purchase count; do not substitute an estimate or present an incomplete sum as a complete cost. No orders means zero committed cost, while a missing request estimate remains null. Remaining financial balance is `max(order cost - lifetime active payments,0)` only when every purchase cost is known. Delivery is a quantity milestone, not an accounting/payment event. Request-level deliveries can be unlinked to purchases, so no delivered monetary value is inferred, particularly for differently priced orders.
+
+Example: 50 bags requested with ₹5,000 estimate; 30 ordered for ₹3,000; 20 delivered. Show 10 awaiting delivery, 20 not yet ordered, ₹3,000 order cost, ₹0 paid and ₹3,000 due until an explicit payment is recorded. A later ₹1,000 payment makes lifetime paid ₹1,000 and balance ₹2,000; the selected-period paid total includes that payment only when its payment date is within the range. No schema changes, payment commands, approval changes or historical backfill are introduced.
+
 - **Payment**: an explicitly recorded dated amount, distinct from approval, purchase, delivery, estimate and recognized cost.
 - **Active payment**: a payment without an immutable void record. Existing wage payments retain existing wage semantics.
 - **Period paid**: active payments whose payment dates are within the inclusive selected range.

@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 
+// Local LAN development can override the deployed API in .env.development.local
+// with http://localhost:4000/api/v1; resolveApiBaseUrl uses the Expo host on devices.
 const configuredApiBaseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
-
-  // const configuredApiBaseUrl = 'http://localhost:4000/api/v1';
 
 function isLocalDevelopmentHost(hostname: string) {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {

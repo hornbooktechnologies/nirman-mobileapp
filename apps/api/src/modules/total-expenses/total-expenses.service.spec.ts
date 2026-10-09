@@ -8,6 +8,7 @@ describe("Total Expenses access and query boundaries", () => {
   const repo = {
     summary: jest.fn(),
     list: jest.fn(),
+    materials: jest.fn(),
   } as unknown as jest.Mocked<TotalExpensesRepository>;
   const access = {
     resolveProjectAccess: jest.fn(),
@@ -37,6 +38,32 @@ describe("Total Expenses access and query boundaries", () => {
     await service.read("org", "project", actor, q, true);
     expect(repo.summary).toHaveBeenCalledWith("org", "project", q);
     expect(access.resolveProjectAccess).toHaveBeenCalledTimes(1);
+  });
+  it("material overview uses the dedicated report permission and never requires payment or source-read permission", async () => {
+    const q = new TotalExpensesQueryDto();
+    await service.read("org", "project", actor, q, "materials");
+    expect(access.resolveProjectAccess).toHaveBeenCalledWith(
+      actor,
+      "org",
+      "project",
+      "total-expenses:read",
+    );
+    expect(repo.materials).toHaveBeenCalledWith("org", "project", q);
+    expect(repo.list).not.toHaveBeenCalled();
+    expect(repo.summary).not.toHaveBeenCalled();
+  });
+  it("denies material snapshots before any repository read when project access fails", async () => {
+    access.resolveProjectAccess.mockRejectedValue(new Error("Forbidden"));
+    await expect(
+      service.read(
+        "org",
+        "project",
+        actor,
+        new TotalExpensesQueryDto(),
+        "materials",
+      ),
+    ).rejects.toThrow("Forbidden");
+    expect(repo.materials).not.toHaveBeenCalled();
   });
   it.each([
     { startDate: "2026-09-01" },

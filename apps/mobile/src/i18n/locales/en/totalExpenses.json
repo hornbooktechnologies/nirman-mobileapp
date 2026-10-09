@@ -69,5 +69,19 @@
   "paymentInactive": "Payments can only be recorded for an approved expense in an active project.",
   "paymentDenied": "Your project access does not allow recording payments.",
   "paymentSettled": "There is no remaining balance to pay.",
-  "paymentStale": "This record changed. Refresh and review its latest balance before recording another payment."
+  "paymentStale": "This record changed. Refresh and review its latest balance before recording another payment.",
+  "materialOverview": "Material commitments & delivery",
+  "materialNotice": "Current all-time quantities and balances. Period filters apply to paid totals above. Estimates and order costs are separate from payments; deliveries do not create payments.",
+  "materialsEmpty": "No material requests for this project.",
+  "requestedQuantity": "Requested",
+  "orderedQuantity": "Ordered",
+  "deliveredQuantity": "Delivered",
+  "awaitingDelivery": "Awaiting delivery",
+  "unorderedQuantity": "Not yet ordered",
+  "requestEstimate": "Request estimate",
+  "orderCost": "Order cost",
+  "balanceDue": "Balance due",
+  "notRecorded": "Not recorded",
+  "unpricedOrders": "Some purchases have no recorded total. Complete their costs to see the order cost and balance due.",
+  "viewOrdersPayments": "View orders & payments"
 }

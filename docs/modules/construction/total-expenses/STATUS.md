@@ -1,5 +1,23 @@
 # Total Expenses status
 
+## 2026-10-09 Mobile Materials upstream fix
+
+Mobile LAN Expo still used the deployed Web API URL from its `.env`; that upstream returned 404 for the newly implemented Materials overview, surfaced as generic temporary unavailability. Added ignored development-only `apps/mobile/.env.development.local` with EXPO_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1. Existing mobile configuration remaps local hosts to Expo's device-visible LAN hostname. Production `.env` remains unchanged; documented the local override in app.ts. Running Metro reloaded the environment automatically.
+
+Verified actual served Android bundle HTTP 200 contains the local API setting; LAN Expo manifest supplies `192.168.1.39:8081`, resolving device API to `http://192.168.1.39:4000/api/v1`. Authenticated GET-only runtime smoke through that LAN API passed for the screenshot project, including Materials quantities/balances and paid-summary reconciliation. Device must reload its cached bundle. Physical-device interaction is not claimed; no database mutation or remote deployment.
+
+## 2026-10-09 Local Materials 404 runtime fix
+
+User screenshot reproduced: local Web proxied `/total-expenses/materials` to the deployed Web/API upstream, which lacked the new route (HTTP 404), while local port 4000 recognized it. Corrected ignored `apps/web/.env.local` NEXT_PUBLIC_API_URL to `http://localhost:4000` and documented local configuration in next.config.ts. Next's configuration watcher restarted the local Web process and reloaded the rewrite. No remote deployment or database mutation.
+
+Extended the existing authenticated read-only smoke with material quantity/cost reconciliation, missing-cost behavior, grouped IDs, pagination validation and signed-out denial; optional project-ID selection targets a reported project. Passed through `http://localhost:3000/api/v1`, including the exact screenshot project `221d900e-7830-4519-8036-b03a4ac77541`. This verifies the local Web proxy → API → database → response boundary. User-browser rendering and physical-device acceptance remain separate.
+
+## 2026-10-09 Materials commitment and delivery overview
+
+Implemented the owner's Materials-tab fix across API/shared/Web/Mobile. The prior payment-only category list hid all requests/orders without payments. New report-authorized GET `/total-expenses/materials` returns every project request with independently aggregated requested/ordered/delivered/awaiting/unordered quantities, request estimate, order cost, lifetime active payments and balance due. Nullable incomplete costs avoid false zero/partial totals. Pagination/snapshot/tenant scope and source-detail permission gates are retained; paid totals, monthly bars and existing paid list semantics are unchanged. Clients clearly label all-time material balances versus period-filtered payments and Mobile includes en/hi/gu parity. Existing design primitives and React review applied; ui-ux-pro-max unavailable.
+
+Verified: shared build; API build and API/Web/Mobile typechecks; scoped API/Web ESLint; 111 API tests in nine suites (including report/source-payment/materials regression); six client tests covering request routes/auth/cancellation, period-summary reuse and scoped return navigation; 19 locale namespaces across three languages; diff checks. Extended `verify-paid-spending-readonly.ts` ran actual MySQL SELECT-only inline fixtures for the 50/30/20 example, missing costs, multiple deliveries, active/void payments, foreign child exclusions, request-only visibility, pagination and paid-summary reconciliation. No persisted data, schema or deployment changed. Authenticated new-endpoint/browser and physical-device acceptance are unrun; API then Web/Mobile rollout is needed to expose this change to deployed clients.
+
 ## 2026-10-06 Mobile controls and loading feedback
 
 Period/refresh controls and source filters now use even two-column rows instead of spaced wrapping buttons. Shared button labels can shrink/wrap with icons and larger text. The report renders an 88px loader below source filters during initial reads, refresh, category and page changes, including when the summary is cached and the list has been cleared. Refresh shows busy feedback and pagination is disabled while loading. Shared Lottie loading has a native spinner fallback on animation failure; loading states announce busy status. Existing scoped summary reuse, report permissions and financial behavior are preserved.

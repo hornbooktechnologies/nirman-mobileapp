@@ -26,6 +26,7 @@ import { getLocalizedErrorMessage } from "../../../i18n";
 import { isValidEmail } from "../../../lib/validation";
 import { useSession } from "../../../providers";
 import { brandAssets, mobileShadows, mobileText, mobileTheme } from "../../../theme";
+import { PoweredByHornbook } from "./powered-by-hornbook";
 
 export function LoginScreen() {
   const { t } = useTranslation("auth");
@@ -222,6 +223,7 @@ export function LoginScreen() {
                 </View>
               </GlassCard>
               <LanguagePicker compact showDescription={false} />
+              <PoweredByHornbook />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

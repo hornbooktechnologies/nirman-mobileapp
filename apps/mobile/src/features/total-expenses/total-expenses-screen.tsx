@@ -1,4 +1,4 @@
-import { refreshTogether } from '@nirman-app/shared';
+import { refreshTogether } from "@nirman-app/shared";
 
 import { RefreshButton } from "../../components/ui/refresh-button";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,6 +18,7 @@ import {
   type SpendingSource,
   type SpendingCard,
   type TotalExpensesList,
+  type MaterialExpensesList,
   type TotalExpensesSummary,
   type TotalExpensesQuery,
 } from "@nirman-app/shared";
@@ -43,6 +44,7 @@ import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import { PeriodSummaryRequest } from "./period-summary-request";
 import { fetchSpending } from "./services";
+import { MaterialExpenseCardView } from "./material-expense-card";
 type Filters = {
   period: SpendingPeriod;
   year: number;
@@ -102,6 +104,9 @@ function Report({
   const [dateError, setDateError] = useState("");
   const [summary, setSummary] = useState<TotalExpensesSummary | null>(null);
   const [list, setList] = useState<TotalExpensesList | null>(null);
+  const [materialList, setMaterialList] = useState<MaterialExpensesList | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const seq = useRef(0);
@@ -128,7 +133,10 @@ function Report({
       listController.current?.abort();
       const controller = new AbortController();
       listController.current = controller;
-      if (lastListKey.current !== listKey) setList(null);
+      if (lastListKey.current !== listKey) {
+        setList(null);
+        setMaterialList(null);
+      }
       lastListKey.current = listKey;
       setLoading(true);
       setError("");
@@ -149,23 +157,29 @@ function Report({
         );
         const [s, l] = await refreshTogether([
           summaryPromise,
-          fetchSpending<TotalExpensesList>(
+          fetchSpending<TotalExpensesList | MaterialExpensesList>(
             org,
             project.id,
             token,
             {
-              ...filters.range,
+              ...(filters.source === "MATERIALS" ? {} : filters.range),
               source: filters.source,
               page: filters.page,
               pageSize: 20,
             },
-            false,
+            filters.source === "MATERIALS" ? "materials" : false,
             controller.signal,
           ),
         ]);
         if (n === seq.current) {
           setSummary(s);
-          setList(l);
+          if ("materials" in l) {
+            setMaterialList(l);
+            setList(null);
+          } else {
+            setList(l);
+            setMaterialList(null);
+          }
         }
       } catch (e) {
         if (n === seq.current && !controller.signal.aborted) {
@@ -286,7 +300,8 @@ function Report({
                 setOpen(true);
               }}
             />
-            <RefreshButton busy={loading}
+            <RefreshButton
+              busy={loading}
               fullWidth={false}
               style={styles.control}
               leadingIcon="refresh"
@@ -369,6 +384,67 @@ function Report({
             ))}
           </View>
           {loading ? <LoadingState loaderSize={88} /> : null}
+          {filters.source === "MATERIALS" && (
+            <Card>
+              <AppText weight={700}>{t("materialOverview")}</AppText>
+              <AppText>{t("materialNotice")}</AppText>
+            </Card>
+          )}
+          {materialList && filters.source === "MATERIALS" && (
+            <>
+              {!materialList.materials.length ? (
+                <Card>
+                  <AppText>{t("materialsEmpty")}</AppText>
+                </Card>
+              ) : (
+                materialList.materials.map((item) => (
+                  <MaterialExpenseCardView
+                    key={item.id}
+                    item={item}
+                    canOpen={permissions.includes("materials:read")}
+                    onOpen={() =>
+                      router.push({
+                        pathname: "/(app)/material-detail",
+                        params: {
+                          materialRequestId: item.id,
+                          projectId: project!.id,
+                        },
+                      } as Href)
+                    }
+                  />
+                ))
+              )}
+              <View style={styles.row}>
+                <Button
+                  fullWidth={false}
+                  label={t("previous")}
+                  variant="secondary"
+                  disabled={loading || filters.page <= 1}
+                  onPress={() =>
+                    setFilters((f) => ({ ...f, page: f.page - 1 }))
+                  }
+                />
+                <AppText>
+                  {t("page", {
+                    page: filters.page,
+                    total: materialList.pagination.totalPages || 1,
+                  })}
+                </AppText>
+                <Button
+                  fullWidth={false}
+                  label={t("next")}
+                  variant="secondary"
+                  disabled={
+                    loading ||
+                    filters.page >= materialList.pagination.totalPages
+                  }
+                  onPress={() =>
+                    setFilters((f) => ({ ...f, page: f.page + 1 }))
+                  }
+                />
+              </View>
+            </>
+          )}
           {list && (
             <>
               {!list.items.length ? (
@@ -459,7 +535,9 @@ function Report({
                   fullWidth={false}
                   label={t("next")}
                   variant="secondary"
-                  disabled={loading || filters.page >= list.pagination.totalPages}
+                  disabled={
+                    loading || filters.page >= list.pagination.totalPages
+                  }
                   onPress={() =>
                     setFilters((f) => ({ ...f, page: f.page + 1 }))
                   }
