@@ -14,6 +14,8 @@ import {
   type TotalExpensesQuery,
   type TotalExpensesList,
   type TotalExpensesSummary,
+  type MaterialExpensesList,
+  type MaterialExpenseCard,
 } from "@nirman-app/shared";
 import { Button, Card, LoadingState, StatusBadge } from "@/components/ui";
 import { api } from "@/lib/api/api-client";
@@ -127,6 +129,7 @@ function Report({
       }),
   });
   const list = useQuery({
+    enabled: source !== "MATERIALS",
     queryKey: [
       "total-expenses",
       c.user,
@@ -144,6 +147,18 @@ function Report({
       api.get<TotalExpensesList>(base, {
         signal,
         params: { ...range, source, page, pageSize: 20 },
+      }),
+  });
+  const materials = useQuery({
+    queryKey: ["total-expenses", c.user, c.org, c.project, "materials", page],
+    enabled: source === "MATERIALS",
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+    gcTime: 60_000,
+    queryFn: ({ signal }) =>
+      api.get<MaterialExpensesList>(`${base}/materials`, {
+        signal,
+        params: { page, pageSize: 20 },
       }),
   });
   function selectPeriod(value: SpendingPeriod) {
@@ -174,10 +189,18 @@ function Report({
           <h1 className="text-2xl font-semibold">Total Expenses</h1>
           <p className="text-sub">Paid project spending</p>
         </div>
-        <RefreshButton busy={summary.isFetching || list.isFetching}
+        <RefreshButton
+          busy={summary.isFetching || list.isFetching || materials.isFetching}
           variant="outline"
-          onRefresh={async () => { await Promise.allSettled([summary.refetch(), list.refetch()]); }}
-          disabled={summary.isFetching || list.isFetching}
+          onRefresh={async () => {
+            await Promise.allSettled([
+              summary.refetch(),
+              source === "MATERIALS" ? materials.refetch() : list.refetch(),
+            ]);
+          }}
+          disabled={
+            summary.isFetching || list.isFetching || materials.isFetching
+          }
         >
           Refresh
         </RefreshButton>
@@ -334,7 +357,70 @@ function Report({
           </Button>
         ))}
       </div>
-      {list.isPending ? (
+      {source === "MATERIALS" ? (
+        <div className="space-y-4">
+          <Card>
+            <h2 className="font-semibold">Material commitments & delivery</h2>
+            <p className="mt-2 text-sm text-sub">
+              Current all-time quantities and balances. Period filters apply to
+              paid totals above. Estimates and order costs are separate from
+              payments; deliveries do not create payments.
+            </p>
+          </Card>
+          {materials.isPending ? (
+            <LoadingState label="Loading materials" />
+          ) : materials.isError ? (
+            <Card>
+              <p role="alert">{materials.error.message}</p>
+              <Button onClick={() => void materials.refetch()}>
+                Retry materials
+              </Button>
+            </Card>
+          ) : (
+            <>
+              <p className="text-sm text-sub" role="status">
+                {materials.data.pagination.total} material requests
+              </p>
+              {!materials.data.materials.length ? (
+                <Card>No material requests for this project.</Card>
+              ) : (
+                <div className="grid items-start gap-4 lg:grid-cols-2">
+                  {materials.data.materials.map((item) => (
+                    <MaterialCard
+                      key={item.id}
+                      item={item}
+                      context={c}
+                      returnTo={returnTo}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  variant="outline"
+                  disabled={page <= 1 || materials.isFetching}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span>
+                  Page {page} of {materials.data.pagination.totalPages || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={
+                    page >= materials.data.pagination.totalPages ||
+                    materials.isFetching
+                  }
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : list.isPending ? (
         <LoadingState label="Loading paid records" />
       ) : list.isError ? (
         <Card>
@@ -385,6 +471,77 @@ function Report({
         </>
       )}
     </div>
+  );
+}
+function MaterialCard({
+  item: i,
+  context: c,
+  returnTo,
+}: {
+  item: MaterialExpenseCard;
+  context: TotalExpensesContext;
+  returnTo: string;
+}) {
+  const unit =
+    i.unitOfMeasure === "OTHER"
+      ? (i.customUnitLabel ?? "Other")
+      : i.unitOfMeasure.toLowerCase().replaceAll("_", " ");
+  const quantity = (value: string) =>
+    `${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 3 }).format(Number(value))} ${unit}`;
+  return (
+    <Card className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="break-words text-lg font-semibold">{i.materialName}</h3>
+        <StatusBadge tone={i.status === "DELIVERED" ? "success" : "warning"}>
+          {i.status.toLowerCase().replaceAll("_", " ")}
+        </StatusBadge>
+      </div>
+      <dl className="grid grid-cols-2 gap-3 text-sm">
+        {[
+          ["Requested", i.requestedQuantity],
+          ["Ordered", i.orderedQuantity],
+          ["Delivered", i.deliveredQuantity],
+          ["Awaiting delivery", i.awaitingDeliveryQuantity],
+          ["Not yet ordered", i.unorderedQuantity],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-sub">{label}</dt>
+            <dd className="font-semibold tabular-nums">{quantity(value)}</dd>
+          </div>
+        ))}
+      </dl>
+      <dl className="grid grid-cols-2 gap-3 border-t border-hairline pt-3 text-sm">
+        {[
+          ["Request estimate", i.estimatedCost],
+          ["Order cost", i.orderCost],
+          ["Paid · all time", i.lifetimePaidAmount],
+          ["Balance due", i.remainingAmount],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-sub">{label}</dt>
+            <dd className="font-semibold tabular-nums">
+              {value === null ? "Not recorded" : money(value)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {i.unpricedPurchaseCount > 0 && (
+        <p className="text-sm text-sub">
+          Some purchases have no recorded total. Complete their costs to see the
+          order cost and balance due.
+        </p>
+      )}
+      {c.permissions.includes("materials:read") ? (
+        <Link
+          className="inline-block underline"
+          href={`/projects/${c.project}/materials/${i.id}?returnTo=${encodeURIComponent(returnTo)}`}
+        >
+          View orders & payments
+        </Link>
+      ) : (
+        <p className="text-sm text-sub">Detail access unavailable</p>
+      )}
+    </Card>
   );
 }
 function PaidCard({

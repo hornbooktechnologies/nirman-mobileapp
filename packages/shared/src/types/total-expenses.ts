@@ -1,4 +1,30 @@
 import type { ExpenseCategory } from "../constants/expenses";
+import type {
+  MaterialRequestStatus,
+  MaterialUnit,
+} from "../constants/materials";
+/** Current all-time procurement snapshot; never added to paid spending. */
+export type MaterialExpenseCard = {
+  id: string;
+  materialName: string;
+  status: MaterialRequestStatus;
+  unitOfMeasure: MaterialUnit;
+  customUnitLabel: string | null;
+  requestedQuantity: string;
+  orderedQuantity: string;
+  deliveredQuantity: string;
+  awaitingDeliveryQuantity: string;
+  unorderedQuantity: string;
+  estimatedCost: string | null;
+  orderCost: string | null;
+  lifetimePaidAmount: string;
+  remainingAmount: string | null;
+  unpricedPurchaseCount: number;
+};
+export type MaterialExpensesList = {
+  materials: MaterialExpenseCard[];
+  pagination: TotalExpensesList["pagination"];
+};
 export type PaidSource = "WAGES" | "MATERIALS" | "SITE_EXPENSES";
 export type SpendingSource = PaidSource | "ALL";
 export type SourcePaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
@@ -89,9 +115,16 @@ export type TotalExpensesList = {
   };
 };
 
-export function isPaymentLedgerAvailable(ledger: Partial<PaymentLedger> | null | undefined): boolean {
-  return !!ledger && ledger.paymentTrackingAvailable !== false &&
+export function isPaymentLedgerAvailable(
+  ledger: Partial<PaymentLedger> | null | undefined,
+): boolean {
+  return (
+    !!ledger &&
+    ledger.paymentTrackingAvailable !== false &&
     ["UNPAID", "PARTIALLY_PAID", "PAID"].includes(ledger.paymentStatus ?? "") &&
-    Array.isArray(ledger.payments) && typeof ledger.paidAmount === "string" &&
-    (ledger.remainingAmount === null || typeof ledger.remainingAmount === "string");
+    Array.isArray(ledger.payments) &&
+    typeof ledger.paidAmount === "string" &&
+    (ledger.remainingAmount === null ||
+      typeof ledger.remainingAmount === "string")
+  );
 }

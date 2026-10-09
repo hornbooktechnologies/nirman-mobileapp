@@ -8,6 +8,7 @@ import {
   moneyPaise,
   type TotalExpensesSummary,
   type TotalExpensesList,
+  type MaterialExpensesList,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../src/database/database.service";
 dotenv.config({
@@ -19,12 +20,15 @@ const base =
 async function main() {
   const db = new DatabaseService();
   try {
-    const rows =
-      await db.query(`SELECT u.id userId,u.email,u.roleId,om.organization_id org,p.id project FROM organization_members om
+    const requestedProject = process.env.PAID_SPENDING_VERIFY_PROJECT_ID;
+    const rows = await db.query(
+      `SELECT u.id userId,u.email,u.roleId,om.organization_id org,p.id project FROM organization_members om
    INNER JOIN user u ON u.id=om.user_id AND u.isActive=1
    INNER JOIN role r ON r.id=om.role_id AND r.name IN ('Organization Owner','Independent Contractor Owner')
    INNER JOIN projects p ON p.organization_id=om.organization_id AND p.status='ACTIVE'
-   WHERE om.status='ACTIVE' AND om.organization_wide_project_access=1 LIMIT 1`);
+   WHERE om.status='ACTIVE' AND om.organization_wide_project_access=1 ${requestedProject ? "AND p.id=?" : ""} LIMIT 1`,
+      requestedProject ? [requestedProject] : [],
+    );
     assert.ok(rows[0], "No existing active owner/project fixture");
     const context = rows[0];
     assert.ok(process.env.JWT_SECRET, "JWT_SECRET required");
@@ -76,6 +80,45 @@ async function main() {
       route + "?source=MATERIALS",
     )) as TotalExpensesList;
     assert.ok(category.items.every((i) => i.source === "MATERIALS"));
+    const materials = (await get(
+      route + "/materials?pageSize=100",
+    )) as MaterialExpensesList;
+    assert.ok(Array.isArray(materials.materials));
+    assert.equal(
+      new Set(materials.materials.map((i) => i.id)).size,
+      materials.materials.length,
+    );
+    if (materials.pagination.total <= 100)
+      assert.equal(materials.materials.length, materials.pagination.total);
+    for (const item of materials.materials) {
+      assert.equal(
+        Number(item.awaitingDeliveryQuantity),
+        Math.max(
+          Number(item.orderedQuantity) - Number(item.deliveredQuantity),
+          0,
+        ),
+      );
+      assert.equal(
+        Number(item.unorderedQuantity),
+        Math.max(
+          Number(item.requestedQuantity) - Number(item.orderedQuantity),
+          0,
+        ),
+      );
+      if (item.unpricedPurchaseCount > 0) {
+        assert.equal(item.orderCost, null);
+        assert.equal(item.remainingAmount, null);
+      } else {
+        assert.equal(
+          moneyPaise(item.remainingAmount!),
+          moneyPaise(item.orderCost!) > moneyPaise(item.lifetimePaidAmount)
+            ? moneyPaise(item.orderCost!) - moneyPaise(item.lifetimePaidAmount)
+            : 0n,
+        );
+      }
+    }
+    await get(route + "/materials?pageSize=101", 400);
+    await get(route + "/materials", 401, false);
     await get(route + "?startDate=2026-09-01", 400);
     await get(route + "?startDate=2026-02-30&endDate=2026-03-01", 400);
     await get(route + "?pageSize=101", 400);
@@ -87,7 +130,7 @@ async function main() {
       "Foreign organization denied",
     );
     console.log(
-      "Authenticated owner report smoke passed: totals/month/card reconciliation, category, date/page validation, signed-out and foreign-scope denial. No mutations, login/refresh writes or financial amounts printed.",
+      "Authenticated owner report smoke passed: totals/month/card reconciliation, category, material overview reconciliation, date/page validation, signed-out and foreign-scope denial. No mutations, login/refresh writes or financial amounts printed.",
     );
   } finally {
     await db.onModuleDestroy();

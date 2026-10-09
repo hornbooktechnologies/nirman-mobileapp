@@ -1,5 +1,9 @@
 # Total Expenses implementation plan
 
+## 2026-10-09 Materials tab fix
+
+Authorized scope: API, shared, Mobile and Web; preserve the approved payment-only total. Audit found both clients used the payment-only list for Materials, hiding requests/orders until payment confirmation. Add a separate report-authorized, all-time request overview from scoped independently aggregated orders/deliveries/active payments; nullable incomplete costs; pagination and repeatable-read snapshot. Wire both tabs to the new endpoint, retain existing paid list for All/Wages/Site Expenses, label date semantics, preserve source-link permissions, refresh/cache scope and en/hi/gu parity. Use existing UI primitives (ui-ux-pro-max unavailable). Verify exact 50/30/20 SQL fixtures, unknown costs, child-row multiplicity, void/foreign exclusions, pagination, access tests, static checks and locales. No database migration/mutation or deployment required for source work. Runtime browser/device acceptance remains separate.
+
 Approved source scope: API/shared/migration files, Web and Mobile, 2026-10-05. Contract: docs/modules/construction/total-expenses/CONTRACTS.md.
 
 1. Add shared report/payment contracts, exact money/date helpers, permissions and retired creation categories.

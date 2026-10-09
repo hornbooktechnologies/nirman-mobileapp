@@ -1,3 +1,27 @@
+## 2026-10-09 - Expo web login CORS follow-up
+
+User Console reported localhost:8081 login preflight receiving a localhost:3000 allow-origin header. Current API checks across IPv4/IPv6 and clean-browser requests already reflect the correct requested origin, suggesting a stale browser response rather than missing API allow-list coverage. Local Expo web now uses 127.0.0.1:4000 for loopback API requests, separating its request URL from prior localhost responses; native LAN mapping and explicitly remote/production configuration remain unchanged.
+
+Two configuration regressions and Mobile typecheck pass. Actual served web bundle contains the updated rule; isolated Edge at localhost:8081 passes CORS preflight and POST to the new API address, reaching expected DTO validation with HTTP 400 for an intentionally empty body. No credential submission, successful-login claim, session mutation or permissive CORS change. User must reload the cached Expo web bundle and retry their credentials.
+
+## 2026-10-09 - Mobile login Hornbook attribution
+
+Owner follow-up: removed the redundant visible company-name text from Mobile and added the matching Powered by + original Hornbook logo/website link to Web login only. Mobile retains its accessible company label. Web includes external-link accessible labeling, focus styling and safe new-tab attributes; SVG is served locally under public/brand. Web/Mobile typechecks, scoped Web login lint and actual local login/asset HTTP checks pass. No auth workflow changes; actual device/browser link opening remains acceptance work.
+
+Added login-only mobile attribution using the owner's original SVG, “Powered by” and “Hornbook Technology Pvt Ltd”, linking to https://www.hornbooktechnologies.com/ in the device browser. Bundled SVG via existing react-native-svg SvgCss to preserve source colors/styles without changing Metro or adding dependencies. Accessible link and browser-open error feedback localized in en/hi/gu; footer uses existing theme tokens. Auth shell, other screens, Web and API remain unchanged. Existing UI/React review applied; ui-ux-pro-max unavailable.
+
+Mobile typecheck and 19-namespace/three-language locale validation passed. Served Android development bundle includes company, target URL and SVG. Physical-device rendering/link opening remains unrun; reload Expo to see the updated login page.
+
+## 2026-10-09 - Total Expenses Materials tab
+
+Mobile runtime follow-up: LAN Expo was still using the deployed API missing the Materials overview route. Added ignored development-only mobile API override; existing host resolver points devices to the LAN API. Served Android bundle and LAN Expo host verified, plus authenticated project/material overview smoke through LAN port 4000. Reload the device bundle; production API settings remain unchanged. No database writes/deployment, physical-device interaction unrun.
+
+Runtime follow-up: fixed localhost Materials 404 caused by ignored Web `.env.local` directing the proxy to a deployed upstream without the route. Local Web now proxies to localhost:4000; Next config reload applied it. Authenticated GET-only smoke through localhost:3000 passed for the exact screenshot project, including new materials quantity/cost reconciliation, paging and signed-out denial. No database writes or remote deployment. User-browser/device rendering remains unrun.
+
+Fixed Materials visibility across API/shared/Web/Mobile: a separate report-authorized all-time request overview includes unpaid/request-only materials, requested/ordered/delivered quantities, awaiting-delivery and unordered balances, estimate/order cost/lifetime paid/balance due. Paid totals remain explicit dated payments. Unknown purchase totals remain unknown. Mobile en/hi/gu labels and existing design patterns are preserved. No migration, data mutation or deployment.
+
+Verified shared/API builds, API/Web/Mobile typechecks, scoped API/Web lint, 111 API tests, six client tests, locale parity and diff checks. SELECT-only MySQL fixtures reproduce 50 bags estimated ₹5,000, 30 ordered ₹3,000, 20 delivered: 10 await delivery, 20 await ordering, ₹0 paid, ₹3,000 due. Additional fixtures cover voided/foreign payments, multiple deliveries, missing cost, snapshot scope and pagination. New-route authenticated browser/physical-device acceptance and deployed rollout remain unrun. See Total Expenses contract/status/implementation plan for current behavior.
+
 ## 2026-10-08 - Kharchi export recorder names
 
 Fixed the shared server-generated Kharchi PDF/CSV table using the existing `recordedByName` supplied by its scoped repository query for Recorded By, instead of the internal recorder UUID. Missing/blank names use `Name unavailable`; actor IDs remain available in API audit records. Existing report columns, amounts, filtering, authorization and layout are preserved for both Web and Mobile downloads. No schema, data writes or deployment.

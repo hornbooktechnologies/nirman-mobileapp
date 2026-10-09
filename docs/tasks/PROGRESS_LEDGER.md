@@ -1,3 +1,21 @@
+## 2026-10-09 - Expo web login CORS follow-up
+
+Resolved reported stale localhost:3000 allow-origin response for Expo web login by giving local Expo web a separate 127.0.0.1 API address. Current API correctly permits localhost:8081; native/remote/production URL behavior preserved. Configuration tests, Mobile typecheck and served web bundle checks pass. Real Edge preflight/POST reaches login DTO validation without CORS failure; no credentials or session mutation. Actual user login after bundle reload remains acceptance.
+
+## 2026-10-09 - Mobile login Hornbook attribution
+
+Owner follow-up: simplified Mobile attribution to Powered by + logo and added the same linked SVG attribution to Web login. Company text remains in accessible labels only. Web/Mobile typechecks, scoped Web lint and local login/asset HTTP checks passed; auth flow unchanged.
+
+Implemented owner's mobile-login-only Powered by Hornbook Technology Pvt Ltd footer, original bundled SVG and external website link with localized accessibility/error labels. Reused theme and react-native-svg without dependency/config changes; source uses the footer only in LoginScreen. Mobile typecheck/locales and served Android bundle verification passed. No Web/API/auth-flow changes. Physical-device rendering and browser opening remain acceptance checks.
+
+## 2026-10-09 - Total Expenses Materials tab
+
+Mobile runtime follow-up: corrected LAN Expo's development API upstream using ignored `.env.development.local`, preserving production configuration. Verified actual Android bundle embeds local API and LAN manifest maps to the computer address; authenticated Materials/project report GET checks pass via LAN. App bundle reload required; no device-interaction acceptance, DB mutation or remote deployment.
+
+Local runtime follow-up: corrected ignored Web API upstream from deployed Web to localhost:4000 and reloaded Next configuration. Authenticated GET-only verification through localhost:3000 passed for the screenshot project and reconciled material quantities/costs; existing paid totals remain intact. Extended the runtime script with optional project targeting and overview checks. No remote deploy/data mutation; browser/device rendering remains separate.
+
+Implemented API/shared/Web/Mobile all-time material overview under existing report access, including unpaid requests, quantity milestones and separate estimated/committed/paid/due amounts. Kept paid totals/date semantics and existing source payments unchanged; explicit unknown costs and localized en/hi/gu UI. Shared/API builds, API/Web/Mobile typechecks, scoped lint, 111 API tests, six client regressions, locales and diff checks passed. Actual MySQL SELECT-only inline fixtures verified 50/30/20 example, child aggregation/void/tenant isolation, missing costs and pagination. No schema/data mutations or deployment; new-endpoint authenticated browser and physical-device acceptance remain separate. Contract, plan and status synchronized.
+
 ## 2026-10-08 - Kharchi export recorder names
 
 Fixed the shared server-generated Kharchi PDF/CSV table using the existing `recordedByName` supplied by its scoped repository query for Recorded By, instead of the internal recorder UUID. Missing/blank names use `Name unavailable`; actor IDs remain available in API audit records. Existing report columns, amounts, filtering, authorization and layout are preserved for both Web and Mobile downloads. No schema, data writes or deployment.

@@ -23,7 +23,7 @@ export class TotalExpensesService {
     project: string,
     actor: AuthenticatedUser,
     q: TotalExpensesQueryDto,
-    summary = false,
+    summary: boolean | "materials" = false,
   ) {
     await this.access.resolveProjectAccess(
       actor,
@@ -44,9 +44,11 @@ export class TotalExpensesService {
           "Provide a valid inclusive start and end date, or omit both for all time",
       });
     try {
-      return await (summary
-        ? this.repo.summary(org, project, q)
-        : this.repo.list(org, project, q));
+      return await (summary === "materials"
+        ? this.repo.materials(org, project, q)
+        : summary
+          ? this.repo.summary(org, project, q)
+          : this.repo.list(org, project, q));
     } catch (error) {
       if (isMissingPaymentSchema(error))
         throw new ServiceUnavailableException(paymentSchemaError);
