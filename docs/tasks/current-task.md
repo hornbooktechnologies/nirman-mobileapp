@@ -1,4 +1,12 @@
+## 2026-10-09 - Expo web login CORS follow-up
+
+User Console reported localhost:8081 login preflight receiving a localhost:3000 allow-origin header. Current API checks across IPv4/IPv6 and clean-browser requests already reflect the correct requested origin, suggesting a stale browser response rather than missing API allow-list coverage. Local Expo web now uses 127.0.0.1:4000 for loopback API requests, separating its request URL from prior localhost responses; native LAN mapping and explicitly remote/production configuration remain unchanged.
+
+Two configuration regressions and Mobile typecheck pass. Actual served web bundle contains the updated rule; isolated Edge at localhost:8081 passes CORS preflight and POST to the new API address, reaching expected DTO validation with HTTP 400 for an intentionally empty body. No credential submission, successful-login claim, session mutation or permissive CORS change. User must reload the cached Expo web bundle and retry their credentials.
+
 ## 2026-10-09 - Mobile login Hornbook attribution
+
+Owner follow-up: removed the redundant visible company-name text from Mobile and added the matching Powered by + original Hornbook logo/website link to Web login only. Mobile retains its accessible company label. Web includes external-link accessible labeling, focus styling and safe new-tab attributes; SVG is served locally under public/brand. Web/Mobile typechecks, scoped Web login lint and actual local login/asset HTTP checks pass. No auth workflow changes; actual device/browser link opening remains acceptance work.
 
 Added login-only mobile attribution using the owner's original SVG, “Powered by” and “Hornbook Technology Pvt Ltd”, linking to https://www.hornbooktechnologies.com/ in the device browser. Bundled SVG via existing react-native-svg SvgCss to preserve source colors/styles without changing Metro or adding dependencies. Accessible link and browser-open error feedback localized in en/hi/gu; footer uses existing theme tokens. Auth shell, other screens, Web and API remain unchanged. Existing UI/React review applied; ui-ux-pro-max unavailable.
 

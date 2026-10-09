@@ -99,6 +99,24 @@ function LoginPageContent() {
               {login.isPending ? "Signing in" : "Sign in"}
             </Button>
           </form>
+          <div className="mt-6 flex justify-center border-t border-hairline pt-4">
+            <a
+              href="https://www.hornbooktechnologies.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Powered by Hornbook Technology Pvt Ltd (opens in a new tab)"
+              className="flex max-w-full flex-col items-center gap-1 rounded-inner px-3 py-2 text-[12px] text-sub transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+            >
+              <span>Powered by</span>
+              <Image
+                src="/brand/hornbook-logo.svg"
+                alt="Hornbook"
+                width={210}
+                height={58}
+                className="h-auto w-[210px] max-w-full"
+              />
+            </a>
+          </div>
         </CardContent>
       </Card>
     </main>

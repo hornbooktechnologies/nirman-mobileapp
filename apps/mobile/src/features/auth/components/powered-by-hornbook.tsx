@@ -35,9 +35,6 @@ export function PoweredByHornbook() {
         height={58}
         accessible={false}
       />
-      <AppText weight={600} style={styles.company}>
-        {companyName}
-      </AppText>
     </Pressable>
   );
 }
@@ -56,11 +53,5 @@ const styles = StyleSheet.create({
     ...mobileText.caption,
     color: mobileTheme.color.text.secondary,
     textAlign: "center",
-  },
-  company: {
-    ...mobileText.caption,
-    color: mobileTheme.color.text.primary,
-    textAlign: "center",
-    textDecorationLine: "underline",
   },
 });

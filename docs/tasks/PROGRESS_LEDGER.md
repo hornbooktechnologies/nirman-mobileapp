@@ -1,4 +1,10 @@
+## 2026-10-09 - Expo web login CORS follow-up
+
+Resolved reported stale localhost:3000 allow-origin response for Expo web login by giving local Expo web a separate 127.0.0.1 API address. Current API correctly permits localhost:8081; native/remote/production URL behavior preserved. Configuration tests, Mobile typecheck and served web bundle checks pass. Real Edge preflight/POST reaches login DTO validation without CORS failure; no credentials or session mutation. Actual user login after bundle reload remains acceptance.
+
 ## 2026-10-09 - Mobile login Hornbook attribution
+
+Owner follow-up: simplified Mobile attribution to Powered by + logo and added the same linked SVG attribution to Web login. Company text remains in accessible labels only. Web/Mobile typechecks, scoped Web lint and local login/asset HTTP checks passed; auth flow unchanged.
 
 Implemented owner's mobile-login-only Powered by Hornbook Technology Pvt Ltd footer, original bundled SVG and external website link with localized accessibility/error labels. Reused theme and react-native-svg without dependency/config changes; source uses the footer only in LoginScreen. Mobile typecheck/locales and served Android bundle verification passed. No Web/API/auth-flow changes. Physical-device rendering and browser opening remain acceptance checks.
 
