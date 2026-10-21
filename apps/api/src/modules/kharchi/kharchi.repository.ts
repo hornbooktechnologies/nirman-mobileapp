@@ -620,6 +620,39 @@ export class KharchiRepository {
     return formatMoney(allocated);
   }
 
+  async findOutstandingByWorkers(
+    organizationId: string,
+    projectId: string,
+    workerIds: string[],
+  ) {
+    if (!workerIds.length) return new Map<string, string>();
+    const rows = await this.database.query<
+      { worker_id: string; outstanding_amount: string } & RowDataPacket
+    >(
+      `SELECT ka.worker_id,
+        SUM(GREATEST(
+          ka.amount
+          + COALESCE((SELECT SUM(amount) FROM kharchi_adjustments WHERE kharchi_advance_id = ka.id), 0)
+          - COALESCE((SELECT SUM(kda.deduction_amount)
+                      FROM kharchi_deduction_allocations kda
+                      LEFT JOIN kharchi_deduction_allocation_reversals kdar ON kdar.allocation_id = kda.id
+                      WHERE kda.kharchi_advance_id = ka.id AND kdar.id IS NULL), 0),
+          0
+        )) AS outstanding_amount
+       FROM kharchi_advances ka
+       WHERE ka.organization_id = ? AND ka.project_id = ?
+         AND ka.worker_id IN (${workerIds.map(() => "?").join(", ")})
+       GROUP BY ka.worker_id`,
+      [organizationId, projectId, ...workerIds],
+    );
+    return new Map(
+      rows.map((row) => [
+        row.worker_id,
+        formatMoney(toCents(row.outstanding_amount)),
+      ]),
+    );
+  }
+
   async reverseAllocationsForWageBatch(
     input: ReverseKharchiAllocationsInput,
     connection: DatabaseConnection,

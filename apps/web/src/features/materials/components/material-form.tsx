@@ -1,7 +1,6 @@
 "use client";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
-import { SearchInput } from "@/components/ui/search-input";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MATERIAL_UNITS, type MaterialRequestDetail } from "@nirman-app/shared";
@@ -20,6 +19,7 @@ import {
 import type { MaterialWrite } from "../services/materials.service";
 import type { MaterialAction } from "../types/materials.types";
 import type { MaterialsContext } from "./materials-workspace";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export function MaterialForm({
   context,
@@ -63,7 +63,6 @@ export function MaterialForm({
     input: Record<string, unknown>;
     idempotencyKey: string;
   } | null>(null);
-  const [memberSearch, setMemberSearch] = useState("");
   const lock = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -80,6 +79,16 @@ export function MaterialForm({
     queryFn: () => projectsService.members(context.org, context.project),
     enabled: request && canReadMembers,
   });
+  const today = workToday(context.timezone);
+  const responsibleMemberOptions = [
+    { value: "", label: "Unassigned" },
+    ...(members.data ?? [])
+      .filter((member) => member.organizationMemberStatus === "ACTIVE" && member.status === "ACTIVE" && (!member.startsOn || member.startsOn.slice(0, 10) <= today) && (!member.endsOn || member.endsOn.slice(0, 10) >= today))
+      .map((member) => ({ value: member.memberId, label: `${member.user.name} · ${member.roleLabel ?? member.role.name}` })),
+  ];
+  const responsibleMemberValue = members.isSuccess && !responsibleMemberOptions.some((option) => option.value === values.responsibleContractorMemberId)
+    ? ""
+    : values.responsibleContractorMemberId;
   useEffect(() => {
     if (!dirty && !attempt) return;
     const message = attempt
@@ -236,9 +245,7 @@ export function MaterialForm({
           requestedOn: values.requestedOn,
           requiredByDate: nullable("requiredByDate"),
           estimatedCost: numeric("estimatedCost"),
-          responsibleContractorMemberId: nullable(
-            "responsibleContractorMemberId",
-          ),
+          responsibleContractorMemberId: responsibleMemberValue || null,
           notes: nullable("notes"),
         }
       : purchase
@@ -423,13 +430,6 @@ export function MaterialForm({
               {field("estimatedCost", "Estimated cost (INR)", "number")}
               {canReadMembers && (
                 <div className="space-y-2 sm:col-span-2">
-                  <label>
-                    Find responsible member
-                    <SearchInput
-                      value={memberSearch}
-                      onValueChange={(e) => setMemberSearch(e)}
-                    />
-                  </label>
                   {members.isPending && <p role="status">Loading members…</p>}
                   {members.isError && (
                     <p role="alert">
@@ -444,39 +444,17 @@ export function MaterialForm({
                   )}
                   <label>
                     Responsible member
-                    <Select
-                      value={values.responsibleContractorMemberId}
-                      onChange={(e) =>
-                        change("responsibleContractorMemberId", e.target.value)
-                      }
-                    >
-                      <option value="">Unassigned</option>
-                      {values.responsibleContractorMemberId &&
-                        !members.data?.some(
-                          (m) =>
-                            m.memberId === values.responsibleContractorMemberId,
-                        ) && (
-                          <option value={values.responsibleContractorMemberId}>
-                            Current member (
-                            {values.responsibleContractorMemberId})
-                          </option>
-                        )}
-                      {members.data
-                        ?.filter(
-                          (m) =>
-                            m.memberId ===
-                              values.responsibleContractorMemberId ||
-                            (m.status === "ACTIVE" &&
-                              m.user.name
-                                .toLowerCase()
-                                .includes(memberSearch.toLowerCase())),
-                        )
-                        .map((m) => (
-                          <option key={m.memberId} value={m.memberId}>
-                            {m.user.name} · {m.roleLabel ?? m.role.name}
-                          </option>
-                        ))}
-                    </Select>
+                    <SearchableSelect
+                      id="responsibleContractorMemberId"
+                      name="responsibleContractorMemberId"
+                      value={responsibleMemberValue}
+                      options={responsibleMemberOptions}
+                      loading={members.isPending}
+                      placeholder="Search or select a member"
+                      emptyMessage="No active project members match your search."
+                      listLabel="Active responsible members"
+                      onValueChange={(value) => change("responsibleContractorMemberId", value)}
+                    />
                   </label>
                 </div>
               )}
@@ -511,7 +489,7 @@ export function MaterialForm({
                   {detail?.purchases.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.vendorName ?? "Purchase"} · {p.purchasedOn} ·{" "}
-                      {p.orderedQuantity} · {p.orderReference ?? p.id}
+                      {p.orderedQuantity}{p.orderReference ? ` · ${p.orderReference}` : ""}
                     </option>
                   ))}
                 </Select>

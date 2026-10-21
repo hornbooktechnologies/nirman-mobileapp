@@ -97,8 +97,11 @@ export function BookingCreate({
             {
               name: "bookingAmount",
               label: "Booking amount (INR)",
-              type: "number",
-              min: 0,
+              numeric: {
+                kind: "decimal",
+                min: 0,
+                message: "Enter zero or a positive number.",
+              },
               initial: attempt?.bookingAmount?.toString() ?? "",
             },
             {

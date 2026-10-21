@@ -6,6 +6,7 @@ export const PERMISSION_RESOURCES = [
   "platform-settings",
   "platform-support",
   "platform-feature-flags",
+  "platform-enquiries",
   "organizations",
   "members",
   "users",
@@ -97,6 +98,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   "platform-settings": "Platform Settings",
   "platform-support": "Platform Support",
   "platform-feature-flags": "Platform Feature Flags",
+  "platform-enquiries": "Website Enquiries",
   organizations: "Organizations",
   members: "Members",
   users: "Users",
@@ -148,6 +150,8 @@ export const PLATFORM_ADMIN_PERMISSIONS = [
   "platform-settings:update",
   "platform-feature-flags:read",
   "platform-feature-flags:update",
+  "platform-enquiries:read",
+  "platform-enquiries:update",
 ] as const satisfies readonly PermissionKey[];
 
 export type PlatformAdminPermissionKey =
@@ -552,6 +556,8 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
     "Impersonate through an approved audited support flow.",
   "platform-feature-flags:read": "Read platform feature flags.",
   "platform-feature-flags:update": "Update platform feature flags.",
+  "platform-enquiries:read": "Read website contact enquiries.",
+  "platform-enquiries:update": "Mark website enquiries as converted.",
 
   "organizations:create": "Create organizations.",
   "organizations:read": "Read organization details.",

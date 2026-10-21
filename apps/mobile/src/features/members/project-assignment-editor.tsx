@@ -217,8 +217,9 @@ export function ProjectAssignmentEditor({
         {value.permissionMode === 'CUSTOM' ? (
           <View style={styles.matrix}>
             <View style={styles.presetRow}>
+              <Button label={t('assignment.selectAll')} size="sm" variant="brand" fullWidth={false} onPress={() => update({ permissionMode: 'CUSTOM', permissions: allowedPermissions })} />
+              <Button label={t('assignment.deselectAll')} size="sm" variant="secondary" fullWidth={false} onPress={() => update({ permissionMode: 'CUSTOM', permissions: [] })} />
               <Button label={t('assignment.viewPreset')} size="sm" variant="info" fullWidth={false} onPress={() => applyPreset('VIEW')} />
-              <Button label={t('assignment.managePreset')} size="sm" variant="brand" fullWidth={false} onPress={() => applyPreset('MANAGE')} />
             </View>
             {PROJECT_PERMISSION_GROUPS.map((group) => {
               const permissions = group.permissions.filter((permission) =>

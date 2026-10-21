@@ -1,5 +1,6 @@
 import type {
   PermissionKey,
+  OrganizationMemberStatus,
   ProjectAccessScope,
   ProjectMemberStatus,
   ProjectStatus,
@@ -90,6 +91,7 @@ export interface ProjectMember {
   permissionMode: ProjectPermissionMode;
   grantedPermissions: PermissionKey[];
   status: ProjectMemberStatus;
+  organizationMemberStatus: OrganizationMemberStatus;
   startsOn: string | null;
   endsOn: string | null;
   createdAt: string;

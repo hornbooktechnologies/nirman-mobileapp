@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { UNIT_STATUSES, type UnitStatus } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { Failure, Status, money, dateTime } from "./sales-ui";
 import { useUnits } from "../hooks/use-inventory";
@@ -74,53 +74,38 @@ function Inventory({ c }: { c: SalesContext }) {
                 : "No units yet. Add a unit or import a CSV to get started."}
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {units.data.map((u) => (
-                <Card key={u.id} className="space-y-3">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <Link
-                      className="text-lg font-semibold underline"
-                      href={salesDetailUrl(`${root}/${u.id}`, salesListUrl(pathname, params, {}))}
-                    >
-                      {u.unitNumber}
-                    </Link>
-                    <Status value={u.status} />
-                  </div>
-                  <p>
-                    {[
-                      u.unitType,
-                      u.wingTower,
-                      u.floor ? `Floor ${u.floor}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  <p>
-                    {u.areaSqft == null
-                      ? "Area not provided"
-                      : `${u.areaSqft} sq ft`}
-                    {u.facing ? ` · ${u.facing}` : ""}
-                  </p>
-                  <p className="font-semibold tabular-nums">
-                    {money(u.basePrice)}
-                  </p>
-                  {u.priceBasis === "PER_SQFT" && (
-                    <p className="text-sm">
-                      {money(u.ratePerSqft)} / sq ft · server-calculated total
-                    </p>
-                  )}
-                  <p className="text-sm">
-                    {u.interestCount} interested · {u.pendingHoldRequestCount}{" "}
-                    pending holds
-                  </p>
-                  {u.blockExpiresAt && (
-                    <p className="text-sm">
-                      Block expires {dateTime(u.blockExpiresAt, c.timezone)}
-                    </p>
-                  )}
-                </Card>
-              ))}
-            </div>
+            <Table aria-label="Unit inventory" className="min-w-[1040px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Area / facing</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Interest</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Block expiry</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {units.data.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <Link className="font-semibold underline decoration-hairline underline-offset-4 transition-colors hover:text-lime focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime" href={salesDetailUrl(`${root}/${u.id}`, salesListUrl(pathname, params, {}))}>{u.unitNumber}</Link>
+                      <span className="mt-1 block text-xs text-sub">{u.unitType}</span>
+                    </TableCell>
+                    <TableCell>{[u.wingTower, u.floor ? `Floor ${u.floor}` : null].filter(Boolean).join(" · ") || "Not provided"}</TableCell>
+                    <TableCell>{u.areaSqft == null ? "Area not provided" : `${u.areaSqft} sq ft`}{u.facing ? ` · ${u.facing}` : ""}</TableCell>
+                    <TableCell className="whitespace-nowrap font-semibold tabular-nums">
+                      {money(u.basePrice)}
+                      {u.priceBasis === "PER_SQFT" && <span className="mt-1 block text-xs font-normal text-sub">{money(u.ratePerSqft)} / sq ft</span>}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{u.interestCount} interested<span className="mt-1 block text-xs text-sub">{u.pendingHoldRequestCount} pending holds</span></TableCell>
+                    <TableCell><Status value={u.status} /></TableCell>
+                    <TableCell className="whitespace-nowrap text-sub">{u.blockExpiresAt ? dateTime(u.blockExpiresAt, c.timezone) : "Not blocked"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </>
       )}

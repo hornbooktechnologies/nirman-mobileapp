@@ -4,7 +4,7 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { money } from "./sales-ui";
 import {
@@ -191,25 +191,34 @@ function Import({ c }: { c: SalesContext }) {
             {preview.totalCount} rows · {preview.validCount} valid ·{" "}
             {preview.invalidCount} invalid
           </p>
-          <div className="space-y-3">
-            {preview.rows.map((row) => (
-              <Card key={row.rowNumber}>
-                <p className="font-semibold">
-                  Row {row.rowNumber} · {row.unit.unitNumber} ·{" "}
-                  {row.unit.unitType}
-                </p>
-                <p>
-                  {row.unit.wingTower} {row.unit.floor} · {row.unit.status} ·{" "}
-                  {money(row.unit.basePrice ?? null)}
-                </p>
-                {row.errors.map((code, index) => (
-                  <p role="alert" key={`${code}-${index}`}>
-                    {errors[code] ?? code}
-                  </p>
-                ))}
-              </Card>
-            ))}
-          </div>
+          <Table aria-label="Unit import preview" className="min-w-[900px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Row</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Tower / floor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Validation</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {preview.rows.map((row) => (
+                <TableRow key={row.rowNumber}>
+                  <TableCell className="tabular-nums">{row.rowNumber}</TableCell>
+                  <TableCell className="font-semibold">{row.unit.unitNumber}</TableCell>
+                  <TableCell>{row.unit.unitType}</TableCell>
+                  <TableCell>{[row.unit.wingTower, row.unit.floor].filter(Boolean).join(" / ") || "Not provided"}</TableCell>
+                  <TableCell>{row.unit.status}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">{money(row.unit.basePrice ?? null)}</TableCell>
+                  <TableCell className="max-w-[320px]">
+                    {row.errors.length ? row.errors.map((code, index) => <p className="text-danger" role="alert" key={`${code}-${index}`}>{errors[code] ?? code}</p>) : <span className="font-medium text-success">Ready to import</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </>
       )}
       {!!units.length && !localErrors.length && !success && (

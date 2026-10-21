@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { BottomSheet, Button, DateInput, FilterOption, FormError, FormField, Input } from '../../components/ui';
+import { BottomSheet, Button, DateInput, FilterOption, FormError, FormField, Input, SearchableSelect } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { ApiRequestError } from '../../lib/api';
 import { mobileTheme } from '../../theme';
@@ -55,12 +55,20 @@ export function MaterialRequestSheet({ visible, organizationId, projectId, acces
 
   useEffect(() => {
     if (!visible || !canReadProjectMembers) return;
+    const currentDate = today();
     void fetchProjectMembers(organizationId, projectId, accessToken)
-      .then((rows) => setMembers(rows.filter((member) => member.status === 'ACTIVE')))
+      .then((rows) => {
+        const activeMembers = rows.filter((member) => member.organizationMemberStatus === 'ACTIVE' && member.status === 'ACTIVE' && (!member.startsOn || member.startsOn.slice(0, 10) <= currentDate) && (!member.endsOn || member.endsOn.slice(0, 10) >= currentDate));
+        setMembers(activeMembers);
+        setResponsibleMemberId((current) => current && !activeMembers.some((member) => member.memberId === current) ? null : current);
+      })
       .catch(() => setMembers([]));
   }, [accessToken, canReadProjectMembers, organizationId, projectId, visible]);
 
-  const responsibleName = useMemo(() => members.find((member) => member.memberId === responsibleMemberId)?.user.name, [members, responsibleMemberId]);
+  const responsibleOptions = useMemo(() => [
+    { value: '', label: t('form.noResponsible') },
+    ...members.map((member) => ({ value: member.memberId, label: member.user.name, description: member.roleLabel ?? member.role.name, searchTerms: [member.user.email ?? '', member.user.phone ?? ''] })),
+  ], [members, t]);
 
   async function save() {
     const nextErrors: FieldErrors = {};
@@ -100,7 +108,7 @@ export function MaterialRequestSheet({ visible, organizationId, projectId, acces
     <FormField label={t('fields.requestedOn')} required error={fieldErrors.requestedOn}><DateInput allowClear={false} accessibilityLabel={t('fields.requestedOn')} invalid={Boolean(fieldErrors.requestedOn)} value={requestedOn} onChangeText={setRequestedOn} /></FormField>
     <FormField label={t('fields.requiredByDate')} error={fieldErrors.requiredByDate}><DateInput accessibilityLabel={t('fields.requiredByDate')} invalid={Boolean(fieldErrors.requiredByDate)} minimumDate={requestedOn ? new Date(`${requestedOn}T12:00:00`) : undefined} value={requiredByDate} onChangeText={setRequiredByDate} /></FormField>
     <FormField label={t('fields.estimatedCost')} error={fieldErrors.estimatedCost}><Input invalid={Boolean(fieldErrors.estimatedCost)} keyboardType="decimal-pad" value={estimatedCost} onChangeText={(value) => setEstimatedCost(value.replace(/[^0-9.]/g, ''))} /></FormField>
-    {canReadProjectMembers ? <FormField label={t('fields.responsibleMember')} helperText={responsibleName ?? t('form.noResponsible')}><View style={styles.choices}><FilterOption label={t('form.noResponsible')} selected={!responsibleMemberId} onPress={() => setResponsibleMemberId(null)} />{members.map((member) => <FilterOption key={member.memberId} label={`${member.user.name} · ${member.roleLabel ?? member.role.name}`} selected={responsibleMemberId === member.memberId} onPress={() => setResponsibleMemberId(member.memberId)} />)}</View></FormField> : null}
+    {canReadProjectMembers ? <FormField label={t('fields.responsibleMember')}><SearchableSelect value={responsibleMemberId ?? ''} options={responsibleOptions} placeholder={t('form.noResponsible')} title={t('fields.responsibleMember')} searchPlaceholder={t('form.searchResponsible')} searchAccessibilityLabel={t('form.searchResponsible')} emptyTitle={t('form.noMatchingResponsible')} emptyDescription={t('form.noMatchingResponsibleDescription')} accessibilityLabel={t('fields.responsibleMember')} onChange={(value) => setResponsibleMemberId(value || null)} /></FormField> : null}
     <FormField label={t('fields.notes')}><Input maxLength={2000} multiline numberOfLines={4} style={styles.multiline} value={notes} onChangeText={setNotes} /></FormField>
   </BottomSheet>;
 }

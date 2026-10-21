@@ -109,7 +109,7 @@ function OrganizationList() {
           description="Manage tenant profiles, operating setup, and member access."
           actions={hasPermission("platform-organizations:create") ? (
             <Button onClick={() => setIsCreating((current) => !current)}>
-              <Plus size={16} />
+              {!isCreating ? <Plus size={16} aria-hidden="true" /> : null}
               {isCreating ? "Close" : "New Organization"}
             </Button>
           ) : undefined}

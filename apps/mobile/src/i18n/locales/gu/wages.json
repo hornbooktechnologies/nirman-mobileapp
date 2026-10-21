@@ -19,10 +19,14 @@
     "workerCount_one": "{{count}} મજૂર",
     "workerCount_other": "{{count}} મજૂરો",
     "netPayable": "કુલ ચૂકવવાપાત્ર",
+    "beforeConfirmation": "પુષ્ટિ પહેલાંની મજૂરી",
     "attendance": "{{present}} હાજર · {{half}} અડધો · {{absent}} ગેરહાજર",
     "ready": "તૈયાર",
     "needsAttention": "ધ્યાન જરૂરી",
     "notReady": "ખૂટતી મજૂરી માહિતી પૂર્ણ કરો.",
+    "kharchiSummary": "અંદાજિત ખર્ચી કપાત: {{amount}}",
+    "kharchiItem": "ખર્ચી: {{amount}}",
+    "kharchiPreviewOnly": "આ ફક્ત માહિતી છે. પુષ્ટિ પછી જ ખર્ચી ફાળવાશે અને ચોખ્ખી મજૂરી ગણાશે.",
     "confirm": "મજૂરી બેચની પુષ્ટિ કરો"
   },
   "batches": {

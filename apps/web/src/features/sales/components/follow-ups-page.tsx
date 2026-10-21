@@ -6,7 +6,7 @@ import { Suspense, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { FOLLOW_UP_STATUSES, type FollowUpStatus } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { useFollowUps, useSalesLifetime } from "../hooks/use-sales";
 import {
   canWriteLead,
@@ -115,75 +115,51 @@ function FollowUps({ c }: { c: SalesContext }) {
           {!rows.length && (
             <Card>No follow-ups match these filters.</Card>
           )}
-          <ul className="grid gap-4 lg:grid-cols-2">
-            {rows.map((f) => (
-              <li key={f.id}>
-                <Card className="flex h-full flex-col">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <Link
-                      className="font-semibold underline"
-                      href={salesDetailUrl(`/projects/${c.project}/sales/leads/${f.leadId}`, salesListUrl(pathname, params, {}))}
-                    >
-                      {f.customerName}
-                    </Link>
-                    <Status value={f.status} />
-                  </div>
-                  <p className="mt-2">
-                    {label(f.type)} · {dateTime(f.scheduledAt, c.timezone)}
-                  </p>
-                  {f.status === "SCHEDULED" &&
-                    new Date(f.scheduledAt).getTime() < now && (
-                      <p className="text-sm text-danger">Overdue</p>
-                    )}
-                  <p className="text-sm text-sub">
-                    Assigned to{" "}
-                    {assignees.data?.find((a) => a.value === f.assignedUserId)
-                      ?.label ?? f.assignedUserId}
-                  </p>
-                  <dl className="mt-3 space-y-2">
-                    {[
-                      ["Notes", f.notes],
-                      ["Outcome", f.outcome],
-                      [
-                        "Next follow-up",
-                        f.nextFollowUpAt
-                          ? dateTime(f.nextFollowUpAt, c.timezone)
-                          : null,
-                      ],
-                      [
-                        "Completed",
-                        f.completedAt
-                          ? dateTime(f.completedAt, c.timezone)
-                          : null,
-                      ],
-                    ]
-                      .filter(([, v]) => v)
-                      .map(([k, v]) => (
-                        <div key={k}>
-                          <dt className="text-sm text-sub">{k}</dt>
-                          <dd className="whitespace-pre-wrap break-words">
-                            {v}
-                          </dd>
-                        </div>
-                      ))}
-                  </dl>
-                  {c.active && c.permissions.includes("followups:manage") && (
-                    <div className="mt-auto pt-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          snapshot.current = f;
-                          setSelected(f);
-                        }}
-                      >
-                        Update follow-up
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              </li>
-            ))}
-          </ul>
+          {!!rows.length && (
+            <Table aria-label="Sales follow-ups" className="min-w-[1080px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Scheduled</TableHead>
+                  <TableHead>Assigned to</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Outcome / next step</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((f) => {
+                  const overdue = f.status === "SCHEDULED" && new Date(f.scheduledAt).getTime() < now;
+                  return (
+                    <TableRow key={f.id}>
+                      <TableCell>
+                        <Link className="font-semibold underline decoration-hairline underline-offset-4 transition-colors hover:text-lime focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime" href={salesDetailUrl(`/projects/${c.project}/sales/leads/${f.leadId}`, salesListUrl(pathname, params, {}))}>
+                          {f.customerName}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{label(f.type)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span>{dateTime(f.scheduledAt, c.timezone)}</span>
+                        {overdue && <span className="mt-1 block text-xs font-medium text-danger">Overdue</span>}
+                      </TableCell>
+                      <TableCell>{assignees.data?.find((a) => a.value === f.assignedUserId)?.label ?? f.assignedUserId}</TableCell>
+                      <TableCell><Status value={f.status} /></TableCell>
+                      <TableCell className="max-w-[320px]">
+                        <p className="line-clamp-2 whitespace-pre-wrap break-words">{f.outcome || f.notes || "No outcome recorded"}</p>
+                        <p className="mt-1 text-xs text-sub">Next: {f.nextFollowUpAt ? dateTime(f.nextFollowUpAt, c.timezone) : "Not scheduled"}</p>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {c.active && c.permissions.includes("followups:manage") ? (
+                          <Button variant="outline" onClick={() => { snapshot.current = f; setSelected(f); }}>Update</Button>
+                        ) : <span className="text-sub">Read only</span>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </>
       )}
       {selected && (

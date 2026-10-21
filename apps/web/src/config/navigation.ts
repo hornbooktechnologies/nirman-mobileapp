@@ -18,6 +18,7 @@ import {
   Receipt,
   ChartNoAxesCombined,
   Images,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +56,12 @@ export const navGroups: NavGroup[] = [
         href: "/subscriptions",
         icon: CreditCard,
         permission: "platform-subscriptions:read",
+      },
+      {
+        label: "Website Enquiries",
+        href: "/website-enquiries",
+        icon: Inbox,
+        permission: "platform-enquiries:read",
       },
       {
         label: "Members",

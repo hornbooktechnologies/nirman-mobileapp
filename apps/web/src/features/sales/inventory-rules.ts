@@ -36,9 +36,16 @@ export const unitSnapshot = (u: SalesUnit) =>
 export function validateUnit(v: Record<string, string>) {
   const errors: Record<string, string> = {};
   const positive = (key: string) => {
-    if (!v[key] || !Number.isFinite(Number(v[key])) || Number(v[key]) <= 0)
+    if (
+      !v[key] ||
+      !/^(?:\d+|\d*\.\d+)$/.test(v[key]) ||
+      !Number.isFinite(Number(v[key])) ||
+      Number(v[key]) <= 0
+    )
       errors[key] = "Enter a number greater than zero.";
   };
+  if (!["SQ_FT", "SQ_YD"].includes(v.areaUnit))
+    errors.areaUnit = "Choose square feet or square yard (Vaar).";
   if (v.areaSqft) positive("areaSqft");
   if (v.priceBasis === "PER_SQFT") {
     positive("areaSqft");
@@ -60,13 +67,14 @@ export function validateUnit(v: Record<string, string>) {
   return errors;
 }
 export function unitInput(v: Record<string, string>): UnitInput {
+  const areaMultiplier = v.areaUnit === "SQ_YD" ? 9 : 1;
   return {
     unitNumber: v.unitNumber,
     unitType: v.unitType,
     wingTower: v.wingTower || undefined,
     floor: v.floor || undefined,
     facing: v.facing || undefined,
-    areaSqft: v.areaSqft ? Number(v.areaSqft) : undefined,
+    areaSqft: v.areaSqft ? Number(v.areaSqft) * areaMultiplier : undefined,
     priceBasis: v.priceBasis as UnitInput["priceBasis"],
     status: v.status as UnitInput["status"],
     ...(v.priceBasis === "PER_SQFT"

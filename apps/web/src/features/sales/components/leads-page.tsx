@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { LEAD_STAGES } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { CollectionPagination } from "@/components/ui/collection-toolbar";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { useLeads, useSalesLifetime } from "../hooks/use-sales";
@@ -78,31 +78,41 @@ function Leads({ c }: { c: SalesContext }) {
           {!query.data.data.length && (
             <Card>No leads found. Try clearing filters or create a lead.</Card>
           )}
-          <ul className="grid gap-4 lg:grid-cols-2">
-            {query.data.data.map((lead) => (
-              <li key={lead.id}>
-                <Card>
-                  <div className="flex flex-wrap justify-between gap-3">
-                    <Link
-                      className="text-lg font-semibold underline"
-                      href={salesDetailUrl(`/projects/${c.project}/sales/leads/${lead.id}`, salesListUrl(pathname, params, {}))}
-                    >
-                      {lead.customerName}
-                    </Link>
-                    <Status value={lead.currentStage} />
-                  </div>
-                  <p className="mt-2">{lead.primaryMobile}</p>
-                  <p className="text-sm text-sub">
-                    {label(lead.source)} · {label(lead.priority)} priority
-                  </p>
-                  <p className="mt-3">Owner: {lead.assignedToName || "Unassigned"}</p>
-                  <p className="text-sm text-sub">
-                    Updated {dateTime(lead.updatedAt, c.timezone)}
-                  </p>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          {!!query.data.data.length && (
+            <Table aria-label="Sales leads" className="min-w-[920px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Last updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {query.data.data.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <Link
+                        className="font-semibold text-body underline decoration-hairline underline-offset-4 transition-colors hover:text-lime focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+                        href={salesDetailUrl(`/projects/${c.project}/sales/leads/${lead.id}`, salesListUrl(pathname, params, {}))}
+                      >
+                        {lead.customerName}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{lead.primaryMobile}</TableCell>
+                    <TableCell>{label(lead.source)}</TableCell>
+                    <TableCell>{label(lead.priority)}</TableCell>
+                    <TableCell>{lead.assignedToName || "Unassigned"}</TableCell>
+                    <TableCell><Status value={lead.currentStage} /></TableCell>
+                    <TableCell className="whitespace-nowrap text-sub">{dateTime(lead.updatedAt, c.timezone)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
           <CollectionPagination page={page} pageCount={Math.ceil(query.data.meta.total / 25)} total={query.data.meta.total} busy={query.isFetching} onPageChange={(next) => filter("page", String(next))} />
         </>
       )}

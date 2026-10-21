@@ -1,5 +1,6 @@
 import type {
   PermissionKey,
+  OrganizationMemberStatus,
   ProjectMemberStatus,
   ProjectPermissionMode,
   ProjectStatus,
@@ -83,6 +84,7 @@ export interface ProjectMemberEntity {
   permissionMode: ProjectPermissionMode;
   grantedPermissions: PermissionKey[];
   status: ProjectMemberStatus;
+  organizationMemberStatus: OrganizationMemberStatus;
   startsOn: Date | null;
   endsOn: Date | null;
   createdAt: Date;
@@ -97,6 +99,7 @@ export interface ProjectMemberRow extends DbRow {
   role_label: string | null;
   permission_mode: ProjectPermissionMode;
   status: ProjectMemberStatus;
+  organization_member_status: OrganizationMemberStatus;
   starts_on: Date | null;
   ends_on: Date | null;
   created_at: Date;

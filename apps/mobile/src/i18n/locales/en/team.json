@@ -88,6 +88,8 @@
     "useRoleDefaultsHelp": "Use the normal permissions already defined for this role.",
     "customForProject": "Custom for this project",
     "customForProjectHelp": "Narrow access for this project without changing the organization role.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
     "viewPreset": "View preset",
     "managePreset": "Manage preset",
     "projectReadWarning": "Add Project read access if this member should open the project.",

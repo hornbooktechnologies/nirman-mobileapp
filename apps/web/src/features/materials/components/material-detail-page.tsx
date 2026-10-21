@@ -239,7 +239,6 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
         </ol>
       </section>
       {context.permissions.includes("expenses:read") && <Card className="space-y-2"><h2 className="text-lg font-semibold">Related project work</h2><p className="text-sm text-sub">Material purchases do not automatically create Site Expenses. Review project expenses separately.</p><Link className="underline" href={`/projects/${context.project}/expenses`}>View project Site Expenses</Link></Card>}
-      <details className="rounded-card border border-hairline p-4 text-sm text-sub"><summary className="cursor-pointer font-semibold">Record metadata</summary><p>Version {d.version}</p></details>
       {action && (
         <MaterialForm
           context={context}

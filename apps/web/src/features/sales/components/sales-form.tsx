@@ -5,10 +5,16 @@ import { SearchInput } from "@/components/ui/search-input";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, Input, Select, Textarea } from "@/components/ui";
 import { failureMessage, instant, label } from "../sales-rules";
+import {
+  salesNumberError,
+  type SalesNumericRule,
+} from "../sales-number";
+import { SalesSearchableSelect } from "./sales-searchable-select";
 export type Field = {
   name: string;
   label: string;
   type?: string;
+  numeric?: SalesNumericRule;
   required?: boolean;
   min?: number;
   maxLength?: number;
@@ -18,6 +24,12 @@ export type Field = {
   initial?: string;
   showWhen?: { field: string; value: string };
   requiredWhen?: { field: string; value: string };
+  searchable?: {
+    searchValue: string;
+    onSearchChange: (value: string) => void;
+    loading?: boolean;
+    placeholder?: string;
+  };
 };
 export function SalesForm({
   title,
@@ -92,6 +104,23 @@ export function SalesForm({
     )
       close();
   }
+  function submittedValues(source = values) {
+    return Object.fromEntries(
+      visibleFields.map((field) => [
+        field.name,
+        (source[field.name] ?? field.initial ?? "").trim(),
+      ]),
+    );
+  }
+  function inlineFieldError(field: Field, source: Record<string, string>) {
+    const submitted = submittedValues(source);
+    const value = submitted[field.name];
+    if (field.required && !value) return "This field is required.";
+    return (
+      (field.numeric ? salesNumberError(value, field.numeric) : undefined) ??
+      validate?.(submitted)?.[field.name]
+    );
+  }
   return (
     <Dialog open title={title} className="max-w-2xl" onOpenChange={dismiss}>
       <form
@@ -102,12 +131,7 @@ export function SalesForm({
           e.preventDefault();
           if (locked.current || review) return;
           const next: Record<string, string> = {};
-          const submitted = Object.fromEntries(
-            visibleFields.map((f) => [
-              f.name,
-              (values[f.name] ?? f.initial ?? "").trim(),
-            ]),
-          );
+          const submitted = submittedValues();
           for (const f of visibleFields) {
             const input = form.current?.elements.namedItem(
               f.name,
@@ -120,6 +144,10 @@ export function SalesForm({
             if (f.maxLength && value.length > f.maxLength)
               next[f.name] = `Use no more than ${f.maxLength} characters.`;
             if (f.required && !value) next[f.name] = "This field is required.";
+            if (f.numeric) {
+              const message = salesNumberError(value, f.numeric);
+              if (message) next[f.name] = message;
+            }
             if (value && f.type === "datetime-local" && timezone) {
               try {
                 instant(value, timezone);
@@ -175,7 +203,16 @@ export function SalesForm({
                 >,
               ) => {
                 dirty.current = true;
-                setValues((v) => ({ ...v, [f.name]: e.target.value }));
+                const nextValue = e.target.value;
+                const nextValues = { ...values, [f.name]: nextValue };
+                setValues(nextValues);
+                if (f.numeric && errors[f.name]) {
+                  const message = inlineFieldError(f, nextValues);
+                  setErrors((currentErrors) => ({
+                    ...currentErrors,
+                    [f.name]: message ?? "",
+                  }));
+                }
               },
             };
             return (
@@ -187,7 +224,7 @@ export function SalesForm({
                   {f.label}
                   {f.required ? " *" : ""}
                 </label>
-                {f.options && f.options.length > 10 && (
+                {f.options && f.options.length > 10 && !f.searchable && (
                   <SearchInput
                     aria-label={`Search ${f.label.toLowerCase()} choices`}
                     placeholder="Search choices"
@@ -196,7 +233,25 @@ export function SalesForm({
                     className="mb-2"
                   />
                 )}
-                {f.options ? (
+                {f.options && f.searchable ? (
+                  <SalesSearchableSelect
+                    id={props.id}
+                    name={f.name}
+                    value={props.value}
+                    options={f.options.filter((option): option is { value: string; label: string } => typeof option !== "string")}
+                    searchValue={f.searchable.searchValue}
+                    onSearchChange={f.searchable.onSearchChange}
+                    onValueChange={(value) => {
+                      dirty.current = true;
+                      setValues((current) => ({ ...current, [f.name]: value }));
+                      setErrors((current) => ({ ...current, [f.name]: "" }));
+                    }}
+                    disabled={pending}
+                    invalid={Boolean(errors[f.name])}
+                    loading={f.searchable.loading}
+                    placeholder={f.searchable.placeholder}
+                  />
+                ) : f.options ? (
                   <Select {...props}>
                     <option value="">Select…</option>
                     {f.options
@@ -224,16 +279,37 @@ export function SalesForm({
                 ) : (
                   <Input
                     {...props}
-                    type={f.type === "uuid" ? "text" : (f.type ?? "text")}
+                    type={
+                      f.numeric || f.type === "uuid"
+                        ? "text"
+                        : (f.type ?? "text")
+                    }
+                    inputMode={
+                      f.numeric?.kind === "integer"
+                        ? "numeric"
+                        : f.numeric?.kind === "decimal"
+                          ? "decimal"
+                          : undefined
+                    }
                     pattern={
                       f.type === "uuid"
                         ? "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
                         : undefined
                     }
-                    min={f.min}
+                    min={f.numeric ? undefined : f.min}
                     minLength={f.minLength}
                     maxLength={f.maxLength}
-                    step={f.type === "number" ? "any" : undefined}
+                    onBlur={
+                      f.numeric
+                        ? () => {
+                            const message = inlineFieldError(f, values);
+                            setErrors((current) => ({
+                              ...current,
+                              [f.name]: message ?? "",
+                            }));
+                          }
+                        : undefined
+                    }
                   />
                 )}
                 {f.help && <p className="text-sm text-sub">{f.help}</p>}

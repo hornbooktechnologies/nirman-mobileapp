@@ -87,6 +87,7 @@ export type ProjectMember = {
   permissionMode: ProjectPermissionMode;
   grantedPermissions: PermissionKey[];
   status: ProjectMemberStatus;
+  organizationMemberStatus: OrganizationMemberStatus;
   startsOn: string | null;
   endsOn: string | null;
   createdAt: string;

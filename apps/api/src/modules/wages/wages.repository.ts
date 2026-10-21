@@ -110,6 +110,18 @@ export class WagesRepository {
     private readonly audit: AuditService,
   ) {}
 
+  findKharchiOutstandingByWorkers(
+    organizationId: string,
+    projectId: string,
+    workerIds: string[],
+  ) {
+    return this.kharchiRepository.findOutstandingByWorkers(
+      organizationId,
+      projectId,
+      workerIds,
+    );
+  }
+
   async findBatches(
     organizationId: string,
     projectId: string,

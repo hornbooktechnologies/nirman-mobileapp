@@ -67,3 +67,13 @@ All rows below are source-implemented. Static verification is recorded separatel
 - Locale validator: 19 namespaces, en/hi/gu keys and placeholders passed. Diff check passed.
 
 Stage delivery gates: common behavior, Leads/Activities, Follow-ups, Site Visits, Inventory/import and Bookings are source-implemented with affected static/test checks. Their authenticated/runtime/device gates remain open. Every checklist row must still be exercised with the same disposable fixtures on both clients before marking full parity complete. No test used production financial/conversion writes. Existing API gaps above require a separately reviewed API task.
+
+### Web Sales table refinement (2026-10-21)
+
+- Replaced card-grid collections with the existing themed responsive table primitive for Leads, Follow-ups, Site Visits, Inventory, Bookings, lead activity, lead unit interests, unit interest/hold queues, and CSV import preview.
+- Preserved existing filters, pagination, permissions, project/organization scope, return links, actions, dialogs, query behavior, status semantics, and empty/error states. Detail summaries and forms remain cards because they are not row collections.
+- Web-only presentation change: no API, database, shared contract, Mobile, permission, or workflow changes.
+- Verification: Web typecheck, scoped Sales ESLint, 39 Web Sales tests, production Web build, and `git diff --check` passed. Authenticated browser visual acceptance at desktop and narrow widths remains pending.
+- Simplified the Web unit Interest/Block workflow customer selection into one searchable combobox. Opening shows eligible leads, typing applies the shared 300 ms debounce, and selecting a result writes the existing `leadId`; the separate search field and lead-pagination controls were removed without changing the API or block workflow.
+- Replaced all seven Web Sales HTML number controls with string-backed text inputs using decimal/numeric keyboards and reusable inline validation. Invalid numeric syntax and existing range rules render only below the affected field; validated strings are converted only while building the unchanged API payload.
+- Added an inventory area-unit selector with `Square feet` and `Square yard (Vaar)`. Square-yard input is converted at 1 square yard = 9 square feet before submission. The API/database remain square-foot based, so existing units reopen in square feet and per-square-foot pricing remains unchanged.

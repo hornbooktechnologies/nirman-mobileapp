@@ -87,6 +87,7 @@ test("pricing payload uses only the selected pricing method and blocks invalid w
     unitNumber: "A",
     unitType: "Flat",
     priceBasis: "TOTAL",
+    areaUnit: "SQ_FT",
     totalPrice: "45",
     priceUnit: "LAKH",
     ratePerSqft: "5000",
@@ -98,6 +99,7 @@ test("pricing payload uses only the selected pricing method and blocks invalid w
   const per = { ...v, priceBasis: "PER_SQFT", areaSqft: "1000" };
   assert.equal(unitInput(per).basePrice, undefined);
   assert.equal(unitInput(per).ratePerSqft, 5000);
+  assert.equal(unitInput({ ...per, areaUnit: "SQ_YD", areaSqft: "100" }).areaSqft, 900);
   assert.ok(validateUnit({ ...per, areaSqft: "0" }).areaSqft);
   assert.ok(validateUnit({ ...v, status: "BOOKED" }).status);
   assert.equal(editableUnit("BLOCKED"), false);

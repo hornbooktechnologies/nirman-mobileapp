@@ -410,6 +410,12 @@ export class WagesService {
       periodStart,
       periodEnd,
     );
+    const outstandingByWorker =
+      await this.wagesRepo.findKharchiOutstandingByWorkers(
+        organizationId,
+        projectId,
+        [...new Set(rows.map((row) => row.workerId))],
+      );
     const items = rows.map((row) => {
       const dailyRate = row.dailyRate;
       const presentDays = row.presentDays;
@@ -445,9 +451,14 @@ export class WagesService {
         (total, segment) => total + this.toCents(segment.grossAmount),
         0,
       );
-      const kharchiDeductionCents = 0;
+      const kharchiDeductionCents = Math.min(
+        grossCents,
+        this.toCents(outstandingByWorker.get(row.workerId) ?? ZERO_MONEY),
+      );
       const adjustmentCents = 0;
-      const netCents = grossCents - kharchiDeductionCents + adjustmentCents;
+      // Preview exposes the possible deduction for review only. The confirmed
+      // transaction remains authoritative for allocation and net calculation.
+      const netCents = grossCents + adjustmentCents;
       return {
         workerAssignmentId: row.workerAssignmentId,
         workerId: row.workerId,
