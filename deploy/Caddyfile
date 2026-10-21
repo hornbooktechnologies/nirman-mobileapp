@@ -1,0 +1,23 @@
+{
+	email {$ACME_EMAIL}
+}
+
+nirmansite.com {
+	encode zstd gzip
+	reverse_proxy website:3000
+}
+
+www.nirmansite.com {
+	redir https://nirmansite.com{uri} permanent
+}
+
+app.nirmansite.com {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+api.nirmansite.com {
+	encode zstd gzip
+	reverse_proxy api:4000
+}
+

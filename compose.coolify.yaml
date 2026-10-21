@@ -1,0 +1,66 @@
+services:
+  proxy:
+    profiles: ["standalone"]
+
+  api:
+    networks:
+      - internal
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.middlewares.nirmansite-api-https.redirectscheme.scheme=https
+      - traefik.http.routers.nirmansite-api-http.entrypoints=http
+      - traefik.http.routers.nirmansite-api-http.rule=Host(`api.nirmansite.com`)
+      - traefik.http.routers.nirmansite-api-http.middlewares=nirmansite-api-https
+      - traefik.http.routers.nirmansite-api-http.service=nirmansite-api
+      - traefik.http.routers.nirmansite-api.entrypoints=https
+      - traefik.http.routers.nirmansite-api.rule=Host(`api.nirmansite.com`)
+      - traefik.http.routers.nirmansite-api.tls=true
+      - traefik.http.routers.nirmansite-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.nirmansite-api.service=nirmansite-api
+      - traefik.http.services.nirmansite-api.loadbalancer.server.port=4000
+
+  web:
+    networks:
+      - internal
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.middlewares.nirmansite-web-https.redirectscheme.scheme=https
+      - traefik.http.routers.nirmansite-web-http.entrypoints=http
+      - traefik.http.routers.nirmansite-web-http.rule=Host(`app.nirmansite.com`)
+      - traefik.http.routers.nirmansite-web-http.middlewares=nirmansite-web-https
+      - traefik.http.routers.nirmansite-web-http.service=nirmansite-web
+      - traefik.http.routers.nirmansite-web.entrypoints=https
+      - traefik.http.routers.nirmansite-web.rule=Host(`app.nirmansite.com`)
+      - traefik.http.routers.nirmansite-web.tls=true
+      - traefik.http.routers.nirmansite-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.nirmansite-web.service=nirmansite-web
+      - traefik.http.services.nirmansite-web.loadbalancer.server.port=3000
+
+  website:
+    networks:
+      - internal
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.middlewares.nirmansite-website-https.redirectscheme.scheme=https
+      - traefik.http.routers.nirmansite-website-http.entrypoints=http
+      - traefik.http.routers.nirmansite-website-http.rule=Host(`nirmansite.com`) || Host(`www.nirmansite.com`)
+      - traefik.http.routers.nirmansite-website-http.middlewares=nirmansite-website-https
+      - traefik.http.routers.nirmansite-website-http.service=nirmansite-website
+      - traefik.http.routers.nirmansite-website.entrypoints=https
+      - traefik.http.routers.nirmansite-website.rule=Host(`nirmansite.com`) || Host(`www.nirmansite.com`)
+      - traefik.http.routers.nirmansite-website.tls=true
+      - traefik.http.routers.nirmansite-website.tls.certresolver=letsencrypt
+      - traefik.http.routers.nirmansite-website.service=nirmansite-website
+      - traefik.http.services.nirmansite-website.loadbalancer.server.port=3000
+
+networks:
+  coolify:
+    external: true
+    name: coolify
+

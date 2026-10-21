@@ -9,6 +9,7 @@ NirmanSite uses MySQL/MariaDB through `mysql2` inside the NestJS API. Prisma rem
 ## What Is Included
 
 - `apps/web`: Next.js App Router administration and back-office portal with protected organization/project flows and Workers management.
+- `apps/website`: Public Next.js marketing website for `nirmansite.com`, including contact and account-activation flows.
 - `apps/api`: NestJS API with authentication, RBAC, organizations, projects, Workers, platform administration, health checks, and API-local mysql2 database access.
 - `packages/database`: archived inherited Prisma database history; not active runtime/tooling.
 - `packages/shared`: Shared constants, permission definitions, schemas, and types.
@@ -49,7 +50,18 @@ pnpm db:seed
 Default local URLs:
 
 - Web: `http://localhost:3000`
+- Website: `http://localhost:3001`
 - API: `http://localhost:4000/api/v1`
+
+## Production Deployment
+
+The repository includes Docker Compose deployment for these public hosts:
+
+- `nirmansite.com` -> `apps/website`
+- `app.nirmansite.com` -> `apps/web`
+- `api.nirmansite.com` -> `apps/api`
+
+See [`docs/deployment/docker-production.md`](docs/deployment/docker-production.md) for DNS, server, environment, migration, launch, backup, and update steps.
 
 ## Mobile Device Run
 

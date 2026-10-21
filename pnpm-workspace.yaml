@@ -4,6 +4,7 @@ packages:
 
 allowBuilds:
   '@nestjs/core': true
+  esbuild: true
   sharp: true
   unrs-resolver: true
 
@@ -18,5 +19,6 @@ minimumReleaseAgeExclude:
 
 onlyBuiltDependencies:
   - "@nestjs/core"
+  - esbuild
   - sharp
   - unrs-resolver

@@ -1,0 +1,9 @@
+.photo-hero-sky { position:absolute; inset:-18px -24px 0; background:#d6d7ce; }
+.photo-hero-sky img { object-position:38% 50%; }
+.photo-hero-copy-wash { position:absolute; inset:0; background:linear-gradient(90deg,rgba(249,241,224,.78),rgba(249,241,224,.25) 39%,transparent 65%); }
+.photo-hero-building { position:absolute; width:130%; aspect-ratio:1658/949; left:-15%; bottom:8%; }
+.photo-hero-grass { position:absolute; left:-5%; bottom:-2%; width:110%; height:32%; }
+@media (min-aspect-ratio:1/1) {
+ .photo-hero-building { width:57%; left:auto; right:-3%; bottom:8%; }
+ .photo-hero-grass { height:38%; }
+}

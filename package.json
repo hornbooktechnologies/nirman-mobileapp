@@ -7,12 +7,15 @@
     "dev": "pnpm --filter @nirman-app/shared build && turbo dev",
     "mobile:lan": "pnpm --filter @nirman-app/mobile start:lan",
     "mobile:tunnel": "pnpm --filter @nirman-app/mobile start:tunnel",
+    "website:dev": "pnpm --filter @nirman-app/website dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "db:migrate": "pnpm --filter @nirman-app/api db:migrate",
     "db:migrate:status": "pnpm --filter @nirman-app/api db:migrate:status",
-    "db:seed": "pnpm --filter @nirman-app/api db:seed"
+    "db:seed": "pnpm --filter @nirman-app/api db:seed",
+    "docker:config": "docker compose --env-file .env.production config",
+    "docker:build": "docker compose --env-file .env.production build"
   },
   "devDependencies": {
     "turbo": "2.11.3",

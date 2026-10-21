@@ -1,0 +1,165 @@
+name: nirmansite
+
+services:
+  database:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env.production}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env.production}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env.production}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.production}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.production}
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env.production}
+      WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?Set WEBSITE_ENQUIRY_INGEST_KEY in .env.production}
+      FRONTEND_URL: https://app.nirmansite.com,https://nirmansite.com
+      PUBLIC_WEB_APP_URL: https://app.nirmansite.com
+      PUBLIC_ACTIVATION_WEB_URL: https://nirmansite.com/activate
+      MOBILE_APP_SCHEME: ${MOBILE_APP_SCHEME:-nirmansite}
+      SMTP_HOST: ${API_SMTP_HOST:-}
+      SMTP_PORT: ${API_SMTP_PORT:-587}
+      SMTP_USERNAME: ${API_SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${API_SMTP_PASSWORD:-}
+      SMTP_ENCRYPTION: ${API_SMTP_ENCRYPTION:-tls}
+      MAIL_FROM_ADDRESS: ${API_MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: ${API_MAIL_FROM_NAME:-NirmanSite}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      NOTIFICATIONS_PUSH_ENABLED: ${NOTIFICATIONS_PUSH_ENABLED:-true}
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - internal
+
+  migration:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env.production}
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        API_INTERNAL_URL: http://api:4000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DESIGN_PREVIEW_ENABLED: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(r.status>=500)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - internal
+
+  website:
+    build:
+      context: .
+      target: website
+      args:
+        WEBSITE_PUBLIC_URL: https://nirmansite.com
+        WEBSITE_INDEXING_ENABLED: "true"
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:4000/api/v1
+      WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?Set WEBSITE_ENQUIRY_INGEST_KEY in .env.production}
+      NEXT_PUBLIC_SITE_URL: https://nirmansite.com
+      SITE_INDEXING_ENABLED: "true"
+      SMTP_HOST: ${WEBSITE_SMTP_HOST:-}
+      SMTP_PORT: ${WEBSITE_SMTP_PORT:-465}
+      SMTP_SECURE: ${WEBSITE_SMTP_SECURE:-true}
+      SMTP_USER: ${WEBSITE_SMTP_USER:-}
+      SMTP_PASS: ${WEBSITE_SMTP_PASS:-}
+      SMTP_FROM: ${WEBSITE_SMTP_FROM:-}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-contact@hornbooktechnologies.com}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(r.status>=500)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - internal
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      website:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
