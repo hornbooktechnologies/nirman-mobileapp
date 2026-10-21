@@ -7,7 +7,7 @@ This deployment runs the marketing site, customer web app, API, and MySQL from o
 | Host | Compose service | Repository app |
 | --- | --- | --- |
 | `nirmansite.com` | `website:3000` | `apps/website` |
-| `www.nirmansite.com` | permanent redirect | `nirmansite.com` |
+| `www.nirmansite.com` | website alias | `apps/website` |
 | `app.nirmansite.com` | `web:3000` | `apps/web` |
 | `api.nirmansite.com` | `api:4000` | `apps/api` |
 
@@ -37,40 +37,32 @@ Install Git, Docker Engine, and the Docker Compose plugin. Then clone this repos
 ```bash
 git clone <nirman-mobileapp-repository-url> nirmansite
 cd nirmansite
-cp .env.production.example .env.production
+bash deploy/setup-production-env.sh
 ```
 
-Edit `.env.production` and replace every placeholder. The password embedded in `DATABASE_URL` must match `MYSQL_PASSWORD`; URL-encode reserved password characters. Generate separate JWT values, for example with `openssl rand -hex 32`.
+The setup script generates independent database, JWT, refresh-token, and website-enquiry secrets without printing them. It refuses to overwrite an already configured production file. Add the SMTP, S3, and Expo credentials that are enabled for the deployment; keep `NOTIFICATIONS_PUSH_ENABLED=false` until `EXPO_ACCESS_TOKEN` is configured.
 
 The real `.env.production` is ignored by Git. Restrict it to the deployment account (`chmod 600 .env.production` on Linux).
 
 ## 3. Validate and build
 
+On Hornbook, run every application command with both Compose files:
+
 ```bash
-docker compose --env-file .env.production config --quiet
-docker compose --env-file .env.production build
-docker compose --env-file .env.production up -d database
-docker compose --env-file .env.production ps
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production config --quiet
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production up -d database
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
 ```
 
 Wait for `database` to become healthy before database initialization.
 
 ## 4. Initialize or migrate the database
 
-Database changes are deliberately not run during container startup. Back up an existing database first and review the target printed by the migration status command.
+Database changes are deliberately not run during container startup. The production migration script waits for MySQL health, prints the read-only status, creates a timestamped logical backup in `backups/`, applies migrations behind all safety gates, and confirms the final status.
 
 ```bash
-docker compose --env-file .env.production run --rm migration pnpm db:migrate:status
-```
-
-For the first approved production rollout, run the migration only after confirming the target. These flags are intentionally explicit safety gates:
-
-```bash
-docker compose --env-file .env.production run --rm \
-  -e DB_MIGRATION_CONFIRM=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
-  -e DB_MIGRATION_ALLOW_REMOTE=true \
-  -e DB_MIGRATION_ALLOW_PRODUCTION=true \
-  migration pnpm db:migrate
+MIGRATION_APPROVED=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
+  bash deploy/migrate-production.sh
 ```
 
 Seeding is optional and should not be run on an established production database. If an initial seed is approved, set `DB_SEED_CONFIRM` to the exact database name and pass intentional initial credentials.
@@ -78,9 +70,11 @@ Seeding is optional and should not be run on an established production database.
 ## 5. Launch
 
 ```bash
-docker compose --env-file .env.production up -d
-docker compose --env-file .env.production ps
-docker compose --env-file .env.production logs --tail=100 api web website proxy
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
+  up -d --build api web website
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
+  logs --tail=100 api web website
 ```
 
 Verify:
@@ -99,9 +93,11 @@ Before each update, record the deployed Git commit and back up MySQL. Then:
 
 ```bash
 git pull --ff-only
-docker compose --env-file .env.production build
-docker compose --env-file .env.production up -d
-docker compose --env-file .env.production ps
+MIGRATION_APPROVED=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
+  bash deploy/migrate-production.sh
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
+  up -d --build api web website
+docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
 ```
 
 Application rollback is performed by checking out the previously recorded commit and rebuilding. Database rollback is not automatic: SQL migrations are additive, so use the pre-deployment backup if a database rollback is required.
