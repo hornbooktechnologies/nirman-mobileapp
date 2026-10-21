@@ -244,10 +244,12 @@ export function WagesScreen() {
                 </View>
                 <View style={styles.totalCopy}>
                   <AppText style={styles.total} weight={700}>{formatInr(Number(preview.totals.netAmount), language)}</AppText>
-                  <AppText style={styles.totalLabel} weight={600}>{t('preview.netPayable')}</AppText>
+                  <AppText style={styles.totalLabel} weight={600}>{t('preview.beforeConfirmation')}</AppText>
                 </View>
               </View>
               <View style={styles.previewList}>
+                <AppText style={styles.sectionDescription} weight={500}>{t('preview.kharchiSummary', { amount: formatInr(Number(preview.totals.kharchiDeduction), language) })}</AppText>
+                <AppText style={styles.sectionDescription} weight={500}>{t('preview.kharchiPreviewOnly')}</AppText>
                 {preview.items.map((item) => (
                   <OperationalEntityCard
                     key={item.workerAssignmentId}
@@ -260,6 +262,7 @@ export function WagesScreen() {
                     valueLabel={item.isReady ? t('preview.ready') : t('preview.needsAttention')}
                     tone={item.isReady ? 'success' : 'warning'}
                     footerLeading={!item.isReady ? item.readinessIssue ?? t('preview.notReady') : undefined}
+                    footerTrailing={t('preview.kharchiItem', { amount: formatInr(Number(item.kharchiDeduction), language) })}
                   />
                 ))}
               </View>

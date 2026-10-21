@@ -114,11 +114,14 @@ export function ProjectPermissionEditor({
       {mode === "CUSTOM" ? (
         <>
           <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onChange({ mode: "CUSTOM", permissions: delegatable })}>
+              Select all
+            </Button>
+            <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onChange({ mode: "CUSTOM", permissions: [] })}>
+              Deselect all
+            </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => preset("VIEW")}>
               Apply view-only access
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => preset("MANAGE")}>
-              Apply all allowed access
             </Button>
           </div>
           <p className="text-[11px] leading-5 text-sub">

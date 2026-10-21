@@ -79,7 +79,7 @@ export function LeadForm({
     queryFn: ({ signal }) => salesService.units(c.org, c.project, signal),
     enabled: c.permissions.includes("inventory:read"),
   });
-  const fields: Field[] = [
+  const fields: Field[] = ([
     {
       name: "customerName",
       label: "Customer name",
@@ -104,8 +104,24 @@ export function LeadForm({
     },
     { name: "email", label: "Email", type: "email", maxLength: 190 },
     { name: "preferredUnitType", label: "Preferred unit type", maxLength: 80 },
-    { name: "budgetMin", label: "Minimum budget (₹)", type: "number", min: 0 },
-    { name: "budgetMax", label: "Maximum budget (₹)", type: "number", min: 0 },
+    {
+      name: "budgetMin",
+      label: "Minimum budget (₹)",
+      numeric: {
+        kind: "decimal",
+        min: 0,
+        message: "Enter zero or a positive number.",
+      },
+    },
+    {
+      name: "budgetMax",
+      label: "Maximum budget (₹)",
+      numeric: {
+        kind: "decimal",
+        min: 0,
+        message: "Enter zero or a positive number.",
+      },
+    },
     { name: "purchasePurpose", label: "Purchase purpose", maxLength: 120 },
     { name: "purchaseTimeline", label: "Purchase timeline", maxLength: 120 },
     {
@@ -137,7 +153,7 @@ export function LeadForm({
     ...(!lead && c.permissions.includes("leads:assign")
       ? [assigneeField(assignees.data, "assignedTo")]
       : []),
-  ].map((f) => ({
+  ] satisfies Field[]).map((f) => ({
     ...f,
     initial:
       lead && f.name in lead

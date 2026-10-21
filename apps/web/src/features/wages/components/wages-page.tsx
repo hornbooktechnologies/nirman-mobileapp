@@ -309,15 +309,16 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                 <p className="text-[12px] text-sub">{preview.data.items.length} eligible workers in this period</p>
               </div>
               <div className="text-right">
-                <p className="text-[12px] text-sub">Net payable</p>
+                <p className="text-[12px] text-sub">Wage before confirmation</p>
                 <p className="text-xl font-bold text-body">{currency(preview.data.totals.netAmount)}</p>
               </div>
             </div>
-            <div className="grid gap-3 text-sm sm:grid-cols-3"><p>Gross {currency(preview.data.totals.grossAmount)}</p><p>Kharchi deduction {currency(preview.data.totals.kharchiDeduction)}</p><p>Adjustments {currency(preview.data.totals.adjustmentAmount)}</p></div>
+            <div className="grid gap-3 text-sm sm:grid-cols-3"><p>Gross {currency(preview.data.totals.grossAmount)}</p><p>Estimated Kharchi deduction {currency(preview.data.totals.kharchiDeduction)}</p><p>Adjustments {currency(preview.data.totals.adjustmentAmount)}</p></div>
+            <p className="text-[12px] text-sub">Preview only: no Kharchi balance or deduction status changes until you confirm the wage batch.</p>
             <div role="region" aria-label="Wage comparison table" tabIndex={0} className="overflow-x-auto">
               <table className="min-w-[640px] w-full text-left text-[14px]">
                 <thead className="bg-sunken text-[12px] uppercase tracking-[0.12em] text-sub">
-                  <tr><th className="px-3 py-2">Worker</th><th>Payable days</th><th>Period rate</th><th>Gross</th><th>Net payable</th><th>Readiness</th></tr>
+                  <tr><th className="px-3 py-2">Worker</th><th>Payable days</th><th>Period rate</th><th>Gross</th><th>Estimated Kharchi</th><th>Before confirmation</th><th>Readiness</th></tr>
                 </thead>
                 <tbody className="divide-y divide-hairline">
                   {preview.data.items.map((item) => (
@@ -326,6 +327,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                       <td>{item.presentDays} full / {item.halfDays} half / {item.absentDays} absent</td>
                       <td>{wageRateLabel(item, false)}{item.rateBreakdown?.length === 1 && item.dailyRate !== null ? ` · ${currency(item.dailyRate)}/day` : ""}</td>
                       <td>{currency(item.grossAmount)}</td>
+                      <td>{currency(item.kharchiDeduction)}</td>
                       <td>{currency(item.netAmount)}</td>
                       <td>{item.isReady ? <StatusBadge tone="success">Ready</StatusBadge> : <StatusBadge tone="warning">{item.readinessIssue}</StatusBadge>}</td>
                     </tr>

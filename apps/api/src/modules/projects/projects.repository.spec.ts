@@ -4,6 +4,25 @@ import type { DatabaseConnection } from "../../database/database.types";
 import { ProjectsRepository } from "./projects.repository";
 
 describe("ProjectsRepository batch member assignments", () => {
+  it("counts only currently active project assignments for active organization members", async () => {
+    const database = {
+      transaction: jest.fn(),
+      query: jest.fn().mockResolvedValue([]),
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<DatabaseService>;
+    const repository = new ProjectsRepository(database);
+
+    await repository.findById("organization-id", "project-id");
+
+    const sql = String(database.query.mock.calls[0]?.[0]);
+    expect(sql).toContain("pm.status = 'ACTIVE'");
+    expect(sql).toContain(
+      "pm.starts_on IS NULL OR pm.starts_on <= CURRENT_DATE",
+    );
+    expect(sql).toContain("pm.ends_on IS NULL OR pm.ends_on >= CURRENT_DATE");
+    expect(sql).toContain("active_member.status = 'ACTIVE'");
+  });
+
   it("writes assignment additions and removals in one database transaction", async () => {
     const connection = {
       name: "transaction-connection",

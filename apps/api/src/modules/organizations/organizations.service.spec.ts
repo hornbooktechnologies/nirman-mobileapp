@@ -10,6 +10,8 @@ describe("OrganizationsService member invitations", () => {
   const organizationsRepo = {
     findOrganizationRoleTemplates: jest.fn(),
     findRoleById: jest.fn(),
+    findMemberById: jest.fn(),
+    updateMember: jest.fn(),
   } as unknown as jest.Mocked<OrganizationsRepository>;
   const projectAccess = {
     resolveOrganizationAccess: jest.fn(),
@@ -107,6 +109,22 @@ describe("OrganizationsService member invitations", () => {
       actor,
       "Site Supervisor",
     );
+  });
+
+  it("prevents a member from changing their own organization role", async () => {
+    organizationsRepo.findMemberById.mockResolvedValue(
+      organizationAccess("Organization Owner").membership as never,
+    );
+
+    await expect(
+      service.updateMember(
+        organizationId,
+        "membership-id",
+        { roleId: "another-role-id" },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(organizationsRepo.updateMember).not.toHaveBeenCalled();
   });
 });
 

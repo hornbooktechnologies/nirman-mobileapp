@@ -25,6 +25,27 @@ describe("KharchiRepository", () => {
     audit.record.mockResolvedValue("00000000-0000-4000-8000-000000000099");
   });
 
+  it("reads projected outstanding balances without allocating deductions", async () => {
+    database.query.mockResolvedValueOnce([
+      { worker_id: "worker-1", outstanding_amount: "650.00" },
+      { worker_id: "worker-2", outstanding_amount: "125.50" },
+    ] as never);
+
+    await expect(
+      repository.findOutstandingByWorkers("org-id", "project-id", [
+        "worker-1",
+        "worker-2",
+      ]),
+    ).resolves.toEqual(
+      new Map([
+        ["worker-1", "650.00"],
+        ["worker-2", "125.50"],
+      ]),
+    );
+    expect(database.execute).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
   it("returns readable people and assignment context without replacing historical IDs", async () => {
     database.query
       .mockResolvedValueOnce([

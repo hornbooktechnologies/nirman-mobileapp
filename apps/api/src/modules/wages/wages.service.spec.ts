@@ -16,6 +16,7 @@ describe("WagesService", () => {
     recordPayment: jest.fn(),
     cancelBatch: jest.fn(),
     updateWageItem: jest.fn(),
+    findKharchiOutstandingByWorkers: jest.fn(),
   } as unknown as jest.Mocked<WagesRepository>;
 
   const projectAccess = {
@@ -78,6 +79,7 @@ describe("WagesService", () => {
     jest.setSystemTime(new Date("2026-09-15T18:45:00.000Z"));
     projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
     attendanceService.calculateWagePeriod.mockResolvedValue([]);
+    wagesRepo.findKharchiOutstandingByWorkers.mockResolvedValue(new Map());
     calendarRepo.findOrganizationWorkingTimezone.mockResolvedValue(
       "Asia/Kolkata",
     );
@@ -166,6 +168,42 @@ describe("WagesService", () => {
       "2026-08-01",
       "2026-08-05",
     );
+  });
+
+  it("shows projected Kharchi deductions without creating a batch", async () => {
+    attendanceService.calculateWagePeriod.mockResolvedValue([
+      {
+        workerAssignmentId: "assignment-id",
+        workerId: "worker-id",
+        workerCode: "WRK-001",
+        workerName: "Ravi Worker",
+        trade: "Mason",
+        dailyRate: "800.00",
+        presentDays: 2,
+        halfDays: 0,
+        absentDays: 0,
+      },
+    ]);
+    wagesRepo.findKharchiOutstandingByWorkers.mockResolvedValue(
+      new Map([["worker-id", "650.00"]]),
+    );
+
+    const preview = await service.preview(
+      organizationId,
+      projectId,
+      { start: "2026-08-01", end: "2026-08-05" },
+      actor,
+    );
+
+    expect(preview.items[0]).toEqual(
+      expect.objectContaining({
+        grossAmount: "1600.00",
+        kharchiDeduction: "650.00",
+        netAmount: "1600.00",
+      }),
+    );
+    expect(preview.totals.kharchiDeduction).toBe("650.00");
+    expect(wagesRepo.createBatch).not.toHaveBeenCalled();
   });
 
   it("uses effective-dated rate segments without rewriting earlier days", async () => {

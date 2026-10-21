@@ -1,3 +1,15 @@
+## 2026-10-21 - Cross-client administration, calendar, Materials and Wages fixes
+
+Implemented the requested critical defect pass across API, Web and Mobile. Organization create now removes the plus icon while the form is open. Permission matrices retain their loaded grants and add explicit Select all/Deselect all controls in Web role/project assignment surfaces and Mobile project assignment. The redundant no-project-override calendar notice is removed while real project-override guidance remains. Existing Web/Mobile/API self-role protection was retained and is now regression-tested. Project member totals now count only current active assignments whose organization membership is active.
+
+Materials Web now uses one debounced searchable Responsible member control; Mobile uses the existing searchable picker. Both exclude inactive, not-yet-started and expired assignments, and the API response now exposes organization-membership status for correct client filtering. Web record metadata and purchase UUID fallback were removed; purchase labels retain vendor/date/quantity and an optional human-entered reference. Wages preview now reads projected outstanding Kharchi per worker without writes, shows it as information in both clients, and leaves allocation, deduction status and final net calculation exclusively in the existing confirmation transaction.
+
+Verification: API/Web/Mobile typechecks, API and Web production builds, Web and changed API scoped lint, 23 focused API tests, Mobile 19-namespace locale validation and diff checks passed. The focused Wages service file retains one pre-existing unsafe-assignment lint error at its active-batch lookup; the new Wages preview code is covered by typecheck/build/tests. No migration, database mutation, deployment, authenticated browser session or physical-device acceptance was performed. Existing design primitives and the React review checklist were used; the optional ui-ux-pro-max companion was unavailable.
+
+## 2026-10-21 - Web header project switcher
+
+Added an authenticated Web header project dropdown backed by the existing effective project-access response. Switching retains a safe module destination, removes record-specific identifiers and stale filters, and falls back to the target project's first permitted route when grants differ. Organization switching and backend project defaults remain unchanged. Web-only navigation change; no API, database, Mobile, permission, or project data mutation.
+
 ## 2026-10-09 - Expo web login CORS follow-up
 
 Resolved reported stale localhost:3000 allow-origin response for Expo web login by giving local Expo web a separate 127.0.0.1 API address. Current API correctly permits localhost:8081; native/remote/production URL behavior preserved. Configuration tests, Mobile typecheck and served web bundle checks pass. Real Edge preflight/POST reaches login DTO validation without CORS failure; no credentials or session mutation. Actual user login after bundle reload remains acceptance.

@@ -26,6 +26,7 @@ import { GalleryModule } from "./modules/gallery/gallery.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PdfExportModule } from "./common/exports/pdf-export.module";
+import { WebsiteEnquiriesModule } from "./modules/website-enquiries/website-enquiries.module";
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PdfExportModule } from "./common/exports/pdf-export.module";
     GalleryModule,
     SourcePaymentsModule,
     TotalExpensesModule,
+    WebsiteEnquiriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

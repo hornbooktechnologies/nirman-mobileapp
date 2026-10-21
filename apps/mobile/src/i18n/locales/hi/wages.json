@@ -19,10 +19,14 @@
     "workerCount_one": "{{count}} मजदूर",
     "workerCount_other": "{{count}} मजदूर",
     "netPayable": "कुल देय",
+    "beforeConfirmation": "पुष्टि से पहले मजदूरी",
     "attendance": "{{present}} उपस्थित · {{half}} आधा · {{absent}} अनुपस्थित",
     "ready": "तैयार",
     "needsAttention": "ध्यान आवश्यक",
     "notReady": "गायब मजदूरी जानकारी पूरी करें।",
+    "kharchiSummary": "अनुमानित खर्ची कटौती: {{amount}}",
+    "kharchiItem": "खर्ची: {{amount}}",
+    "kharchiPreviewOnly": "यह केवल जानकारी है। पुष्टि के बाद ही खर्ची आवंटित होगी और शुद्ध मजदूरी की गणना होगी।",
     "confirm": "मजदूरी बैच की पुष्टि करें"
   },
   "batches": {

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { Failure, Status, money, dateTime } from "./sales-ui";
 import { UnitForm } from "./unit-form";
@@ -283,38 +283,36 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
         ) : !interests.data.length ? (
           <Card>No interests visible to you for this unit.</Card>
         ) : (
-          interests.data.map((i) => (
-            <Card key={i.id} className="space-y-3">
-              <div className="flex flex-wrap justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold">{i.customerName}</h3>
-                  <p>
-                    {i.primaryMobile} · {i.assignedToName ?? "Unassigned"}
-                  </p>
-                </div>
-                <Status value={i.status} />
-              </div>
-              <p>
-                {i.leadStage.replaceAll("_", " ")} · {i.leadPriority} priority
-              </p>
-              {i.notes && <p className="whitespace-pre-wrap">{i.notes}</p>}
-              <p className="text-sm">
-                Last activity: {dateTime(i.lastActivityAt, c.timezone)} · Next
-                follow-up: {dateTime(i.nextFollowUpAt, c.timezone)}
-              </p>
-              {i.holdRequestId && (
-                <p className="whitespace-pre-wrap">
-                  Pending hold · {dateTime(i.holdRequestedAt, c.timezone)}
-                  {i.holdRequestNotes ? ` · ${i.holdRequestNotes}` : ""}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
+          <Table aria-label="Interested customers and hold requests" className="min-w-[1180px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Lead</TableHead>
+                <TableHead>Interest</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead>Hold request</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {interests.data.map((i) => (
+                <TableRow key={i.id}>
+                  <TableCell>
+                    <span className="font-semibold">{i.customerName}</span>
+                    <span className="mt-1 block text-xs text-sub">{i.primaryMobile} · {i.assignedToName ?? "Unassigned"}</span>
+                  </TableCell>
+                  <TableCell>{i.leadStage.replaceAll("_", " ")}<span className="mt-1 block text-xs text-sub">{i.leadPriority} priority</span></TableCell>
+                  <TableCell><Status value={i.status} />{i.notes && <span className="mt-1 block max-w-[220px] line-clamp-2 whitespace-pre-wrap text-xs text-sub">{i.notes}</span>}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs">Last: {dateTime(i.lastActivityAt, c.timezone)}<span className="mt-1 block text-sub">Next: {dateTime(i.nextFollowUpAt, c.timezone)}</span></TableCell>
+                  <TableCell className="max-w-[260px]">{i.holdRequestId ? <><span className="font-medium">Pending · {dateTime(i.holdRequestedAt, c.timezone)}</span>{i.holdRequestNotes && <span className="mt-1 block line-clamp-2 whitespace-pre-wrap text-xs text-sub">{i.holdRequestNotes}</span>}</> : <span className="text-sub">No pending request</span>}</TableCell>
+                  <TableCell>
+                    <div className="flex min-w-[220px] flex-wrap justify-end gap-2">
                 {canReadSales(c.permissions) && (
                   <Link
-                    className="underline"
+                    className="inline-flex min-h-9 items-center rounded-control px-2 text-sm font-medium underline underline-offset-4 transition-colors hover:text-lime focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
                     href={salesDetailUrl(`/projects/${c.project}/sales/leads/${i.leadId}`, `/projects/${c.project}/sales/inventory/${id}`)}
                   >
-                    Lead and history
+                    Lead history
                   </Link>
                 )}
                 {leadActions &&
@@ -356,9 +354,12 @@ function UnitDetail({ c, id }: { c: SalesContext; id: string }) {
                       </Button>
                     </>
                   )}
-              </div>
-            </Card>
-          ))
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </section>
       {dialog === "edit" && (

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import type { SalesContext } from "./sales-workspace";
 import type { SalesLead } from "../types/sales.types";
 import { Failure, Status } from "./sales-ui";
@@ -94,23 +94,26 @@ export function LeadInventory({
       ) : !interests.data.length ? (
         <Card>No unit interests recorded.</Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {interests.data.map((i) => (
-            <Card key={i.id}>
-              <Link
-                className="font-semibold underline"
-                href={salesDetailUrl(`/projects/${c.project}/sales/inventory/${i.unitId}`, `/projects/${c.project}/sales/leads/${lead.id}`)}
-              >
-                {i.unitNumber}
-              </Link>
-              <div className="mt-2">
-                <Status value={i.status} />
-                {i.holdRequestId && <p>Hold approval pending</p>}
-              </div>
-              {i.notes && <p className="whitespace-pre-wrap">{i.notes}</p>}
-            </Card>
-          ))}
-        </div>
+        <Table aria-label={`Unit interests for ${lead.customerName}`} className="min-w-[720px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Unit</TableHead>
+              <TableHead>Interest</TableHead>
+              <TableHead>Hold</TableHead>
+              <TableHead>Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {interests.data.map((i) => (
+              <TableRow key={i.id}>
+                <TableCell><Link className="font-semibold underline decoration-hairline underline-offset-4 transition-colors hover:text-lime" href={salesDetailUrl(`/projects/${c.project}/sales/inventory/${i.unitId}`, `/projects/${c.project}/sales/leads/${lead.id}`)}>{i.unitNumber}</Link></TableCell>
+                <TableCell><Status value={i.status} /></TableCell>
+                <TableCell>{i.holdRequestId ? <span className="font-medium text-warning">Approval pending</span> : <span className="text-sub">No request</span>}</TableCell>
+                <TableCell className="max-w-[360px] whitespace-pre-wrap break-words">{i.notes || <span className="text-sub">No notes</span>}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
       {action && (
         <SalesForm

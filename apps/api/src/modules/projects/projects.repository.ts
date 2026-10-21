@@ -81,6 +81,7 @@ function mapProjectMemberRow(
     permissionMode: row.permission_mode,
     grantedPermissions,
     status: row.status,
+    organizationMemberStatus: row.organization_member_status,
     startsOn: row.starts_on,
     endsOn: row.ends_on,
     createdAt: row.created_at,
@@ -355,10 +356,7 @@ export class ProjectsRepository {
       ORDER BY u.name ASC`,
       [organizationId, projectId],
     );
-    const grants = await this.findPermissionGrantMap(
-      organizationId,
-      projectId,
-    );
+    const grants = await this.findPermissionGrantMap(organizationId, projectId);
     return rows.map((row) =>
       mapProjectMemberRow(
         row,
@@ -850,7 +848,15 @@ export class ProjectsRepository {
     LEFT JOIN project_members pm
       ON pm.project_id = p.id
       AND pm.organization_id = p.organization_id
-      AND pm.status = 'ACTIVE'`;
+      AND pm.status = 'ACTIVE'
+      AND (pm.starts_on IS NULL OR pm.starts_on <= CURRENT_DATE)
+      AND (pm.ends_on IS NULL OR pm.ends_on >= CURRENT_DATE)
+      AND EXISTS (
+        SELECT 1 FROM organization_members active_member
+        WHERE active_member.id = pm.member_id
+          AND active_member.organization_id = pm.organization_id
+          AND active_member.status = 'ACTIVE'
+      )`;
   }
 
   private projectMemberSelectSql() {
@@ -861,7 +867,8 @@ export class ProjectsRepository {
       u.email AS user_email,
       u.phone AS user_phone,
       r.id AS role_id,
-      r.name AS role_name
+      r.name AS role_name,
+      om.status AS organization_member_status
     FROM project_members pm
     INNER JOIN organization_members om
       ON om.id = pm.member_id

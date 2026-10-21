@@ -439,17 +439,25 @@ export function MemberProjectAssignmentDialog({
                             type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => setPermissionPreset(project.id, "VIEW")}
+                            onClick={() => updateFields(project.id, { permissions: delegatableRolePermissions })}
                           >
-                            View preset
+                            Select all
                           </Button>
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => setPermissionPreset(project.id, "MANAGE")}
+                            onClick={() => updateFields(project.id, { permissions: [] })}
                           >
-                            Manage preset
+                            Deselect all
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPermissionPreset(project.id, "VIEW")}
+                          >
+                            View preset
                           </Button>
                         </div>
                       </div>

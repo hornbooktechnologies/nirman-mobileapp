@@ -19,10 +19,14 @@
     "workerCount_one": "{{count}} worker",
     "workerCount_other": "{{count}} workers",
     "netPayable": "Net payable",
+    "beforeConfirmation": "Wage before confirmation",
     "attendance": "{{present}} present · {{half}} half · {{absent}} absent",
     "ready": "Ready",
     "needsAttention": "Needs attention",
     "notReady": "Complete the missing wage information.",
+    "kharchiSummary": "Estimated Kharchi deduction: {{amount}}",
+    "kharchiItem": "Kharchi: {{amount}}",
+    "kharchiPreviewOnly": "For information only. Kharchi is allocated and net wage is calculated only after confirmation.",
     "confirm": "Confirm wage batch"
   },
   "batches": {

@@ -47,8 +47,12 @@ export function SiteVisitForm({
     {
       name: "attendeeCount",
       label: "Attendee count",
-      type: "number",
-      min: 1,
+      numeric: {
+        kind: "integer",
+        min: 1,
+        max: 1000,
+        message: "Enter a whole number from 1 to 1,000.",
+      },
       initial: visit?.attendeeCount?.toString() ?? "",
       help: "1–1,000 attendees.",
     },

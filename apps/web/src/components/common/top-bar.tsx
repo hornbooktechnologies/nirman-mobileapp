@@ -1,7 +1,8 @@
 "use client";
 
-import { Building2, LogOut, UserCircle } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { Building2, FolderKanban, LogOut, UserCircle } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { IconButton, Select } from "@/components/ui";
 import { getRouteTitle } from "@/config/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -11,11 +12,76 @@ import {
   useOrganizations,
   useSwitchOrganization,
 } from "@/features/organizations/hooks/use-organizations";
+import { useProjectAccess } from "@/features/projects/hooks/use-projects";
+import { projectNavigation } from "@/features/projects/project-navigation";
+import {
+  accessibleProjectSwitchHref,
+  projectIdFromLocation,
+} from "@/features/projects/project-switch";
 
 export interface TopBarProps {
   isMenuOpen?: boolean;
   menuId?: string;
   onOpenMenu?: () => void;
+}
+
+function ProjectSwitcher({
+  organizationId,
+  pathname,
+}: {
+  organizationId: string | null;
+  pathname: string;
+}) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const access = useProjectAccess(organizationId);
+  const projects =
+    access.data?.organizationId === organizationId ? access.data.projects : [];
+  const selectedProjectId = projectIdFromLocation(
+    pathname,
+    new URLSearchParams(params.toString()),
+    projects,
+    access.data?.activeProjectId,
+  );
+
+  if (!organizationId || !projects.length) return null;
+
+  return (
+    <label className="relative hidden lg:block">
+      <span className="sr-only">Active project</span>
+      <FolderKanban
+        aria-hidden="true"
+        size={15}
+        className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted"
+      />
+      <Select
+        value={selectedProjectId}
+        onChange={(event) => {
+          if (!event.target.value || event.target.value === selectedProjectId)
+            return;
+          const project = projects.find(
+            (candidate) => candidate.id === event.target.value,
+          );
+          if (!project) return;
+          router.replace(
+            accessibleProjectSwitchHref(
+              pathname,
+              project.id,
+              projectNavigation(project).map((item) => item.href),
+            ),
+          );
+        }}
+        aria-label="Active project"
+        className="w-44 pl-9"
+      >
+        {projects.map((project) => (
+          <option key={project.id} value={project.id}>
+            {project.name}{project.status === "ARCHIVED" ? " · Archived" : ""}
+          </option>
+        ))}
+      </Select>
+    </label>
+  );
 }
 
 export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) {
@@ -74,7 +140,7 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
       <div className="flex items-center gap-2">
         <NotificationBell />
         {organizations.data?.length === 1 && activeOrganization ? (
-          <div className="hidden max-w-52 items-center gap-2 rounded-sub border border-hairline bg-sunken/60 px-2.5 py-1.5 text-[11px] font-medium text-body md:flex">
+          <div className="hidden max-w-44 items-center gap-2 rounded-sub border border-hairline bg-sunken/60 px-2.5 py-1.5 text-[11px] font-medium text-body md:flex">
             <Building2 size={14} className="shrink-0 text-muted" aria-hidden="true" />
             <span className="truncate">{activeOrganization.name}</span>
           </div>
@@ -84,7 +150,7 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
             onChange={(event) => handleOrganizationChange(event.target.value)}
             disabled={switchOrganization.isPending}
             aria-label="Active organization"
-            className="hidden w-52 md:block"
+            className="hidden w-44 md:block"
           >
             {organizations.data.map((organization) => (
               <option key={organization.id} value={organization.id}>
@@ -93,6 +159,12 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
             ))}
           </Select>
         ) : null}
+        <Suspense fallback={null}>
+          <ProjectSwitcher
+            organizationId={activeOrganizationId}
+            pathname={pathname}
+          />
+        </Suspense>
 
         {/* User meta — hidden on mobile */}
         <div className="hidden min-w-0 text-right sm:block">

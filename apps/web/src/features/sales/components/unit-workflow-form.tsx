@@ -1,10 +1,7 @@
 "use client";
-import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, LoadingState } from "@/components/ui";
 import { SalesForm, type Field } from "./sales-form";
-import { Failure } from "./sales-ui";
 import type { SalesContext } from "./sales-workspace";
 import type { SalesUnitInterest } from "../types/inventory.types";
 import { salesService } from "../services/sales.service";
@@ -33,16 +30,14 @@ export function UnitWorkflowForm({
   save: (v: WorkflowValues) => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
-  const term = search;
-  const [page, setPage] = useState(1);
   const pickLead = (action === "interest" || action === "block") && !interest;
   const leads = useQuery({
-    queryKey: [...salesKey(c.org, c.project), "inventory-leads", term, page],
+    queryKey: [...salesKey(c.org, c.project), "inventory-leads", search],
     queryFn: ({ signal }) =>
       salesService.leads(
         c.org,
         c.project,
-        { search: term, page, limit: 50 },
+        { search: search || undefined, page: 1, limit: 100 },
         signal,
       ),
     enabled: pickLead,
@@ -62,6 +57,12 @@ export function UnitWorkflowForm({
             name: "leadId",
             label: "Customer lead",
             required: true,
+            searchable: {
+              searchValue: search,
+              onSearchChange: setSearch,
+              loading: leads.isPending || leads.isFetching,
+              placeholder: "Search customer name or mobile",
+            },
             options: (leads.data?.data ?? [])
               .filter(
                 (l) =>
@@ -132,10 +133,9 @@ export function UnitWorkflowForm({
           const errors: Record<string, string> = {};
           if (
             pickLead &&
-            (!leads.isSuccess ||
-              !leads.data.data.some((l) => l.id === v.leadId))
+            (!leads.isSuccess || !v.leadId)
           )
-            errors.leadId = "Choose a lead from the current results.";
+            errors.leadId = "Choose a customer lead from the results.";
           if (v.expiresAt) {
             try {
               if (
@@ -161,47 +161,8 @@ export function UnitWorkflowForm({
           })
         }
       >
-        {pickLead && (
-          <div className="space-y-3">
-            <label>
-              Find customer
-              <SearchInput
-                value={search}
-                onValueChange={(e) => {
-                  setSearch(e);
-                  setPage(1);
-                }}
-              />
-            </label>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={page <= 1 || leads.isFetching}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Previous leads
-              </Button>
-              <span>Page {page}</span>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={
-                  leads.isFetching || page * 50 >= (leads.data?.meta.total ?? 0)
-                }
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next leads
-              </Button>
-            </div>
-            {leads.isPending ? (
-              <LoadingState label="Loading leads" />
-            ) : leads.isError ? (
-              <Failure error={leads.error} retry={() => leads.refetch()} />
-            ) : (
-              !leads.data.data.length && <p>No matching leads.</p>
-            )}
-          </div>
+        {pickLead && leads.isError && (
+          <p role="alert" className="text-sm text-danger">Unable to load customer leads. Close and reopen this form to retry.</p>
         )}
         {action === "release" && (
           <p>

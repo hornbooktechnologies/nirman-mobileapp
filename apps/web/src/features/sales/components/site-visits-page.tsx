@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { SITE_VISIT_STATUSES } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { useSalesLifetime, useSiteVisits } from "../hooks/use-sales";
 import { canWriteLead, instant, salesKey } from "../sales-rules";
 import { visitActionable, visitSnapshot } from "../site-visit-rules";
@@ -118,73 +118,44 @@ function Visits({ c }: { c: SalesContext }) {
               a lead.
             </Card>
           )}
-          <ul className="grid gap-4 lg:grid-cols-2">
-            {visible.map((v) => (
-              <li key={v.id}>
-                <Card className="flex h-full flex-col">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <Link
-                      className="font-semibold underline"
-                      href={salesListUrl(pathname, params, { visit: v.id })}
-                    >
-                      {v.customerName}
-                    </Link>
-                    <Status value={v.status} />
-                  </div>
-                  <p className="mt-2">{dateTime(v.scheduledAt, c.timezone)}</p>
-                  <p className="text-sm text-sub">
-                    {v.assignedSalespersonName} ·{" "}
-                    {v.attendeeCount ?? "Unspecified"} attendees
-                  </p>
-                  <dl className="mt-3 space-y-2">
-                    {[
-                      ["Customer feedback", v.customerFeedback],
-                      ["Objections and concerns", v.objectionsConcerns],
-                      ["Next action", v.nextAction],
-                      [
-                        "Completed",
-                        v.completedAt
-                          ? dateTime(v.completedAt, c.timezone)
-                          : null,
-                      ],
-                    ]
-                      .filter(([, value]) => value)
-                      .map(([name, value]) => (
-                        <div key={name}>
-                          <dt className="text-sm text-sub">{name}</dt>
-                          <dd className="whitespace-pre-wrap break-words">
-                            {value}
-                          </dd>
-                        </div>
-                      ))}
-                  </dl>
-                  {!visitActionable(v.status) && (
-                    <p className="mt-2 text-sm text-sub">
-                      Final outcome · read-only
-                    </p>
-                  )}
-                  <div className="mt-auto flex flex-wrap items-center gap-4 pt-3">
-                    <Link
-                      className="underline"
-                      href={salesDetailUrl(`/projects/${c.project}/sales/leads/${v.leadId}`, salesListUrl(pathname, params, { visit: "" }))}
-                    >
-                      Lead and activity history
-                    </Link>
-                    {c.active &&
-                      c.permissions.includes("site-visits:manage") &&
-                      visitActionable(v.status) && (
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelected(v)}
-                        >
-                          Update visit
-                        </Button>
-                      )}
-                  </div>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          {!!visible.length && (
+            <Table aria-label="Sales site visits" className="min-w-[1100px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Scheduled</TableHead>
+                  <TableHead>Salesperson</TableHead>
+                  <TableHead>Attendees</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Outcome / next action</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell>
+                      <Link className="font-semibold underline decoration-hairline underline-offset-4 transition-colors hover:text-lime focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime" href={salesListUrl(pathname, params, { visit: v.id })}>{v.customerName}</Link>
+                      <Link className="mt-1 block text-xs text-sub underline underline-offset-2 hover:text-body" href={salesDetailUrl(`/projects/${c.project}/sales/leads/${v.leadId}`, salesListUrl(pathname, params, { visit: "" }))}>View lead history</Link>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{dateTime(v.scheduledAt, c.timezone)}</TableCell>
+                    <TableCell>{v.assignedSalespersonName}</TableCell>
+                    <TableCell>{v.attendeeCount ?? "Not set"}</TableCell>
+                    <TableCell><Status value={v.status} /></TableCell>
+                    <TableCell className="max-w-[320px]">
+                      <p className="line-clamp-2 whitespace-pre-wrap break-words">{v.nextAction || v.customerFeedback || v.objectionsConcerns || "No outcome recorded"}</p>
+                      {!visitActionable(v.status) && <p className="mt-1 text-xs text-sub">Final outcome · read only</p>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {c.active && c.permissions.includes("site-visits:manage") && visitActionable(v.status) ? (
+                        <Button variant="outline" onClick={() => setSelected(v)}>Update</Button>
+                      ) : <span className="text-sub">Read only</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </>
       )}
       {selected && (

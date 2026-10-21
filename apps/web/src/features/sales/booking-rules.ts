@@ -20,7 +20,10 @@ export function bookingPermission(
   );
 }
 export function bookingAmountError(value: string) {
-  return value && (!Number.isFinite(Number(value)) || Number(value) < 0)
+  return value &&
+    (!/^(?:\d+|\d*\.\d+)$/.test(value) ||
+      !Number.isFinite(Number(value)) ||
+      Number(value) < 0)
     ? "Enter a finite, non-negative amount."
     : undefined;
 }

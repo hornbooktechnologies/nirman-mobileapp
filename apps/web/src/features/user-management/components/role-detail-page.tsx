@@ -191,7 +191,7 @@ function RolePermissionEditor({ role, onBack }: { role: Role; onBack: () => void
       <Card className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-lg font-semibold">Permission set</h2><p className="text-sm text-sub">These grants affect users assigned to this role. Review changes before saving.</p></div>
-          {canManage && <Button onClick={() => void savePermissions()} disabled={replacePermissions.isPending}>{replacePermissions.isPending ? "Saving" : "Save Permissions"}</Button>}
+          {canManage ? <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setSelectedPermissions(new Set(ALL_PERMISSIONS))}>Select all</Button><Button variant="outline" onClick={() => setSelectedPermissions(new Set())}>Deselect all</Button><Button onClick={() => void savePermissions()} disabled={replacePermissions.isPending}>{replacePermissions.isPending ? "Saving" : "Save Permissions"}</Button></div> : null}
         </div>
         <Table>
           <TableHeader>

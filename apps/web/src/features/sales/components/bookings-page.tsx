@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BOOKING_STATUSES } from "@nirman-app/shared";
-import { Card, LoadingState } from "@/components/ui";
+import { Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { CollectionPagination } from "@/components/ui/collection-toolbar";
 import { SalesWorkspace, type SalesContext } from "./sales-workspace";
 import { useBookings } from "../hooks/use-bookings";
@@ -93,34 +93,34 @@ function Bookings({ c }: { c: SalesContext }) {
           {!rows.length ? (
             <Card>No bookings match these filters.</Card>
           ) : (
-            <ul className="grid gap-4 lg:grid-cols-2">
-              {rows.slice((current - 1) * 25, current * 25).map((b) => (
-                <li key={b.id}>
-                  <Link
-                    className="block h-full rounded-card border border-hairline bg-surface p-5 focus-visible:ring-2 focus-visible:ring-lime"
-                    href={salesDetailUrl(`/projects/${c.project}/sales/bookings/${b.id}`, salesListUrl(pathname, params, {}))}
-                  >
-                    <div className="flex flex-wrap justify-between gap-2">
-                      <h2 className="font-semibold break-words">
-                        {b.customerName}
-                      </h2>
-                      <Status value={b.status} />
-                    </div>
-                    <p>
-                      {b.unitNumber ?? "Without a unit"} ·{" "}
-                      {b.bookingReference ?? b.customerMobile}
-                    </p>
-                    <p className="mt-3 font-semibold">
-                      {money(b.bookingAmount)}
-                    </p>
-                    <p className="text-sm text-sub">
-                      {b.bookingDate.slice(0, 10)} ·{" "}
-                      {b.bookedByName ?? "Booking"}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Table aria-label="Sales bookings" className="min-w-[980px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Booking date</TableHead>
+                  <TableHead>Booked by</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.slice((current - 1) * 25, current * 25).map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell><Link className="font-semibold underline decoration-hairline underline-offset-4 transition-colors hover:text-lime focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime" href={salesDetailUrl(`/projects/${c.project}/sales/bookings/${b.id}`, salesListUrl(pathname, params, {}))}>{b.customerName}</Link></TableCell>
+                    <TableCell className="whitespace-nowrap">{b.customerMobile}</TableCell>
+                    <TableCell>{b.unitNumber ?? "Without a unit"}</TableCell>
+                    <TableCell>{b.bookingReference ?? "Not provided"}</TableCell>
+                    <TableCell className="whitespace-nowrap font-semibold tabular-nums">{money(b.bookingAmount)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{b.bookingDate.slice(0, 10)}</TableCell>
+                    <TableCell>{b.bookedByName ?? "Name unavailable"}</TableCell>
+                    <TableCell><Status value={b.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
           {rows.length > 25 && <CollectionPagination page={current} pageCount={Math.ceil(rows.length / 25)} total={rows.length} busy={bookings.isFetching} onPageChange={(next) => filter("page", String(next))} />}
         </>

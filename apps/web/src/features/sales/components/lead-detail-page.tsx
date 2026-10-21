@@ -11,7 +11,7 @@ import {
   type FollowUpType,
   type LeadStage,
 } from "@nirman-app/shared";
-import { Button, Card, LoadingState } from "@/components/ui";
+import { Button, Card, LoadingState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
 import { useActivities, useLead, useSalesLifetime } from "../hooks/use-sales";
 import {
   assignmentPermission,
@@ -200,31 +200,42 @@ function LeadDetail({
         ) : (
           <>
             {!activities.data.length && <Card>No activities yet.</Card>}
-            <ol className="space-y-3">
-              {activities.data.map((a) => {
-                const details = activityDetails(a, (value) => dateTime(value, c.timezone));
-                return (
-                <li key={a.id}>
-                  <Card>
-                    <p className="font-semibold">{a.summary}</p>
-                    <p className="text-sm text-sub">
-                      {label(a.activityType)} · {a.actorName || "Name unavailable"} ·{" "}
-                      {dateTime(a.occurredAt, c.timezone)}
-                    </p>
-                    {details.length > 0 && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer">
-                          Activity details
-                        </summary>
-                        <dl className="mt-2 grid gap-3 text-sm sm:grid-cols-2">
-                          {details.map(([name, value]) => <div key={name}><dt className="text-sub">{name}</dt><dd className="whitespace-pre-wrap break-words">{value}</dd></div>)}
-                        </dl>
-                      </details>
-                    )}
-                  </Card>
-                </li>
-              ); })}
-            </ol>
+            {!!activities.data.length && (
+              <Table aria-label="Lead activity timeline" className="min-w-[920px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Summary</TableHead>
+                    <TableHead>Actor</TableHead>
+                    <TableHead>Occurred</TableHead>
+                    <TableHead>Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activities.data.map((a) => {
+                    const details = activityDetails(a, (value) => dateTime(value, c.timezone));
+                    return (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium">{label(a.activityType)}</TableCell>
+                        <TableCell className="max-w-[300px] whitespace-pre-wrap break-words">{a.summary}</TableCell>
+                        <TableCell>{a.actorName || "Name unavailable"}</TableCell>
+                        <TableCell className="whitespace-nowrap text-sub">{dateTime(a.occurredAt, c.timezone)}</TableCell>
+                        <TableCell className="max-w-[360px]">
+                          {details.length > 0 ? (
+                            <details>
+                              <summary className="cursor-pointer font-medium underline decoration-hairline underline-offset-4">View details</summary>
+                              <dl className="mt-2 grid gap-2 text-xs">
+                                {details.map(([name, value]) => <div key={name}><dt className="text-sub">{name}</dt><dd className="whitespace-pre-wrap break-words">{value}</dd></div>)}
+                              </dl>
+                            </details>
+                          ) : <span className="text-sub">No additional details</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </>
         )}
       </section>
