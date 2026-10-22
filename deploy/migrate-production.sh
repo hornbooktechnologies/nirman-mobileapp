@@ -22,7 +22,7 @@ if [[ "$(docker inspect --format '{{.State.Health.Status}}' nirmansite-database-
   exit 1
 fi
 
-"${compose[@]}" run --rm migration pnpm db:migrate:status
+"${compose[@]}" run --rm migration node dist/scripts/migration-status.js
 
 mkdir -p backups
 chmod 700 backups
@@ -38,6 +38,6 @@ echo "Backup created: ${backup_path}"
   -e DB_MIGRATION_CONFIRM=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
   -e DB_MIGRATION_ALLOW_REMOTE=true \
   -e DB_MIGRATION_ALLOW_PRODUCTION=true \
-  migration pnpm db:migrate
+  migration node dist/scripts/migrate.js
 
-"${compose[@]}" run --rm migration pnpm db:migrate:status
+"${compose[@]}" run --rm migration node dist/scripts/migration-status.js

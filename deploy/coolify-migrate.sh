@@ -19,7 +19,7 @@ chmod 700 /backups
 backup_path="/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ).sql"
 
 echo 'Checking migration state before deployment.'
-pnpm db:migrate:status
+node dist/scripts/migration-status.js
 
 echo "Creating database backup: ${backup_path}"
 export MYSQL_PWD="${MYSQL_ROOT_PASSWORD}"
@@ -38,7 +38,7 @@ echo 'Applying approved repository migrations.'
 DB_MIGRATION_CONFIRM=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
 DB_MIGRATION_ALLOW_REMOTE=true \
 DB_MIGRATION_ALLOW_PRODUCTION=true \
-pnpm db:migrate
+node dist/scripts/migrate.js
 
 echo 'Verifying migration state after deployment.'
-pnpm db:migrate:status
+node dist/scripts/migration-status.js

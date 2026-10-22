@@ -14,12 +14,6 @@ RUN pnpm install --frozen-lockfile
 FROM workspace AS api-build
 RUN pnpm --filter @nirman-app/api... build
 
-FROM workspace AS tools
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends default-mysql-client \
-  && rm -rf /var/lib/apt/lists/*
-CMD ["pnpm", "db:migrate:status"]
-
 FROM api-build AS api-deploy
 RUN pnpm --filter @nirman-app/api deploy --prod --legacy /prod/api
 
@@ -52,6 +46,14 @@ COPY --from=api-deploy --chown=node:node /prod/api /app
 ENV PORT=4000
 EXPOSE 4000
 CMD ["node", "dist/src/main.js"]
+
+FROM api AS tools
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends default-mysql-client \
+  && rm -rf /var/lib/apt/lists/*
+ENV DB_MIGRATION_SQL_DIR=/app/src/database/sql/migrations
+CMD ["node", "dist/scripts/migration-status.js"]
 
 FROM runtime AS web
 COPY --from=web-build --chown=node:node /workspace/apps/web/.next/standalone /workspace
