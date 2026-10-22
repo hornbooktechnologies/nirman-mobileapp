@@ -5,7 +5,7 @@ FROM node:22-bookworm-slim AS workspace
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-RUN corepack enable && corepack prepare pnpm@11.10.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
 
 WORKDIR /workspace
 COPY . .
@@ -15,7 +15,7 @@ FROM workspace AS api-build
 RUN pnpm --filter @nirman-app/api... build
 
 FROM api-build AS api-deploy
-RUN pnpm --filter @nirman-app/api deploy --prod --legacy /prod/api
+RUN pnpm --filter @nirman-app/api deploy --prod /prod/api
 
 FROM workspace AS web-build
 ARG API_INTERNAL_URL=http://api:4000
@@ -36,7 +36,7 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV NODE_ENV=production
 
-RUN corepack enable && corepack prepare pnpm@11.10.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
 WORKDIR /workspace
 USER node
 
