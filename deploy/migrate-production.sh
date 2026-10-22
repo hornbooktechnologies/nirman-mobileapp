@@ -10,6 +10,10 @@ fi
 
 compose=(docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production)
 
+# Rebuild the migration target after a pull so its command/runtime layout always
+# matches this script. Application containers remain running during this build.
+"${compose[@]}" build migration
+
 for _ in {1..60}; do
   if [[ "$(docker inspect --format '{{.State.Health.Status}}' nirmansite-database-1 2>/dev/null || true)" == 'healthy' ]]; then
     break

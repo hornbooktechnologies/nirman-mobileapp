@@ -58,6 +58,8 @@ Sync the existing `.env.production` values into Coolify. Variables written as `$
 
 The Compose definition deliberately reuses the external `nirmansite_mysql_data` volume. Do not rename it or remove `external: true`: this is the imported production database.
 
+MySQL is pinned to patch version `8.4.13`. Upgrade that value deliberately after a fresh backup and allow for the five-minute startup grace period while MySQL runs its built-in data dictionary upgrade.
+
 ## 4. Automatic database migration
 
 Every new Compose build runs the one-time `migration` service before the API starts. It:
