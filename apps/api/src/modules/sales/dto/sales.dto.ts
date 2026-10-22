@@ -43,6 +43,14 @@ import {
 const trim = ({ value }: { value: unknown }) =>
   typeof value === "string" ? value.trim() : value;
 
+export class LeadBrochureShareDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @IsUUID("4", { each: true })
+  assetIds!: string[];
+}
+
 export class QuerySalesDto {
   @IsOptional() @IsString() @MaxLength(160) search?: string;
   @IsOptional() @IsIn(LEAD_STAGES) stage?: LeadStage;
@@ -90,6 +98,10 @@ export class CreateLeadDto {
   @IsOptional() @IsUUID() assignedTo?: string;
   @IsOptional() @IsIn(LEAD_PRIORITIES) priority?: LeadPriority;
   @IsOptional() @IsUUID() interestedUnitId?: string;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LeadBrochureShareDto)
+  brochureShare?: LeadBrochureShareDto;
 }
 
 export class UpdateLeadDto {

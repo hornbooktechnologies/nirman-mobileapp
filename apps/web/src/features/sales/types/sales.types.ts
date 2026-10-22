@@ -56,6 +56,7 @@ export type LeadInput = {
   assignedTo?: string;
   priority?: LeadPriority;
   interestedUnitId?: string;
+  brochureShare?: { assetIds: string[] };
 };
 export type LeadUpdate = Partial<Omit<LeadInput, "assignedTo">> & {
   currentStage?: LeadStage;

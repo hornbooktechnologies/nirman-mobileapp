@@ -1,4 +1,4 @@
-import { refreshTogether } from '@nirman-app/shared';
+import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
 import {
@@ -18,6 +18,7 @@ import { router, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   AppliedFilterChip,
@@ -230,15 +231,18 @@ export function ExpensesScreen() {
     },
     [canRead, organizationId, projectId, query, t, token],
   );
-  useEffect(() => {
-    setItems([]);
-    setSummary(null);
-    setPage(1);
-    void load(1);
-    return () => {
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${JSON.stringify(query)}`,
+    refresh: load,
+    reset: () => {
+      setItems([]);
+      setSummary(null);
+      setPage(1);
+    },
+    cancel: () => {
       sequence.current += 1;
-    };
-  }, [load]);
+    },
+  });
 
   useEffect(() => {
     setMembers([]);
@@ -613,7 +617,8 @@ export function ExpensesScreen() {
           loadingMore ? <LoadingState label={t("loading.more")} /> : null
         }
         refreshControl={
-          <GuardedRefreshControl busy={loading || refreshing}
+          <GuardedRefreshControl
+            busy={loading || refreshing}
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);

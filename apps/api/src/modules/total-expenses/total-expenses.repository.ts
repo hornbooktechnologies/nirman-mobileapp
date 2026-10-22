@@ -84,7 +84,7 @@ export class TotalExpensesRepository {
       `
  SELECT 'WAGES' source, wb.id, CONCAT('Wages · ',wb.period_start,' – ',wb.period_end) title,
  '' subtitle, wb.id detailId, wb.period_start periodStart, wb.period_end periodEnd,
- NULL purchasedOn, NULL category, NULL expenseDate,
+ NULL purchasedOn, NULL deductedOn, NULL category, NULL expenseDate,
  (SELECT SUM(i.net_amount) FROM wage_items i WHERE i.wage_batch_id=wb.id) payable,
  p.amount, p.payment_date paymentDate
  FROM wage_payments p INNER JOIN wage_items wi ON wi.id=p.wage_item_id AND wi.organization_id=p.organization_id AND wi.project_id=p.project_id AND wi.wage_batch_id=p.wage_batch_id
@@ -92,14 +92,25 @@ export class TotalExpensesRepository {
  WHERE p.organization_id=? AND p.project_id=? AND wb.status IN ('CONFIRMED','PARTIALLY_PAID','PAID')
 `,
       `
- SELECT 'MATERIALS' source,mp.id id,mr.material_name title,COALESCE(mp.vendor_name,'') subtitle,mr.id detailId,NULL periodStart,NULL periodEnd,mp.purchased_on purchasedOn,NULL category,NULL expenseDate,mp.total_cost payable,p.amount,p.payment_date paymentDate
+ SELECT 'MATERIALS' source,mp.id id,mr.material_name title,COALESCE(mp.vendor_name,'') subtitle,mr.id detailId,NULL periodStart,NULL periodEnd,mp.purchased_on purchasedOn,NULL deductedOn,NULL category,NULL expenseDate,mp.total_cost payable,p.amount,p.payment_date paymentDate
  FROM material_purchase_payments p INNER JOIN material_purchases mp ON mp.id=p.material_purchase_id AND mp.organization_id=p.organization_id AND mp.project_id=p.project_id
  INNER JOIN material_requests mr ON mr.id=mp.material_request_id AND mr.organization_id=mp.organization_id AND mr.project_id=mp.project_id
  LEFT JOIN material_purchase_payments_voids v ON v.payment_id=p.id
  WHERE p.organization_id=? AND p.project_id=? AND v.id IS NULL
 `,
       `
- SELECT 'SITE_EXPENSES' source,e.id id,e.description title,COALESCE(e.vendor_payee,'') subtitle,e.id detailId,NULL periodStart,NULL periodEnd,NULL purchasedOn,e.category,e.expense_date expenseDate,
+ SELECT 'KHARCHI' source,kda.id id,w.name title,CONCAT(w.worker_code,' · Wages ',wb.period_start,' – ',wb.period_end) subtitle,
+ kda.kharchi_advance_id detailId,wb.period_start periodStart,wb.period_end periodEnd,NULL purchasedOn,DATE(kda.deducted_at) deductedOn,NULL category,NULL expenseDate,
+ kda.deduction_amount payable,kda.deduction_amount amount,DATE(kda.deducted_at) paymentDate
+ FROM kharchi_deduction_allocations kda
+ INNER JOIN kharchi_advances ka ON ka.id=kda.kharchi_advance_id AND ka.organization_id=kda.organization_id AND ka.project_id=kda.project_id
+ INNER JOIN workers w ON w.id=kda.worker_id AND w.organization_id=kda.organization_id
+ INNER JOIN wage_batches wb ON wb.id=kda.wage_batch_id AND wb.organization_id=kda.organization_id AND wb.project_id=kda.project_id
+ LEFT JOIN kharchi_deduction_allocation_reversals kr ON kr.allocation_id=kda.id
+ WHERE kda.organization_id=? AND kda.project_id=? AND kr.id IS NULL AND wb.status IN ('CONFIRMED','PARTIALLY_PAID','PAID')
+`,
+      `
+ SELECT 'SITE_EXPENSES' source,e.id id,e.description title,COALESCE(e.vendor_payee,'') subtitle,e.id detailId,NULL periodStart,NULL periodEnd,NULL purchasedOn,NULL deductedOn,e.category,e.expense_date expenseDate,
  e.amount+COALESCE((SELECT SUM(a.amount) FROM site_expense_adjustments a WHERE a.site_expense_id=e.id),0) payable,p.amount,p.payment_date paymentDate
  FROM site_expense_payments p INNER JOIN site_expenses e ON e.id=p.site_expense_id AND e.organization_id=p.organization_id AND e.project_id=p.project_id
  LEFT JOIN site_expense_payments_voids v ON v.payment_id=p.id
@@ -108,12 +119,16 @@ export class TotalExpensesRepository {
     return (
       source === "ALL"
         ? branches
-        : [branches[{ WAGES: 0, MATERIALS: 1, SITE_EXPENSES: 2 }[source]]]
+        : [
+            branches[
+              { WAGES: 0, MATERIALS: 1, KHARCHI: 2, SITE_EXPENSES: 3 }[source]
+            ],
+          ]
     ).join(" UNION ALL ");
   }
   private params(org: string, project: string, source: SpendingSource = "ALL") {
     return source === "ALL"
-      ? [org, project, org, project, org, project]
+      ? [org, project, org, project, org, project, org, project]
       : [org, project];
   }
   private dates(q: TotalExpensesQueryDto) {
@@ -126,7 +141,7 @@ export class TotalExpensesRepository {
   ): Promise<TotalExpensesList> {
     return this.db.transaction(async (c) => {
       const dateParams = q.startDate ? [q.startDate, q.endDate!] : [];
-      const group = `SELECT source,id,MAX(title) title,MAX(subtitle) subtitle,MAX(detailId) detailId,MAX(periodStart) periodStart,MAX(periodEnd) periodEnd,MAX(purchasedOn) purchasedOn,MAX(category) category,MAX(expenseDate) expenseDate,CAST(SUM(amount) AS CHAR) lifetimePaidAmount,CAST(GREATEST(MAX(payable)-SUM(amount),0) AS CHAR) remainingAmount,CASE WHEN SUM(amount)>=MAX(payable) THEN 'PAID' ELSE 'PARTIALLY_PAID' END paymentStatus,CAST(SUM(CASE WHEN ${this.dates(q)} THEN amount ELSE 0 END) AS CHAR) periodPaidAmount,MAX(CASE WHEN ${this.dates(q)} THEN paymentDate ELSE NULL END) latestPaymentDate FROM (${this.events(q.source)}) events GROUP BY source,id HAVING latestPaymentDate IS NOT NULL`;
+      const group = `SELECT source,id,MAX(title) title,MAX(subtitle) subtitle,MAX(detailId) detailId,MAX(periodStart) periodStart,MAX(periodEnd) periodEnd,MAX(purchasedOn) purchasedOn,MAX(deductedOn) deductedOn,MAX(category) category,MAX(expenseDate) expenseDate,CAST(SUM(amount) AS CHAR) lifetimePaidAmount,CAST(GREATEST(MAX(payable)-SUM(amount),0) AS CHAR) remainingAmount,CASE WHEN SUM(amount)>=MAX(payable) THEN 'PAID' ELSE 'PARTIALLY_PAID' END paymentStatus,CAST(SUM(CASE WHEN ${this.dates(q)} THEN amount ELSE 0 END) AS CHAR) periodPaidAmount,MAX(CASE WHEN ${this.dates(q)} THEN paymentDate ELSE NULL END) latestPaymentDate FROM (${this.events(q.source)}) events GROUP BY source,id HAVING latestPaymentDate IS NOT NULL`;
       const params = [
         ...dateParams,
         ...dateParams,
@@ -177,6 +192,10 @@ export class TotalExpensesRepository {
          INNER JOIN material_requests mr ON mr.id=mp.material_request_id AND mr.organization_id=mp.organization_id AND mr.project_id=mp.project_id
          LEFT JOIN material_purchase_payments_voids v ON v.payment_id=p.id
          WHERE p.organization_id=? AND p.project_id=? AND v.id IS NULL${date}`,
+        `SELECT 'KHARCHI' source,kda.deduction_amount amount,DATE(kda.deducted_at) paymentDate FROM kharchi_deduction_allocations kda
+         INNER JOIN wage_batches wb ON wb.id=kda.wage_batch_id AND wb.organization_id=kda.organization_id AND wb.project_id=kda.project_id
+         LEFT JOIN kharchi_deduction_allocation_reversals kr ON kr.allocation_id=kda.id
+         WHERE kda.organization_id=? AND kda.project_id=? AND kr.id IS NULL AND wb.status IN ('CONFIRMED','PARTIALLY_PAID','PAID')${q.startDate ? " AND DATE(kda.deducted_at) BETWEEN ? AND ?" : ""}`,
         `SELECT 'SITE_EXPENSES' source,p.amount,p.payment_date paymentDate FROM site_expense_payments p
          INNER JOIN site_expenses e ON e.id=p.site_expense_id AND e.organization_id=p.organization_id AND e.project_id=p.project_id
          LEFT JOIN site_expense_payments_voids v ON v.payment_id=p.id
@@ -192,13 +211,19 @@ export class TotalExpensesRepository {
          CAST(SUM(amount) AS CHAR) totalPaid,
          CAST(SUM(CASE WHEN source='WAGES' THEN amount ELSE 0 END) AS CHAR) wagesPaid,
          CAST(SUM(CASE WHEN source='MATERIALS' THEN amount ELSE 0 END) AS CHAR) materialsPaid,
+         CAST(SUM(CASE WHEN source='KHARCHI' THEN amount ELSE 0 END) AS CHAR) kharchiPaid,
          CAST(SUM(CASE WHEN source='SITE_EXPENSES' THEN amount ELSE 0 END) AS CHAR) siteExpensesPaid
          FROM (${branches.join(" UNION ALL ")}) events GROUP BY month ORDER BY month`,
         params,
         c,
       )) as TotalExpensesSummary["months"];
       const sum = (
-        key: "totalPaid" | "wagesPaid" | "materialsPaid" | "siteExpensesPaid",
+        key:
+          | "totalPaid"
+          | "wagesPaid"
+          | "materialsPaid"
+          | "kharchiPaid"
+          | "siteExpensesPaid",
       ) =>
         paiseMoney(
           months.reduce((total, month) => total + moneyPaise(month[key]), 0n),
@@ -207,6 +232,7 @@ export class TotalExpensesRepository {
         totalPaid: sum("totalPaid"),
         wagesPaid: sum("wagesPaid"),
         materialsPaid: sum("materialsPaid"),
+        kharchiPaid: sum("kharchiPaid"),
         siteExpensesPaid: sum("siteExpensesPaid"),
         months,
       };

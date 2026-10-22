@@ -66,6 +66,7 @@ describe("report snapshot and financial query scope", () => {
         totalPaid: "30.00",
         wagesPaid: "10.00",
         materialsPaid: "15.00",
+        kharchiPaid: "0.00",
         siteExpensesPaid: "5.00",
       },
     ] as never);
@@ -91,6 +92,10 @@ describe("report snapshot and financial query scope", () => {
       "project",
       "2026-09-01",
       "2026-09-30",
+      "org",
+      "project",
+      "2026-09-01",
+      "2026-09-30",
     ]);
     expect(db.query).toHaveBeenCalledTimes(1);
     expect(result.totalPaid).toBe("30.00");
@@ -104,6 +109,10 @@ describe("report snapshot and financial query scope", () => {
       "wb.status IN ('CONFIRMED','PARTIALLY_PAID','PAID')",
     );
     expect(db.query.mock.calls[0][0]).toContain("v.id IS NULL");
+    expect(db.query.mock.calls[0][0]).toContain("kr.id IS NULL");
+    expect(db.query.mock.calls[0][0]).toContain(
+      "DATE(kda.deducted_at) BETWEEN ? AND ?",
+    );
   });
   it("all-time reads omit date parameters and still group before pagination", async () => {
     db.query
@@ -117,6 +126,8 @@ describe("report snapshot and financial query scope", () => {
       new TotalExpensesQueryDto(),
     );
     expect(db.query.mock.calls[0][1]).toEqual([
+      "org",
+      "project",
       "org",
       "project",
       "org",

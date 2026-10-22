@@ -25,7 +25,7 @@ export type MaterialExpensesList = {
   materials: MaterialExpenseCard[];
   pagination: TotalExpensesList["pagination"];
 };
-export type PaidSource = "WAGES" | "MATERIALS" | "SITE_EXPENSES";
+export type PaidSource = "WAGES" | "MATERIALS" | "KHARCHI" | "SITE_EXPENSES";
 export type SpendingSource = PaidSource | "ALL";
 export type SourcePaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 export type SourcePaymentMethod =
@@ -86,6 +86,12 @@ export type SpendingCard = SpendingCardBase &
     | { source: "WAGES"; periodStart: string; periodEnd: string }
     | { source: "MATERIALS"; purchasedOn: string }
     | {
+        source: "KHARCHI";
+        deductedOn: string;
+        periodStart: string;
+        periodEnd: string;
+      }
+    | {
         source: "SITE_EXPENSES";
         category: ExpenseCategory;
         expenseDate: string;
@@ -96,12 +102,14 @@ export type TotalExpensesSummary = {
   totalPaid: string;
   wagesPaid: string;
   materialsPaid: string;
+  kharchiPaid: string;
   siteExpensesPaid: string;
   months: {
     month: string;
     totalPaid: string;
     wagesPaid: string;
     materialsPaid: string;
+    kharchiPaid: string;
     siteExpensesPaid: string;
   }[];
 };

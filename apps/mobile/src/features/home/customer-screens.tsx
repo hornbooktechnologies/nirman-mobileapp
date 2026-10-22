@@ -1,10 +1,20 @@
-
 import { RefreshButton } from "../../components/ui/refresh-button";
-import type { DashboardActionKey, GalleryEntry, RoleDashboardResponse } from '@nirman-app/shared';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Image, Pressable, StyleSheet, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import type {
+  DashboardActionKey,
+  GalleryEntry,
+  RoleDashboardResponse,
+} from "@nirman-app/shared";
+import { router, useLocalSearchParams, type Href } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Animated,
+  Image,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import { useTranslation } from "react-i18next";
 
 import {
   AppText,
@@ -23,21 +33,36 @@ import {
   OperationalEntityCard,
   QuickActionGrid,
   getStatusTone,
-} from '../../components/ui';
-import { getActiveProject, type MobileSession } from '../../lib/auth';
-import { formatDate, formatInr, formatNumber, getLocalizedErrorMessage } from '../../i18n';
-import { useLocalization, useSession } from '../../providers';
-import { mobileText, mobileTheme } from '../../theme';
+} from "../../components/ui";
+import { getActiveProject, type MobileSession } from "../../lib/auth";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
+import {
+  formatDate,
+  formatInr,
+  formatNumber,
+  getLocalizedErrorMessage,
+} from "../../i18n";
+import { useLocalization, useSession } from "../../providers";
+import { mobileText, mobileTheme } from "../../theme";
 import {
   CustomerTabBar,
   visibleNavigation,
   visibleOrganizationNavigation,
-} from './components';
-import { ActivityTimeline, DashboardBackdrop, DashboardTabs, Entrance, ProgressCard, ProjectSummary, SalesPulse, SiteStatsCard } from './components/Dashboard';
-import { fetchGalleryEntries } from '../gallery/services';
-import { AuthenticatedGalleryImage } from '../gallery/authenticated-gallery-image';
-import { fetchRoleDashboard } from './services';
-import { useNotifications } from '../notifications';
+} from "./components";
+import {
+  ActivityTimeline,
+  DashboardBackdrop,
+  DashboardTabs,
+  Entrance,
+  ProgressCard,
+  ProjectSummary,
+  SalesPulse,
+  SiteStatsCard,
+} from "./components/Dashboard";
+import { fetchGalleryEntries } from "../gallery/services";
+import { AuthenticatedGalleryImage } from "../gallery/authenticated-gallery-image";
+import { fetchRoleDashboard } from "./services";
+import { useNotifications } from "../notifications";
 import {
   CreateProjectSheet,
   fetchProject,
@@ -46,34 +71,38 @@ import {
   updateProject,
   type Project,
   type ProjectInput,
-} from '../projects';
+} from "../projects";
 
 const projectScopeTranslationKeys = {
-  ALL: 'projectScope.ALL',
-  ASSIGNED: 'projectScope.ASSIGNED',
-  NONE: 'projectScope.NONE',
+  ALL: "projectScope.ALL",
+  ASSIGNED: "projectScope.ASSIGNED",
+  NONE: "projectScope.NONE",
 } as const;
 
 const projectDetailStatusTranslationKeys = {
-  DRAFT: 'status.DRAFT',
-  ACTIVE: 'status.ACTIVE',
-  ON_HOLD: 'status.ON_HOLD',
-  COMPLETED: 'status.COMPLETED',
-  ARCHIVED: 'status.ARCHIVED',
+  DRAFT: "status.DRAFT",
+  ACTIVE: "status.ACTIVE",
+  ON_HOLD: "status.ON_HOLD",
+  COMPLETED: "status.COMPLETED",
+  ARCHIVED: "status.ARCHIVED",
 } as const;
 
 const projectDetailScopeTranslationKeys = {
-  ALL: 'scope.ALL',
-  ASSIGNED: 'scope.ASSIGNED',
-  NONE: 'scope.NONE',
+  ALL: "scope.ALL",
+  ASSIGNED: "scope.ASSIGNED",
+  NONE: "scope.NONE",
 } as const;
 
 const organizationTypeTranslationKeys = {
-  BUILDER: 'organizationType.BUILDER',
-  CONTRACTOR: 'organizationType.CONTRACTOR',
+  BUILDER: "organizationType.BUILDER",
+  CONTRACTOR: "organizationType.CONTRACTOR",
 } as const;
 
-function activeRoleName(session: MobileSession | null, noOrganizationLabel: string, memberLabel: string) {
+function activeRoleName(
+  session: MobileSession | null,
+  noOrganizationLabel: string,
+  memberLabel: string,
+) {
   if (!session?.activeOrganization) return noOrganizationLabel;
   return (
     session.memberships.find(
@@ -84,12 +113,16 @@ function activeRoleName(session: MobileSession | null, noOrganizationLabel: stri
 }
 
 export function DashboardScreen() {
-  const { t: tHome } = useTranslation('home');
-  const { t: tNavigation } = useTranslation('navigation');
-  const { t: tProgress } = useTranslation('progress');
-  const { t: tGallery } = useTranslation('gallery');
+  const { t: tHome } = useTranslation("home");
+  const { t: tNavigation } = useTranslation("navigation");
+  const { t: tProgress } = useTranslation("progress");
+  const { t: tGallery } = useTranslation("gallery");
   const scrollY = useRef(new Animated.Value(0)).current;
-  const [projectLocation, setProjectLocation] = useState<{ projectId: string; organizationId: string; text: string } | null>(null);
+  const [projectLocation, setProjectLocation] = useState<{
+    projectId: string;
+    organizationId: string;
+    text: string;
+  } | null>(null);
   const [activityEntries, setActivityEntries] = useState<GalleryEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityFailed, setActivityFailed] = useState(false);
@@ -98,25 +131,37 @@ export function DashboardScreen() {
   const { language } = useLocalization();
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
-  const [dashboardResponse, setDashboard] = useState<RoleDashboardResponse | null>(null);
+  const [dashboardResponse, setDashboard] =
+    useState<RoleDashboardResponse | null>(null);
   const [dashboardFailed, setDashboardFailed] = useState(false);
   const requestSequence = useRef(0);
+  const locationRequestSequence = useRef(0);
   const activeProject = getActiveProject(session);
-  const dashboard = dashboardResponse?.project.id === activeProject?.id && dashboardResponse?.organizationId === session?.activeOrganization?.id ? dashboardResponse : null;
+  const dashboard =
+    dashboardResponse?.project.id === activeProject?.id &&
+    dashboardResponse?.organizationId === session?.activeOrganization?.id
+      ? dashboardResponse
+      : null;
   const availableProjects =
-    session?.projectAccess.projects.filter((project) => project.status !== 'ARCHIVED') ?? [];
+    session?.projectAccess.projects.filter(
+      (project) => project.status !== "ARCHIVED",
+    ) ?? [];
   const workspaceNavigation = [
-    ...visibleNavigation(session, tNavigation).filter((item) => item.key !== 'home' && item.key !== 'menu'),
+    ...visibleNavigation(session, tNavigation).filter(
+      (item) => item.key !== "home" && item.key !== "menu",
+    ),
     ...visibleOrganizationNavigation(session, tNavigation),
   ];
-  const firstName = session?.user.name.trim().split(/\s+/)[0] || tHome('greeting.fallbackName');
+  const firstName =
+    session?.user.name.trim().split(/\s+/)[0] || tHome("greeting.fallbackName");
   const activeRoleLabel = activeRoleName(
     session,
-    tHome('greeting.noActiveOrganization'),
-    tHome('greeting.organizationMember'),
+    tHome("greeting.noActiveOrganization"),
+    tHome("greeting.organizationMember"),
   );
-  const activeOrganizationName = session?.activeOrganization?.name ?? 'NirmanSite';
-  const projectScope = session?.projectAccess.projectScope ?? 'NONE';
+  const activeOrganizationName =
+    session?.activeOrganization?.name ?? "NirmanSite";
+  const projectScope = session?.projectAccess.projectScope ?? "NONE";
   const projectScopeLabel = tHome(projectScopeTranslationKeys[projectScope]);
 
   const loadDashboard = useCallback(async () => {
@@ -125,7 +170,12 @@ export function DashboardScreen() {
     const accessToken = session?.accessToken;
     const sequence = ++requestSequence.current;
 
-    if (!organizationId || !projectId || !accessToken || !session?.permissions.includes('dashboards:read')) {
+    if (
+      !organizationId ||
+      !projectId ||
+      !accessToken ||
+      !session?.permissions.includes("dashboards:read")
+    ) {
       setDashboard(null);
       setDashboardFailed(false);
       setLoadingDashboard(false);
@@ -133,221 +183,607 @@ export function DashboardScreen() {
     }
 
     setLoadingDashboard(true);
-    setDashboard(null);
     try {
-      const nextDashboard = await fetchRoleDashboard(organizationId, projectId, accessToken);
+      const nextDashboard = await fetchRoleDashboard(
+        organizationId,
+        projectId,
+        accessToken,
+      );
       if (sequence !== requestSequence.current) return;
       setDashboard(nextDashboard);
       setDashboardFailed(false);
     } catch {
       if (sequence !== requestSequence.current) return;
-      setDashboard(null);
       setDashboardFailed(true);
     } finally {
       if (sequence === requestSequence.current) setLoadingDashboard(false);
     }
-  }, [activeProject?.id, session?.accessToken, session?.activeOrganization?.id, session?.permissions]);
+  }, [
+    activeProject?.id,
+    session?.accessToken,
+    session?.activeOrganization?.id,
+    session?.permissions,
+  ]);
 
-  useEffect(() => {
-    void loadDashboard();
-    return () => {
+  useRefreshOnFocus({
+    scopeKey: `${session?.user.id ?? ""}:${session?.activeOrganization?.id ?? ""}:${activeProject?.id ?? ""}:${session?.permissions.join(",") ?? ""}`,
+    refresh: loadDashboard,
+    reset: () => {
+      setDashboard(null);
+      setDashboardFailed(false);
+    },
+    cancel: () => {
       requestSequence.current += 1;
-    };
-  }, [loadDashboard]);
+    },
+  });
 
-  useEffect(() => {
-    let current = true;
-    setProjectLocation(null);
-    if (activeProject && session?.activeOrganization && session.accessToken) {
-      void fetchProject(session.activeOrganization.id, activeProject.id, session.accessToken)
-        .then(project => { if (current) setProjectLocation({ projectId: project.id, organizationId: project.organizationId, text: [project.address.city, project.address.state].filter(Boolean).join(', ') }); })
-        .catch(() => undefined);
+  const loadProjectLocation = useCallback(async () => {
+    const organizationId = session?.activeOrganization?.id;
+    const projectId = activeProject?.id;
+    const accessToken = session?.accessToken;
+    const sequence = ++locationRequestSequence.current;
+    if (!organizationId || !projectId || !accessToken) return;
+
+    try {
+      const project = await fetchProject(
+        organizationId,
+        projectId,
+        accessToken,
+      );
+      if (sequence !== locationRequestSequence.current) return;
+      setProjectLocation({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        text: [project.address.city, project.address.state]
+          .filter(Boolean)
+          .join(", "),
+      });
+    } catch {
+      // Location is supplementary; keep the last known value on transient errors.
     }
-    return () => { current = false; };
-  }, [activeProject?.id, session?.activeOrganization?.id, session?.accessToken]);
+  }, [
+    activeProject?.id,
+    session?.accessToken,
+    session?.activeOrganization?.id,
+  ]);
+
+  useRefreshOnFocus({
+    scopeKey: `${session?.activeOrganization?.id ?? ""}:${activeProject?.id ?? ""}`,
+    refresh: loadProjectLocation,
+    reset: () => setProjectLocation(null),
+    cancel: () => {
+      locationRequestSequence.current += 1;
+    },
+  });
 
   useEffect(() => {
     let current = true;
-    setActivityEntries([]);
     setActivityFailed(false);
     setActivityLoading(false);
-    if (dashboard?.gallery && dashboard.project.id === activeProject?.id && session?.activeOrganization && session.accessToken) {
+    if (
+      dashboard?.gallery &&
+      dashboard.project.id === activeProject?.id &&
+      session?.activeOrganization &&
+      session.accessToken
+    ) {
       setActivityLoading(true);
-      void fetchGalleryEntries(session.activeOrganization.id, activeProject.id, session.accessToken, { page: 1, pageSize: 3 })
-        .then(result => { if (current) setActivityEntries(result.items); })
-        .catch(() => { if (current) setActivityFailed(true); })
-        .finally(() => { if (current) setActivityLoading(false); });
+      void fetchGalleryEntries(
+        session.activeOrganization.id,
+        activeProject.id,
+        session.accessToken,
+        { page: 1, pageSize: 3 },
+      )
+        .then((result) => {
+          if (current) setActivityEntries(result.items);
+        })
+        .catch(() => {
+          if (current) setActivityFailed(true);
+        })
+        .finally(() => {
+          if (current) setActivityLoading(false);
+        });
     }
-    return () => { current = false; };
-  }, [dashboard, activeProject?.id, session?.activeOrganization?.id, session?.accessToken]);
+    return () => {
+      current = false;
+    };
+  }, [
+    dashboard,
+    activeProject?.id,
+    session?.activeOrganization?.id,
+    session?.accessToken,
+  ]);
 
-  const number = (value: number) => formatNumber(value, language, { maximumFractionDigits: 1 });
-  const money = (value: string) => formatInr(Number(value), language, { maximumFractionDigits: 0 });
-  const materialApprovalCount = dashboard?.workflow?.pendingMaterialApprovals ?? 0;
+  const number = (value: number) =>
+    formatNumber(value, language, { maximumFractionDigits: 1 });
+  const money = (value: string) =>
+    formatInr(Number(value), language, { maximumFractionDigits: 0 });
+  const materialApprovalCount =
+    dashboard?.workflow?.pendingMaterialApprovals ?? 0;
   const attentionItems = [
-    ...(materialApprovalCount > 0 ? [{
-      accessibilityLabel: tHome('attention.materialApprovalsA11y', { count: materialApprovalCount }),
-      icon: 'package-variant-closed' as const,
-      label: tHome('attention.materialApprovals', { count: materialApprovalCount }),
-      meta: tHome('attention.materialApprovalsMeta'),
-      onPress: () => router.push('/(app)/materials'),
-    }] : []),
-    ...((dashboard?.workflow?.overdueMaterialRequests ?? 0) > 0 ? [{
-      accessibilityLabel: tHome('attention.overdueMaterialsA11y', { count: dashboard!.workflow!.overdueMaterialRequests }),
-      icon: 'calendar-alert' as const,
-      label: tHome('attention.overdueMaterials', { count: dashboard!.workflow!.overdueMaterialRequests }),
-      meta: tHome('attention.overdueMaterialsMeta'),
-      onPress: () => router.push('/(app)/materials'),
-      tone: 'danger' as const,
-    }] : []),
-    ...((dashboard?.workflow?.pendingExpenses ?? 0) > 0 ? [{
-      accessibilityLabel: tHome('attention.pendingExpensesA11y', { count: dashboard!.workflow!.pendingExpenses, amount: money(dashboard!.workflow!.pendingExpenseAmount ?? '0') }),
-      icon: 'receipt-text-outline' as const,
-      label: tHome('attention.pendingExpenses', { count: dashboard!.workflow!.pendingExpenses }),
-      meta: money(dashboard!.workflow!.pendingExpenseAmount ?? '0'),
-      onPress: () => router.push('/(app)/expenses'),
-    }] : []),
+    ...(materialApprovalCount > 0
+      ? [
+          {
+            accessibilityLabel: tHome("attention.materialApprovalsA11y", {
+              count: materialApprovalCount,
+            }),
+            icon: "package-variant-closed" as const,
+            label: tHome("attention.materialApprovals", {
+              count: materialApprovalCount,
+            }),
+            meta: tHome("attention.materialApprovalsMeta"),
+            onPress: () => router.push("/(app)/materials"),
+          },
+        ]
+      : []),
+    ...((dashboard?.workflow?.overdueMaterialRequests ?? 0) > 0
+      ? [
+          {
+            accessibilityLabel: tHome("attention.overdueMaterialsA11y", {
+              count: dashboard!.workflow!.overdueMaterialRequests,
+            }),
+            icon: "calendar-alert" as const,
+            label: tHome("attention.overdueMaterials", {
+              count: dashboard!.workflow!.overdueMaterialRequests,
+            }),
+            meta: tHome("attention.overdueMaterialsMeta"),
+            onPress: () => router.push("/(app)/materials"),
+            tone: "danger" as const,
+          },
+        ]
+      : []),
+    ...((dashboard?.workflow?.pendingExpenses ?? 0) > 0
+      ? [
+          {
+            accessibilityLabel: tHome("attention.pendingExpensesA11y", {
+              count: dashboard!.workflow!.pendingExpenses,
+              amount: money(dashboard!.workflow!.pendingExpenseAmount ?? "0"),
+            }),
+            icon: "receipt-text-outline" as const,
+            label: tHome("attention.pendingExpenses", {
+              count: dashboard!.workflow!.pendingExpenses,
+            }),
+            meta: money(dashboard!.workflow!.pendingExpenseAmount ?? "0"),
+            onPress: () => router.push("/(app)/expenses"),
+          },
+        ]
+      : []),
   ];
   const attentionUnavailable = dashboardFailed;
   const financialMetrics = [
-    ...(dashboard?.finance?.recognizedExpensesThisMonth ? [{ key: 'expenses', accessibilityLabel: tHome('finance.expensesA11y', { amount: money(dashboard.finance.recognizedExpensesThisMonth) }), label: tHome('finance.expenses'), value: money(dashboard.finance.recognizedExpensesThisMonth) }] : []),
-    ...(dashboard?.finance?.outstandingKharchi ? [{ key: 'kharchi', accessibilityLabel: tHome('finance.kharchiA11y', { amount: money(dashboard.finance.outstandingKharchi) }), label: tHome('finance.outstandingKharchi'), value: money(dashboard.finance.outstandingKharchi) }] : []),
-    ...(dashboard?.finance?.wageEstimate ? [{ key: 'wages', accessibilityLabel: tHome('finance.wageEstimateA11y', { amount: money(dashboard.finance.wageEstimate) }), label: tHome('finance.wageEstimate'), value: money(dashboard.finance.wageEstimate) }] : []),
+    ...(dashboard?.finance?.recognizedExpensesThisMonth
+      ? [
+          {
+            key: "expenses",
+            accessibilityLabel: tHome("finance.expensesA11y", {
+              amount: money(dashboard.finance.recognizedExpensesThisMonth),
+            }),
+            label: tHome("finance.expenses"),
+            value: money(dashboard.finance.recognizedExpensesThisMonth),
+          },
+        ]
+      : []),
+    ...(dashboard?.finance?.outstandingKharchi
+      ? [
+          {
+            key: "kharchi",
+            accessibilityLabel: tHome("finance.kharchiA11y", {
+              amount: money(dashboard.finance.outstandingKharchi),
+            }),
+            label: tHome("finance.outstandingKharchi"),
+            value: money(dashboard.finance.outstandingKharchi),
+          },
+        ]
+      : []),
+    ...(dashboard?.finance?.wageEstimate
+      ? [
+          {
+            key: "wages",
+            accessibilityLabel: tHome("finance.wageEstimateA11y", {
+              amount: money(dashboard.finance.wageEstimate),
+            }),
+            label: tHome("finance.wageEstimate"),
+            value: money(dashboard.finance.wageEstimate),
+          },
+        ]
+      : []),
   ];
-  const canCreateProject = Boolean(session?.activeOrganization && session.permissions.includes('projects:create'));
-  const quickNavigation = workspaceNavigation.filter((item) => !['project', 'team', 'members'].includes(item.key)).slice(0, canCreateProject ? 2 : 3);
-  const actionRoutes: Record<DashboardActionKey, { href: Href; icon: 'calendar-check-outline' | 'cash-plus' | 'package-variant-closed-plus' | 'receipt-text-plus-outline' | 'chart-timeline-variant' | 'camera-plus-outline' | 'account-plus-outline' | 'calendar-clock-outline' | 'office-building-outline' }> = {
-    MARK_ATTENDANCE: { href: '/(app)/attendance', icon: 'calendar-check-outline' }, ADD_KHARCHI: { href: '/(app)/kharchi', icon: 'cash-plus' },
-    REQUEST_MATERIAL: { href: '/(app)/materials', icon: 'package-variant-closed-plus' }, ADD_EXPENSE: { href: '/(app)/expenses', icon: 'receipt-text-plus-outline' },
-    UPDATE_PROGRESS: { href: '/(app)/progress', icon: 'chart-timeline-variant' }, UPLOAD_PHOTO: { href: '/(app)/gallery', icon: 'camera-plus-outline' },
-    ADD_LEAD: { href: '/(app)/sales', icon: 'account-plus-outline' }, VIEW_FOLLOWUPS: { href: '/(app)/sales', icon: 'calendar-clock-outline' }, VIEW_PROJECT: { href: '/(app)/project-detail', icon: 'office-building-outline' },
+  const canCreateProject = Boolean(
+    session?.activeOrganization &&
+    session.permissions.includes("projects:create"),
+  );
+  const quickNavigation = workspaceNavigation
+    .filter((item) => !["project", "team", "members"].includes(item.key))
+    .slice(0, canCreateProject ? 2 : 3);
+  const actionRoutes: Record<
+    DashboardActionKey,
+    {
+      href: Href;
+      icon:
+        | "calendar-check-outline"
+        | "cash-plus"
+        | "package-variant-closed-plus"
+        | "receipt-text-plus-outline"
+        | "chart-timeline-variant"
+        | "camera-plus-outline"
+        | "account-plus-outline"
+        | "calendar-clock-outline"
+        | "office-building-outline";
+    }
+  > = {
+    MARK_ATTENDANCE: {
+      href: "/(app)/attendance",
+      icon: "calendar-check-outline",
+    },
+    ADD_KHARCHI: { href: "/(app)/kharchi", icon: "cash-plus" },
+    REQUEST_MATERIAL: {
+      href: "/(app)/materials",
+      icon: "package-variant-closed-plus",
+    },
+    ADD_EXPENSE: { href: "/(app)/expenses", icon: "receipt-text-plus-outline" },
+    UPDATE_PROGRESS: {
+      href: "/(app)/progress",
+      icon: "chart-timeline-variant",
+    },
+    UPLOAD_PHOTO: { href: "/(app)/gallery", icon: "camera-plus-outline" },
+    ADD_LEAD: { href: "/(app)/sales", icon: "account-plus-outline" },
+    VIEW_FOLLOWUPS: { href: "/(app)/sales", icon: "calendar-clock-outline" },
+    VIEW_PROJECT: {
+      href: "/(app)/project-detail",
+      icon: "office-building-outline",
+    },
   };
-  const roleQuickActions = (dashboard?.quickActions ?? []).map((key) => ({ key, label: tHome(`role.actions.${key}`), accessibilityHint: tHome(`role.actionHints.${key}`), icon: actionRoutes[key].icon, onPress: () => router.push(actionRoutes[key].href) }));
+  const roleQuickActions = (dashboard?.quickActions ?? []).map((key) => ({
+    key,
+    label: tHome(`role.actions.${key}`),
+    accessibilityHint: tHome(`role.actionHints.${key}`),
+    icon: actionRoutes[key].icon,
+    onPress: () => router.push(actionRoutes[key].href),
+  }));
   const quickActions = [
-    ...(canCreateProject ? [{ key: 'create-project', label: tHome('workspace.createProject'), accessibilityHint: tHome('quickActions.createProjectHint'), icon: 'plus' as const, onPress: () => setShowCreateProject(true) }] : []),
-    ...(roleQuickActions.length ? roleQuickActions : quickNavigation.map((item) => ({ key: item.key, label: item.title, accessibilityHint: item.description, icon: item.icon, onPress: () => router.push(item.href as Href) }))),
-    ...(workspaceNavigation.length ? [{ key: 'more', label: tHome('quickActions.more'), accessibilityHint: tHome('quickActions.moreHint'), icon: 'dots-horizontal' as const, onPress: () => router.push('/(app)/menu') }] : []),
+    ...(canCreateProject
+      ? [
+          {
+            key: "create-project",
+            label: tHome("workspace.createProject"),
+            accessibilityHint: tHome("quickActions.createProjectHint"),
+            icon: "plus" as const,
+            onPress: () => setShowCreateProject(true),
+          },
+        ]
+      : []),
+    ...(roleQuickActions.length
+      ? roleQuickActions
+      : quickNavigation.map((item) => ({
+          key: item.key,
+          label: item.title,
+          accessibilityHint: item.description,
+          icon: item.icon,
+          onPress: () => router.push(item.href as Href),
+        }))),
+    ...(workspaceNavigation.length
+      ? [
+          {
+            key: "more",
+            label: tHome("quickActions.more"),
+            accessibilityHint: tHome("quickActions.moreHint"),
+            icon: "dots-horizontal" as const,
+            onPress: () => router.push("/(app)/menu"),
+          },
+        ]
+      : []),
   ];
 
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="home" />} style={styles.homeContent} variant="dashboard" scrollY={scrollY}>
+    <NirmanScreenBackground
+      footer={<CustomerTabBar activeKey="home" />}
+      style={styles.homeContent}
+      variant="dashboard"
+      scrollY={scrollY}
+    >
       <View style={styles.homeHeader}>
         <View style={styles.headerCopy}>
           <View style={styles.eyebrowRow}>
             <View style={styles.liveDot} />
-            <AppText style={styles.eyebrow} weight={700}>{tHome('greeting.eyebrow')}</AppText>
+            <AppText style={styles.eyebrow} weight={700}>
+              {tHome("greeting.eyebrow")}
+            </AppText>
           </View>
-          <AppText adjustsFontSizeToFit minimumFontScale={0.86} numberOfLines={1} style={styles.homeTitle} weight={700}>
-            {tHome('greeting.welcomeBack', { name: firstName })}
+          <AppText
+            adjustsFontSizeToFit
+            minimumFontScale={0.86}
+            numberOfLines={1}
+            style={styles.homeTitle}
+            weight={700}
+          >
+            {tHome("greeting.welcomeBack", { name: firstName })}
           </AppText>
           <View
             accessible
             accessibilityLabel={`${activeRoleLabel}, ${activeOrganizationName}`}
             style={styles.identityRow}
           >
-            <Badge label={activeRoleLabel} style={styles.roleBadge} tone="warning" />
-            <AppText style={styles.organizationName} weight={700}>{activeOrganizationName}</AppText>
+            <Badge
+              label={activeRoleLabel}
+              style={styles.roleBadge}
+              tone="warning"
+            />
+            <AppText style={styles.organizationName} weight={700}>
+              {activeOrganizationName}
+            </AppText>
           </View>
         </View>
         <View style={styles.homeHeaderActions}>
-          {session?.permissions.includes('notifications:read') ? <IconButton badgeCount={unreadCount} icon="bell-outline" accessibilityLabel={tNavigation('a11y.openNotifications', { count: unreadCount })} variant="glass" onPress={() => router.push('/(app)/notifications')} /> : null}
-          <IconButton icon="menu" accessibilityLabel={tNavigation('a11y.openMenu')} variant="dark" onPress={() => router.push('/(app)/menu')} />
+          {session?.permissions.includes("notifications:read") ? (
+            <IconButton
+              badgeCount={unreadCount}
+              icon="bell-outline"
+              accessibilityLabel={tNavigation("a11y.openNotifications", {
+                count: unreadCount,
+              })}
+              variant="glass"
+              onPress={() => router.push("/(app)/notifications")}
+            />
+          ) : null}
+          <IconButton
+            icon="menu"
+            accessibilityLabel={tNavigation("a11y.openMenu")}
+            variant="dark"
+            onPress={() => router.push("/(app)/menu")}
+          />
         </View>
       </View>
 
       <DashboardBackdrop>
-      <Entrance>
-      <ProjectContextCard
-        featured
-        location={projectLocation?.projectId === activeProject?.id && projectLocation?.organizationId === session?.activeOrganization?.id ? projectLocation?.text : undefined}
-        scrollY={scrollY}
-        onOpenProject={activeProject ? () => router.push('/(app)/project-detail') : undefined}
-      />
-
-      </Entrance>
-      <ProjectSummary items={[
-        { accessibilityLabel: tHome('metrics.workingSitesA11y', { count: availableProjects.filter(project => project.status === 'ACTIVE').length }), icon: 'office-building-marker-outline', label: tHome('metrics.workingSites'), tone: 'brand', value: availableProjects.filter(project => project.status === 'ACTIVE').length },
-        { accessibilityLabel: tHome('metrics.projectScopeA11y', { scope: projectScopeLabel }), icon: 'shield-check-outline', label: tHome('metrics.projectScope'), tone: 'warm', value: projectScopeLabel },
-      ]} />
-
-      {!workspaceNavigation.length ? (
-        <EmptyState
-          title={tHome('workspace.emptyTitle')}
-          description={tHome('workspace.emptyDescription')}
-        />
-      ) : null}
-
-      {activeProject && dashboard?.progress ? (
-        <ProgressCard
-          accessibilityLabel={tProgress('summary.a11y', { percentage: dashboard.progress.overallPercentage, updated: dashboard.progress.updatedStages, total: 9 })}
-          emptyLabel={tProgress('summary.notStarted')}
-          loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
-          percentage={dashboard.progress.overallPercentage}
-          statusLabel={tHome('progress.updatedStages', { count: dashboard.progress.updatedStages })}
-          summaryLabel={tHome('progress.completion')}
-          title={tProgress('screen.title')}
-          onPress={() => router.push('/(app)/progress')}
-        />
-      ) : null}
-
-      {activeProject && dashboard?.site ? (
-        <SiteStatsCard
-          dateLabel={formatDate(dashboard.generatedAt, language, { dateStyle: 'medium' })}
-          title={tHome('today.title')}
-          loadingLabel={loadingDashboard ? tHome('data.loading') : undefined}
-          stats={[
-            ...(dashboard.site.assignedWorkers !== null ? [{ key: 'workers', accessibilityLabel: tHome('today.workersA11y', { count: dashboard.site.assignedWorkers ?? 0 }), icon: 'account-hard-hat-outline' as const, label: tHome('today.workers'), value: number(dashboard.site.assignedWorkers ?? 0) }] : []),
-            ...(dashboard.site.presentToday !== null ? [{ key: 'present', accessibilityLabel: tHome('today.presentA11y', { count: dashboard.site.presentToday ?? 0 }), icon: 'account-check-outline' as const, label: tHome('today.present'), value: number(dashboard.site.presentToday ?? 0) }] : []),
-            ...(dashboard.site.absentToday !== null ? [{ key: 'absent', accessibilityLabel: tHome('today.absentA11y', { count: dashboard.site.absentToday ?? 0 }), icon: 'account-off-outline' as const, label: tHome('today.absent'), value: number(dashboard.site.absentToday ?? 0) }] : []),
-            ...(dashboard.site.todaySpend ? [{ key: 'spend', accessibilityLabel: tHome('today.spendA11y', { amount: money(dashboard.site.todaySpend) }), icon: 'cash' as const, label: tHome('today.spend'), value: money(dashboard.site.todaySpend) }] : []),
+        <Entrance>
+          <ProjectContextCard
+            featured
+            location={
+              projectLocation?.projectId === activeProject?.id &&
+              projectLocation?.organizationId ===
+                session?.activeOrganization?.id
+                ? projectLocation?.text
+                : undefined
+            }
+            scrollY={scrollY}
+            onOpenProject={
+              activeProject
+                ? () => router.push("/(app)/project-detail")
+                : undefined
+            }
+          />
+        </Entrance>
+        <ProjectSummary
+          items={[
+            {
+              accessibilityLabel: tHome("metrics.workingSitesA11y", {
+                count: availableProjects.filter(
+                  (project) => project.status === "ACTIVE",
+                ).length,
+              }),
+              icon: "office-building-marker-outline",
+              label: tHome("metrics.workingSites"),
+              tone: "brand",
+              value: availableProjects.filter(
+                (project) => project.status === "ACTIVE",
+              ).length,
+            },
+            {
+              accessibilityLabel: tHome("metrics.projectScopeA11y", {
+                scope: projectScopeLabel,
+              }),
+              icon: "shield-check-outline",
+              label: tHome("metrics.projectScope"),
+              tone: "warm",
+              value: projectScopeLabel,
+            },
           ]}
         />
-      ) : null}
 
-      {dashboard?.sales ? <SalesPulse title={tHome('role.salesPulse')} stats={[
-        { key: 'pipeline', label: tHome('role.metrics.pipeline'), raw: dashboard.sales.activePipeline },
-        { key: 'overdueFollowUps', label: tHome('role.metrics.overdueFollowUps'), raw: dashboard.sales.overdueFollowUps },
-        { key: 'expiringBlocks', label: tHome('role.metrics.expiringBlocks'), raw: dashboard.sales.blocksNearingExpiry },
-        { key: 'bookedUnits', label: tHome('role.metrics.bookedUnits'), raw: dashboard.sales.bookedUnits },
-      ].filter(metric => metric.raw !== null).map(metric => ({ key: metric.key, label: metric.label, value: number(metric.raw!), accessibilityLabel: metric.label + ': ' + number(metric.raw!) }))} /> : null}
+        {!workspaceNavigation.length ? (
+          <EmptyState
+            title={tHome("workspace.emptyTitle")}
+            description={tHome("workspace.emptyDescription")}
+          />
+        ) : null}
 
-      {activeProject && (dashboard?.finance || dashboard?.workflow || quickActions.length) ? (
-        <DashboardTabs
-          actions={quickActions}
-          actionsLabel={tHome('quickActions.tab')}
-          attentionEmptyLabel={tHome('attention.clear')}
-          attentionItems={attentionItems}
-          attentionLabel={tHome('attention.tab')}
-          financeLabel={tHome('finance.tab')}
-          financeMetrics={financialMetrics}
-          loadingLabel={loadingDashboard ? tHome('data.loading') : attentionUnavailable ? tHome('data.unavailable') : undefined}
-          showAttention={Boolean(dashboard?.workflow)}
-        />
-      ) : null}
+        {activeProject && dashboard?.progress ? (
+          <ProgressCard
+            accessibilityLabel={tProgress("summary.a11y", {
+              percentage: dashboard.progress.overallPercentage,
+              updated: dashboard.progress.updatedStages,
+              total: 9,
+            })}
+            emptyLabel={tProgress("summary.notStarted")}
+            loadingLabel={loadingDashboard ? tHome("data.loading") : undefined}
+            percentage={dashboard.progress.overallPercentage}
+            statusLabel={tHome("progress.updatedStages", {
+              count: dashboard.progress.updatedStages,
+            })}
+            summaryLabel={tHome("progress.completion")}
+            title={tProgress("screen.title")}
+            onPress={() => router.push("/(app)/progress")}
+          />
+        ) : null}
 
-      {activeProject && dashboard?.gallery ? (
-        <ActivityTimeline
-          title={tHome('activity.title')}
-          emptyLabel={tHome('activity.empty')}
-          viewAllLabel={tHome('activity.viewAll')}
-          onViewAll={() => router.push('/(app)/gallery')}
-          loadingLabel={activityLoading ? tHome('data.loading') : activityFailed ? tHome('data.unavailable') : undefined}
-          items={activityEntries.filter(entry => entry.projectId === activeProject.id && entry.organizationId === session?.activeOrganization?.id).map(entry => ({
-            id: entry.id,
-            title: entry.caption || tGallery(`category.${entry.category}`),
-            date: formatDate(entry.capturedAt, language, { dateStyle: 'medium', timeStyle: 'short' }),
-            status: tGallery(`status.${entry.status}`),
-            statusTone: entry.status === 'APPROVED' ? 'success' as const : entry.status === 'REJECTED' ? 'danger' as const : 'warning' as const,
-            thumbnail: session?.accessToken ? <AuthenticatedGalleryImage compact entry={entry} token={session.accessToken} accessibilityLabel={tGallery('card.photoA11y', { category: tGallery(`category.${entry.category}`) })} style={{ width: 60, height: 60 }} /> : undefined,
-            onPress: () => router.push('/(app)/gallery'),
-          }))}
-        />
-      ) : null}
+        {activeProject && dashboard?.site ? (
+          <SiteStatsCard
+            dateLabel={formatDate(dashboard.generatedAt, language, {
+              dateStyle: "medium",
+            })}
+            title={tHome("today.title")}
+            loadingLabel={loadingDashboard ? tHome("data.loading") : undefined}
+            stats={[
+              ...(dashboard.site.assignedWorkers !== null
+                ? [
+                    {
+                      key: "workers",
+                      accessibilityLabel: tHome("today.workersA11y", {
+                        count: dashboard.site.assignedWorkers ?? 0,
+                      }),
+                      icon: "account-hard-hat-outline" as const,
+                      label: tHome("today.workers"),
+                      value: number(dashboard.site.assignedWorkers ?? 0),
+                    },
+                  ]
+                : []),
+              ...(dashboard.site.presentToday !== null
+                ? [
+                    {
+                      key: "present",
+                      accessibilityLabel: tHome("today.presentA11y", {
+                        count: dashboard.site.presentToday ?? 0,
+                      }),
+                      icon: "account-check-outline" as const,
+                      label: tHome("today.present"),
+                      value: number(dashboard.site.presentToday ?? 0),
+                    },
+                  ]
+                : []),
+              ...(dashboard.site.absentToday !== null
+                ? [
+                    {
+                      key: "absent",
+                      accessibilityLabel: tHome("today.absentA11y", {
+                        count: dashboard.site.absentToday ?? 0,
+                      }),
+                      icon: "account-off-outline" as const,
+                      label: tHome("today.absent"),
+                      value: number(dashboard.site.absentToday ?? 0),
+                    },
+                  ]
+                : []),
+              ...(dashboard.site.todaySpend
+                ? [
+                    {
+                      key: "spend",
+                      accessibilityLabel: tHome("today.spendA11y", {
+                        amount: money(dashboard.site.todaySpend),
+                      }),
+                      icon: "cash" as const,
+                      label: tHome("today.spend"),
+                      value: money(dashboard.site.todaySpend),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        ) : null}
 
-      {dashboardFailed ? (
-        <RefreshButton fullWidth={false} label={tHome('data.retry')} leadingIcon="refresh" size="sm" variant="secondary" onRefresh={() => loadDashboard()} />
-      ) : null}
+        {dashboard?.sales ? (
+          <SalesPulse
+            title={tHome("role.salesPulse")}
+            stats={[
+              {
+                key: "pipeline",
+                label: tHome("role.metrics.pipeline"),
+                raw: dashboard.sales.activePipeline,
+              },
+              {
+                key: "overdueFollowUps",
+                label: tHome("role.metrics.overdueFollowUps"),
+                raw: dashboard.sales.overdueFollowUps,
+              },
+              {
+                key: "expiringBlocks",
+                label: tHome("role.metrics.expiringBlocks"),
+                raw: dashboard.sales.blocksNearingExpiry,
+              },
+              {
+                key: "bookedUnits",
+                label: tHome("role.metrics.bookedUnits"),
+                raw: dashboard.sales.bookedUnits,
+              },
+            ]
+              .filter((metric) => metric.raw !== null)
+              .map((metric) => ({
+                key: metric.key,
+                label: metric.label,
+                value: number(metric.raw!),
+                accessibilityLabel: metric.label + ": " + number(metric.raw!),
+              }))}
+          />
+        ) : null}
 
+        {activeProject &&
+        (dashboard?.finance || dashboard?.workflow || quickActions.length) ? (
+          <DashboardTabs
+            actions={quickActions}
+            actionsLabel={tHome("quickActions.tab")}
+            attentionEmptyLabel={tHome("attention.clear")}
+            attentionItems={attentionItems}
+            attentionLabel={tHome("attention.tab")}
+            financeLabel={tHome("finance.tab")}
+            financeMetrics={financialMetrics}
+            loadingLabel={
+              loadingDashboard
+                ? tHome("data.loading")
+                : attentionUnavailable
+                  ? tHome("data.unavailable")
+                  : undefined
+            }
+            showAttention={Boolean(dashboard?.workflow)}
+          />
+        ) : null}
+
+        {activeProject && dashboard?.gallery ? (
+          <ActivityTimeline
+            title={tHome("activity.title")}
+            emptyLabel={tHome("activity.empty")}
+            viewAllLabel={tHome("activity.viewAll")}
+            onViewAll={() => router.push("/(app)/gallery")}
+            loadingLabel={
+              activityLoading
+                ? tHome("data.loading")
+                : activityFailed
+                  ? tHome("data.unavailable")
+                  : undefined
+            }
+            items={activityEntries
+              .filter(
+                (entry) =>
+                  entry.projectId === activeProject.id &&
+                  entry.organizationId === session?.activeOrganization?.id,
+              )
+              .map((entry) => ({
+                id: entry.id,
+                title: entry.caption || tGallery(`category.${entry.category}`),
+                date: formatDate(entry.capturedAt, language, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }),
+                status: tGallery(`status.${entry.status}`),
+                statusTone:
+                  entry.status === "APPROVED"
+                    ? ("success" as const)
+                    : entry.status === "REJECTED"
+                      ? ("danger" as const)
+                      : ("warning" as const),
+                thumbnail: session?.accessToken ? (
+                  <AuthenticatedGalleryImage
+                    compact
+                    entry={entry}
+                    token={session.accessToken}
+                    accessibilityLabel={tGallery("card.photoA11y", {
+                      category: tGallery(`category.${entry.category}`),
+                    })}
+                    style={{ width: 60, height: 60 }}
+                  />
+                ) : undefined,
+                onPress: () => router.push("/(app)/gallery"),
+              }))}
+          />
+        ) : null}
+
+        {dashboardFailed ? (
+          <RefreshButton
+            fullWidth={false}
+            label={tHome("data.retry")}
+            leadingIcon="refresh"
+            size="sm"
+            variant="secondary"
+            onRefresh={() => loadDashboard()}
+          />
+        ) : null}
       </DashboardBackdrop>
 
       {showCreateProject && canCreateProject ? (
@@ -358,43 +794,55 @@ export function DashboardScreen() {
 }
 
 export function ProjectDetailScreen() {
-  const { t } = useTranslation('projects');
-  const { t: tSpending } = useTranslation('totalExpenses');
-  const { t: tCommon } = useTranslation('common');
+  const { t } = useTranslation("projects");
+  const { t: tSpending } = useTranslation("totalExpenses");
+  const { t: tCommon } = useTranslation("common");
   const { refreshSession, session } = useSession();
   const params = useLocalSearchParams<{ projectId?: string }>();
   const [showCreateProject, setShowCreateProject] = useState(false);
-  const canCreateProject = Boolean(session?.activeOrganization && session.permissions.includes('projects:create'));
+  const canCreateProject = Boolean(
+    session?.activeOrganization &&
+    session.permissions.includes("projects:create"),
+  );
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
   const activeProject = getActiveProject(session);
   const selectedProject =
-    session?.projectAccess.projects.find((project) => project.id === params.projectId) ??
-    activeProject;
+    session?.projectAccess.projects.find(
+      (project) => project.id === params.projectId,
+    ) ?? activeProject;
   const selectedStatusLabel = selectedProject
     ? t(projectDetailStatusTranslationKeys[selectedProject.status])
-    : '';
-  const projectScope = session?.projectAccess.projectScope ?? 'NONE';
+    : "";
+  const projectScope = session?.projectAccess.projectScope ?? "NONE";
   const projectScopeLabel = t(projectDetailScopeTranslationKeys[projectScope]);
   const organizationType = session?.activeOrganization?.type;
   const organizationTypeLabel = organizationType
     ? t(organizationTypeTranslationKeys[organizationType])
-    : t('detail.customerOrganization');
+    : t("detail.customerOrganization");
   const roleLabel = !session?.activeOrganization
-    ? t('detail.notAvailable')
-    : session.memberships.find(
-      (membership) => membership.organizationId === session.activeOrganization?.id,
-    )?.role.name ?? t('detail.projectAccess');
+    ? t("detail.notAvailable")
+    : (session.memberships.find(
+        (membership) =>
+          membership.organizationId === session.activeOrganization?.id,
+      )?.role.name ?? t("detail.projectAccess"));
 
   async function openEditProject() {
     if (!session?.activeOrganization || !selectedProject) return;
     setLoadingEdit(true);
     try {
-      const detail = await fetchProject(session.activeOrganization.id, selectedProject.id, session.accessToken);
+      const detail = await fetchProject(
+        session.activeOrganization.id,
+        selectedProject.id,
+        session.accessToken,
+      );
       setEditingProject(detail);
     } catch (error) {
-      Alert.alert(t('detail.unavailableTitle'), getLocalizedErrorMessage(error, t('detail.loadFailure')));
+      Alert.alert(
+        t("detail.unavailableTitle"),
+        getLocalizedErrorMessage(error, t("detail.loadFailure")),
+      );
     } finally {
       setLoadingEdit(false);
     }
@@ -403,13 +851,25 @@ export function ProjectDetailScreen() {
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="project" />}>
       <CompactScreenHeader
-        leading={<IconButton icon="arrow-left" accessibilityLabel={tCommon('actions.back')} variant="glass" onPress={() => router.back()} />}
-        subtitle={selectedProject?.name ?? t('detail.chooseProject')}
-        title={t('detail.title')}
+        leading={
+          <IconButton
+            icon="arrow-left"
+            accessibilityLabel={tCommon("actions.back")}
+            variant="glass"
+            onPress={() => router.back()}
+          />
+        }
+        subtitle={selectedProject?.name ?? t("detail.chooseProject")}
+        title={t("detail.title")}
       />
 
       {canCreateProject ? (
-        <Button label={t('detail.addProject')} leadingIcon="plus" variant="brand" onPress={() => setShowCreateProject(true)} />
+        <Button
+          label={t("detail.addProject")}
+          leadingIcon="plus"
+          variant="brand"
+          onPress={() => setShowCreateProject(true)}
+        />
       ) : null}
       {showCreateProject && canCreateProject ? (
         <CreateProjectSheet onClose={() => setShowCreateProject(false)} />
@@ -418,23 +878,32 @@ export function ProjectDetailScreen() {
       {selectedProject ? (
         <>
           <OperationalEntityCard
-            accessibilityLabel={t('detail.summaryA11y', { name: selectedProject.name, status: selectedStatusLabel })}
-            contextLeading={selectedProject.projectCode ?? t('detail.defaultCode')}
+            accessibilityLabel={t("detail.summaryA11y", {
+              name: selectedProject.name,
+              status: selectedStatusLabel,
+            })}
+            contextLeading={
+              selectedProject.projectCode ?? t("detail.defaultCode")
+            }
             contextTrailing={selectedStatusLabel}
-            footerLeading={session?.activeOrganization?.name ?? t('detail.workspace')}
-            footerTrailing={selectedProject.permissions.includes('projects:update') ? (
-              <Button
-                accessibilityLabel={t('detail.editProject')}
-                disabled={loadingEdit}
-                fullWidth={false}
-                label={loadingEdit ? t('detail.loading') : t('detail.edit')}
-                leadingIcon="pencil-outline"
-                size="sm"
-                variant="brand"
-                onPress={() => void openEditProject()}
-              />
-            ) : null}
-            supporting={selectedProject.roleLabel ?? t('detail.projectAccess')}
+            footerLeading={
+              session?.activeOrganization?.name ?? t("detail.workspace")
+            }
+            footerTrailing={
+              selectedProject.permissions.includes("projects:update") ? (
+                <Button
+                  accessibilityLabel={t("detail.editProject")}
+                  disabled={loadingEdit}
+                  fullWidth={false}
+                  label={loadingEdit ? t("detail.loading") : t("detail.edit")}
+                  leadingIcon="pencil-outline"
+                  size="sm"
+                  variant="brand"
+                  onPress={() => void openEditProject()}
+                />
+              ) : null
+            }
+            supporting={selectedProject.roleLabel ?? t("detail.projectAccess")}
             title={selectedProject.name}
             tone={getStatusTone(selectedProject.status)}
             style={styles.projectIdentity}
@@ -442,34 +911,66 @@ export function ProjectDetailScreen() {
 
           <QuickActionGrid
             items={[
-              ...(selectedProject.permissions.includes("total-expenses:read") ? [{key:"totalExpenses",label:tSpending("title"),accessibilityLabel:tSpending("title"),icon:"chart-bar" as const,tone:"info" as const,onPress:()=>router.push({pathname:"/(app)/total-expenses",params:{projectId:selectedProject.id}})}] : []),
-              ...(selectedProject.permissions.includes('project-members:read') || selectedProject.permissions.includes('workers:read') ? [{
-                key: 'team',
-                label: t('detail.team'),
-                accessibilityLabel: t('detail.teamA11y'),
-                icon: 'account-group-outline' as const,
-                tone: 'info' as const,
-                onPress: () => router.push({
-                  pathname: '/(app)/team',
-                  params: {
-                    projectId: selectedProject.id,
-                    ...(!selectedProject.permissions.includes('project-members:read') ? { tab: 'workers' } : {}),
-                  },
-                }),
-              }] : []),
+              ...(selectedProject.permissions.includes("total-expenses:read")
+                ? [
+                    {
+                      key: "totalExpenses",
+                      label: tSpending("title"),
+                      accessibilityLabel: tSpending("title"),
+                      icon: "chart-bar" as const,
+                      tone: "info" as const,
+                      onPress: () =>
+                        router.push({
+                          pathname: "/(app)/total-expenses",
+                          params: { projectId: selectedProject.id },
+                        }),
+                    },
+                  ]
+                : []),
+              ...(selectedProject.permissions.includes(
+                "project-members:read",
+              ) || selectedProject.permissions.includes("workers:read")
+                ? [
+                    {
+                      key: "team",
+                      label: t("detail.team"),
+                      accessibilityLabel: t("detail.teamA11y"),
+                      icon: "account-group-outline" as const,
+                      tone: "info" as const,
+                      onPress: () =>
+                        router.push({
+                          pathname: "/(app)/team",
+                          params: {
+                            projectId: selectedProject.id,
+                            ...(!selectedProject.permissions.includes(
+                              "project-members:read",
+                            )
+                              ? { tab: "workers" }
+                              : {}),
+                          },
+                        }),
+                    },
+                  ]
+                : []),
             ]}
           />
 
           <GlassCard variant="strong" style={styles.menuList}>
             <ListItem
-              leading={<IconContainer icon="office-building-outline" size="sm" />}
-              title={t('detail.organization')}
+              leading={
+                <IconContainer icon="office-building-outline" size="sm" />
+              }
+              title={t("detail.organization")}
               subtitle={organizationTypeLabel}
-              meta={session?.activeOrganization?.name ?? t('detail.notAvailable')}
+              meta={
+                session?.activeOrganization?.name ?? t("detail.notAvailable")
+              }
             />
             <ListItem
-              leading={<IconContainer icon="shield-account-outline" size="sm" />}
-              title={t('detail.yourAccess')}
+              leading={
+                <IconContainer icon="shield-account-outline" size="sm" />
+              }
+              title={t("detail.yourAccess")}
               subtitle={roleLabel}
               meta={projectScopeLabel}
             />
@@ -483,7 +984,12 @@ export function ProjectDetailScreen() {
               onSave={async (input: ProjectInput) => {
                 setSavingProject(true);
                 try {
-                  await updateProject(session.activeOrganization!.id, editingProject.id, session.accessToken, input);
+                  await updateProject(
+                    session.activeOrganization!.id,
+                    editingProject.id,
+                    session.accessToken,
+                    input,
+                  );
                   setEditingProject(null);
                   await refreshSession();
                 } finally {
@@ -495,10 +1001,10 @@ export function ProjectDetailScreen() {
         </>
       ) : (
         <EmptyState
-          title={t('detail.selectTitle')}
-          description={t('detail.selectDescription')}
-          actionLabel={t('detail.goHome')}
-          onAction={() => router.replace('/(app)/dashboard')}
+          title={t("detail.selectTitle")}
+          description={t("detail.selectDescription")}
+          actionLabel={t("detail.goHome")}
+          onAction={() => router.replace("/(app)/dashboard")}
         />
       )}
     </NirmanScreenBackground>
@@ -506,48 +1012,102 @@ export function ProjectDetailScreen() {
 }
 
 export function MenuScreen() {
-  const { t } = useTranslation('navigation');
-  const { isRefreshing, refreshSession, session, signOut, switchActiveOrganization } = useSession();
+  const { t } = useTranslation("navigation");
+  const {
+    isRefreshing,
+    refreshSession,
+    session,
+    signOut,
+    switchActiveOrganization,
+  } = useSession();
   const { unreadCount } = useNotifications();
   const roleName = !session?.activeOrganization
-    ? t('menu.noActiveOrganization')
-    : session.memberships.find(
-      (membership) => membership.organizationId === session.activeOrganization?.id,
-    )?.role.name ?? t('menu.organizationMember');
+    ? t("menu.noActiveOrganization")
+    : (session.memberships.find(
+        (membership) =>
+          membership.organizationId === session.activeOrganization?.id,
+      )?.role.name ?? t("menu.organizationMember"));
   const organizationNavigation = visibleOrganizationNavigation(session, t);
   const navigation = visibleNavigation(session, t);
-  const notificationItem = organizationNavigation.find((item) => item.key === 'notifications');
-  const mainItems = navigation.filter((item) => ['home', 'team', 'project'].includes(item.key));
-  const workforceItems = navigation.filter((item) => ['workers', 'attendance', 'wages', 'kharchi', 'materials', 'expenses', 'totalExpenses'].includes(item.key));
-  const projectItems = navigation.filter((item) => ['progress', 'gallery', 'sales'].includes(item.key));
-  const organizationItems = organizationNavigation.filter((item) => item.key !== 'notifications');
-  const activeMemberships = session?.memberships.filter((membership) => membership.memberStatus === 'ACTIVE') ?? [];
+  const notificationItem = organizationNavigation.find(
+    (item) => item.key === "notifications",
+  );
+  const mainItems = navigation.filter((item) =>
+    ["home", "team", "project"].includes(item.key),
+  );
+  const workforceItems = navigation.filter((item) =>
+    [
+      "workers",
+      "attendance",
+      "wages",
+      "kharchi",
+      "materials",
+      "expenses",
+      "totalExpenses",
+    ].includes(item.key),
+  );
+  const projectItems = navigation.filter((item) =>
+    ["progress", "gallery", "sales", "brochures"].includes(item.key),
+  );
+  const organizationItems = organizationNavigation.filter(
+    (item) => item.key !== "notifications",
+  );
+  const activeMemberships =
+    session?.memberships.filter(
+      (membership) => membership.memberStatus === "ACTIVE",
+    ) ?? [];
 
   const renderNavigationRow = (item: (typeof navigation)[number]) => (
     <Pressable
-      accessibilityLabel={t('a11y.open', { screen: item.title })}
+      accessibilityLabel={t("a11y.open", { screen: item.title })}
       accessibilityRole="button"
       key={item.key}
       onPress={() => router.push(item.href as Href)}
-      style={({ pressed }) => [styles.drawerRow, pressed && styles.drawerRowPressed]}
+      style={({ pressed }) => [
+        styles.drawerRow,
+        pressed && styles.drawerRowPressed,
+      ]}
     >
-      <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.drawerRowIcon}>
-        <AppIcon color={mobileTheme.color.text.brand} name={item.icon} size={mobileTheme.icon.md} />
+      <View
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        style={styles.drawerRowIcon}
+      >
+        <AppIcon
+          color={mobileTheme.color.text.brand}
+          name={item.icon}
+          size={mobileTheme.icon.md}
+        />
       </View>
-      <AppText numberOfLines={1} style={styles.drawerRowLabel} weight={600}>{item.title}</AppText>
+      <AppText numberOfLines={1} style={styles.drawerRowLabel} weight={600}>
+        {item.title}
+      </AppText>
       <View accessible={false} importantForAccessibility="no-hide-descendants">
-        <AppIcon color={mobileTheme.color.text.muted} name="chevron-right" size={mobileTheme.icon.md} />
+        <AppIcon
+          color={mobileTheme.color.text.muted}
+          name="chevron-right"
+          size={mobileTheme.icon.md}
+        />
       </View>
     </Pressable>
   );
 
-  const renderSection = (title: string, items: (typeof navigation)[number][]) => {
+  const renderSection = (
+    title: string,
+    items: (typeof navigation)[number][],
+  ) => {
     if (!items.length) return null;
 
     return (
       <View style={styles.drawerSection}>
-        <AppText style={styles.drawerSectionTitle} weight={700}>{title}</AppText>
-        <GlassCard padding="none" variant="strong" style={styles.drawerSectionCard}>
+        <AppText style={styles.drawerSectionTitle} weight={700}>
+          {title}
+        </AppText>
+        <GlassCard
+          padding="none"
+          variant="strong"
+          style={styles.drawerSectionCard}
+        >
           {items.map(renderNavigationRow)}
         </GlassCard>
       </View>
@@ -558,96 +1118,176 @@ export function MenuScreen() {
     <NirmanScreenBackground
       footer={
         <GlassCard padding="sm" variant="strong" style={styles.menuFooter}>
-          <RefreshButton busy={isRefreshing}
-            label={isRefreshing ? t('menu.refreshingAccess') : t('menu.refreshAccess')}
+          <RefreshButton
+            busy={isRefreshing}
+            label={
+              isRefreshing
+                ? t("menu.refreshingAccess")
+                : t("menu.refreshAccess")
+            }
             leadingIcon="sync"
             variant="brand"
             disabled={isRefreshing}
             onRefresh={() => refreshSession()}
           />
-          <Button label={t('menu.signOut')} leadingIcon="logout" variant="danger" onPress={signOut} />
+          <Button
+            label={t("menu.signOut")}
+            leadingIcon="logout"
+            variant="danger"
+            onPress={signOut}
+          />
         </GlassCard>
       }
       style={styles.menuContent}
     >
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <AppText style={styles.screenTitle} weight={700}>{t('menu.title')}</AppText>
-          <AppText numberOfLines={1} style={styles.menuSubtitle} weight={500}>{t('menu.subtitle')}</AppText>
+          <AppText style={styles.screenTitle} weight={700}>
+            {t("menu.title")}
+          </AppText>
+          <AppText numberOfLines={1} style={styles.menuSubtitle} weight={500}>
+            {t("menu.subtitle")}
+          </AppText>
         </View>
         <IconButton
           icon="close"
-          accessibilityLabel={t('a11y.goBack')}
+          accessibilityLabel={t("a11y.goBack")}
           variant="glass"
           onPress={() => router.back()}
         />
       </View>
 
       <GlassCard variant="strong" style={styles.profileCard}>
-        <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.avatarWrap}>
+        <View
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          style={styles.avatarWrap}
+        >
           {session?.user.avatarUrl ? (
-            <Image source={{ uri: session.user.avatarUrl }} style={styles.avatarImage} />
+            <Image
+              source={{ uri: session.user.avatarUrl }}
+              style={styles.avatarImage}
+            />
           ) : (
-            <AppIcon color={mobileTheme.color.text.brand} name="account" size={mobileTheme.icon.xl} />
+            <AppIcon
+              color={mobileTheme.color.text.brand}
+              name="account"
+              size={mobileTheme.icon.xl}
+            />
           )}
           <View style={styles.avatarEditMark}>
-            <AppIcon color={mobileTheme.color.text.inverse} name="camera-outline" size={mobileTheme.icon.xs} />
+            <AppIcon
+              color={mobileTheme.color.text.inverse}
+              name="camera-outline"
+              size={mobileTheme.icon.xs}
+            />
           </View>
         </View>
         <View style={styles.projectCopy}>
-          <AppText numberOfLines={1} style={styles.cardTitle} weight={700}>{session?.user.name ?? t('menu.customerUser')}</AppText>
-          <AppText numberOfLines={1} style={styles.profileRole} weight={600}>{roleName}</AppText>
-          {session?.user.email ? <AppText numberOfLines={1} style={styles.cardCaption} weight={500}>{session.user.email}</AppText> : null}
+          <AppText numberOfLines={1} style={styles.cardTitle} weight={700}>
+            {session?.user.name ?? t("menu.customerUser")}
+          </AppText>
+          <AppText numberOfLines={1} style={styles.profileRole} weight={600}>
+            {roleName}
+          </AppText>
+          {session?.user.email ? (
+            <AppText numberOfLines={1} style={styles.cardCaption} weight={500}>
+              {session.user.email}
+            </AppText>
+          ) : null}
         </View>
       </GlassCard>
       <ActionListItem
-        accessibilityLabel={t('menu.accountSecurity')}
+        accessibilityLabel={t("menu.accountSecurity")}
         icon="shield-account-outline"
-        label={t('menu.accountSecurity')}
+        label={t("menu.accountSecurity")}
         tone="brand"
-        onPress={() => router.push('/(app)/account-security')}
+        onPress={() => router.push("/(app)/account-security")}
       />
 
       <ProjectContextCard compact />
 
       <View style={styles.menuQuickActions}>
-        <LanguagePicker compact showDescription={false} style={styles.languageControl} />
+        <LanguagePicker
+          compact
+          showDescription={false}
+          style={styles.languageControl}
+        />
         {notificationItem ? (
           <IconButton
             badgeCount={unreadCount}
             icon="bell-outline"
-            accessibilityLabel={t('a11y.openNotifications', { count: unreadCount })}
+            accessibilityLabel={t("a11y.openNotifications", {
+              count: unreadCount,
+            })}
             variant="glass"
             onPress={() => router.push(notificationItem.href as Href)}
           />
         ) : null}
       </View>
 
-      {renderSection(t('menu.sections.main'), mainItems)}
-      {renderSection(t('menu.sections.workforce'), workforceItems)}
-      {renderSection(t('menu.sections.projectManagement'), projectItems)}
+      {renderSection(t("menu.sections.main"), mainItems)}
+      {renderSection(t("menu.sections.workforce"), workforceItems)}
+      {renderSection(t("menu.sections.projectManagement"), projectItems)}
       {organizationItems.length || activeMemberships.length > 1 ? (
         <View style={styles.drawerSection}>
-          <AppText style={styles.drawerSectionTitle} weight={700}>{t('menu.sections.organization')}</AppText>
-          <GlassCard padding="none" variant="strong" style={styles.drawerSectionCard}>
+          <AppText style={styles.drawerSectionTitle} weight={700}>
+            {t("menu.sections.organization")}
+          </AppText>
+          <GlassCard
+            padding="none"
+            variant="strong"
+            style={styles.drawerSectionCard}
+          >
             {organizationItems.map(renderNavigationRow)}
-            {activeMemberships.length > 1 ? activeMemberships.map((membership) => (
-              <Pressable
-                accessibilityLabel={`${membership.organizationName}, ${membership.organizationId === session?.activeOrganization?.id ? t('menu.active') : t('menu.switch')}`}
-                accessibilityRole="button"
-                key={membership.organizationId}
-                onPress={() => void switchActiveOrganization(membership.organizationId)}
-                style={({ pressed }) => [styles.drawerRow, membership.organizationId === session?.activeOrganization?.id && styles.activeOrganizationRow, pressed && styles.drawerRowPressed]}
-              >
-                <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.drawerRowIcon}>
-                  <AppIcon color={mobileTheme.color.text.brand} name="office-building-outline" size={mobileTheme.icon.md} />
-                </View>
-                <AppText numberOfLines={1} style={styles.drawerRowLabel} weight={600}>{membership.organizationName}</AppText>
-                <View accessible={false} importantForAccessibility="no-hide-descendants">
-                  <AppIcon color={mobileTheme.color.text.muted} name="chevron-right" size={mobileTheme.icon.md} />
-                </View>
-              </Pressable>
-            )) : null}
+            {activeMemberships.length > 1
+              ? activeMemberships.map((membership) => (
+                  <Pressable
+                    accessibilityLabel={`${membership.organizationName}, ${membership.organizationId === session?.activeOrganization?.id ? t("menu.active") : t("menu.switch")}`}
+                    accessibilityRole="button"
+                    key={membership.organizationId}
+                    onPress={() =>
+                      void switchActiveOrganization(membership.organizationId)
+                    }
+                    style={({ pressed }) => [
+                      styles.drawerRow,
+                      membership.organizationId ===
+                        session?.activeOrganization?.id &&
+                        styles.activeOrganizationRow,
+                      pressed && styles.drawerRowPressed,
+                    ]}
+                  >
+                    <View
+                      accessible={false}
+                      importantForAccessibility="no-hide-descendants"
+                      style={styles.drawerRowIcon}
+                    >
+                      <AppIcon
+                        color={mobileTheme.color.text.brand}
+                        name="office-building-outline"
+                        size={mobileTheme.icon.md}
+                      />
+                    </View>
+                    <AppText
+                      numberOfLines={1}
+                      style={styles.drawerRowLabel}
+                      weight={600}
+                    >
+                      {membership.organizationName}
+                    </AppText>
+                    <View
+                      accessible={false}
+                      importantForAccessibility="no-hide-descendants"
+                    >
+                      <AppIcon
+                        color={mobileTheme.color.text.muted}
+                        name="chevron-right"
+                        size={mobileTheme.icon.md}
+                      />
+                    </View>
+                  </Pressable>
+                ))
+              : null}
           </GlassCard>
         </View>
       ) : null}
@@ -658,22 +1298,22 @@ export function MenuScreen() {
 const styles = StyleSheet.create({
   homeContent: { gap: mobileTheme.spacing[4] },
   homeHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: mobileTheme.spacing[4],
   },
-  homeHeaderActions: { flexDirection: 'row', gap: mobileTheme.spacing[2] },
+  homeHeaderActions: { flexDirection: "row", gap: mobileTheme.spacing[2] },
   headerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   headerCopy: {
     flex: 1,
   },
   eyebrowRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: mobileTheme.spacing[2],
     marginBottom: mobileTheme.spacing[2],
   },
@@ -693,13 +1333,13 @@ const styles = StyleSheet.create({
     lineHeight: 27,
   },
   identityRow: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: "center",
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: mobileTheme.spacing[2],
     marginTop: mobileTheme.spacing[2],
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
   roleBadge: {
     borderColor: mobileTheme.color.border.accent,
@@ -722,9 +1362,9 @@ const styles = StyleSheet.create({
     marginTop: mobileTheme.spacing[1],
   },
   sectionRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   sectionTitle: {
     ...mobileText.sectionTitle,
@@ -751,22 +1391,22 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   profileCard: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: mobileTheme.spacing[4],
   },
   menuList: {
     gap: 0,
   },
   avatarWrap: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: mobileTheme.color.brand.primarySoft,
     borderColor: mobileTheme.color.border.accent,
     borderRadius: mobileTheme.radius.full,
     borderWidth: 1,
     height: 68,
-    justifyContent: 'center',
-    overflow: 'visible',
+    justifyContent: "center",
+    overflow: "visible",
     width: 68,
   },
   avatarImage: {
@@ -775,15 +1415,15 @@ const styles = StyleSheet.create({
     width: 66,
   },
   avatarEditMark: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: mobileTheme.color.brand.primary,
     borderColor: mobileTheme.color.glass.strong,
     borderRadius: mobileTheme.radius.full,
     borderWidth: 2,
     bottom: -2,
     height: 28,
-    justifyContent: 'center',
-    position: 'absolute',
+    justifyContent: "center",
+    position: "absolute",
     right: -2,
     width: 28,
   },
@@ -795,8 +1435,8 @@ const styles = StyleSheet.create({
     paddingBottom: 176,
   },
   menuQuickActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: mobileTheme.spacing[3],
   },
   languageControl: {
@@ -812,13 +1452,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileTheme.spacing[2],
   },
   drawerSectionCard: {
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   drawerRow: {
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomColor: mobileTheme.color.border.subtle,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: mobileTheme.spacing[3],
     minHeight: 56,
     paddingHorizontal: mobileTheme.spacing[4],
@@ -827,8 +1467,8 @@ const styles = StyleSheet.create({
     backgroundColor: mobileTheme.color.brand.primarySoft,
   },
   drawerRowIcon: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     width: 24,
   },
   drawerRowLabel: {

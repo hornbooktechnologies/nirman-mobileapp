@@ -116,7 +116,8 @@
     "EXPENSES": "Site Expenses",
     "PROGRESS": "Project Progress",
     "GALLERY": "Site Gallery",
-    "TOTAL_EXPENSES": "Total Expenses"
+    "TOTAL_EXPENSES": "Total Expenses",
+    "BROCHURES": "Sales Brochures"
   },
   "permissionAction": {
     "read": "Read",
@@ -155,6 +156,7 @@
     "block": "Approve or release hold",
     "book": "Book",
     "upload": "Upload",
+    "share": "Share",
     "void-payment": "Void mistaken payment"
   },
   "errors": {

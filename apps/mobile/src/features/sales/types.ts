@@ -59,6 +59,7 @@ export type LeadInput = {
   assignedTo?: string;
   priority?: LeadPriority;
   interestedUnitId?: string;
+  brochureShare?: { assetIds: string[] };
 };
 
 export type SalesActivity = {

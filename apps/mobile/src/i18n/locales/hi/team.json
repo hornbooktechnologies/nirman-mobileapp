@@ -116,7 +116,8 @@
     "EXPENSES": "साइट खर्च",
     "PROGRESS": "प्रोजेक्ट प्रगति",
     "GALLERY": "साइट गैलरी",
-    "TOTAL_EXPENSES": "कुल खर्च"
+    "TOTAL_EXPENSES": "कुल खर्च",
+    "BROCHURES": "सेल्स ब्रोशर"
   },
   "permissionAction": {
     "read": "देखें",
@@ -155,6 +156,7 @@
     "block": "होल्ड मंज़ूर या रिलीज़ करें",
     "book": "बुक करें",
     "upload": "अपलोड करें",
+    "share": "शेयर करें",
     "void-payment": "गलत भुगतान निरस्त करें"
   },
   "errors": {

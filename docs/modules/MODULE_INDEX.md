@@ -53,6 +53,7 @@ Sales Web/Mobile client parity is source-implemented across Leads/Activities, Fo
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
 | 16-21 | Sales CRM vertical slice | `docs/modules/sales/CONTRACT.md` | implementation_complete_acceptance_pending | Project Access; notification delivery remains downstream | Site Visits, Unit inventory, and Lead conversion/booking linkage schema/RBAC/audit verification passed; complete authenticated role/workflow, live concurrency, and physical-device acceptance |
+| 21A | Sales Brochures | `docs/modules/sales/brochures/CONTRACTS.md`, `docs/modules/sales/brochures/REVIEW.md` | schema_verified_runtime_acceptance_partial | Sales Leads + Project Access + Files/Media + Audit + SMTP | Owner permission/library runtime passed; complete authenticated browser upload/share, SMTP inbox, Sales role, and physical-device acceptance |
 
 ## 6. Oversight Modules
 

@@ -18,7 +18,6 @@ import {
   type SpendingSource,
   type SpendingCard,
   type TotalExpensesList,
-  type MaterialExpensesList,
   type TotalExpensesSummary,
   type TotalExpensesQuery,
 } from "@nirman-app/shared";
@@ -44,7 +43,6 @@ import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import { PeriodSummaryRequest } from "./period-summary-request";
 import { fetchSpending } from "./services";
-import { MaterialExpenseCardView } from "./material-expense-card";
 type Filters = {
   period: SpendingPeriod;
   year: number;
@@ -57,6 +55,7 @@ const sources: SpendingSource[] = [
   "ALL",
   "WAGES",
   "MATERIALS",
+  "KHARCHI",
   "SITE_EXPENSES",
 ];
 export function TotalExpensesScreen() {
@@ -90,9 +89,9 @@ function Report({
   const [filters, setFilters] = useState<Filters>(
     () =>
       preferences.get(scope) ?? {
-        period: "THIS_MONTH",
+        period: "ALL_TIME",
         year: thisYear,
-        range: spendingRange("THIS_MONTH", timezone ?? "Asia/Kolkata"),
+        range: spendingRange("ALL_TIME", timezone ?? "Asia/Kolkata"),
         source: "ALL",
         page: 1,
       },
@@ -104,9 +103,6 @@ function Report({
   const [dateError, setDateError] = useState("");
   const [summary, setSummary] = useState<TotalExpensesSummary | null>(null);
   const [list, setList] = useState<TotalExpensesList | null>(null);
-  const [materialList, setMaterialList] = useState<MaterialExpensesList | null>(
-    null,
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const seq = useRef(0);
@@ -135,7 +131,6 @@ function Report({
       listController.current = controller;
       if (lastListKey.current !== listKey) {
         setList(null);
-        setMaterialList(null);
       }
       lastListKey.current = listKey;
       setLoading(true);
@@ -157,29 +152,23 @@ function Report({
         );
         const [s, l] = await refreshTogether([
           summaryPromise,
-          fetchSpending<TotalExpensesList | MaterialExpensesList>(
+          fetchSpending<TotalExpensesList>(
             org,
             project.id,
             token,
             {
-              ...(filters.source === "MATERIALS" ? {} : filters.range),
+              ...filters.range,
               source: filters.source,
               page: filters.page,
               pageSize: 20,
             },
-            filters.source === "MATERIALS" ? "materials" : false,
+            false,
             controller.signal,
           ),
         ]);
         if (n === seq.current) {
           setSummary(s);
-          if ("materials" in l) {
-            setMaterialList(l);
-            setList(null);
-          } else {
-            setList(l);
-            setMaterialList(null);
-          }
+          setList(l);
         }
       } catch (e) {
         if (n === seq.current && !controller.signal.aborted) {
@@ -255,10 +244,15 @@ function Report({
                 projectId: project!.id,
               },
             }
-          : {
-              pathname: "/(app)/expense-detail",
-              params: { expenseId: i.detailId, projectId: project!.id },
-            }) as Href,
+          : i.source === "KHARCHI"
+            ? {
+                pathname: "/(app)/kharchi-detail",
+                params: { kharchiId: i.detailId, projectId: project!.id },
+              }
+            : {
+                pathname: "/(app)/expense-detail",
+                params: { expenseId: i.detailId, projectId: project!.id },
+              }) as Href,
     );
   }
   return (
@@ -330,6 +324,7 @@ function Report({
                     ["total", summary.totalPaid],
                     ["WAGES", summary.wagesPaid],
                     ["MATERIALS", summary.materialsPaid],
+                    ["KHARCHI", summary.kharchiPaid],
                     ["SITE_EXPENSES", summary.siteExpensesPaid],
                   ] as const
                 ).map(([key, value]) => (
@@ -383,68 +378,7 @@ function Report({
               />
             ))}
           </View>
-          {loading ? <LoadingState loaderSize={88} /> : null}
-          {filters.source === "MATERIALS" && (
-            <Card>
-              <AppText weight={700}>{t("materialOverview")}</AppText>
-              <AppText>{t("materialNotice")}</AppText>
-            </Card>
-          )}
-          {materialList && filters.source === "MATERIALS" && (
-            <>
-              {!materialList.materials.length ? (
-                <Card>
-                  <AppText>{t("materialsEmpty")}</AppText>
-                </Card>
-              ) : (
-                materialList.materials.map((item) => (
-                  <MaterialExpenseCardView
-                    key={item.id}
-                    item={item}
-                    canOpen={permissions.includes("materials:read")}
-                    onOpen={() =>
-                      router.push({
-                        pathname: "/(app)/material-detail",
-                        params: {
-                          materialRequestId: item.id,
-                          projectId: project!.id,
-                        },
-                      } as Href)
-                    }
-                  />
-                ))
-              )}
-              <View style={styles.row}>
-                <Button
-                  fullWidth={false}
-                  label={t("previous")}
-                  variant="secondary"
-                  disabled={loading || filters.page <= 1}
-                  onPress={() =>
-                    setFilters((f) => ({ ...f, page: f.page - 1 }))
-                  }
-                />
-                <AppText>
-                  {t("page", {
-                    page: filters.page,
-                    total: materialList.pagination.totalPages || 1,
-                  })}
-                </AppText>
-                <Button
-                  fullWidth={false}
-                  label={t("next")}
-                  variant="secondary"
-                  disabled={
-                    loading ||
-                    filters.page >= materialList.pagination.totalPages
-                  }
-                  onPress={() =>
-                    setFilters((f) => ({ ...f, page: f.page + 1 }))
-                  }
-                />
-              </View>
-            </>
-          )}
+          {loading && !list ? <LoadingState loaderSize={88} /> : null}
           {list && (
             <>
               {!list.items.length ? (
@@ -458,13 +392,19 @@ function Report({
                       ? "wages"
                       : i.source === "MATERIALS"
                         ? "materials"
-                        : "expenses";
+                        : i.source === "KHARCHI"
+                          ? "kharchi"
+                          : "expenses";
                   return (
                     <Card key={`${i.source}:${i.id}`} style={styles.stack}>
                       <View style={styles.row}>
                         <AppText weight={700}>{t(i.source)}</AppText>
                         <StatusBadge
-                          label={t(i.paymentStatus)}
+                          label={
+                            i.source === "KHARCHI"
+                              ? t("DEDUCTED")
+                              : t(i.paymentStatus)
+                          }
                           tone={
                             i.paymentStatus === "PAID" ? "success" : "warning"
                           }
@@ -479,17 +419,35 @@ function Report({
                       <AppText style={styles.amount} weight={700}>
                         {money(i.periodPaidAmount)}
                       </AppText>
-                      <AppText>{t("paidPeriod")}</AppText>
                       <AppText>
-                        {t("lifetime")}: {money(i.lifetimePaidAmount)} ·{" "}
-                        {t("remaining")}: {money(i.remainingAmount)}
+                        {i.source === "KHARCHI"
+                          ? t("deductedPeriod")
+                          : t("paidPeriod")}
                       </AppText>
+                      {i.source === "KHARCHI" ? (
+                        <AppText>
+                          {t("lifetimeDeducted")}: {money(i.lifetimePaidAmount)}
+                        </AppText>
+                      ) : (
+                        <AppText>
+                          {t("lifetime")}: {money(i.lifetimePaidAmount)} ·{" "}
+                          {t("remaining")}: {money(i.remainingAmount)}
+                        </AppText>
+                      )}
                       <AppText>
-                        {t("latest")}: {i.latestPaymentDate}
+                        {i.source === "KHARCHI"
+                          ? t("latestDeduction")
+                          : t("latest")}
+                        : {i.latestPaymentDate}
                       </AppText>
                       {i.source === "MATERIALS" ? (
                         <AppText>
                           {t("purchased")}: {i.purchasedOn}
+                        </AppText>
+                      ) : null}
+                      {i.source === "KHARCHI" ? (
+                        <AppText>
+                          {t("deductedOn")}: {i.deductedOn}
                         </AppText>
                       ) : null}
                       {i.source === "SITE_EXPENSES" ? (

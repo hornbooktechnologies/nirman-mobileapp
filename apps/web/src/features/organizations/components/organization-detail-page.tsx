@@ -35,13 +35,12 @@ const orgStatusTone = {
   ARCHIVED: "inactive",
 } as const;
 
-function OrganizationDetail({
-  organizationId,
-}: {
-  organizationId: string;
-}) {
+function OrganizationDetail({ organizationId }: { organizationId: string }) {
   const router = useRouter();
-  const returnTo = safeAdministrationReturn(useSearchParams().get("returnTo"), "organizations");
+  const returnTo = safeAdministrationReturn(
+    useSearchParams().get("returnTo"),
+    "organizations",
+  );
   const { hasPermission } = useAuth();
   const organization = useOrganization(organizationId);
   const updateOrganization = useUpdateOrganization(organizationId);
@@ -60,7 +59,11 @@ function OrganizationDetail({
     timezone: organization.data?.timezone ?? "Asia/Kolkata",
   };
   const canSwitchOrganization = hasPermission("organizations:read");
-  const canUpdateDetails = hasPermission("platform-organizations:update") || hasPermission("organizations:update");
+  const canChangeOperatingProfile = hasPermission(
+    "platform-organizations:update",
+  );
+  const canUpdateDetails =
+    canChangeOperatingProfile || hasPermission("organizations:update");
   const canChangeStatus =
     hasPermission("organizations:activate") ||
     hasPermission("organizations:deactivate") ||
@@ -76,7 +79,14 @@ function OrganizationDetail({
 
   async function save() {
     try {
-      await updateOrganization.mutateAsync(form);
+      await updateOrganization.mutateAsync({
+        name: form.name,
+        timezone: form.timezone,
+        ...(canChangeOperatingProfile
+          ? { operatingProfile: form.operatingProfile }
+          : {}),
+        ...(canChangeStatus ? { status: form.status } : {}),
+      });
       const refreshed = await organization.refetch();
       if (!refreshed.error) setForm(null);
       setPendingStatusChange(false);
@@ -133,87 +143,220 @@ function OrganizationDetail({
             </p>
           ) : organization.data ? (
             <>
-            <section aria-label="Organization details" className="space-y-3">
-              <h2 className="text-lg font-semibold">Organization context</h2>
-              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[["Type", organization.data.type], ["Operating profile", organization.data.operatingProfile.replaceAll("_", " ")], ["Working timezone", organization.data.timezone], ["Currency", organization.data.currency]].map(([name, value]) => <div key={name}><dt className="text-sm text-sub">{name}</dt><dd className="break-words font-medium">{value}</dd></div>)}
-              </dl>
-              <p className="text-sm text-sub">Organization roles determine member permissions. Project access can be managed from Members.</p>
-            </section>
-            {canUpdateDetails ? (
-              <form className="grid gap-4 border-t border-hairline pt-4" onSubmit={submit}>
-                <h2 className="text-lg font-semibold">Edit organization setup</h2>
-                <label className="grid gap-1 text-sm font-medium">Organization name<Input
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm({ ...form, name: event.target.value })
-                  }
-                  required
-                /></label>
-                <label className="grid gap-1 text-sm font-medium">Operating profile<Select
-                  value={form.operatingProfile}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      operatingProfile: event.target.value as OperatingProfile,
-                    })
-                  }
-                >
-                  {!hasCompatibleOperatingProfile ? (
-                    <option value={form.operatingProfile}>
-                      {form.operatingProfile} (incompatible - choose a valid
-                      profile)
-                    </option>
-                  ) : null}
-                  {allowedOperatingProfiles.map((profile) => (
-                    <option key={profile} value={profile}>
-                      {profile}
-                    </option>
+              <section aria-label="Organization details" className="space-y-3">
+                <h2 className="text-lg font-semibold">Organization context</h2>
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["Type", organization.data.type],
+                    [
+                      "Operating profile",
+                      organization.data.operatingProfile.replaceAll("_", " "),
+                    ],
+                    ["Working timezone", organization.data.timezone],
+                    ["Currency", organization.data.currency],
+                  ].map(([name, value]) => (
+                    <div key={name}>
+                      <dt className="text-sm text-sub">{name}</dt>
+                      <dd className="break-words font-medium">{value}</dd>
+                    </div>
                   ))}
-                </Select></label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1 text-sm font-medium">Working timezone<Input
-                    value={form.timezone}
-                    onChange={(event) =>
-                      setForm({ ...form, timezone: event.target.value })
-                    }
-                  /></label>
-                  <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
-                    <span className="text-sub">Default currency:</span>
-                    <strong className="ml-1.5 font-semibold">
-                      {organization.data?.currency ?? "INR"}
-                    </strong>
+                </dl>
+                <p className="text-sm text-sub">
+                  Organization type and operating profile are controlled by
+                  platform administration. Project access can be managed from
+                  Members.
+                </p>
+              </section>
+              {canUpdateDetails ? (
+                <form
+                  className="grid gap-4 border-t border-hairline pt-4"
+                  onSubmit={submit}
+                >
+                  <h2 className="text-lg font-semibold">
+                    Edit organization setup
+                  </h2>
+                  <label className="grid gap-1 text-sm font-medium">
+                    Organization name
+                    <Input
+                      value={form.name}
+                      onChange={(event) =>
+                        setForm({ ...form, name: event.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  {canChangeOperatingProfile ? (
+                    <label className="grid gap-1 text-sm font-medium">
+                      Operating profile
+                      <Select
+                        value={form.operatingProfile}
+                        onChange={(event) =>
+                          setForm({
+                            ...form,
+                            operatingProfile: event.target
+                              .value as OperatingProfile,
+                          })
+                        }
+                      >
+                        {!hasCompatibleOperatingProfile ? (
+                          <option value={form.operatingProfile}>
+                            {form.operatingProfile} (incompatible - choose a
+                            valid profile)
+                          </option>
+                        ) : null}
+                        {allowedOperatingProfiles.map((profile) => (
+                          <option key={profile} value={profile}>
+                            {profile}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                  ) : (
+                    <div className="grid gap-1 text-sm">
+                      <span className="font-medium">Operating profile</span>
+                      <div className="rounded-sub border border-hairline bg-sunken px-3 py-2.5">
+                        <p className="font-medium text-body">
+                          {organization.data.operatingProfile.replaceAll(
+                            "_",
+                            " ",
+                          )}
+                        </p>
+                        <p className="mt-0.5 text-xs text-sub">
+                          Set by a platform administrator and cannot be changed
+                          here.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-sm font-medium">
+                      Working timezone
+                      <Input
+                        value={form.timezone}
+                        onChange={(event) =>
+                          setForm({ ...form, timezone: event.target.value })
+                        }
+                      />
+                    </label>
+                    <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
+                      <span className="text-sub">Default currency:</span>
+                      <strong className="ml-1.5 font-semibold">
+                        {organization.data?.currency ?? "INR"}
+                      </strong>
+                    </div>
                   </div>
-                </div>
-                {canChangeStatus && <section className="space-y-2 rounded-inner border border-hairline bg-sunken p-4" aria-label="Organization status management">
-                  <h3 className="font-semibold">Status and access</h3>
-                  <p className="text-sm text-sub">Changing status can affect access for the whole organization. Review the selected status before saving.</p>
-                  <label className="grid gap-1 text-sm font-medium">Organization status<Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as OrganizationStatus })}>
-                    {ORGANIZATION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                  </Select></label>
-                </section>}
-                <Button type="submit" disabled={updateOrganization.isPending}>
-                  <Check size={16} />
-                  {updateOrganization.isPending
-                    ? "Saving"
-                    : "Save Organization"}
-                </Button>
-                {updateOrganization.isError && <p role="alert" className="text-sm text-danger">{updateOrganization.error instanceof Error ? updateOrganization.error.message : "Unable to save organization."}</p>}
-                {updateOrganization.isSuccess && <p role="status" className="text-sm text-success">Organization saved.</p>}
-              </form>
-            ) : <p className="border-t border-hairline pt-4 text-sm text-sub">This organization is read-only for your role. An authorized organization administrator can change its setup.</p>}
+                  {canChangeStatus && (
+                    <section
+                      className="space-y-2 rounded-inner border border-hairline bg-sunken p-4"
+                      aria-label="Organization status management"
+                    >
+                      <h3 className="font-semibold">Status and access</h3>
+                      <p className="text-sm text-sub">
+                        Changing status can affect access for the whole
+                        organization. Review the selected status before saving.
+                      </p>
+                      <label className="grid gap-1 text-sm font-medium">
+                        Organization status
+                        <Select
+                          value={form.status}
+                          onChange={(event) =>
+                            setForm({
+                              ...form,
+                              status: event.target.value as OrganizationStatus,
+                            })
+                          }
+                        >
+                          {ORGANIZATION_STATUSES.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </Select>
+                      </label>
+                    </section>
+                  )}
+                  <Button type="submit" disabled={updateOrganization.isPending}>
+                    <Check size={16} />
+                    {updateOrganization.isPending
+                      ? "Saving"
+                      : "Save Organization"}
+                  </Button>
+                  {updateOrganization.isError && (
+                    <p role="alert" className="text-sm text-danger">
+                      {updateOrganization.error instanceof Error
+                        ? updateOrganization.error.message
+                        : "Unable to save organization."}
+                    </p>
+                  )}
+                  {updateOrganization.isSuccess && (
+                    <p role="status" className="text-sm text-success">
+                      Organization saved.
+                    </p>
+                  )}
+                </form>
+              ) : (
+                <p className="border-t border-hairline pt-4 text-sm text-sub">
+                  This organization is read-only for your role. An authorized
+                  organization administrator can change its setup.
+                </p>
+              )}
             </>
           ) : null}
         </Card>
-        <Dialog open={pendingStatusChange} title="Confirm organization status change" description="Changing status can affect every member's access to this organization." onOpenChange={(open) => { if (!open) setPendingStatusChange(false); }} footer={<><Button variant="outline" onClick={() => setPendingStatusChange(false)}>Keep current status</Button><Button variant={form.status === "ACTIVE" ? "primary" : "danger"} disabled={updateOrganization.isPending} onClick={() => void save()}>{updateOrganization.isPending ? "Saving" : `Save ${form.status.toLowerCase()} status`}</Button></>}>
-          <p>Change {organization.data?.name} from <strong>{organization.data?.status}</strong> to <strong>{form.status}</strong>. Any other edited setup fields will be saved at the same time.</p>
-          {updateOrganization.isError && <p role="alert" className="mt-3 text-sm text-danger">{updateOrganization.error instanceof Error ? updateOrganization.error.message : "Unable to save organization."}</p>}
+        <Dialog
+          open={pendingStatusChange}
+          title="Confirm organization status change"
+          description="Changing status can affect every member's access to this organization."
+          onOpenChange={(open) => {
+            if (!open) setPendingStatusChange(false);
+          }}
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setPendingStatusChange(false)}
+              >
+                Keep current status
+              </Button>
+              <Button
+                variant={form.status === "ACTIVE" ? "primary" : "danger"}
+                disabled={updateOrganization.isPending}
+                onClick={() => void save()}
+              >
+                {updateOrganization.isPending
+                  ? "Saving"
+                  : `Save ${form.status.toLowerCase()} status`}
+              </Button>
+            </>
+          }
+        >
+          <p>
+            Change {organization.data?.name} from{" "}
+            <strong>{organization.data?.status}</strong> to{" "}
+            <strong>{form.status}</strong>. Any other edited setup fields will
+            be saved at the same time.
+          </p>
+          {updateOrganization.isError && (
+            <p role="alert" className="mt-3 text-sm text-danger">
+              {updateOrganization.error instanceof Error
+                ? updateOrganization.error.message
+                : "Unable to save organization."}
+            </p>
+          )}
         </Dialog>
       </div>
     </PermissionGuard>
   );
 }
 
-export function OrganizationDetailPage({ organizationId }: { organizationId: string }) {
-  return <Suspense fallback={<LoadingState label="Loading organization" />}><OrganizationDetail organizationId={organizationId} /></Suspense>;
+export function OrganizationDetailPage({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
+  return (
+    <Suspense fallback={<LoadingState label="Loading organization" />}>
+      <OrganizationDetail organizationId={organizationId} />
+    </Suspense>
+  );
 }

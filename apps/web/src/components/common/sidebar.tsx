@@ -67,7 +67,7 @@ function SidebarContent({
   const canNavigate = (permission: string) => {
     if (
       contextProject &&
-      /^(workers|attendance|work-calendar|wages|kharchi|expenses|materials|progress|gallery|leads|inventory):/.test(
+      /^(workers|attendance|work-calendar|wages|kharchi|expenses|materials|progress|gallery|brochures|leads|inventory):/.test(
         permission,
       )
     )
@@ -93,6 +93,13 @@ function SidebarContent({
         access.isSuccess &&
         access.data.projects.some((project) =>
           project.permissions.includes("gallery:read"),
+        )
+      );
+    if (permission === "brochures:read")
+      return (
+        access.isSuccess &&
+        access.data.projects.some((project) =>
+          project.permissions.includes("brochures:read"),
         )
       );
     if (permission === "progress:read")

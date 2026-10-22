@@ -42,6 +42,7 @@
     "gallery": { "title": "साइट गैलरी", "description": "फोटो और तारीख के अनुसार प्रोजेक्ट डायरी" },
     "notifications": { "title": "सूचनाएँ", "description": "महत्वपूर्ण अपडेट और अनुमोदन" },
     "sales": { "title": "सेल्स", "description": "लीड, फ़ॉलो-अप और इन्वेंटरी" },
+    "brochures": { "title": "ब्रोशर", "description": "मार्केटिंग PDF, चित्र और वीडियो" },
     "calendar": { "title": "कार्य कैलेंडर", "description": "कार्य दिवस और साइट बंदी" },
     "menu": {
       "title": "मेन्यू",

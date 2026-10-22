@@ -1,5 +1,5 @@
 import { UnitDetailPage } from "@/features/sales/components/unit-detail-page";
-export default async function Page({
+export default async function UnitDetailRoute({
   params,
 }: {
   params: Promise<{ id: string; unitId: string }>;

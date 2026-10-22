@@ -1,5 +1,7 @@
-
-import { RefreshIconButton, RefreshButton } from "../../components/ui/refresh-button";
+import {
+  RefreshIconButton,
+  RefreshButton,
+} from "../../components/ui/refresh-button";
 import { LEAD_STAGES, type LeadStage } from "@nirman-app/shared";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,7 +23,6 @@ import {
   OperationalEntityCard,
 } from "../../components/ui";
 import { formatDate, formatInr } from "../../i18n/formatters";
-
 
 import { getLocalizedErrorMessage } from "../../i18n";
 import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
@@ -66,14 +67,28 @@ export function SalesBookingScreen() {
   const [cancellationFieldErrors, setCancellationFieldErrors] =
     useState<CancellationFieldErrors>({});
   const requestSequence = useRef(0);
-  const lock = useRef(false), alive = useRef(true);
+  const lock = useRef(false),
+    alive = useRef(true);
   const [review, setReview] = useState(false);
-  const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const timezone =
+    session?.activeOrganization?.workingTimezone ||
+    session?.activeOrganization?.timezone ||
+    "Asia/Kolkata";
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const load = useCallback(
     async (quiet = false) => {
-      if (!bookingId || !activeOrganizationId || !activeProjectId || !accessToken)
+      if (
+        !bookingId ||
+        !activeOrganizationId ||
+        !activeProjectId ||
+        !accessToken
+      )
         return;
       const sequence = ++requestSequence.current;
       quiet ? setRefreshing(true) : setLoading(true);
@@ -85,7 +100,10 @@ export function SalesBookingScreen() {
           bookingId,
           accessToken,
         );
-        if (sequence === requestSequence.current) { setBooking(nextBooking); return true; }
+        if (sequence === requestSequence.current) {
+          setBooking(nextBooking);
+          return true;
+        }
       } catch (cause) {
         if (sequence === requestSequence.current)
           setError(getLocalizedErrorMessage(cause, t("errors.load")));
@@ -99,7 +117,14 @@ export function SalesBookingScreen() {
     [accessToken, activeOrganizationId, activeProjectId, bookingId, t],
   );
 
-  useFocusEffect(useCallback(() => { void load(); return () => { requestSequence.current += 1; }; }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      return () => {
+        requestSequence.current += 1;
+      };
+    }, [load]),
+  );
 
   function openCancellation() {
     if (!booking) return;
@@ -121,7 +146,18 @@ export function SalesBookingScreen() {
   }
 
   async function confirmCancellation() {
-    if (lock.current || review || !booking || booking.status !== 'CONFIRMED' || !session?.activeOrganization || !project || project.status !== 'ACTIVE' || !permissions.includes('leads:convert') || (booking.unitId && !permissions.includes('inventory:book'))) return;
+    if (
+      lock.current ||
+      review ||
+      !booking ||
+      booking.status !== "CONFIRMED" ||
+      !session?.activeOrganization ||
+      !project ||
+      project.status !== "ACTIVE" ||
+      !permissions.includes("leads:convert") ||
+      (booking.unitId && !permissions.includes("inventory:book"))
+    )
+      return;
 
     const nextFieldErrors: CancellationFieldErrors = {};
     if (!cancellationReason.trim()) {
@@ -146,12 +182,27 @@ export function SalesBookingScreen() {
     setCancellationFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length > 0) return;
 
-    lock.current = true; setWorking(true);
+    lock.current = true;
+    setWorking(true);
     setError(null);
     try {
-      const current = await fetchBooking(session.activeOrganization.id, project.id, booking.id, session.accessToken);
+      const current = await fetchBooking(
+        session.activeOrganization.id,
+        project.id,
+        booking.id,
+        session.accessToken,
+      );
       if (!alive.current) return;
-      if (current.status !== booking.status || current.updatedAt !== booking.updatedAt || current.leadCurrentStage !== booking.leadCurrentStage || current.unitCurrentStatus !== booking.unitCurrentStatus) { setBooking(current); setReview(true); throw new Error(t('parity.stale')); }
+      if (
+        current.status !== booking.status ||
+        current.updatedAt !== booking.updatedAt ||
+        current.leadCurrentStage !== booking.leadCurrentStage ||
+        current.unitCurrentStatus !== booking.unitCurrentStatus
+      ) {
+        setBooking(current);
+        setReview(true);
+        throw new Error(t("parity.stale"));
+      }
       const next = await cancelBooking(
         session.activeOrganization.id,
         project.id,
@@ -173,7 +224,8 @@ export function SalesBookingScreen() {
     } catch (cause) {
       setError(getLocalizedErrorMessage(cause, t("errors.save")));
     } finally {
-      lock.current = false; if (alive.current) setWorking(false);
+      lock.current = false;
+      if (alive.current) setWorking(false);
     }
   }
 
@@ -199,10 +251,25 @@ export function SalesBookingScreen() {
     );
   }
 
-  function requestClose() { if (lock.current) return; Alert.alert(t('parity.discardTitle'), review ? t('parity.uncertain') : t('parity.discardDescription'), [{ text: tCommon('actions.cancel'), style: 'cancel' }, { text: tCommon('actions.close'), style: 'destructive', onPress: () => setShowCancellation(false) }]); }
+  function requestClose() {
+    if (lock.current) return;
+    Alert.alert(
+      t("parity.discardTitle"),
+      review ? t("parity.uncertain") : t("parity.discardDescription"),
+      [
+        { text: tCommon("actions.cancel"), style: "cancel" },
+        {
+          text: tCommon("actions.close"),
+          style: "destructive",
+          onPress: () => setShowCancellation(false),
+        },
+      ],
+    );
+  }
 
   const canCancel = Boolean(
-    project?.status === "ACTIVE" && booking?.status === "CONFIRMED" &&
+    project?.status === "ACTIVE" &&
+    booking?.status === "CONFIRMED" &&
     permissions.includes("leads:convert") &&
     (!booking.unitId || permissions.includes("inventory:book")),
   );
@@ -221,7 +288,8 @@ export function SalesBookingScreen() {
         title={t("bookings.detailTitle")}
         subtitle={booking?.bookingReference ?? project.name}
         action={
-          <RefreshIconButton busy={loading || refreshing}
+          <RefreshIconButton
+            busy={loading || refreshing}
             icon="refresh"
             accessibilityLabel={t("bookings.refresh")}
             disabled={loading || refreshing}
@@ -232,9 +300,22 @@ export function SalesBookingScreen() {
       />
       <ProjectContextCard compact showSwitchAction />
       <FormError message={error} />
-      {project.status !== 'ACTIVE' ? <FormError message={t('parity.readOnly')} /> : null}
-      {review ? <RefreshButton busy={loading || refreshing} label={t('refresh')} variant="secondary" onRefresh={() => load(true).then(ok => { if (ok && alive.current) setReview(false); })} /> : null}
-      {loading ? (
+      {project.status !== "ACTIVE" ? (
+        <FormError message={t("parity.readOnly")} />
+      ) : null}
+      {review ? (
+        <RefreshButton
+          busy={loading || refreshing}
+          label={t("refresh")}
+          variant="secondary"
+          onRefresh={() =>
+            load(true).then((ok) => {
+              if (ok && alive.current) setReview(false);
+            })
+          }
+        />
+      ) : null}
+      {loading && !booking ? (
         <LoadingState label={t("loading")} />
       ) : booking ? (
         <>
@@ -257,7 +338,10 @@ export function SalesBookingScreen() {
             valueLabel={
               booking.bookingAmount == null ? undefined : t("bookings.amount")
             }
-            footerLeading={formatDate(`${booking.bookingDate.slice(0, 10)}T12:00:00`, language)}
+            footerLeading={formatDate(
+              `${booking.bookingDate.slice(0, 10)}T12:00:00`,
+              language,
+            )}
             tone={booking.status === "CONFIRMED" ? "success" : "danger"}
           />
 
@@ -268,10 +352,27 @@ export function SalesBookingScreen() {
             />
             <SalesDetailRows
               rows={[
-                { label: t('parity.firstConvertedBy'), value: booking.convertedByName },
-                { label: t('fields.unitType'), value: booking.unitType },
-                { label: t('parity.createdAt'), value: formatDate(booking.createdAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) },
-                { label: t('parity.updatedAt'), value: formatDate(booking.updatedAt, language, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }) },
+                {
+                  label: t("parity.firstConvertedBy"),
+                  value: booking.convertedByName,
+                },
+                { label: t("fields.unitType"), value: booking.unitType },
+                {
+                  label: t("parity.createdAt"),
+                  value: formatDate(booking.createdAt, language, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                    timeZone: timezone,
+                  }),
+                },
+                {
+                  label: t("parity.updatedAt"),
+                  value: formatDate(booking.updatedAt, language, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                    timeZone: timezone,
+                  }),
+                },
 
                 {
                   label: t("fields.customerMobile"),
@@ -294,7 +395,8 @@ export function SalesBookingScreen() {
                   value: booking.convertedAt
                     ? formatDate(booking.convertedAt, language, {
                         dateStyle: "medium",
-                        timeStyle: "short", timeZone: timezone,
+                        timeStyle: "short",
+                        timeZone: timezone,
                       })
                     : null,
                 },
@@ -322,7 +424,18 @@ export function SalesBookingScreen() {
                 },
               ]}
             />
-            {booking.unitId && permissions.includes('inventory:read') ? <Button label={t('parity.openUnit')} variant="secondary" onPress={() => router.push({ pathname: '/(app)/sales-unit', params: { unitId: booking.unitId! } })} /> : null}
+            {booking.unitId && permissions.includes("inventory:read") ? (
+              <Button
+                label={t("parity.openUnit")}
+                variant="secondary"
+                onPress={() =>
+                  router.push({
+                    pathname: "/(app)/sales-unit",
+                    params: { unitId: booking.unitId! },
+                  })
+                }
+              />
+            ) : null}
             <Button
               label={t("bookings.openLead")}
               variant="secondary"
@@ -352,7 +465,8 @@ export function SalesBookingScreen() {
                     value: booking.cancelledAt
                       ? formatDate(booking.cancelledAt, language, {
                           dateStyle: "medium",
-                          timeStyle: "short", timeZone: timezone,
+                          timeStyle: "short",
+                          timeZone: timezone,
                         })
                       : null,
                   },
@@ -408,7 +522,9 @@ export function SalesBookingScreen() {
                 style={styles.footerButton}
                 disabled={working || review}
                 label={
-                  working ? t("bookings.cancelling") : t("bookings.confirmCancellation")
+                  working
+                    ? t("bookings.cancelling")
+                    : t("bookings.confirmCancellation")
                 }
                 variant="danger"
                 onPress={() => void confirmCancellation()}
@@ -417,78 +533,92 @@ export function SalesBookingScreen() {
           }
         >
           <FormError message={error} />
-          {review ? <RefreshButton busy={loading || refreshing} label={t('refresh')} variant="secondary" disabled={working} onRefresh={() => load(true).then(ok => { if (ok && alive.current) setReview(false); })} /> : null}
-          <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
-
-          <FormField
-            label={t("fields.cancellationReason")}
-            required
-            error={cancellationFieldErrors.reason}
-          >
-            <Input
-              accessibilityLabel={t("fields.cancellationReason")}
-              invalid={Boolean(cancellationFieldErrors.reason)}
-              multiline
-              numberOfLines={3}
-              value={cancellationReason}
-              onChangeText={(value) => {
-                setCancellationReason(value);
-                if (cancellationFieldErrors.reason) {
-                  setCancellationFieldErrors((current) => ({
-                    ...current,
-                    reason: undefined,
-                  }));
-                }
-              }}
-              style={styles.multiline}
+          {review ? (
+            <RefreshButton
+              busy={loading || refreshing}
+              label={t("refresh")}
+              variant="secondary"
+              disabled={working}
+              onRefresh={() =>
+                load(true).then((ok) => {
+                  if (ok && alive.current) setReview(false);
+                })
+              }
             />
-          </FormField>
-          <FormField
-            label={t("fields.restoredLeadStage")}
-            required
-            error={cancellationFieldErrors.leadStage}
+          ) : null}
+          <View
+            style={{ gap: mobileTheme.spacing[4] }}
+            pointerEvents={working ? "none" : "auto"}
           >
-            {RESTORABLE_LEAD_STAGES.map((value) => (
-              <SalesChoice
-                key={value}
-                label={t(`stage.${value}`)}
-                selected={restoredLeadStage === value}
-                onPress={() => {
-                  setRestoredLeadStage(value);
-                  if (cancellationFieldErrors.leadStage) {
+            <FormField
+              label={t("fields.cancellationReason")}
+              required
+              error={cancellationFieldErrors.reason}
+            >
+              <Input
+                accessibilityLabel={t("fields.cancellationReason")}
+                invalid={Boolean(cancellationFieldErrors.reason)}
+                multiline
+                numberOfLines={3}
+                value={cancellationReason}
+                onChangeText={(value) => {
+                  setCancellationReason(value);
+                  if (cancellationFieldErrors.reason) {
                     setCancellationFieldErrors((current) => ({
                       ...current,
-                      leadStage: undefined,
+                      reason: undefined,
                     }));
                   }
                 }}
+                style={styles.multiline}
               />
-            ))}
-          </FormField>
-          {booking.unitId ? (
+            </FormField>
             <FormField
-              label={t("fields.restoredUnitStatus")}
+              label={t("fields.restoredLeadStage")}
               required
-              error={cancellationFieldErrors.unitStatus}
+              error={cancellationFieldErrors.leadStage}
             >
-              {(["AVAILABLE", "UNAVAILABLE"] as const).map((value) => (
+              {RESTORABLE_LEAD_STAGES.map((value) => (
                 <SalesChoice
                   key={value}
-                  label={t(`unitStatus.${value}`)}
-                  selected={restoredUnitStatus === value}
+                  label={t(`stage.${value}`)}
+                  selected={restoredLeadStage === value}
                   onPress={() => {
-                    setRestoredUnitStatus(value);
-                    if (cancellationFieldErrors.unitStatus) {
+                    setRestoredLeadStage(value);
+                    if (cancellationFieldErrors.leadStage) {
                       setCancellationFieldErrors((current) => ({
                         ...current,
-                        unitStatus: undefined,
+                        leadStage: undefined,
                       }));
                     }
                   }}
                 />
               ))}
             </FormField>
-          ) : null}
+            {booking.unitId ? (
+              <FormField
+                label={t("fields.restoredUnitStatus")}
+                required
+                error={cancellationFieldErrors.unitStatus}
+              >
+                {(["AVAILABLE", "UNAVAILABLE"] as const).map((value) => (
+                  <SalesChoice
+                    key={value}
+                    label={t(`unitStatus.${value}`)}
+                    selected={restoredUnitStatus === value}
+                    onPress={() => {
+                      setRestoredUnitStatus(value);
+                      if (cancellationFieldErrors.unitStatus) {
+                        setCancellationFieldErrors((current) => ({
+                          ...current,
+                          unitStatus: undefined,
+                        }));
+                      }
+                    }}
+                  />
+                ))}
+              </FormField>
+            ) : null}
           </View>
         </BottomSheet>
       ) : null}

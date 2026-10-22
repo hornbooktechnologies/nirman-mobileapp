@@ -43,6 +43,7 @@ const permissionActionTranslationKeys = {
   'record-purchase': 'permissionAction.record-purchase',
   'record-delivery': 'permissionAction.record-delivery',
   upload: 'permissionAction.upload',
+  share: 'permissionAction.share',
   'read-own': 'permissionAction.read-own',
   'read-team': 'permissionAction.read-team',
   'read-all': 'permissionAction.read-all',

@@ -2,7 +2,6 @@ import type {
   TotalExpensesQuery,
   TotalExpensesList,
   TotalExpensesSummary,
-  MaterialExpensesList,
   PaymentLedger,
   RecordSourcePayment,
   VoidSourcePayment,
@@ -15,13 +14,13 @@ async function data<T>(path: string, token: string, init: RequestInit = {}) {
   return response.data;
 }
 export function fetchSpending<
-  T extends TotalExpensesList | TotalExpensesSummary | MaterialExpensesList,
+  T extends TotalExpensesList | TotalExpensesSummary,
 >(
   org: string,
   project: string,
   token: string,
   query: TotalExpensesQuery,
-  summary: boolean | "materials" = false,
+  summary = false,
   signal?: AbortSignal,
 ) {
   const params = new URLSearchParams();
@@ -29,7 +28,7 @@ export function fetchSpending<
     if (value !== undefined) params.set(key, String(value));
   });
   return data<T>(
-    `/organizations/${org}/projects/${project}/total-expenses${summary === "materials" ? "/materials" : summary ? "/summary" : ""}?${params}`,
+    `/organizations/${org}/projects/${project}/total-expenses${summary ? "/summary" : ""}?${params}`,
     token,
     { signal },
   );

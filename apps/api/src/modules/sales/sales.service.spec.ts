@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
+import { BrochuresService } from "../brochures/brochures.service";
 
 describe("SalesService", () => {
   const repo = {
@@ -44,7 +45,10 @@ describe("SalesService", () => {
     resolveProjectAccess: jest.fn(),
   } as unknown as jest.Mocked<ProjectAccessService>;
 
-  const service = new SalesService(repo, projectAccess);
+  const brochures = {
+    shareForLead: jest.fn(),
+  } as unknown as jest.Mocked<BrochuresService>;
+  const service = new SalesService(repo, projectAccess, brochures);
   const actor: AuthenticatedUser = {
     id: "00000000-0000-4000-8000-000000000001",
     email: "sales@example.test",

@@ -4,9 +4,10 @@ import { ProjectAccessModule } from "../project-access/project-access.module";
 import { SalesController } from "./sales.controller";
 import { SalesRepository } from "./sales.repository";
 import { SalesService } from "./sales.service";
+import { BrochuresModule } from "../brochures/brochures.module";
 
 @Module({
-  imports: [AuditModule, ProjectAccessModule],
+  imports: [AuditModule, ProjectAccessModule, BrochuresModule],
   controllers: [SalesController],
   providers: [SalesRepository, SalesService],
   exports: [SalesService],

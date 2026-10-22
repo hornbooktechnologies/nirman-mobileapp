@@ -4,15 +4,15 @@ Status: approved for source implementation by the owner on 2026-10-05. The separ
 
 ## A. Module Identity
 
-Project-scoped, read-only reporting of money paid for Wages, Materials and Site Expenses. Owners and explicitly delegated project members can assess paid spending by month/year and inspect its sources. Depends on project access/RBAC, Calendar working timezone, source modules, shared contracts, API-local mysql2 and transactional Audit. No other module depends on report writes because the report has none.
+Project-scoped, read-only reporting of money paid for net Wages, Materials and Site Expenses plus confirmed Kharchi deductions. Owners and explicitly delegated project members can assess paid spending by month/year and inspect its sources. Depends on project access/RBAC, Calendar working timezone, source modules, shared contracts, API-local mysql2 and transactional Audit. No other module depends on report writes because the report has none.
 
-Kharchi is excluded: this report is not every project cash outflow. Refunds, budgets, exports, cross-project reports, offline payment writes and automatic cross-module creation/linking are deferred.
+Confirmed, unreversed Kharchi deduction allocations are included once on their deduction date. Net Wage payments remain separate, so the combined labour amount does not double-count the deduction. Undeducted/outstanding advances are excluded. Refunds, budgets, exports, cross-project reports, offline payment writes and automatic cross-module creation/linking are deferred.
 
 ## B. Domain Terminology
 
-### Materials visibility clarification — 2026-10-09
+### Materials visibility clarification — superseded 2026-10-22
 
-The owner's Mobile/Web/API Materials-tab fix adds a read-only **all-time material commitment and delivery overview** alongside the existing paid report. It does not change the total-paid accounting rule or infer payments. The Materials tab lists every scoped request, including unpaid/request-only records, grouped by request with explicit workflow status. All/paid cards and summaries retain their payment-date filtering and purchase-level aggregation.
+The prior all-time material commitment and delivery overview is no longer used by Total Expenses clients. The Materials filter now uses the same paid-event list as every other category and shows only purchases with active recorded payments in the selected payment-date period. Pending, unpaid and request-only Material records remain available in the Materials module, not Total Expenses.
 
 `GET /total-expenses/materials` uses the same report permission and project access, validated pagination (default 1/20, maximum 100), response `{ materials: MaterialExpenseCard[], pagination }` and repeatable-read snapshot. It returns requested/ordered/delivered quantities, awaiting-delivery `max(ordered-delivered,0)`, not-yet-ordered `max(requested-ordered,0)`, request estimate, order cost, lifetime active payments and balance due. Dates/source are not applied to this all-time snapshot; clients send page/pageSize only and explicitly explain that period filters apply to paid totals above. Sort is request date descending then request ID ascending. Request state is visible, including draft/rejected/cancelled; estimates never establish a commitment. Source detail links still require materials:read.
 
@@ -72,7 +72,7 @@ Optional payment reference is nullable VARCHAR(160). Methods: CASH, UPI, BANK_TR
 
 Material purchase and Expense detail include ledger, decimal paid/remaining amounts, payment status and current source version. Unknown purchase cost has null remaining. `paymentTrackingAvailable: false` identifies a not-yet-installed schema so clients do not present zero payments as confirmed tracking or expose writes. Report cards have readable title/subtitle, period paid, lifetime paid/remaining, latest included payment date and source detail reference; source-specific fields include wage dates, purchase date or expense category/date/review flag. Money crosses the API as decimal strings; exact paise helpers and SQL DECIMAL avoid binary arithmetic.
 
-Filters use optional paired YYYY-MM-DD startDate/endDate, ALL/WAGES/MATERIALS/SITE_EXPENSES source, page and pageSize. List returns items and page/pageSize/total/totalPages. Summary returns totalPaid, wagesPaid, materialsPaid, siteExpensesPaid and monthly breakdown. Shared permissions/error codes are the client/API vocabulary; report writes have no shared command.
+Filters use optional paired YYYY-MM-DD startDate/endDate, ALL/WAGES/MATERIALS/KHARCHI/SITE_EXPENSES source, page and pageSize. List returns items and page/pageSize/total/totalPages. Summary returns totalPaid, wagesPaid, materialsPaid, kharchiPaid, siteExpensesPaid and monthly breakdown. Shared permissions/error codes are the client/API vocabulary; report writes have no shared command.
 
 ## G. API Contract
 
@@ -80,7 +80,7 @@ Base: `/organizations/:organizationId/projects/:projectId` under the existing AP
 
 | Operation | Route | Authorization | Result |
 | --- | --- | --- | --- |
-| GET | `/total-expenses/summary` | total-expenses:read + effective project access | Four totals and monthly breakdown, ignoring category for totals |
+| GET | `/total-expenses/summary` | total-expenses:read + effective project access | Five totals and monthly breakdown, ignoring category for totals |
 | GET | `/total-expenses` | Same | Grouped paginated cards |
 | POST | `/materials/:requestId/purchases/:purchaseId/payments` | materials:read + materials:mark-paid | Updated purchase ledger |
 | POST | `/materials/:requestId/purchases/:purchaseId/payments/:paymentId/void` | materials:read + materials:void-payment | Updated ledger with original and void history |
@@ -95,7 +95,7 @@ Record body: amount decimal string, paymentDate, paymentMethod, optional referen
 
 Routes `/total-expenses` project selector and `/projects/:id/total-expenses`, gated workforce/finance navigation. Current-month default uses effective Calendar/organization timezone. Filter presets: current month, previous month, selectable calendar year Jan–Dec, paired custom range, all time. Four stats, monthly bars and All/Wages/Materials/Site Expenses controls. Category affects cards only; date/category changes reset page. No search, bulk action or export in this scope.
 
-Responsive design-system cards show readable names, wage period/payment state, material vendor/purchase date, or expense category/payee/date; amounts distinguish period from lifetime/remaining. Legacy categories receive classification-review notice. Source read permission determines links. Encoded, same-project validated return links preserve filters/category/page, including explicit Back to Total Expenses actions; material detail targets its purchase section. No UUID display in report cards.
+Responsive design-system cards show readable names, wage period/payment state, material vendor/purchase date, Kharchi worker/wage period/deduction date, or expense category/payee/date; amounts distinguish period from lifetime/remaining where applicable. Legacy categories receive classification-review notice. Source read permission determines links. Encoded, same-project validated return links preserve filters/category/page, including explicit Back to Total Expenses actions; material detail targets its purchase section. No UUID display in report cards.
 
 Existing Material/Expense details contain payment entry/history/reasoned void controls, gated independently from approvals. Inputs remain locked for uncertain-request retry. Loading, empty, retry, refreshing, access denied and schema-unavailable states are explicit. Controls have labels, keyboard semantics and readable amounts. No separate report financial write controls.
 
@@ -119,15 +119,15 @@ Transactional events `materials.payment.recorded`, `materials.payment.voided`, `
 
 ## M. Validation And Business Rules
 
-Total paid = active wage payments + active material purchase payments + active approved Site Expense payments. Include partially paid CONFIRMED/PARTIALLY_PAID/PAID wage batches, exclude DRAFT/CANCELLED. No payment joins that multiply child rows. Period filtering uses payment date, not source period/creation date; ranges are inclusive real dates with start<=end. Future payment dates are rejected using effective working timezone. Positive input amounts fit DECIMAL(14,2), at most two fractional digits; source remaining is exact.
+Total paid = active net Wage payments + active Material purchase payments + active approved Site Expense payments + confirmed unreversed Kharchi deduction allocations. Include partially paid CONFIRMED/PARTIALLY_PAID/PAID wage batches, exclude DRAFT/CANCELLED and reversed Kharchi allocations. A Kharchi deduction uses `DATE(deducted_at)` for period/month reporting and is not inferred from an outstanding advance. No payment joins that multiply child rows. Period filtering uses payment/deduction date, not source period/creation date; ranges are inclusive real dates with start<=end. Future payment dates are rejected using effective working timezone. Positive input amounts fit DECIMAL(14,2), at most two fractional digits; source remaining is exact.
 
 Payment source locked before replay/version check; material request lock is shared with material edits, expense lock with adjustments. Known purchase total is required. Approved expense payable = original amount + approved adjustments. Overpayment and adjustment below active paid are rejected. Void validates source/payment ownership and prior void; payment rows are never updated/deleted. Retry fingerprint covers scope/source/command/body/version. Cross-source conflicting reuse fails within the command's idempotency scope; tables define independent command namespaces.
 
-New Site Expense creation or newly selected categories reject MATERIAL_PURCHASE and LABOUR_RELATED. An unchanged historical category is permitted and visibly marked for review. Legacy records and their confirmed payments are retained without auto movement/exclusion. Users resolve duplicate legacy sources before confirming payment. Kharchi remains separate and is not added to this report.
+New Site Expense creation or newly selected categories reject MATERIAL_PURCHASE and LABOUR_RELATED. An unchanged historical category is permitted and visibly marked for review. Legacy records and their confirmed payments are retained without auto movement/exclusion. Users resolve duplicate legacy sources before confirming payment. Kharchi remains a separately identified source within the report.
 
 ## N. Reporting And Analytics
 
-Four period stats reconcile to total; monthly totals reconcile to the selected period. Multiple payments produce one source card, with current lifetime/remaining alongside period paid. Grouped total/page count derives from the same filtered aggregation. Deterministic ordering handles equal dates. No worker-level report, cross-project report, export, budget or persisted analytics table. Current source titles/costs may change while retained dated payments remain authoritative.
+Five period stats reconcile to total; monthly totals reconcile to the selected period. Multiple payments produce one source card, with current lifetime/remaining alongside period paid. Each active Kharchi allocation produces one deduction card linked to its advance. Grouped total/page count derives from the same filtered aggregation. Deterministic ordering handles equal dates. No worker-level report, cross-project report, export, budget or persisted analytics table. Current source titles/costs may change while retained dated payments remain authoritative.
 
 ## O. Security And Privacy
 
