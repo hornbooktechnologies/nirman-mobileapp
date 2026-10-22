@@ -1,3 +1,9 @@
+## 2026-10-22 - Production website contact origin validation
+
+Fixed the public `/api/contact` origin guard for the Coolify/Traefik deployment. The browser sends `Origin: https://nirmansite.com`, while Next.js reconstructs the request with the website container's internal origin; the previous exact comparison therefore rejected legitimate submissions with HTTP 403. The route now accepts the exact request origin or the explicitly configured `NEXT_PUBLIC_SITE_URL` origin without trusting forwarded headers. Missing, null, malformed, path-bearing, lookalike and foreign origins remain rejected.
+
+Focused origin regression verification, Website type-check, production build and diff checks pass. The Website package has no ESLint executable, so a scoped lint run is unavailable. The deployment acceptance check uses a filled honeypot submission so it verifies the public route without storing an enquiry or sending email; an actual customer-form submission remains the final email/inbox acceptance check.
+
 ## 2026-10-22 - MySQL 8.4.13 paginated API compatibility
 
 Diagnosed the post-deployment HTTP 500 failures across Workers, Materials, Expenses and Sales against the live API logs. MySQL 8.4.13 returns `ER_WRONG_ARGUMENTS` when mysql2 prepared statements bind JavaScript numbers directly to `LIMIT`/`OFFSET` markers; live read-only probes confirmed string-bound pagination and the text protocol succeed. The shared API database read path now normalizes only numeric pagination parameters to strings while retaining prepared statements, ordinary parameter types and every write path.

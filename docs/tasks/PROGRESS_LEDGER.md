@@ -1,3 +1,9 @@
+## 2026-10-22 - Production website contact origin validation
+
+Corrected the public contact route's strict origin validation for the production reverse-proxy topology. Legitimate `https://nirmansite.com` browser requests are now matched against the configured canonical site origin in addition to the internal request origin; forwarded headers are not trusted, and missing/malformed/lookalike/foreign origins remain denied. Contact validation, honeypot behavior, durable API ingest and email delivery behavior are unchanged.
+
+Focused origin verification, Website type-check, production build and diff checks pass. Scoped lint is unavailable because the Website package has no ESLint executable. Public deployment verification is designed to use the existing filled honeypot path, which creates no enquiry and sends no email; actual customer submission/inbox delivery remains operational acceptance.
+
 ## 2026-10-22 - MySQL 8.4.13 paginated API compatibility
 
 Production logs and direct read-only probes isolated cross-module HTTP 500 responses to MySQL 8.4.13 rejecting numeric prepared-statement `LIMIT`/`OFFSET` bindings with `ER_WRONG_ARGUMENTS`. Added one shared database-layer compatibility normalization that stringifies only those validated pagination values; prepared statements, non-pagination types, writes, tenant/access behavior and API contracts remain unchanged.

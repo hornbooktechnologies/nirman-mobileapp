@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { buildContactEnquiryEmail, buildContactThankYouEmail, EMAIL_LOGO_CID } from '@/lib/email/contact-enquiry'
 import { validateContactFields } from '@/lib/contact/validation'
+import { isAllowedContactOrigin } from '@/lib/contact/request-origin'
 
 export const runtime = 'nodejs'
 
@@ -22,7 +23,7 @@ const clean = (value: unknown, limit: number) =>
 export async function POST(request: Request) {
   // Browser submissions must come from this website, not another origin.
   const origin = request.headers.get('origin')
-  if (origin !== new URL(request.url).origin) return error('Request origin is not allowed.', 403)
+  if (!isAllowedContactOrigin(request.url, origin)) return error('Request origin is not allowed.', 403)
   const contentType = request.headers.get('content-type') || ''
   const browserPost = contentType.startsWith('application/x-www-form-urlencoded') || contentType.startsWith('multipart/form-data')
   const fail = (message: string, status: number) => browserPost
