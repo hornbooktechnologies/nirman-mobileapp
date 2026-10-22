@@ -33,6 +33,19 @@ wage_payments AS (
  UNION ALL SELECT 'wp4','cancelled-item','cancelled','fixture-org','fixture-project',20,'2026-09-20'
  UNION ALL SELECT 'wp5','draft-item','draft','fixture-org','fixture-project',20,'2026-09-20'
 ),
+workers AS (
+ SELECT 'worker' id,'fixture-org' organization_id,'WRK-001' worker_code,'Raman' name
+),
+kharchi_advances AS (
+ SELECT 'advance' id,'fixture-org' organization_id,'fixture-project' project_id
+),
+kharchi_deduction_allocations AS (
+ SELECT 'allocation' id,'advance' kharchi_advance_id,'batch' wage_batch_id,'fixture-org' organization_id,'fixture-project' project_id,'worker' worker_id,CAST(15 AS DECIMAL(14,2)) deduction_amount,CAST('2026-09-15 10:00:00' AS DATETIME) deducted_at
+ UNION ALL SELECT 'reversed-allocation','advance','batch','fixture-org','fixture-project','worker',100,CAST('2026-09-16 10:00:00' AS DATETIME)
+),
+kharchi_deduction_allocation_reversals AS (
+ SELECT 'reversal' id,'reversed-allocation' allocation_id
+),
 material_requests AS (
  SELECT 'request' id,'fixture-org' organization_id,'fixture-project' project_id,'Cement' material_name,'PARTIALLY_DELIVERED' status,'BAG' unit_of_measure,NULL custom_unit_label,CAST(10 AS DECIMAL(14,3)) requested_quantity,CAST(100 AS DECIMAL(14,2)) estimated_cost,'2026-08-01' requested_on
  UNION ALL SELECT 'example','fixture-org','fixture-project','50 bag example','PARTIALLY_DELIVERED','BAG',NULL,50,5000,'2026-10-01'
@@ -117,12 +130,18 @@ async function main() {
     const september = query({ startDate: "2026-09-01", endDate: "2026-09-30" });
     const s = await repo.summary("fixture-org", "fixture-project", september);
     assert.deepEqual(
-      [s.totalPaid, s.wagesPaid, s.materialsPaid, s.siteExpensesPaid],
-      ["80.00", "50.00", "10.00", "20.00"],
+      [
+        s.totalPaid,
+        s.wagesPaid,
+        s.materialsPaid,
+        s.kharchiPaid,
+        s.siteExpensesPaid,
+      ],
+      ["95.00", "50.00", "10.00", "15.00", "20.00"],
     );
     const list = await repo.list("fixture-org", "fixture-project", september);
-    assert.equal(list.pagination.total, 3);
-    assert.equal(list.items.length, 3);
+    assert.equal(list.pagination.total, 4);
+    assert.equal(list.items.length, 4);
     const wage = list.items.find((i) => i.source === "WAGES")!;
     assert.deepEqual(
       [wage.periodPaidAmount, wage.lifetimePaidAmount, wage.remainingAmount],
@@ -146,6 +165,16 @@ async function main() {
       ],
       ["20.00", "50.00", "20.00"],
     );
+    const kharchi = list.items.find((i) => i.source === "KHARCHI")!;
+    assert.deepEqual(
+      [
+        kharchi.periodPaidAmount,
+        kharchi.lifetimePaidAmount,
+        kharchi.remainingAmount,
+        kharchi.detailId,
+      ],
+      ["15.00", "15.00", "0.00", "advance"],
+    );
     const october = await repo.summary(
       "fixture-org",
       "fixture-project",
@@ -153,11 +182,11 @@ async function main() {
     );
     assert.equal(october.totalPaid, "100.00");
     const all = await repo.summary("fixture-org", "fixture-project", query());
-    assert.equal(all.totalPaid, "180.00");
+    assert.equal(all.totalPaid, "195.00");
     assert.deepEqual(
       all.months.map((m) => [m.month, m.totalPaid]),
       [
-        ["2026-09", "80.00"],
+        ["2026-09", "95.00"],
         ["2026-10", "100.00"],
       ],
     );
@@ -168,6 +197,13 @@ async function main() {
     );
     assert.equal(only.items.length, 1);
     assert.equal(only.items[0].source, "MATERIALS");
+    const onlyKharchi = await repo.list(
+      "fixture-org",
+      "fixture-project",
+      query({ ...september, source: "KHARCHI" }),
+    );
+    assert.equal(onlyKharchi.items.length, 1);
+    assert.equal(onlyKharchi.items[0].source, "KHARCHI");
     const first = await repo.list(
       "fixture-org",
       "fixture-project",
@@ -178,7 +214,7 @@ async function main() {
       "fixture-project",
       query({ ...september, pageSize: 1, page: 2 }),
     );
-    assert.equal(first.pagination.total, 3);
+    assert.equal(first.pagination.total, 4);
     assert.notEqual(first.items[0].id, second.items[0].id);
     const boundary = await repo.summary(
       "fixture-org",
@@ -243,7 +279,7 @@ async function main() {
     assert.equal(noScope.pagination.total, 0);
     assert.deepEqual(noScope.materials, []);
     console.log(
-      "Read-only SQL fixtures passed: decimal totals, partial payments, void exclusions, scope isolation, date boundaries, grouping, pagination, monthly reconciliation and material request/order/delivery/unpriced snapshots. No persisted data changed.",
+      "Read-only SQL fixtures passed: decimal totals, partial payments, void/reversed-Kharchi exclusions, scope isolation, date boundaries, grouping, pagination, monthly reconciliation and material request/order/delivery/unpriced snapshots. No persisted data changed.",
     );
   } finally {
     await db.onModuleDestroy();

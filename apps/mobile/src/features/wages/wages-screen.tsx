@@ -1,7 +1,8 @@
-import { router, type Href } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { router, type Href } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   AppText,
@@ -15,29 +16,34 @@ import {
   LoadingState,
   NirmanScreenBackground,
   OperationalEntityCard,
-} from '../../components/ui';
-import { formatDate, formatInr, getLocalizedErrorMessage } from '../../i18n';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
-import { ApiRequestError } from '../../lib/api';
-import { useLocalization, useSession } from '../../providers';
-import { mobileText, mobileTheme } from '../../theme';
-import { CustomerTabBar } from '../home/components';
-import { ProjectContextCard } from '../projects';
-import type { WageBatch, WagePreview } from './types';
-import { createWageBatch, fetchWageBatches, fetchWagePreview } from './services';
-import { prepareWagePreview } from './prepare-wage-preview';
+} from "../../components/ui";
+import { formatDate, formatInr, getLocalizedErrorMessage } from "../../i18n";
+import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { ApiRequestError } from "../../lib/api";
+import { useLocalization, useSession } from "../../providers";
+import { mobileText, mobileTheme } from "../../theme";
+import { CustomerTabBar } from "../home/components";
+import { ProjectContextCard } from "../projects";
+import type { WageBatch, WagePreview } from "./types";
+import {
+  createWageBatch,
+  fetchWageBatches,
+  fetchWagePreview,
+} from "./services";
+import { prepareWagePreview } from "./prepare-wage-preview";
 
-const DEFAULT_WORKING_TIMEZONE = 'Asia/Kolkata';
+const DEFAULT_WORKING_TIMEZONE = "Asia/Kolkata";
 
 const todayInTimezone = (timezone: string) => {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    day: '2-digit',
-    month: '2-digit',
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
     timeZone: timezone,
-    year: 'numeric',
+    year: "numeric",
   }).formatToParts(new Date());
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
-  return `${part('year')}-${part('month')}-${part('day')}`;
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 };
 
 const monthStart = (date: string) => `${date.slice(0, 8)}01`;
@@ -49,20 +55,20 @@ const isDate = (value: string) =>
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 
 export function WagesScreen() {
-  const { t } = useTranslation('wages');
-  const { t: tCommon } = useTranslation('common');
-  const { t: tErrors } = useTranslation('errors');
+  const { t } = useTranslation("wages");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tErrors } = useTranslation("errors");
   const { language } = useLocalization();
   const { session } = useSession();
   const activeProject = getActiveProject(session);
   const permissions = getActiveProjectPermissions(session);
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
-  const canGenerate = permissions.includes('wages:generate');
+  const canGenerate = permissions.includes("wages:generate");
   const wageToday = todayInTimezone(
-    session?.activeOrganization?.workingTimezone
-      ?? session?.activeOrganization?.timezone
-      ?? DEFAULT_WORKING_TIMEZONE,
+    session?.activeOrganization?.workingTimezone ??
+      session?.activeOrganization?.timezone ??
+      DEFAULT_WORKING_TIMEZONE,
   );
   const [periodStart, setPeriodStart] = useState(() => monthStart(wageToday));
   const [periodEnd, setPeriodEnd] = useState(wageToday);
@@ -70,7 +76,9 @@ export function WagesScreen() {
   const [batches, setBatches] = useState<WageBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(
+    null,
+  );
   const confirmingRef = useRef(false);
   const previewRequestRef = useRef(0);
 
@@ -81,26 +89,38 @@ export function WagesScreen() {
     }
     setIsLoading(true);
     try {
-      setBatches(await fetchWageBatches(organizationId, projectId, session.accessToken));
+      setBatches(
+        await fetchWageBatches(organizationId, projectId, session.accessToken),
+      );
     } catch (error) {
-      Alert.alert(t('errors.unavailableTitle'), error instanceof Error ? error.message : t('errors.tryAgain'));
+      Alert.alert(
+        t("errors.unavailableTitle"),
+        error instanceof Error ? error.message : t("errors.tryAgain"),
+      );
     } finally {
       setIsLoading(false);
     }
   }, [organizationId, projectId, session?.accessToken, t]);
 
-  useEffect(() => {
-    previewRequestRef.current += 1;
-    setPreview(null);
-    setConfirmationError(null);
-    void loadBatches();
-    return () => { previewRequestRef.current += 1; };
-  }, [loadBatches]);
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}`,
+    refresh: loadBatches,
+    reset: () => {
+      previewRequestRef.current += 1;
+      setPreview(null);
+      setConfirmationError(null);
+    },
+    cancel: () => {
+      previewRequestRef.current += 1;
+    },
+  });
 
   const invalidRange = periodStart > periodEnd;
   const futurePeriodEnd = periodEnd > wageToday;
   const previewReady = useMemo(
-    () => Boolean(preview?.items.length) && !preview?.items.some((item) => !item.isReady),
+    () =>
+      Boolean(preview?.items.length) &&
+      !preview?.items.some((item) => !item.isReady),
     [preview],
   );
 
@@ -108,8 +128,16 @@ export function WagesScreen() {
     if (confirmingRef.current || isBusy) return;
     setPreview(null);
     setConfirmationError(null);
-    if (!organizationId || !projectId || !session?.accessToken || !isDate(periodStart) || !isDate(periodEnd) || invalidRange || futurePeriodEnd) {
-      Alert.alert(t('errors.periodTitle'), t('errors.periodMessage'));
+    if (
+      !organizationId ||
+      !projectId ||
+      !session?.accessToken ||
+      !isDate(periodStart) ||
+      !isDate(periodEnd) ||
+      invalidRange ||
+      futurePeriodEnd
+    ) {
+      Alert.alert(t("errors.periodTitle"), t("errors.periodMessage"));
       return;
     }
     confirmingRef.current = true;
@@ -120,19 +148,28 @@ export function WagesScreen() {
         periodStart,
         periodEnd,
         () => fetchWageBatches(organizationId, projectId, session.accessToken),
-        () => fetchWagePreview(organizationId, projectId, periodStart, periodEnd, session.accessToken),
+        () =>
+          fetchWagePreview(
+            organizationId,
+            projectId,
+            periodStart,
+            periodEnd,
+            session.accessToken,
+          ),
         () => request === previewRequestRef.current,
       );
       if (!result) return;
       setBatches(result.batches);
       if (!result.preview) {
-        setConfirmationError(tErrors('api.WAGE_BATCH_DUPLICATE'));
+        setConfirmationError(tErrors("api.WAGE_BATCH_DUPLICATE"));
         return;
       }
       setPreview(result.preview);
     } catch (error) {
       if (request === previewRequestRef.current) {
-        setConfirmationError(getLocalizedErrorMessage(error, t('errors.previewMessage')));
+        setConfirmationError(
+          getLocalizedErrorMessage(error, t("errors.previewMessage")),
+        );
       }
     } finally {
       confirmingRef.current = false;
@@ -142,24 +179,43 @@ export function WagesScreen() {
 
   async function confirmBatch() {
     if (confirmingRef.current || isBusy) return;
-    if (!organizationId || !projectId || !session?.accessToken || !previewReady) {
-      setConfirmationError(t('errors.confirmMessage'));
+    if (
+      !organizationId ||
+      !projectId ||
+      !session?.accessToken ||
+      !previewReady
+    ) {
+      setConfirmationError(t("errors.confirmMessage"));
       return;
     }
     confirmingRef.current = true;
     setConfirmationError(null);
     setIsBusy(true);
     try {
-      const created = await createWageBatch(organizationId, projectId, periodStart, periodEnd, session.accessToken);
+      const created = await createWageBatch(
+        organizationId,
+        projectId,
+        periodStart,
+        periodEnd,
+        session.accessToken,
+      );
       setPreview(null);
       await loadBatches();
-      router.push({ pathname: '/(app)/wage-batch', params: { batchId: created.id } } as Href);
+      router.push({
+        pathname: "/(app)/wage-batch",
+        params: { batchId: created.id },
+      } as Href);
     } catch (error) {
-      if (error instanceof ApiRequestError && error.code === 'WAGE_BATCH_DUPLICATE') {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "WAGE_BATCH_DUPLICATE"
+      ) {
         setPreview(null);
         void loadBatches();
       }
-      setConfirmationError(getLocalizedErrorMessage(error, t('errors.confirmMessage')));
+      setConfirmationError(
+        getLocalizedErrorMessage(error, t("errors.confirmMessage")),
+      );
     } finally {
       confirmingRef.current = false;
       setIsBusy(false);
@@ -167,29 +223,53 @@ export function WagesScreen() {
   }
 
   function openBatch(batchId: string) {
-    router.push({ pathname: '/(app)/wage-batch', params: { batchId } } as Href);
+    router.push({ pathname: "/(app)/wage-batch", params: { batchId } } as Href);
   }
 
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="wages" />}>
-      <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t('screen.title')} subtitle={activeProject?.name ?? t('screen.chooseProject')} />
+      <CompactScreenHeader
+        leading={
+          <IconButton
+            accessibilityLabel={tCommon("actions.back")}
+            icon="arrow-left"
+            variant="glass"
+            onPress={() => router.back()}
+          />
+        }
+        title={t("screen.title")}
+        subtitle={activeProject?.name ?? t("screen.chooseProject")}
+      />
       <ProjectContextCard compact showSwitchAction />
 
       {!activeProject || !projectId ? (
-        <EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} />
+        <EmptyState
+          title={t("empty.noProjectTitle")}
+          description={t("empty.noProjectDescription")}
+        />
       ) : (
         <>
           <Card style={styles.section}>
             <View style={styles.sectionHeading}>
-              <AppText style={styles.sectionTitle} weight={700}>{t('generator.title')}</AppText>
-              <AppText style={styles.sectionDescription} weight={500}>{t('generator.description')}</AppText>
+              <AppText style={styles.sectionTitle} weight={700}>
+                {t("generator.title")}
+              </AppText>
+              <AppText style={styles.sectionDescription} weight={500}>
+                {t("generator.description")}
+              </AppText>
             </View>
             <View style={styles.dateRow}>
-              <FormField label={t('generator.startDate')} required style={styles.dateField}>
+              <FormField
+                label={t("generator.startDate")}
+                required
+                style={styles.dateField}
+              >
                 <DateInput
                   allowClear={false}
-                  accessibilityLabel={t('generator.selectStartDate')}
-                  maximumDate={dateValue(periodEnd < wageToday ? periodEnd : wageToday)}
+                  accessibilityLabel={t("generator.selectStartDate")}
+                  maximumDate={dateValue(
+                    periodEnd < wageToday ? periodEnd : wageToday,
+                  )}
                   value={periodStart}
                   onChangeText={(value) => {
                     if (value) {
@@ -201,10 +281,21 @@ export function WagesScreen() {
                   }}
                 />
               </FormField>
-              <FormField label={t('generator.endDate')} required error={invalidRange ? t('errors.endBeforeStart') : futurePeriodEnd ? t('errors.futureEnd') : undefined} style={styles.dateField}>
+              <FormField
+                label={t("generator.endDate")}
+                required
+                error={
+                  invalidRange
+                    ? t("errors.endBeforeStart")
+                    : futurePeriodEnd
+                      ? t("errors.futureEnd")
+                      : undefined
+                }
+                style={styles.dateField}
+              >
                 <DateInput
                   allowClear={false}
-                  accessibilityLabel={t('generator.selectEndDate')}
+                  accessibilityLabel={t("generator.selectEndDate")}
                   invalid={invalidRange || futurePeriodEnd}
                   maximumDate={dateValue(wageToday)}
                   minimumDate={dateValue(periodStart)}
@@ -221,13 +312,17 @@ export function WagesScreen() {
               </FormField>
             </View>
             <Button
-              label={isBusy ? t('generator.working') : t('generator.generate')}
+              label={isBusy ? t("generator.working") : t("generator.generate")}
               leadingIcon="calendar-range"
               disabled={isBusy || invalidRange || futurePeriodEnd}
               onPress={() => void generatePreview()}
             />
             {confirmationError ? (
-              <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.confirmationError}>
+              <AppText
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+                style={styles.confirmationError}
+              >
                 {confirmationError}
               </AppText>
             ) : null}
@@ -237,19 +332,34 @@ export function WagesScreen() {
             <Card style={styles.section}>
               <View style={styles.summaryRow}>
                 <View style={styles.sectionHeading}>
-                  <AppText style={styles.sectionTitle} weight={700}>{t('preview.title')}</AppText>
+                  <AppText style={styles.sectionTitle} weight={700}>
+                    {t("preview.title")}
+                  </AppText>
                   <AppText style={styles.sectionDescription} weight={500}>
-                    {t('preview.workerCount', { count: preview.items.length })}
+                    {t("preview.workerCount", { count: preview.items.length })}
                   </AppText>
                 </View>
                 <View style={styles.totalCopy}>
-                  <AppText style={styles.total} weight={700}>{formatInr(Number(preview.totals.netAmount), language)}</AppText>
-                  <AppText style={styles.totalLabel} weight={600}>{t('preview.beforeConfirmation')}</AppText>
+                  <AppText style={styles.total} weight={700}>
+                    {formatInr(Number(preview.totals.netAmount), language)}
+                  </AppText>
+                  <AppText style={styles.totalLabel} weight={600}>
+                    {t("preview.beforeConfirmation")}
+                  </AppText>
                 </View>
               </View>
               <View style={styles.previewList}>
-                <AppText style={styles.sectionDescription} weight={500}>{t('preview.kharchiSummary', { amount: formatInr(Number(preview.totals.kharchiDeduction), language) })}</AppText>
-                <AppText style={styles.sectionDescription} weight={500}>{t('preview.kharchiPreviewOnly')}</AppText>
+                <AppText style={styles.sectionDescription} weight={500}>
+                  {t("preview.kharchiSummary", {
+                    amount: formatInr(
+                      Number(preview.totals.kharchiDeduction),
+                      language,
+                    ),
+                  })}
+                </AppText>
+                <AppText style={styles.sectionDescription} weight={500}>
+                  {t("preview.kharchiPreviewOnly")}
+                </AppText>
                 {preview.items.map((item) => (
                   <OperationalEntityCard
                     key={item.workerAssignmentId}
@@ -257,18 +367,35 @@ export function WagesScreen() {
                     contextLeading={item.workerCode}
                     contextTrailing={item.trade}
                     title={item.workerName}
-                    supporting={t('preview.attendance', { present: item.presentDays, half: item.halfDays, absent: item.absentDays })}
+                    supporting={t("preview.attendance", {
+                      present: item.presentDays,
+                      half: item.halfDays,
+                      absent: item.absentDays,
+                    })}
                     value={formatInr(Number(item.netAmount), language)}
-                    valueLabel={item.isReady ? t('preview.ready') : t('preview.needsAttention')}
-                    tone={item.isReady ? 'success' : 'warning'}
-                    footerLeading={!item.isReady ? item.readinessIssue ?? t('preview.notReady') : undefined}
-                    footerTrailing={t('preview.kharchiItem', { amount: formatInr(Number(item.kharchiDeduction), language) })}
+                    valueLabel={
+                      item.isReady
+                        ? t("preview.ready")
+                        : t("preview.needsAttention")
+                    }
+                    tone={item.isReady ? "success" : "warning"}
+                    footerLeading={
+                      !item.isReady
+                        ? (item.readinessIssue ?? t("preview.notReady"))
+                        : undefined
+                    }
+                    footerTrailing={t("preview.kharchiItem", {
+                      amount: formatInr(
+                        Number(item.kharchiDeduction),
+                        language,
+                      ),
+                    })}
                   />
                 ))}
               </View>
               {canGenerate ? (
                 <Button
-                  label={isBusy ? t('generator.working') : t('preview.confirm')}
+                  label={isBusy ? t("generator.working") : t("preview.confirm")}
                   leadingIcon="check-circle-outline"
                   disabled={!previewReady || isBusy}
                   onPress={() => void confirmBatch()}
@@ -279,31 +406,55 @@ export function WagesScreen() {
 
           <View style={styles.listSection}>
             <View style={styles.sectionHeading}>
-              <AppText style={styles.sectionTitle} weight={700}>{t('batches.title')}</AppText>
-              <AppText style={styles.sectionDescription} weight={500}>{t('batches.description')}</AppText>
+              <AppText style={styles.sectionTitle} weight={700}>
+                {t("batches.title")}
+              </AppText>
+              <AppText style={styles.sectionDescription} weight={500}>
+                {t("batches.description")}
+              </AppText>
             </View>
-            {isLoading ? <LoadingState label={t('batches.loading')} /> : null}
+            {isLoading && !batches.length ? (
+              <LoadingState label={t("batches.loading")} />
+            ) : null}
             {!isLoading && !batches.length ? (
-              <EmptyState title={t('batches.emptyTitle')} description={t('batches.emptyDescription')} />
+              <EmptyState
+                title={t("batches.emptyTitle")}
+                description={t("batches.emptyDescription")}
+              />
             ) : null}
             {batches.map((batch) => {
-              const due = Math.max(0, Number(batch.totals.netAmount) - Number(batch.totals.paidAmount));
+              const due = Math.max(
+                0,
+                Number(batch.totals.netAmount) -
+                  Number(batch.totals.paidAmount),
+              );
               return (
                 <OperationalEntityCard
                   key={batch.id}
-                  accessibilityLabel={t('batches.openA11y', {
+                  accessibilityLabel={t("batches.openA11y", {
                     start: batch.periodStart,
                     end: batch.periodEnd,
                     amount: formatInr(Number(batch.totals.netAmount), language),
                   })}
                   contextLeading={`${formatDate(dateValue(batch.periodStart), language)} – ${formatDate(dateValue(batch.periodEnd), language)}`}
                   contextTrailing={t(`batchStatus.${batch.status}`)}
-                  title={t('batches.batchTitle')}
-                  supporting={t('batches.paid', { amount: formatInr(Number(batch.totals.paidAmount), language) })}
+                  title={t("batches.batchTitle")}
+                  supporting={t("batches.paid", {
+                    amount: formatInr(
+                      Number(batch.totals.paidAmount),
+                      language,
+                    ),
+                  })}
                   value={formatInr(due, language)}
-                  valueLabel={t('batches.due')}
-                  footerLeading={t('batches.open')}
-                  tone={batch.status === 'PAID' ? 'success' : batch.status === 'PARTIALLY_PAID' ? 'info' : 'warning'}
+                  valueLabel={t("batches.due")}
+                  footerLeading={t("batches.open")}
+                  tone={
+                    batch.status === "PAID"
+                      ? "success"
+                      : batch.status === "PARTIALLY_PAID"
+                        ? "info"
+                        : "warning"
+                  }
                   onPress={() => openBatch(batch.id)}
                 />
               );
@@ -316,16 +467,31 @@ export function WagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  confirmationError: { ...mobileText.caption, color: mobileTheme.color.status.danger.foreground },
+  confirmationError: {
+    ...mobileText.caption,
+    color: mobileTheme.color.status.danger.foreground,
+  },
   section: { gap: mobileTheme.spacing[4] },
   sectionHeading: { flex: 1, gap: mobileTheme.spacing[1] },
   sectionTitle: { ...mobileText.sectionTitle },
-  sectionDescription: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
-  dateRow: { flexDirection: 'row', gap: mobileTheme.spacing[3] },
+  sectionDescription: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+  },
+  dateRow: { flexDirection: "row", gap: mobileTheme.spacing[3] },
   dateField: { flex: 1 },
-  summaryRow: { alignItems: 'flex-start', flexDirection: 'row', gap: mobileTheme.spacing[3], justifyContent: 'space-between' },
-  totalCopy: { alignItems: 'flex-end' },
-  total: { ...mobileText.sectionTitle, color: mobileTheme.color.action.primary, fontVariant: ['tabular-nums'] },
+  summaryRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: mobileTheme.spacing[3],
+    justifyContent: "space-between",
+  },
+  totalCopy: { alignItems: "flex-end" },
+  total: {
+    ...mobileText.sectionTitle,
+    color: mobileTheme.color.action.primary,
+    fontVariant: ["tabular-nums"],
+  },
   totalLabel: { ...mobileText.caption, color: mobileTheme.color.text.muted },
   previewList: { gap: mobileTheme.spacing[3] },
   listSection: { gap: mobileTheme.spacing[3] },

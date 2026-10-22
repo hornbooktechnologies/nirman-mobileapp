@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   AppIcon,
@@ -16,7 +17,7 @@ import {
   StatusBadge,
 } from "../../components/ui";
 import { formatDate, formatInr, getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
@@ -26,12 +27,15 @@ import type { KharchiAdvanceDetail } from "./types";
 
 const dateOnly = (value: string) => new Date(`${value}T12:00:00`);
 export function KharchiDetailScreen() {
-  const { kharchiId } = useLocalSearchParams<{ kharchiId?: string }>();
+  const { kharchiId, projectId: routeProjectId } = useLocalSearchParams<{
+    kharchiId?: string;
+    projectId?: string;
+  }>();
   const { t } = useTranslation("kharchi");
   const { language } = useLocalization();
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const project = getRouteProject(session, routeProjectId);
+  const permissions = project?.permissions ?? [];
   const organizationId = session?.activeOrganization?.id;
   const projectId = project?.id;
   const accessToken = session?.accessToken;
@@ -63,9 +67,10 @@ export function KharchiDetailScreen() {
       setLoading(false);
     }
   }, [accessToken, kharchiId, organizationId, projectId, t]);
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${kharchiId ?? ""}`,
+    refresh: load,
+  });
   return (
     <NirmanScreenBackground footer={<CustomerTabBar activeKey="kharchi" />}>
       <CompactScreenHeader
@@ -90,9 +95,9 @@ export function KharchiDetailScreen() {
           ) : undefined
         }
       />
-      {loading ? (
+      {loading && !detail ? (
         <LoadingState label={t("loading.detail")} />
-      ) : error ? (
+      ) : error && !detail ? (
         <EmptyState
           title={t("errors.title")}
           description={error}

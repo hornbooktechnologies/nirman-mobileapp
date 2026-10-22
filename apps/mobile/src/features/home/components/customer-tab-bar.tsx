@@ -25,6 +25,7 @@ export type CustomerRoute =
   | "/(app)/gallery"
   | "/(app)/notifications"
   | "/(app)/sales"
+  | "/(app)/brochures"
   | "/(app)/team"
   | "/(app)/members"
   | "/(app)/menu";
@@ -194,6 +195,15 @@ const customerNavigation: readonly CustomerNavigationDefinition[] = [
       "leads:read-all",
       "inventory:read",
     ],
+  },
+  {
+    key: "brochures",
+    labelKey: "items.brochures.title",
+    titleKey: "items.brochures.title",
+    descriptionKey: "items.brochures.description",
+    icon: "folder-multiple-image",
+    href: "/(app)/brochures",
+    permission: "brochures:read",
   },
   {
     key: "menu",

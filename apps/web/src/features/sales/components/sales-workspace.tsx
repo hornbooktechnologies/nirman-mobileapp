@@ -44,7 +44,7 @@ function Access({
   children,
 }: {
   projectId?: string;
-  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings";
+  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings" | "brochures";
   children: (c: SalesContext) => ReactNode;
 }) {
   const {
@@ -64,6 +64,8 @@ function Access({
   const projects = access.data.projects.filter((p) =>
     section === "inventory"
       ? p.permissions.includes("inventory:read")
+      : section === "brochures"
+        ? p.permissions.includes("brochures:read")
       : canReadSales(p.permissions),
   );
   if (!projectId)
@@ -73,6 +75,8 @@ function Access({
           Sales{" "}
           {section === "inventory"
             ? "inventory"
+            : section === "brochures"
+              ? "brochures"
             : section === "leads"
               ? "leads"
               : section === "site-visits"
@@ -118,6 +122,7 @@ function Access({
         </Link>
       </header>
       <nav aria-label="Sales" className="flex flex-wrap gap-2">
+        {project.permissions.includes("brochures:read") && <Link className={section === "brochures" ? selectedTab : tab} aria-current={section === "brochures" ? "page" : undefined} href={`/projects/${project.id}/sales/brochures`}>Brochures</Link>}
         {project.permissions.includes("inventory:read") && (
           <Link
             className={section === "inventory" ? selectedTab : tab}
@@ -182,7 +187,7 @@ const tab = "inline-flex min-h-11 items-center rounded-xl border border-hairline
 const selectedTab = "inline-flex min-h-11 items-center rounded-xl border border-lime bg-lime px-4 text-sm font-semibold text-lime-ink focus-visible:ring-2 focus-visible:ring-lime";
 export function SalesWorkspace(props: {
   projectId?: string;
-  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings";
+  section: "leads" | "follow-ups" | "site-visits" | "inventory" | "bookings" | "brochures";
   children: (c: SalesContext) => ReactNode;
 }) {
   const { user, activeOrganizationId } = useAuth();

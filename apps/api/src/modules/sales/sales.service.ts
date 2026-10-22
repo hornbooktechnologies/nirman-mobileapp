@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import type { PermissionKey } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { BrochuresService } from "../brochures/brochures.service";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import type {
   AssignLeadDto,
@@ -43,6 +44,7 @@ export class SalesService {
   constructor(
     private readonly repo: SalesRepository,
     private readonly projectAccess: ProjectAccessService,
+    private readonly brochures: BrochuresService,
   ) {}
 
   async listLeads(
@@ -124,13 +126,40 @@ export class SalesService {
       });
     }
     await this.assertEligibleAssignee(organizationId, projectId, assigneeId);
-    return this.repo.createLead(
+    if (dto.brochureShare) {
+      if (!dto.email) {
+        throw new BadRequestException({
+          code: "BROCHURE_LEAD_EMAIL_REQUIRED",
+          message: "Email is required to share brochures",
+        });
+      }
+      await this.brochures.validateLeadShare(
+        organizationId,
+        projectId,
+        dto.brochureShare.assetIds,
+        actor,
+      );
+    }
+    const lead = await this.repo.createLead(
       organizationId,
       projectId,
       dto,
       actor.id,
       assigneeId,
     );
+    if (!lead || !dto.brochureShare) return lead;
+    const brochureShareResult = await this.brochures.shareForLead(
+      organizationId,
+      projectId,
+      {
+        id: lead.id,
+        email: typeof lead.email === "string" ? lead.email : null,
+        customerName: lead.customerName,
+      },
+      dto.brochureShare.assetIds,
+      actor,
+    );
+    return { ...lead, brochureShareResult };
   }
 
   async updateLead(

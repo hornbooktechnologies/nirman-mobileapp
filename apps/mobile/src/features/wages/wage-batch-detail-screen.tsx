@@ -1,13 +1,14 @@
 import { RefreshFlatList } from "../../components/ui/refresh-control";
-import { usePdfExport } from '../../lib/exports/use-pdf-export';
+import { usePdfExport } from "../../lib/exports/use-pdf-export";
 import {
   WAGE_PAYMENT_METHODS,
   type WagePaymentMethod,
 } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   AppText,
@@ -64,7 +65,10 @@ export function WageBatchDetailScreen() {
   const { t } = useTranslation("wages");
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
-  const { batchId, projectId: requestedProjectId } = useLocalSearchParams<{ batchId?: string; projectId?: string }>();
+  const { batchId, projectId: requestedProjectId } = useLocalSearchParams<{
+    batchId?: string;
+    projectId?: string;
+  }>();
   const { session } = useSession();
   const activeProject = getRouteProject(session, requestedProjectId);
   const permissions = activeProject?.permissions ?? [];
@@ -117,9 +121,10 @@ export function WageBatchDetailScreen() {
     }
   }, [batchId, organizationId, projectId, session?.accessToken, t]);
 
-  useEffect(() => {
-    void loadDetail();
-  }, [loadDetail]);
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${batchId ?? ""}`,
+    refresh: loadDetail,
+  });
 
   const selectedItem = useMemo(
     () => detail?.items.find((item) => item.id === selectedItemId) ?? null,
@@ -239,8 +244,26 @@ export function WageBatchDetailScreen() {
   }
 
   async function exportBatch() {
-    if (!organizationId || !projectId || !session?.accessToken || !detail || !canExport || isBusy) return;
-    await pdfExport.run((signal) => exportWageBatchPdf(organizationId, projectId, detail.id, session.accessToken, signal), `${t("export.title")} · ${activeProject?.name ?? ""} · ${detail.periodStart} – ${detail.periodEnd}`);
+    if (
+      !organizationId ||
+      !projectId ||
+      !session?.accessToken ||
+      !detail ||
+      !canExport ||
+      isBusy
+    )
+      return;
+    await pdfExport.run(
+      (signal) =>
+        exportWageBatchPdf(
+          organizationId,
+          projectId,
+          detail.id,
+          session.accessToken,
+          signal,
+        ),
+      `${t("export.title")} · ${activeProject?.name ?? ""} · ${detail.periodStart} – ${detail.periodEnd}`,
+    );
   }
 
   async function cancelBatch() {
@@ -343,7 +366,9 @@ export function WageBatchDetailScreen() {
           </View>
           {canExport ? (
             <Button
-              label={pdfExport.busy ? t("export.preparing") : t("export.action")}
+              label={
+                pdfExport.busy ? t("export.preparing") : t("export.action")
+              }
               leadingIcon="download-outline"
               variant="secondary"
               disabled={isBusy || pdfExport.busy}
@@ -404,7 +429,8 @@ export function WageBatchDetailScreen() {
         footer={<CustomerTabBar activeKey="wages" />}
         scroll={false}
       >
-        <RefreshFlatList busy={isLoading}
+        <RefreshFlatList
+          busy={isLoading}
           data={error ? [] : (detail?.items ?? [])}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={header}

@@ -24,6 +24,7 @@ export const PERMISSION_RESOURCES = [
   "total-expenses",
   "progress",
   "gallery",
+  "brochures",
   "leads",
   "followups",
   "site-visits",
@@ -70,6 +71,7 @@ export const PERMISSION_ACTIONS = [
   "cancel",
   "export",
   "upload",
+  "share",
   "update-rate",
   "correct-locked",
   "adjust",
@@ -116,6 +118,7 @@ export const PERMISSION_LABELS: Record<PermissionResource, string> = {
   "total-expenses": "Total Expenses",
   progress: "Project Progress",
   gallery: "Site Gallery",
+  brochures: "Sales Brochures",
   leads: "Leads",
   followups: "Follow-ups",
   "site-visits": "Site Visits",
@@ -364,6 +367,15 @@ export const GALLERY_PERMISSIONS = [
 
 export type GalleryPermissionKey = (typeof GALLERY_PERMISSIONS)[number];
 
+export const BROCHURE_PERMISSIONS = [
+  "brochures:read",
+  "brochures:upload",
+  "brochures:manage",
+  "brochures:share",
+] as const satisfies readonly PermissionKey[];
+
+export type BrochurePermissionKey = (typeof BROCHURE_PERMISSIONS)[number];
+
 /** Sales CRM is a customer operational module, never a platform permission group. */
 export const SALES_PERMISSIONS = [
   "leads:read-own",
@@ -411,6 +423,7 @@ export const PROJECT_DELEGATABLE_PERMISSIONS = [
   ...TOTAL_EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
   ...GALLERY_PERMISSIONS,
+  ...BROCHURE_PERMISSIONS,
   ...SALES_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
 
@@ -489,6 +502,11 @@ export const PROJECT_PERMISSION_GROUPS = [
     label: "Sales",
     permissions: SALES_PERMISSIONS,
   },
+  {
+    key: "BROCHURES",
+    label: "Sales Brochures",
+    permissions: BROCHURE_PERMISSIONS,
+  },
 ] as const;
 
 export function isProjectDelegatablePermission(
@@ -514,6 +532,7 @@ export const ALL_PERMISSIONS = [
   ...TOTAL_EXPENSE_PERMISSIONS,
   ...PROGRESS_PERMISSIONS,
   ...GALLERY_PERMISSIONS,
+  ...BROCHURE_PERMISSIONS,
   ...SALES_PERMISSIONS,
   ...DASHBOARD_PERMISSIONS,
 ] as const satisfies readonly PermissionKey[];
@@ -664,6 +683,11 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
   "gallery:upload": "Upload Project diary images.",
   "gallery:approve": "Approve another Member's pending Gallery entry.",
   "gallery:reject": "Reject another Member's pending Gallery entry.",
+
+  "brochures:read": "Read Project sales brochures and share history.",
+  "brochures:upload": "Upload Project sales brochure files.",
+  "brochures:manage": "Edit, archive, restore, delete, and revoke sales brochure content.",
+  "brochures:share": "Share selected Project brochures by email or platform share sheet.",
 
   "leads:read-own": "Read assigned and self-created leads.",
   "leads:read-team": "Read leads assigned to the actor's sales team.",

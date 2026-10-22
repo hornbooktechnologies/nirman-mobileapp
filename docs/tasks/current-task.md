@@ -787,3 +787,55 @@ Implemented Inventory list/detail/create/edit, total/per-area pricing, CSV previ
 Investigated dashboard project-access/me, organizations and notifications/summary 401s after successful login. Login is public; these endpoints require bearer authentication. The screenshot shows direct localhost-to-Vercel requests, which cannot reliably use the API's SameSite=Strict refresh cookie. Web now always uses its same-origin /api/v1 rewrite; absolute legacy NEXT_PUBLIC_API_BASE_PATH values configure the proxy upstream, with trailing API paths normalized. Delayed 401s retry a newer bearer token before refresh, and overlapping refresh/login returns the current login token. Existing uncommitted session restoration changes were preserved.
 
 Verification: seven API-client/proxy regression tests, Web type-check and scoped ESLint passed. Restart the Web server to load the rewrite and sign in again to create the cookie on the Web origin. Authenticated browser acceptance remains pending; no API, Mobile or database changes.
+## 2026-10-22 — Sales Brochures Contract Draft
+
+The Product Owner requested a professional Brochure module across API, authenticated Web, and Mobile for Project marketing PDFs, house images, and videos, with a visible 50 MB total limit, Lead-create email opt-in, separate Email sharing, and platform-native Other sharing.
+
+The repository was audited before implementation. Sales already has the optional Lead email field and `BROCHURE_SHARED` timeline activity, while Files/Media, private storage, SMTP, Project access, audit, Expo document/image picking, native sharing, and Web Sales workspace foundations exist. No brochure library, quota, share-link, public recipient page, or delivery history exists.
+
+Created `docs/modules/sales/brochures/CONTRACTS.md` as `contract_draft`. The proposed professional flow uses a private Project-scoped 50 MiB library and sends branded, expiring, revocable links rather than oversized email attachments. Lead creation remains committed if SMTP fails and returns a retryable share outcome. Mobile uses the operating-system share sheet; Web uses Web Share with copy-link fallback.
+
+No runtime source, shared contract, migration, seed, dependency, database, or external service was changed. Next gate: Product Owner approval of the contract, permissions/default grants, Project quota scope, link-based delivery, 30-day share expiry, and archive-then-explicit-delete lifecycle. After approval, create the technical plan before implementation.
+
+## 2026-10-22 — Sales Brochures Vertical Slice
+
+Implemented the approved Sales Brochures source across shared contracts, migration 033, API, existing Lead creation, authenticated Web, public recipient Web, and Mobile. The Project library enforces a visible 50 MiB stored-byte limit; Owner/Sales permissions, PDF/image/video validation, private media, 30-day selected-asset links, branded email, Web/native Other sharing, Lead opt-in, audit, history/retry/revoke APIs, and en/hi/gu Mobile copy are wired.
+
+Verification passed for shared/API/Mobile types, shared/API builds, scoped API lint, the complete 50-suite/388-test API regression run including six focused Brochure/email tests, and locale parity. Web Brochure code has no type errors; whole-Web type-check retains only the pre-existing login Zod/resolver mismatch, while Web ESLint is blocked by a missing installed `eslint-module-utils/resolve` dependency. See the module review for exact evidence and remaining acceptance.
+
+At this checkpoint, migration 033 had not yet been executed. It was subsequently applied and verified in the "Sales Brochures Migration And Owner Visibility" checkpoint below; S3 mutation, SMTP inbox, browser interaction, native share, accessibility, physical-device, and production acceptance still remain pending.
+
+## 2026-10-22 — Web Brand And Total Expenses Default
+
+Changed the shared visible product name from `Nirman App` to `Nirman Site`, which updates the uppercase Web sidebar label shown in the supplied screenshot without changing the internal storage namespace. Total Expenses now defaults to `All time` on both Web and Mobile; explicit URL/filter selections and same-session Mobile preferences remain respected. Shared and Mobile type-checks passed, and diff validation passed. Whole-Web type-check remains blocked only by the pre-existing login Zod/resolver mismatch.
+
+## 2026-10-22 — Sales Brochures Migration And Owner Visibility
+
+At the Product Owner's explicit request, the guarded migration workflow inspected the configured remote development target, found exactly migration 033 pending, and applied it. Final status is 34/34 current with zero pending/draft migrations. Read-only verification confirms all four Brochure tables, exact Owner/Admin/Sales grants, and no CUSTOM Owner assignment missing `brochures:read`.
+
+Added the missing Web Sales sidebar Brochures entry and project-aware permission handling. Authenticated read-only runtime smoke passed for an existing Organization Owner against the running local API, including effective `brochures:read` and the 50 MiB library contract; local API and Web Brochure routes are active. API/shared checks and focused migration/Brochure tests pass. Whole-Web type-check remains blocked only by the existing login Zod/resolver mismatch. Browser interaction, S3 mutation, SMTP inbox, Sales-role, and physical-device acceptance remain unrun.
+
+## 2026-10-22 — Mobile Brochure Visual Alignment
+
+Aligned the Mobile Brochures screen with the existing Sales page gutter by removing its duplicate inner padding and oversized bottom spacing. Reworked the quota card to use readable blueprint/primary text, a themed media icon, explicit value/limit hierarchy, a higher-contrast progress track, and a more opaque empty state. Mobile type-check and diff validation pass; the Mobile package does not currently provide an ESLint executable, and updated physical-device visual acceptance remains pending.
+
+## 2026-10-22 — Web Sales Detail Route Recovery
+
+Diagnosed the project-scoped Lead detail 404 at the Web routing boundary: the source route and generated manifest existed, the Sales API route was active, but the running Next development matcher returned 404 for newly added Sales detail modules. Normalized/refreshed the Lead, Inventory, and Booking detail route modules. The exact reported Lead URL and all three detail route shapes now return HTTP 200; the protected Lead API correctly returns 401 without authentication, nine Sales navigation/rules tests pass, and diff validation passes. Whole-Web type-check remains blocked only by the pre-existing login Zod/resolver mismatch.
+
+## 2026-10-22 — Organization Operating Profile Administration Lock
+
+Organization type remains display-only, and the operating profile is now editable only by a platform administrator with `platform-organizations:update`. Organization administrators see the assigned profile as a read-only value, and their save payload excludes it. The API independently rejects any non-platform attempt to submit `operatingProfile`, preventing direct-request bypass while preserving allowed name, timezone, and separately authorized status updates.
+
+The focused Organizations service suite passes 6/6 and API type-check passes. The changed Web component introduces no TypeScript error; whole-Web type-check retains only the pre-existing login Zod/resolver mismatch, and Web ESLint remains blocked by the missing installed `eslint-module-utils/resolve` package. No migration or database change is required.
+
+## 2026-10-22 — Total Expenses Paid Materials And Kharchi
+
+Total Expenses now shows only explicitly paid Material purchases in both Web and Mobile; the previous pending/request-only Materials overview is no longer used by either client. Confirmed, unreversed Kharchi deductions are included once as a separate source, summary card, filter and paid record using the deduction date. Net Wage payment totals remain separate, avoiding double-counting, while cancelled/reversed deductions are excluded.
+
+Shared/API/Mobile checks, 29 focused API tests, three Mobile request/cache tests, API lint, locale parity, read-only SQL reconciliation and diff validation pass. Whole-Web type-check retains only the existing login dependency mismatch; Web lint remains blocked by its missing resolver dependency. No migration or database mutation was required; authenticated browser and physical-device acceptance remain pending.
+## 2026-10-22 - Mobile startup stability and route-focus refresh
+
+Implemented the Mobile reliability/performance pass described in [mobile-focus-refresh-performance-plan.md](mobile-focus-refresh-performance-plan.md). Session hydration no longer times out into an incorrect protected-route decision on slower devices. All data-driven operational screens now refresh when focused, including return navigation after create/edit/detail work. Same-scope records remain visible during automatic refresh, while real organization/project/filter changes reset old-scope content. Dashboard/location and high-traffic list reads reject stale responses on blur or newer requests.
+
+No API, database, migration, production data, or deployment changes. Existing pull-to-refresh, explicit refresh, permissions and mutation flows remain in place. Mobile typecheck, 19-namespace/three-language locale parity, all 18 Mobile regression tests, route-focus source coverage, scoped diff checks, and an Android Expo export passed. The temporary export was removed after verification. Physical-device slow-start and navigation acceptance remain pending. The optional ui-ux-pro-max companion was unavailable, so the repository's established Mobile patterns and React review were used.

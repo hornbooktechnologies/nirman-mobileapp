@@ -97,10 +97,11 @@ export class OrganizationsService {
       organizationId,
       "organizations:update",
     );
-    this.assertCompatibleOperatingProfile(
-      access.organization.type,
-      dto.operatingProfile,
-    );
+    if (dto.operatingProfile !== undefined) {
+      throw new ForbiddenException(
+        "Only a platform administrator can change the organization operating profile",
+      );
+    }
     if (dto.status && dto.status !== access.organization.status) {
       const requiredPermission =
         dto.status === "ACTIVE"

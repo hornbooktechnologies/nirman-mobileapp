@@ -6,8 +6,11 @@ import { OrganizationOnboardingService } from "./organization-onboarding.service
 import { OrganizationsRepository } from "./organizations.repository";
 import { OrganizationsService } from "./organizations.service";
 
-describe("OrganizationsService member invitations", () => {
+describe("OrganizationsService", () => {
   const organizationsRepo = {
+    findById: jest.fn(),
+    countActiveOwners: jest.fn(),
+    update: jest.fn(),
     findOrganizationRoleTemplates: jest.fn(),
     findRoleById: jest.fn(),
     findMemberById: jest.fn(),
@@ -42,6 +45,54 @@ describe("OrganizationsService member invitations", () => {
     projectAccess.resolveOrganizationAccess.mockResolvedValue(
       organizationAccess("Organization Owner") as never,
     );
+  });
+
+  describe("organization setup updates", () => {
+    it("prevents an organization administrator from changing the operating profile", async () => {
+      await expect(
+        service.update(
+          organizationId,
+          { operatingProfile: "BUILDER_CONTRACTOR_SUPERVISOR" },
+          actor,
+        ),
+      ).rejects.toThrow(
+        "Only a platform administrator can change the organization operating profile",
+      );
+
+      expect(projectAccess.resolveOrganizationAccess).toHaveBeenCalledWith(
+        actor,
+        organizationId,
+        "organizations:update",
+      );
+      expect(organizationsRepo.update).not.toHaveBeenCalled();
+    });
+
+    it("allows an authorized platform administrator to change the operating profile", async () => {
+      const organization =
+        organizationAccess("Organization Owner").organization;
+      const platformAdmin: AuthenticatedUser = {
+        ...actor,
+        roleName: "Platform Super Admin",
+        permissions: [{ resource: "platform-organizations", action: "update" }],
+      };
+      organizationsRepo.findById.mockResolvedValue(organization as never);
+      organizationsRepo.update.mockResolvedValue({
+        ...organization,
+        operatingProfile: "BUILDER_CONTRACTOR_SUPERVISOR",
+      } as never);
+
+      await service.update(
+        organizationId,
+        { operatingProfile: "BUILDER_CONTRACTOR_SUPERVISOR" },
+        platformAdmin,
+      );
+
+      expect(organizationsRepo.update).toHaveBeenCalledWith(
+        organizationId,
+        { operatingProfile: "BUILDER_CONTRACTOR_SUPERVISOR" },
+        platformAdmin.id,
+      );
+    });
   });
 
   it("requires members:invite and returns compatible customer roles", async () => {

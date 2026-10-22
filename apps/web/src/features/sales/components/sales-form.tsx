@@ -3,7 +3,7 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { SearchInput } from "@/components/ui/search-input";
 import { useEffect, useRef, useState } from "react";
-import { Button, Dialog, Input, Select, Textarea } from "@/components/ui";
+import { Button, Checkbox, Dialog, Input, Select, Textarea } from "@/components/ui";
 import { failureMessage, instant, label } from "../sales-rules";
 import {
   salesNumberError,
@@ -220,10 +220,7 @@ export function SalesForm({
                 key={f.name}
                 className={f.type === "textarea" ? "sm:col-span-2" : ""}
               >
-                <label htmlFor={props.id} className="mb-1 block">
-                  {f.label}
-                  {f.required ? " *" : ""}
-                </label>
+                {f.type !== "checkbox" && <label htmlFor={props.id} className="mb-1 block">{f.label}{f.required ? " *" : ""}</label>}
                 {f.options && f.options.length > 10 && !f.searchable && (
                   <SearchInput
                     aria-label={`Search ${f.label.toLowerCase()} choices`}
@@ -251,7 +248,7 @@ export function SalesForm({
                     loading={f.searchable.loading}
                     placeholder={f.searchable.placeholder}
                   />
-                ) : f.options ? (
+                ) : f.options && f.type !== "multi-checkbox" ? (
                   <Select {...props}>
                     <option value="">Select…</option>
                     {f.options
@@ -274,6 +271,10 @@ export function SalesForm({
                         ),
                       )}
                   </Select>
+                ) : f.type === "checkbox" ? (
+                  <Checkbox id={props.id} name={f.name} checked={props.value === "true"} disabled={pending} label={f.label} onChange={(event) => { dirty.current = true; setValues((current) => ({ ...current, [f.name]: event.target.checked ? "true" : "" })); }} />
+                ) : f.type === "multi-checkbox" ? (
+                  <fieldset className="space-y-2 rounded-inner border border-hairline p-3"><legend className="px-1 text-sm text-sub">Choose one or more files</legend>{f.options?.filter((option): option is { value: string; label: string } => typeof option !== "string").map((option) => { const checked = props.value.split(",").filter(Boolean).includes(option.value); return <Checkbox key={option.value} checked={checked} label={option.label} onChange={() => { dirty.current = true; const current = props.value.split(",").filter(Boolean); setValues((values) => ({ ...values, [f.name]: (checked ? current.filter((value) => value !== option.value) : [...current, option.value]).join(",") })); }} />; })}</fieldset>
                 ) : f.type === "textarea" ? (
                   <Textarea {...props} maxLength={f.maxLength} />
                 ) : (

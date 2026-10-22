@@ -80,6 +80,7 @@ export type {
 } from "../constants";
 
 export * from "./attendance";
+export * from "./brochures";
 export * from "./calendar";
 export * from "./dashboard";
 export * from "./expenses";

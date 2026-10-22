@@ -11,6 +11,10 @@ import {
   type PasswordResetEmailInput,
 } from "./password-reset-email.template";
 import { buildPasswordChangedEmail } from "./password-changed-email.template";
+import {
+  buildBrochureShareEmail,
+  type BrochureShareEmailInput,
+} from "./brochure-share-email.template";
 
 @Injectable()
 export class EmailService {
@@ -61,7 +65,8 @@ export class EmailService {
       this.logger.log(`Invitation ${invitationId} email was accepted by SMTP`);
       return "EMAIL_SENT";
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Unknown SMTP error";
+      const reason =
+        error instanceof Error ? error.message : "Unknown SMTP error";
       this.logger.warn(
         `Invitation ${invitationId} email delivery failed: ${reason}`,
       );
@@ -112,7 +117,8 @@ export class EmailService {
       this.logger.log(`Password reset ${requestId} email was accepted by SMTP`);
       return "EMAIL_SENT";
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Unknown SMTP error";
+      const reason =
+        error instanceof Error ? error.message : "Unknown SMTP error";
       this.logger.warn(
         `Password reset email delivery failed for request ${requestId}: ${reason}`,
       );
@@ -153,11 +159,66 @@ export class EmailService {
       } finally {
         transport.close();
       }
-      this.logger.log(`Password change notice for user ${userId} was accepted by SMTP`);
+      this.logger.log(
+        `Password change notice for user ${userId} was accepted by SMTP`,
+      );
       return "EMAIL_SENT" as const;
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Unknown SMTP error";
-      this.logger.warn(`Password change notice for user ${userId} failed: ${reason}`);
+      const reason =
+        error instanceof Error ? error.message : "Unknown SMTP error";
+      this.logger.warn(
+        `Password change notice for user ${userId} failed: ${reason}`,
+      );
+      return "EMAIL_FAILED" as const;
+    }
+  }
+
+  async sendBrochureShare(
+    shareId: string,
+    recipientEmail: string,
+    input: BrochureShareEmailInput,
+  ) {
+    try {
+      const settings = await this.settingsService.getAll();
+      const smtp = this.resolveSmtpSettings(settings.email);
+      if (!smtp) {
+        this.logger.log(
+          `Brochure share ${shareId} remains manual because SMTP is not configured`,
+        );
+        return "MANUAL" as const;
+      }
+      const transport = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        requireTLS: smtp.requireTls,
+        auth: smtp.username
+          ? { user: smtp.username, pass: smtp.password }
+          : undefined,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 15_000,
+      });
+      const content = buildBrochureShareEmail(input);
+      try {
+        await transport.sendMail({
+          from: { name: smtp.fromName, address: smtp.fromAddress },
+          to: recipientEmail,
+          subject: content.subject,
+          text: content.text,
+          html: content.html,
+        });
+      } finally {
+        transport.close();
+      }
+      this.logger.log(`Brochure share ${shareId} email was accepted by SMTP`);
+      return "EMAIL_SENT" as const;
+    } catch (error) {
+      const reason =
+        error instanceof Error ? error.message : "Unknown SMTP error";
+      this.logger.warn(
+        `Brochure share ${shareId} email delivery failed: ${reason}`,
+      );
       return "EMAIL_FAILED" as const;
     }
   }
@@ -167,10 +228,7 @@ export class EmailService {
   ) {
     const host = firstValue(stored.smtpHost, process.env.SMTP_HOST);
     const portValue = firstValue(stored.smtpPort, process.env.SMTP_PORT);
-    const username = firstValue(
-      stored.smtpUsername,
-      process.env.SMTP_USERNAME,
-    );
+    const username = firstValue(stored.smtpUsername, process.env.SMTP_USERNAME);
     const password = normalizeSmtpPassword(
       host,
       firstValue(stored.smtpPassword, process.env.SMTP_PASSWORD),
@@ -209,9 +267,7 @@ export class EmailService {
   }
 }
 
-function firstValue(
-  ...values: Array<string | null | undefined>
-): string {
+function firstValue(...values: Array<string | null | undefined>): string {
   return values.find((value) => value?.trim())?.trim() ?? "";
 }
 

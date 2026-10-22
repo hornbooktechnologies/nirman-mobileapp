@@ -7,10 +7,10 @@ import {
   useRef,
   useState,
   type PropsWithChildren,
-} from 'react';
-import { AppState } from 'react-native';
+} from "react";
+import { AppState } from "react-native";
 
-import { apiRequest, setApiUnauthorizedHandler } from '../lib/api';
+import { apiRequest, setApiUnauthorizedHandler } from "../lib/api";
 import {
   clearStoredSession,
   createMobileSession,
@@ -24,7 +24,7 @@ import {
   type LoginResponseData,
   type MobileSession,
   type SessionResponseData,
-} from '../lib/auth';
+} from "../lib/auth";
 
 type ApiEnvelope<TData> = {
   success: boolean;
@@ -87,11 +87,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let isMounted = true;
-    const loadingFallback = setTimeout(() => {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    }, 1200);
 
     Promise.all([getStoredSession(), getStoredActiveProjectId()])
       .then(async ([storedSession, storedProjectId]) => {
@@ -116,7 +111,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
             setSession(hydratedSession);
             const organizationQuery = hydratedSession.activeOrganization
               ? `?organizationId=${encodeURIComponent(hydratedSession.activeOrganization.id)}`
-              : '';
+              : "";
             void apiRequest<ApiEnvelope<SessionResponseData>>(
               `/auth/session${organizationQuery}`,
               {},
@@ -150,14 +145,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
       })
       .finally(() => {
         if (isMounted) {
-          clearTimeout(loadingFallback);
           setIsLoading(false);
         }
       });
 
     return () => {
       isMounted = false;
-      clearTimeout(loadingFallback);
     };
   }, []);
 
@@ -171,9 +164,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
       if (Date.now() >= expiresAt) void expireSession(accessToken);
     };
     expireIfNeeded();
-    const timeout = setTimeout(expireIfNeeded, Math.max(0, expiresAt - Date.now()));
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') expireIfNeeded();
+    const timeout = setTimeout(
+      expireIfNeeded,
+      Math.max(0, expiresAt - Date.now()),
+    );
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") expireIfNeeded();
     });
 
     return () => {
@@ -184,9 +180,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(async (credentials: SignInCredentials) => {
     const response = await apiRequest<ApiEnvelope<LoginResponseData>>(
-      '/auth/login',
+      "/auth/login",
       {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(credentials),
       },
     );
@@ -198,33 +194,36 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setSession(nextSession);
   }, []);
 
-  const refreshSession = useCallback(async (preferredProjectId?: string) => {
-    if (!session) return;
+  const refreshSession = useCallback(
+    async (preferredProjectId?: string) => {
+      if (!session) return;
 
-    setIsRefreshing(true);
-    try {
-      const organizationQuery = session.activeOrganization
-        ? `?organizationId=${encodeURIComponent(session.activeOrganization.id)}`
-        : '';
-      const response = await apiRequest<ApiEnvelope<SessionResponseData>>(
-        `/auth/session${organizationQuery}`,
-        {},
-        { accessToken: session.accessToken },
-      );
-      const storedProjectId = await getStoredActiveProjectId();
-      const nextSession = mergeSessionPayload(
-        session,
-        response.data,
-        preferredProjectId ?? storedProjectId,
-      );
+      setIsRefreshing(true);
+      try {
+        const organizationQuery = session.activeOrganization
+          ? `?organizationId=${encodeURIComponent(session.activeOrganization.id)}`
+          : "";
+        const response = await apiRequest<ApiEnvelope<SessionResponseData>>(
+          `/auth/session${organizationQuery}`,
+          {},
+          { accessToken: session.accessToken },
+        );
+        const storedProjectId = await getStoredActiveProjectId();
+        const nextSession = mergeSessionPayload(
+          session,
+          response.data,
+          preferredProjectId ?? storedProjectId,
+        );
 
-      await saveStoredSession(nextSession);
-      await saveStoredActiveProjectId(nextSession.activeProjectId);
-      setSession(nextSession);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [session]);
+        await saveStoredSession(nextSession);
+        await saveStoredActiveProjectId(nextSession.activeProjectId);
+        setSession(nextSession);
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [session],
+  );
 
   const switchActiveProject = useCallback(
     async (projectId: string) => {
@@ -232,13 +231,13 @@ export function SessionProvider({ children }: PropsWithChildren) {
       const project = session.projectAccess.projects.find(
         (candidate) =>
           candidate.id === projectId &&
-          (candidate.status === 'ACTIVE' ||
-            candidate.status === 'DRAFT' ||
-            candidate.status === 'ON_HOLD'),
+          (candidate.status === "ACTIVE" ||
+            candidate.status === "DRAFT" ||
+            candidate.status === "ON_HOLD"),
       );
 
       if (!project) {
-        throw new Error('Project is not available as a working context');
+        throw new Error("Project is not available as a working context");
       }
 
       const nextSession: MobileSession = {
@@ -263,14 +262,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
       const membership = session.memberships.find(
         (candidate) =>
           candidate.organizationId === organizationId &&
-          candidate.memberStatus === 'ACTIVE',
+          candidate.memberStatus === "ACTIVE",
       );
       if (!membership) {
-        throw new Error('Organization membership is not active');
+        throw new Error("Organization membership is not active");
       }
       await apiRequest<ApiEnvelope<{ activeOrganizationId: string }>>(
         `/organizations/${organizationId}/switch`,
-        { method: 'POST' },
+        { method: "POST" },
         { accessToken: session.accessToken },
       );
       const response = await apiRequest<ApiEnvelope<SessionResponseData>>(
@@ -322,7 +321,7 @@ export function useSession() {
   const context = useContext(SessionContext);
 
   if (!context) {
-    throw new Error('useSession must be used inside SessionProvider');
+    throw new Error("useSession must be used inside SessionProvider");
   }
 
   return context;

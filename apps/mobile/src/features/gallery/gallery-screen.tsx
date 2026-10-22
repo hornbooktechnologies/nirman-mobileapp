@@ -1,4 +1,4 @@
-import { refreshTogether } from '@nirman-app/shared';
+import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import {
   GALLERY_CATEGORIES,
@@ -10,9 +10,19 @@ import {
 } from "@nirman-app/shared";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, InteractionManager, Pressable, SectionList, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Image,
+  InteractionManager,
+  Pressable,
+  SectionList,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   AppIcon,
@@ -96,6 +106,7 @@ export function GalleryScreen() {
   const [selectedEntry, setSelectedEntry] = useState<GalleryEntry | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const requestSequence = useRef(0);
   const { width } = useWindowDimensions();
   const columnCount = width >= 700 ? 6 : 4;
   const thumbnailGap = mobileTheme.spacing[1];
@@ -130,6 +141,7 @@ export function GalleryScreen() {
         setLoading(false);
         return;
       }
+      const request = ++requestSequence.current;
       append ? setLoadingMore(true) : setLoading(true);
       setError("");
       try {
@@ -145,6 +157,7 @@ export function GalleryScreen() {
             ? Promise.resolve(null)
             : fetchGallerySummary(organizationId, projectId, token),
         ]);
+        if (request !== requestSequence.current) return;
         setItems((current) =>
           append
             ? [
@@ -159,20 +172,30 @@ export function GalleryScreen() {
         setTotalPages(list.pagination.totalPages);
         if (nextSummary) setSummary(nextSummary);
       } catch (loadError) {
-        setError(getLocalizedErrorMessage(loadError, t("errors.loadFailed")));
+        if (request === requestSequence.current) {
+          setError(getLocalizedErrorMessage(loadError, t("errors.loadFailed")));
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        if (request === requestSequence.current) {
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
     [canRead, category, dateFrom, dateTo, organizationId, projectId, t, token],
   );
-  useEffect(() => {
-    setItems([]);
-    void load(1);
-    void refreshQueue();
+  const refreshScreen = useCallback(async () => {
+    await Promise.allSettled([load(1), refreshQueue()]);
   }, [load, refreshQueue]);
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${category ?? ""}:${dateFrom}:${dateTo}`,
+    refresh: refreshScreen,
+    reset: () => setItems([]),
+    cancel: () => {
+      requestSequence.current += 1;
+    },
+  });
 
   async function sendQueued(item: QueuedGalleryUpload) {
     if (!token) return;
@@ -205,7 +228,17 @@ export function GalleryScreen() {
   if (!project || !projectId)
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="gallery" />}>
-        <CompactScreenHeader leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />} title={t("screen.title")} />
+        <CompactScreenHeader
+          leading={
+            <IconButton
+              accessibilityLabel={tCommon("actions.back")}
+              icon="arrow-left"
+              variant="glass"
+              onPress={() => router.back()}
+            />
+          }
+          title={t("screen.title")}
+        />
         <ProjectContextCard compact showSwitchAction />
         <EmptyState
           title={t("empty.noProjectTitle")}
@@ -217,7 +250,14 @@ export function GalleryScreen() {
     return (
       <NirmanScreenBackground footer={<CustomerTabBar activeKey="gallery" />}>
         <CompactScreenHeader
-          leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
+          leading={
+            <IconButton
+              accessibilityLabel={tCommon("actions.back")}
+              icon="arrow-left"
+              variant="glass"
+              onPress={() => router.back()}
+            />
+          }
           title={t("screen.title")}
           subtitle={project.name}
         />
@@ -256,7 +296,14 @@ export function GalleryScreen() {
   const header = (
     <View style={styles.header}>
       <CompactScreenHeader
-        leading={<IconButton accessibilityLabel={tCommon("actions.back")} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
+        leading={
+          <IconButton
+            accessibilityLabel={tCommon("actions.back")}
+            icon="arrow-left"
+            variant="glass"
+            onPress={() => router.back()}
+          />
+        }
         title={t("screen.title")}
         subtitle={project.name}
         action={
@@ -383,7 +430,8 @@ export function GalleryScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={header}
         refreshControl={
-          <GuardedRefreshControl busy={loading || refreshing}
+          <GuardedRefreshControl
+            busy={loading || refreshing}
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);

@@ -38,6 +38,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="gallery" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="sales" />
+      <Stack.Screen name="brochures" />
       <Stack.Screen name="sales-lead" />
       <Stack.Screen name="sales-booking" />
       <Stack.Screen name="sales-activity" />

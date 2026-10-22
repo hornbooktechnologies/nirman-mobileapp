@@ -1,5 +1,11 @@
 # Total Expenses status
 
+## 2026-10-22 — Paid-only Materials and deducted Kharchi
+
+Implemented the owner's superseding rule across Shared/API/Web/Mobile. The Materials filter now uses the paid-event endpoint and no longer renders pending, unpaid or request-only procurement records. Confirmed, unreversed Kharchi deduction allocations are a separate filter/card/summary/monthly source, dated by `deducted_at`; Wage payments remain net, so the deduction is included exactly once. Reversed allocations and cancelled/draft wage batches are excluded. Mobile includes en/hi/gu copy and opens the scoped Kharchi advance detail.
+
+No schema or migration is required. Shared/API/Mobile type checks, Shared build, 29 focused API tests, three Mobile request/cache tests, API scoped lint, 19-namespace locale parity, read-only SQL reconciliation and diff validation pass. Whole-Web type-check retains only the pre-existing login Zod/resolver mismatch, and Web ESLint remains blocked by the missing installed `eslint-module-utils/resolve`. Authenticated browser and physical-device acceptance remain pending.
+
 ## 2026-10-09 Mobile Materials upstream fix
 
 Mobile LAN Expo still used the deployed Web API URL from its `.env`; that upstream returned 404 for the newly implemented Materials overview, surfaced as generic temporary unavailability. Added ignored development-only `apps/mobile/.env.development.local` with EXPO_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1. Existing mobile configuration remaps local hosts to Expo's device-visible LAN hostname. Production `.env` remains unchanged; documented the local override in app.ts. Running Metro reloaded the environment automatically.

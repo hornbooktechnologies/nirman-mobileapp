@@ -42,6 +42,7 @@
     "gallery": { "title": "Site Gallery", "description": "Photos and chronological Project diary" },
     "notifications": { "title": "Notifications", "description": "Important updates and approvals" },
     "sales": { "title": "Sales", "description": "Leads, follow-ups and inventory" },
+    "brochures": { "title": "Brochures", "description": "Marketing PDFs, images and videos" },
     "calendar": { "title": "Work Calendar", "description": "Working days and site closures" },
     "menu": {
       "title": "Menu",

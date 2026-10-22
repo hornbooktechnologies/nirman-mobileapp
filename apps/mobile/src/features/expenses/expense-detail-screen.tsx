@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
 import {
   ActionListItem,
@@ -97,12 +98,13 @@ export function ExpenseDetailScreen() {
       if (request === loadSequence.current) setLoading(false);
     }
   }, [expenseId, organizationId, projectId, t, token]);
-  useEffect(() => {
-    void load().catch(() => undefined);
-    return () => {
+  useRefreshOnFocus({
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${expenseId ?? ""}`,
+    refresh: load,
+    cancel: () => {
       loadSequence.current += 1;
-    };
-  }, [load]);
+    },
+  });
   useEffect(() => {
     setDetail(null);
     setEditOpen(false);
