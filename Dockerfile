@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-bookworm-slim AS workspace
+FROM node:22-bookworm-slim AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -8,14 +8,32 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
 
 WORKDIR /workspace
+
+FROM base AS workspace-deps
+
+# Keep dependency installation cacheable across ordinary source-only changes.
+# The mobile app is intentionally absent from this production image context.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/website/package.json apps/website/package.json
+COPY packages/database/package.json packages/database/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN --mount=type=cache,id=nirman-pnpm-store,target=/pnpm/store \
+  pnpm install --frozen-lockfile
+
+FROM workspace-deps AS shared-build
+COPY packages/shared packages/shared
+RUN pnpm --filter @nirman-app/shared build
+
+FROM shared-build AS api-deploy
+RUN pnpm --filter @nirman-app/api deploy --prod /prod/api
+
+FROM workspace-deps AS workspace
 COPY . .
-RUN pnpm install --frozen-lockfile
 
 FROM workspace AS api-build
 RUN pnpm --filter @nirman-app/api... build
-
-FROM api-build AS api-deploy
-RUN pnpm --filter @nirman-app/api deploy --prod /prod/api
 
 FROM workspace AS web-build
 ARG API_INTERNAL_URL=http://api:4000
@@ -43,6 +61,8 @@ USER node
 FROM runtime AS api
 WORKDIR /app
 COPY --from=api-deploy --chown=node:node /prod/api /app
+COPY --from=api-build --chown=node:node /workspace/apps/api/dist /app/dist
+COPY --from=api-build --chown=node:node /workspace/apps/api/src/database/sql/migrations /app/src/database/sql/migrations
 ENV PORT=4000
 EXPOSE 4000
 CMD ["node", "dist/src/main.js"]
