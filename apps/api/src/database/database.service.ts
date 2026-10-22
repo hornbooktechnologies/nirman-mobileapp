@@ -1,18 +1,49 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import {
   createPool,
   type Pool,
   type ResultSetHeader,
   type RowDataPacket,
-} from 'mysql2/promise';
-import { parseMigrationDatabaseUrl } from './migrations/migration-safety';
+} from "mysql2/promise";
+import { parseMigrationDatabaseUrl } from "./migrations/migration-safety";
 import {
   DatabaseConnection,
   DatabaseTransaction,
+  QueryParam,
   QueryParams,
-} from './database.types';
+} from "./database.types";
 
 const DEFAULT_CONNECTION_LIMIT = 5;
+
+/**
+ * MySQL 8.4.13 rejects numeric binary-protocol values bound directly to
+ * LIMIT/OFFSET markers with ER_WRONG_ARGUMENTS. Binding the same validated
+ * integers as strings preserves prepared statements and works across the
+ * supported MySQL versions.
+ */
+export function normalizePaginationParams(
+  sql: string,
+  params: QueryParams,
+): QueryParam[] {
+  const normalized = [...params];
+  let parameterIndex = 0;
+
+  for (const marker of sql.matchAll(/\?/g)) {
+    const markerOffset = marker.index;
+    const prefix = sql.slice(0, markerOffset);
+    const isPaginationMarker =
+      /\b(?:LIMIT|OFFSET)\s*$/i.test(prefix) ||
+      /\bLIMIT\s+\?\s*,\s*$/i.test(prefix);
+
+    if (isPaginationMarker && typeof normalized[parameterIndex] === "number") {
+      normalized[parameterIndex] = String(normalized[parameterIndex]);
+    }
+
+    parameterIndex += 1;
+  }
+
+  return normalized;
+}
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
@@ -21,7 +52,7 @@ export class DatabaseService implements OnModuleDestroy {
   constructor() {
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
-      throw new Error('DATABASE_URL is required for mysql2 database access.');
+      throw new Error("DATABASE_URL is required for mysql2 database access.");
     }
 
     const parsedDatabaseUrl = parseMigrationDatabaseUrl(databaseUrl);
@@ -33,7 +64,9 @@ export class DatabaseService implements OnModuleDestroy {
       password: parsedDatabaseUrl.password,
       database: parsedDatabaseUrl.database,
       waitForConnections: true,
-      connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? DEFAULT_CONNECTION_LIMIT),
+      connectionLimit: Number(
+        process.env.DB_CONNECTION_LIMIT ?? DEFAULT_CONNECTION_LIMIT,
+      ),
       decimalNumbers: false,
       // SQL DATE values are calendar dates, not instants. Returning them as
       // Date objects lets a later toISOString() shift the day in positive UTC
@@ -49,7 +82,10 @@ export class DatabaseService implements OnModuleDestroy {
     params: QueryParams = [],
     connection: DatabaseConnection = this.pool,
   ): Promise<T[]> {
-    const [rows] = await connection.execute<T[]>(sql, [...params]);
+    const [rows] = await connection.execute<T[]>(
+      sql,
+      normalizePaginationParams(sql, params),
+    );
     return rows;
   }
 
@@ -58,7 +94,9 @@ export class DatabaseService implements OnModuleDestroy {
     params: QueryParams = [],
     connection: DatabaseConnection = this.pool,
   ): Promise<ResultSetHeader> {
-    const [result] = await connection.execute<ResultSetHeader>(sql, [...params]);
+    const [result] = await connection.execute<ResultSetHeader>(sql, [
+      ...params,
+    ]);
     return result;
   }
 
@@ -68,7 +106,10 @@ export class DatabaseService implements OnModuleDestroy {
   ): Promise<T> {
     const connection = await this.pool.getConnection();
     try {
-      if (consistentSnapshot) await connection.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY");
+      if (consistentSnapshot)
+        await connection.query(
+          "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        );
       await connection.beginTransaction();
       const result = await callback(connection);
       await connection.commit();

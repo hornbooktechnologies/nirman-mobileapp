@@ -1,3 +1,15 @@
+## 2026-10-22 - Production website contact origin validation
+
+Fixed the public `/api/contact` origin guard for the Coolify/Traefik deployment. The browser sends `Origin: https://nirmansite.com`, while Next.js reconstructs the request with the website container's internal origin; the previous exact comparison therefore rejected legitimate submissions with HTTP 403. The route now accepts the exact request origin or the explicitly configured `NEXT_PUBLIC_SITE_URL` origin without trusting forwarded headers. Missing, null, malformed, path-bearing, lookalike and foreign origins remain rejected.
+
+Focused origin regression verification, Website type-check, production build and diff checks pass. The Website package has no ESLint executable, so a scoped lint run is unavailable. The deployment acceptance check uses a filled honeypot submission so it verifies the public route without storing an enquiry or sending email; an actual customer-form submission remains the final email/inbox acceptance check.
+
+## 2026-10-22 - MySQL 8.4.13 paginated API compatibility
+
+Diagnosed the post-deployment HTTP 500 failures across Workers, Materials, Expenses and Sales against the live API logs. MySQL 8.4.13 returns `ER_WRONG_ARGUMENTS` when mysql2 prepared statements bind JavaScript numbers directly to `LIMIT`/`OFFSET` markers; live read-only probes confirmed string-bound pagination and the text protocol succeed. The shared API database read path now normalizes only numeric pagination parameters to strings while retaining prepared statements, ordinary parameter types and every write path.
+
+Three compatibility tests, 54 focused database/repository tests and the full 385-test API suite pass. API type-check, production build, scoped database lint and diff checks pass. No schema change, migration, seed or database mutation is required. Coolify rollout and authenticated production checks across the reported endpoints remain the runtime acceptance gate.
+
 ## 2026-10-09 - Expo web login CORS follow-up
 
 User Console reported localhost:8081 login preflight receiving a localhost:3000 allow-origin header. Current API checks across IPv4/IPv6 and clean-browser requests already reflect the correct requested origin, suggesting a stale browser response rather than missing API allow-list coverage. Local Expo web now uses 127.0.0.1:4000 for loopback API requests, separating its request URL from prior localhost responses; native LAN mapping and explicitly remote/production configuration remain unchanged.

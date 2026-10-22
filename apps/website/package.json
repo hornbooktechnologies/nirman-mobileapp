@@ -9,6 +9,7 @@
     "type-check": "next typegen && tsc --noEmit",
     "screens": "python3 scripts/prepare_screens.py",
     "verify:activation": "node scripts/verify-activation.cjs",
+    "verify:contact-origin": "node scripts/verify-contact-origin.cjs",
     "verify:seo": "node scripts/verify-seo.cjs"
   },
   "dependencies": {

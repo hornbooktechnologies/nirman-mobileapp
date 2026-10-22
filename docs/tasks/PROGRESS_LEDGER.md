@@ -1,3 +1,15 @@
+## 2026-10-22 - Production website contact origin validation
+
+Corrected the public contact route's strict origin validation for the production reverse-proxy topology. Legitimate `https://nirmansite.com` browser requests are now matched against the configured canonical site origin in addition to the internal request origin; forwarded headers are not trusted, and missing/malformed/lookalike/foreign origins remain denied. Contact validation, honeypot behavior, durable API ingest and email delivery behavior are unchanged.
+
+Focused origin verification, Website type-check, production build and diff checks pass. Scoped lint is unavailable because the Website package has no ESLint executable. Public deployment verification is designed to use the existing filled honeypot path, which creates no enquiry and sends no email; actual customer submission/inbox delivery remains operational acceptance.
+
+## 2026-10-22 - MySQL 8.4.13 paginated API compatibility
+
+Production logs and direct read-only probes isolated cross-module HTTP 500 responses to MySQL 8.4.13 rejecting numeric prepared-statement `LIMIT`/`OFFSET` bindings with `ER_WRONG_ARGUMENTS`. Added one shared database-layer compatibility normalization that stringifies only those validated pagination values; prepared statements, non-pagination types, writes, tenant/access behavior and API contracts remain unchanged.
+
+Verification passed: three focused compatibility cases, 54 affected repository tests, all 49 API suites / 385 tests, API type-check, production build, scoped lint and diff checks. No schema, migration, seed or database mutation is needed. Production rollout and authenticated endpoint verification remain pending.
+
 ## 2026-10-21 - Cross-client administration, calendar, Materials and Wages fixes
 
 Implemented the requested critical defect pass across API, Web and Mobile. Organization create now removes the plus icon while the form is open. Permission matrices retain their loaded grants and add explicit Select all/Deselect all controls in Web role/project assignment surfaces and Mobile project assignment. The redundant no-project-override calendar notice is removed while real project-override guidance remains. Existing Web/Mobile/API self-role protection was retained and is now regression-tested. Project member totals now count only current active assignments whose organization membership is active.
@@ -969,3 +981,9 @@ Created an isolated MySQL 8.4 volume, ran the read-only migration preflight, wro
 - Preserved rendered records during same-scope refreshes and added/retained stale-request protection for overlapping reads.
 - No API/schema/data/deployment work; physical-device acceptance remains pending.
 - Verification: Mobile typecheck, locale parity, 18 Mobile regression tests, source coverage audit, scoped diff checks, and Android Expo export passed. The generated export was removed.
+
+## 2026-10-22 - Legacy production data import
+
+Imported the complete phpMyAdmin MySQL 5.7 dump `vishwlt9_nirmansite.sql` (SHA-256 `5e15a97fde9c6370c898efb1754e76f631a644393aa844705ff5f651789823cd`) into an isolated MySQL 8.4 schema and promoted it through a rollback-protected blue-green database cutover. The source restore completed with 65 tables, 65 primary keys, 73 unique constraints, 194 foreign keys, and repository migration status current at 33/33 with no pending migrations or checksum drift. The previous empty `nirmansite` schema remains available for rollback.
+
+Production verification reports 49 users (42 active), 30 organizations, 30 projects, 41 workers, and 3 website enquiries. API/database health and all three public HTTPS routes return 200; all four containers are healthy and post-cutover API logs are clean. Protected backups include `pre-legacy-import-20261022T063307Z.sql`, `validated-legacy-stage-20261022T065753Z.sql`, `pre-legacy-promotion-20261022T065827Z.sql`, and the paired pre-promotion environment snapshot, all mode 600. Authenticated user workflows, imported file/S3 availability, outbound email, push delivery, and physical-device Mobile acceptance remain unverified.
