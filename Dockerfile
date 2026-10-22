@@ -15,6 +15,9 @@ FROM workspace AS api-build
 RUN pnpm --filter @nirman-app/api... build
 
 FROM workspace AS tools
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends default-mysql-client \
+  && rm -rf /var/lib/apt/lists/*
 CMD ["pnpm", "db:migrate:status"]
 
 FROM api-build AS api-deploy

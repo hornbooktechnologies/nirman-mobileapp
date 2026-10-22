@@ -1,6 +1,6 @@
 # NirmanSite Docker production deployment
 
-This deployment runs the marketing site, customer web app, API, and MySQL from one Compose project. The standalone topology uses Caddy. Hornbook production uses the existing Coolify Traefik proxy through `compose.coolify.yaml` and must not start a second proxy on ports 80/443.
+This deployment runs the marketing site, customer web app, API, and MySQL from one Compose project. The standalone topology uses Caddy. Hornbook production is managed as a Git-based Docker Compose Application in Coolify using `compose.coolify-managed.yaml`; it must not start a second proxy on ports 80/443.
 
 ## Public routing
 
@@ -22,13 +22,13 @@ The host currently identified as `192.168.1.200` is a private LAN address. For p
 3. Allow those ports in the host firewall. Do not expose MySQL port 3306.
 4. Make sure no other service on the Docker host already owns ports 80 or 443.
 
-Hornbook already has Coolify and Traefik on ports 80/443. Use both Compose files there; the overlay disables Caddy, attaches the public services to the external `coolify` network, and supplies Traefik routes:
+Hornbook already has Coolify and Traefik on ports 80/443. Coolify owns the proxy labels and resource network. Configure these service domains in the application:
 
-```bash
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production config --quiet
-```
+- `website`: `https://nirmansite.com:3000`, `https://www.nirmansite.com:3000`
+- `web`: `https://app.nirmansite.com:3000`
+- `api`: `https://api.nirmansite.com:4000`
 
-Do not run the base Compose file by itself on Hornbook production.
+`compose.coolify.yaml` remains only as the rollback topology for the former SSH-managed deployment. Do not run the base Compose file by itself on Hornbook production.
 
 ## 2. Server prerequisites
 
@@ -44,38 +44,37 @@ The setup script generates independent database, JWT, refresh-token, and website
 
 The real `.env.production` is ignored by Git. Restrict it to the deployment account (`chmod 600 .env.production` on Linux).
 
-## 3. Validate and build
+## 3. Create the Coolify application
 
-On Hornbook, run every application command with both Compose files:
+Create a `NirmanSite` project with a `production` environment and add a Git-based application with:
 
-```bash
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production config --quiet
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production up -d database
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
-```
+- repository: `hornbooktechnologies/nirman-mobileapp`
+- branch: `main`
+- build strategy: Docker Compose
+- Compose location: `/compose.coolify-managed.yaml`
+- auto deploy: Deploy on push (webhooks)
 
-Wait for `database` to become healthy before database initialization.
+Sync the existing `.env.production` values into Coolify. Variables written as `${VARIABLE:?}` are required and block a deployment while empty. Optional variables carry safe defaults in Compose. Set `MIGRATION_APPROVED=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE` to record the standing authorization for this production deployment workflow.
 
-## 4. Initialize or migrate the database
+The Compose definition deliberately reuses the external `nirmansite_mysql_data` volume. Do not rename it or remove `external: true`: this is the imported production database.
 
-Database changes are deliberately not run during container startup. The production migration script waits for MySQL health, prints the read-only status, creates a timestamped logical backup in `backups/`, applies migrations behind all safety gates, and confirms the final status.
+## 4. Automatic database migration
 
-```bash
-MIGRATION_APPROVED=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
-  bash deploy/migrate-production.sh
-```
+Every new Compose build runs the one-time `migration` service before the API starts. It:
+
+1. waits for MySQL health through Compose dependency conditions;
+2. reports migration status and refuses checksum drift, failed, missing, or draft migrations;
+3. writes a timestamped logical backup under `/home/hornbook/nirmansite/backups`;
+4. applies migrations through the repository's lock and production safety gates;
+5. verifies final status before allowing the API to start.
+
+Coolify's `exclude_from_hc: true` marks this completed one-time container as excluded from overall application health. A backup or migration failure stops the deployment dependency chain.
 
 Seeding is optional and should not be run on an established production database. If an initial seed is approved, set `DB_SEED_CONFIRM` to the exact database name and pass intentional initial credentials.
 
-## 5. Launch
+## 5. Launch and verify
 
-```bash
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
-  up -d --build api web website
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
-  logs --tail=100 api web website
-```
+Deploy from the Coolify application and inspect Deployment Logs. The `database`, `api`, `web`, and `website` components must be healthy, while `migration` should be successfully completed.
 
 Verify:
 
@@ -89,18 +88,9 @@ Also test customer login, refresh-token behavior, account activation, the contac
 
 ## 6. Updates and rollback
 
-Before each update, record the deployed Git commit and back up MySQL. Then:
+Pushes to `main` trigger a Coolify deployment. New required secrets are intentionally not invented from Git: add their values in Coolify before deployment. Safe non-secret defaults can use `${VARIABLE:-default}` in Compose and appear automatically when the definition reloads.
 
-```bash
-git pull --ff-only
-MIGRATION_APPROVED=I_UNDERSTAND_THIS_MUTATES_THE_DATABASE \
-  bash deploy/migrate-production.sh
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production \
-  up -d --build api web website
-docker compose -f compose.yaml -f compose.coolify.yaml --env-file .env.production ps
-```
-
-Application rollback is performed by checking out the previously recorded commit and rebuilding. Database rollback is not automatic: SQL migrations are additive, so use the pre-deployment backup if a database rollback is required.
+Application rollback is performed from Coolify by redeploying a previously known-good commit. Database rollback is not automatic: SQL migrations are additive, so use the matching pre-deployment backup if a database rollback is required. During the initial ownership transfer, the former `/home/hornbook/nirmansite` checkout and Compose definition are retained as a rollback path; never start both database containers against the external volume at the same time.
 
 ## 7. Backup essentials
 
