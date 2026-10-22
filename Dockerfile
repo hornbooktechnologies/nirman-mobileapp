@@ -52,6 +52,7 @@ USER root
 RUN apt-get update \
   && apt-get install -y --no-install-recommends default-mysql-client \
   && rm -rf /var/lib/apt/lists/*
+COPY --chmod=755 deploy/coolify-migrate.sh /app/deploy/coolify-migrate.sh
 ENV DB_MIGRATION_SQL_DIR=/app/src/database/sql/migrations
 CMD ["node", "dist/scripts/migration-status.js"]
 
