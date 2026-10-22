@@ -90,7 +90,9 @@ Also test customer login, refresh-token behavior, account activation, the contac
 
 ## 6. Updates and rollback
 
-Pushes to `main` trigger a Coolify deployment. New required secrets are intentionally not invented from Git: add their values in Coolify before deployment. Safe non-secret defaults can use `${VARIABLE:-default}` in Compose and appear automatically when the definition reloads.
+Pushes to `main` trigger a Coolify deployment. Hornbook's Coolify dashboard is private to the LAN, so GitHub cannot call an inbound webhook. A once-per-minute user cron job runs `deploy/coolify-poll-deploy.sh`, compares the remote `main` SHA with its last queued SHA, and calls Coolify's authenticated deploy endpoint with a deploy-only API token. The token and poller configuration live outside the repository with mode `600`.
+
+New required secrets are intentionally not invented from Git: add their values in Coolify before deployment. Coolify discovers new Compose variable references when it reloads the definition; `${VARIABLE:?}` blocks deployment until a value is supplied, while safe non-secret defaults can use `${VARIABLE:-default}`.
 
 Application rollback is performed from Coolify by redeploying a previously known-good commit. Database rollback is not automatic: SQL migrations are additive, so use the matching pre-deployment backup if a database rollback is required. During the initial ownership transfer, the former `/home/hornbook/nirmansite` checkout and Compose definition are retained as a rollback path; never start both database containers against the external volume at the same time.
 
