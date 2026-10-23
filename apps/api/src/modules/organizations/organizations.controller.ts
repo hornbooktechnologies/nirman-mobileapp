@@ -40,6 +40,19 @@ export class OrganizationsController {
     return { success: true, message: "Organization created", data };
   }
 
+  @Post(":organizationId/owner-activation-link")
+  @RequirePermissions("platform-organizations:create")
+  async ownerActivationLink(
+    @Param("organizationId") organizationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.organizationsService.ownerActivationLink(
+      organizationId,
+      user,
+    );
+    return { success: true, message: "Owner activation link refreshed", data };
+  }
+
   @Get(":organizationId")
   async findOne(
     @Param("organizationId") organizationId: string,

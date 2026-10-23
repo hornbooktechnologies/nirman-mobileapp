@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { OrganizationOnboardingService } from "../organizations/organization-onboarding.service";
 import { WebsiteEnquiriesRepository } from "./website-enquiries.repository";
 import { WebsiteEnquiriesService } from "./website-enquiries.service";
 
@@ -8,10 +10,14 @@ describe("WebsiteEnquiriesService", () => {
     create: jest.fn(),
     findAll: jest.fn(),
     findActivities: jest.fn(),
+    findById: jest.fn(),
     updateWorkflow: jest.fn(),
     markConverted: jest.fn(),
   } as unknown as jest.Mocked<WebsiteEnquiriesRepository>;
-  const service = new WebsiteEnquiriesService(repository);
+  const onboarding = {
+    rotateOwnerActivationLink: jest.fn(),
+  } as unknown as jest.Mocked<OrganizationOnboardingService>;
+  const service = new WebsiteEnquiriesService(repository, onboarding);
   const actor: AuthenticatedUser = {
     id: "admin-id",
     email: "admin@example.com",
@@ -24,6 +30,7 @@ describe("WebsiteEnquiriesService", () => {
     permissions: [
       { resource: "platform-enquiries", action: "read" },
       { resource: "platform-enquiries", action: "update" },
+      { resource: "platform-organizations", action: "create" },
     ],
   };
 
@@ -129,5 +136,26 @@ describe("WebsiteEnquiriesService", () => {
         actor,
       ),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("refreshes the pending Owner activation link for a converted enquiry", async () => {
+    repository.findById.mockResolvedValue({
+      id: "enquiry-id",
+      status: "CREATED",
+      convertedOrganization: { id: "organization-id" },
+    } as never);
+    onboarding.rotateOwnerActivationLink.mockResolvedValue({
+      organization: { id: "organization-id", name: "ABC Builders" },
+      invitation: { activationUrl: "https://app.example/activate?token=new" },
+    } as never);
+
+    const result = await service.activationLink("enquiry-id", actor);
+    expect(result.invitation.activationUrl).toBe(
+      "https://app.example/activate?token=new",
+    );
+    expect(onboarding.rotateOwnerActivationLink).toHaveBeenCalledWith(
+      "organization-id",
+      actor,
+    );
   });
 });

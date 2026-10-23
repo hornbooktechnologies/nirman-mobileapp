@@ -64,6 +64,12 @@ export function useCreateOrganization() {
   });
 }
 
+export function useOwnerActivationLink() {
+  return useMutation({
+    mutationFn: organizationsService.ownerActivationLink,
+  });
+}
+
 export function useUpdateOrganization(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

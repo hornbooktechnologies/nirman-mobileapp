@@ -172,6 +172,41 @@ export class OrganizationOnboardingService {
     }
   }
 
+  async rotateOwnerActivationLink(
+    organizationId: string,
+    actor: AuthenticatedUser,
+  ) {
+    assertPlatformPermission(actor, "platform-organizations:create");
+    const rawToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(
+      Date.now() + INVITATION_TTL_HOURS * 60 * 60 * 1000,
+    );
+    const invitation = await this.onboardingRepo.rotatePendingOwnerInvitation(
+      organizationId,
+      this.hashToken(rawToken),
+      expiresAt,
+    );
+    if (!invitation) {
+      throw new ConflictException(
+        "No pending Owner invitation is available for this organization",
+      );
+    }
+    return {
+      organization: {
+        id: invitation.organization_id,
+        name: invitation.organization_name,
+      },
+      invitation: {
+        id: invitation.id,
+        status: "PENDING" as const,
+        expiresAt: expiresAt.toISOString(),
+        activationUrl: this.webActivationUrl(rawToken),
+        mobileActivationUrl: this.mobileActivationUrl(rawToken),
+        deliveryStatus: "MANUAL" as const,
+      },
+    };
+  }
+
   async inspectInvitation(
     rawToken: string,
   ): Promise<OrganizationOwnerInvitationPreview> {

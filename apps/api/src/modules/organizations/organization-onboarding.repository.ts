@@ -321,6 +321,38 @@ export class OrganizationOnboardingRepository {
     return rows[0] ?? null;
   }
 
+  async rotatePendingOwnerInvitation(
+    organizationId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ) {
+    return this.database.transaction(async (connection) => {
+      const rows = await this.database.query<InvitationRow>(
+        `${this.invitationSelectSql()}
+        WHERE i.organization_id = ?
+          AND i.status = 'PENDING'
+          AND om.status = 'INVITED'
+          AND r.name IN ('Organization Owner', 'Independent Contractor Owner', 'Owner', 'Admin')
+        ORDER BY i.created_at ASC
+        LIMIT 1
+        FOR UPDATE`,
+        [organizationId],
+        connection,
+      );
+      const invitation = rows[0];
+      if (!invitation) return null;
+
+      await this.database.execute(
+        `UPDATE invitations
+        SET token_hash = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP(3)
+        WHERE id = ? AND status = 'PENDING'`,
+        [tokenHash, expiresAt, invitation.id],
+        connection,
+      );
+      return invitation;
+    });
+  }
+
   async acceptInvitation(
     invitationId: string,
     passwordHash: string | null,
