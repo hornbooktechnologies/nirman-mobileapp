@@ -12,6 +12,7 @@ type Enquiry = {
   name?: unknown
   phone?: unknown
   email?: unknown
+  organizationType?: unknown
   message?: unknown
   website?: unknown
 }
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
       const form = await request.formData()
       data = {
         name: form.get('Full name'), phone: form.get('Mobile number'),
-        email: form.get('Email address'), message: form.get('Help requested'),
+        email: form.get('Email address'), organizationType: form.get('Organization type'),
+        message: form.get('Help requested'),
         website: form.get('website'),
       }
     } else {
@@ -57,13 +59,14 @@ export async function POST(request: Request) {
   const name = clean(data.name, 100)
   const phone = clean(data.phone, 25)
   const email = clean(data.email, 150)
+  const organizationType = clean(data.organizationType, 16)
   const message = clean(data.message, 1000)
-  const fieldErrors = validateContactFields({ name, phone, email, message })
+  const fieldErrors = validateContactFields({ name, phone, email, organizationType, message })
   if (Object.keys(fieldErrors).length) {
     return browserPost ? fail('Please check the form fields.', 400) : Response.json({ ok: false, error: 'Please check the form fields.', fieldErrors }, { status: 400 })
   }
 
-  const enquiry = { name, phone, email, message }
+  const enquiry = { name, phone, email, organizationType: organizationType as 'BUILDER' | 'CONTRACTOR', message }
   try {
     await storeEnquiry(enquiry, randomUUID())
   } catch (cause) {
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function storeEnquiry(enquiry: { name: string; phone: string; email: string; message: string }, submissionKey: string) {
+async function storeEnquiry(enquiry: { name: string; phone: string; email: string; organizationType: 'BUILDER' | 'CONTRACTOR'; message: string }, submissionKey: string) {
   const apiBaseUrl = process.env.API_BASE_URL?.replace(/\/$/, '')
   const ingestKey = process.env.WEBSITE_ENQUIRY_INGEST_KEY
   if (!apiBaseUrl || !ingestKey) throw new Error('Website enquiry API configuration is incomplete')

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
+import type { OrganizationType } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
 import type {
@@ -16,6 +17,7 @@ interface WebsiteEnquiryRow extends RowDataPacket {
   name: string;
   phone: string;
   email: string;
+  organization_type: OrganizationType | null;
   message: string | null;
   source: string;
   status: WebsiteEnquiryStatus;
@@ -48,8 +50,8 @@ export class WebsiteEnquiriesRepository {
   async create(dto: CreateWebsiteEnquiryDto) {
     const id = randomUUID();
     await this.database.execute(
-      `INSERT INTO website_enquiries (id, submission_key, name, phone, email, message)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO website_enquiries (id, submission_key, name, phone, email, organization_type, message)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE submission_key = VALUES(submission_key)`,
       [
         id,
@@ -57,6 +59,7 @@ export class WebsiteEnquiriesRepository {
         dto.name,
         dto.phone,
         dto.email,
+        dto.organizationType,
         dto.message ?? null,
       ],
     );
@@ -246,6 +249,7 @@ export class WebsiteEnquiriesRepository {
       name: row.name,
       phone: row.phone,
       email: row.email,
+      organizationType: row.organization_type,
       message: row.message,
       source: row.source,
       status: row.status,

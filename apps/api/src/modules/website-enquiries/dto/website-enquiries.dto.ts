@@ -1,4 +1,5 @@
 import { Transform, Type } from "class-transformer";
+import { ORGANIZATION_TYPES, type OrganizationType } from "@nirman-app/shared";
 import {
   IsEmail,
   IsISO8601,
@@ -29,6 +30,9 @@ export class CreateWebsiteEnquiryDto {
   @MaxLength(150)
   @Transform(({ value }: { value: string }) => value?.trim().toLowerCase())
   email!: string;
+
+  @IsIn(ORGANIZATION_TYPES)
+  organizationType!: OrganizationType;
 
   @IsOptional()
   @IsString()

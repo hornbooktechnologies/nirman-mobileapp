@@ -2,6 +2,7 @@ export type ContactFields = {
   name: string
   phone: string
   email: string
+  organizationType: string
   message: string
 }
 
@@ -38,12 +39,16 @@ export function validateContactField(field: ContactField, value: string): string
     }
   }
 
+  if (field === 'organizationType' && !['BUILDER', 'CONTRACTOR'].includes(trimmed)) {
+    return 'Select whether you are a builder or contractor.'
+  }
+
   if (field === 'message' && trimmed.length > 1000) return 'Message must be 1000 characters or fewer.'
 }
 
 export function validateContactFields(fields: ContactFields): ContactFieldErrors {
   const errors: ContactFieldErrors = {}
-  for (const field of ['name', 'phone', 'email', 'message'] as const) {
+  for (const field of ['name', 'phone', 'email', 'organizationType', 'message'] as const) {
     const error = validateContactField(field, fields[field])
     if (error) errors[field] = error
   }

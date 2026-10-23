@@ -12,6 +12,7 @@ import {
   isPlatformSuperAdmin,
 } from "../auth/platform-access";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
+import { OrganizationOnboardingService } from "../organizations/organization-onboarding.service";
 import type {
   ConvertWebsiteEnquiryDto,
   CreateWebsiteEnquiryDto,
@@ -22,7 +23,10 @@ import { WebsiteEnquiriesRepository } from "./website-enquiries.repository";
 
 @Injectable()
 export class WebsiteEnquiriesService {
-  constructor(private readonly repository: WebsiteEnquiriesRepository) {}
+  constructor(
+    private readonly repository: WebsiteEnquiriesRepository,
+    private readonly onboarding: OrganizationOnboardingService,
+  ) {}
 
   create(dto: CreateWebsiteEnquiryDto, suppliedKey?: string) {
     this.assertIngestKey(suppliedKey);
@@ -88,6 +92,25 @@ export class WebsiteEnquiriesService {
         "Enquiry is already converted or does not exist",
       );
     return { id, status: "CREATED", organizationId: dto.organizationId };
+  }
+
+  async activationLink(id: string, actor: AuthenticatedUser) {
+    this.assertSystemAdmin(actor);
+    assertPlatformPermission(actor, "platform-enquiries:update");
+    assertPlatformPermission(actor, "platform-organizations:create");
+    const enquiry = await this.repository.findById(id);
+    if (!enquiry) {
+      throw new BadRequestException("Website enquiry does not exist");
+    }
+    if (enquiry.status !== "CREATED" || !enquiry.convertedOrganization?.id) {
+      throw new ConflictException(
+        "Create an organization from this enquiry before generating an activation link",
+      );
+    }
+    return this.onboarding.rotateOwnerActivationLink(
+      enquiry.convertedOrganization.id,
+      actor,
+    );
   }
 
   private assertIngestKey(suppliedKey?: string) {

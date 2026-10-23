@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import {
   BadRequestException,
   ForbiddenException,
@@ -16,6 +17,7 @@ describe("OrganizationOnboardingService", () => {
   const onboardingRepo = {
     createOrganizationWithOwner: jest.fn(),
     createOrganizationMemberInvitation: jest.fn(),
+    rotatePendingOwnerInvitation: jest.fn(),
     findInvitationByTokenHash: jest.fn(),
     acceptInvitation: jest.fn(),
   } as unknown as jest.Mocked<OrganizationOnboardingRepository>;
@@ -24,8 +26,10 @@ describe("OrganizationOnboardingService", () => {
   } as unknown as jest.Mocked<EmailService>;
   const subscriptions = {
     withinMemberCapacity: jest.fn(
-      async (_organizationId: string, operation: (connection: never) => Promise<unknown>) =>
-        operation(undefined as never),
+      async (
+        _organizationId: string,
+        operation: (connection: never) => Promise<unknown>,
+      ) => operation(undefined as never),
     ),
   } as unknown as jest.Mocked<SubscriptionsService>;
   const service = new OrganizationOnboardingService(
@@ -67,7 +71,8 @@ describe("OrganizationOnboardingService", () => {
   it("uses the activation website independently of other auth email URLs", () => {
     const previous = process.env.PUBLIC_ACTIVATION_WEB_URL;
     try {
-      process.env.PUBLIC_ACTIVATION_WEB_URL = "https://nirman-mobileapp-web.vercel.app/";
+      process.env.PUBLIC_ACTIVATION_WEB_URL =
+        "https://nirman-mobileapp-web.vercel.app/";
       expect(service["webActivationUrl"]("test/token")).toBe(
         "https://nirman-mobileapp-web.vercel.app/activate?token=test%2Ftoken",
       );
@@ -209,6 +214,25 @@ describe("OrganizationOnboardingService", () => {
         roleName: "Site Supervisor",
       }),
     );
+  });
+
+  it("rotates a pending Owner invitation into a fresh manual activation link", async () => {
+    onboardingRepo.rotatePendingOwnerInvitation.mockResolvedValue(
+      invitationRow(),
+    );
+
+    const result = await service.rotateOwnerActivationLink(
+      "organization-id",
+      platformActor,
+    );
+
+    expect(onboardingRepo.rotatePendingOwnerInvitation).toHaveBeenCalledWith(
+      "organization-id",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.any(Date),
+    );
+    expect(result.invitation.activationUrl).toContain("/activate?token=");
+    expect(result.invitation.deliveryStatus).toBe("MANUAL");
   });
 
   it("rejects an expired invitation before activation", async () => {

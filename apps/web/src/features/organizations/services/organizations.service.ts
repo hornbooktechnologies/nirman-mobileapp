@@ -6,6 +6,7 @@ import type {
   OrganizationMemberInvitationResponse,
   OrganizationMemberRole,
   OrganizationOnboardingResponse,
+  OwnerActivationLinkResponse,
   OrganizationMember,
   SwitchOrganizationResponse,
   UpdateOrganizationInput,
@@ -23,6 +24,11 @@ export const organizationsService = {
     return api.post<OrganizationOnboardingResponse, CreateOrganizationInput>(
       "/organizations",
       input,
+    );
+  },
+  ownerActivationLink(organizationId: string) {
+    return api.post<OwnerActivationLinkResponse>(
+      `/organizations/${encodeURIComponent(organizationId)}/owner-activation-link`,
     );
   },
   updateOrganization(id: string, input: UpdateOrganizationInput) {

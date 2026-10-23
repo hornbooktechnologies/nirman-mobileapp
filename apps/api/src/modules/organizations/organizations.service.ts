@@ -43,6 +43,18 @@ export class OrganizationsService {
     return this.onboarding.createOrganizationWithOwner(dto, actor);
   }
 
+  async ownerActivationLink(organizationId: string, actor: AuthenticatedUser) {
+    if (!isPlatformUser(actor)) {
+      throw new ForbiddenException(
+        "Only a platform administrator can refresh an Owner activation link",
+      );
+    }
+    assertPlatformPermission(actor, "platform-organizations:create");
+    const organization = await this.organizationsRepo.findById(organizationId);
+    if (!organization) throw new NotFoundException("Organization not found");
+    return this.onboarding.rotateOwnerActivationLink(organizationId, actor);
+  }
+
   async findById(organizationId: string, actor: AuthenticatedUser) {
     if (isPlatformUser(actor)) {
       assertPlatformPermission(actor, "platform-organizations:read");

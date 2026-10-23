@@ -2,10 +2,11 @@ export type ContactEnquiry = {
   name: string
   phone: string
   email: string
+  organizationType: 'BUILDER' | 'CONTRACTOR'
   message: string
 }
 
-export const EMAIL_LOGO_CID = 'nirmansite-logo@hornbooktechnologies.com'
+export const EMAIL_LOGO_CID = 'nirmansite-logo@nirmansite.com'
 const logo = `<img src="cid:${EMAIL_LOGO_CID}" alt="NirmanSite" width="190" style="display:block;width:190px;max-width:100%;height:auto;margin:0 auto;border:0;">`
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({
@@ -16,6 +17,7 @@ export function buildContactEnquiryEmail(enquiry: ContactEnquiry, receivedAt = n
   const name = escapeHtml(enquiry.name)
   const phone = escapeHtml(enquiry.phone || 'Not provided')
   const email = escapeHtml(enquiry.email || 'Not provided')
+  const organizationType = enquiry.organizationType === 'BUILDER' ? 'Builder' : 'Contractor'
   const message = escapeHtml(enquiry.message || 'Not provided').replace(/\r?\n/g, '<br>')
   const received = receivedAt.toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short',
@@ -30,6 +32,7 @@ export function buildContactEnquiryEmail(enquiry: ContactEnquiry, receivedAt = n
     `Name: ${enquiry.name}`,
     `Mobile: ${enquiry.phone || 'Not provided'}`,
     `Email: ${enquiry.email || 'Not provided'}`,
+    `Organization type: ${organizationType}`,
     '',
     'WHAT THEY NEED',
     enquiry.message || 'Not provided',
@@ -59,6 +62,7 @@ export function buildContactEnquiryEmail(enquiry: ContactEnquiry, receivedAt = n
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border-top:1px solid #ebe6df;">
             <tr><td style="width:112px;padding:17px 12px 17px 0;border-bottom:1px solid #ebe6df;font-size:12px;font-weight:700;color:#756b62;vertical-align:top;">EMAIL</td><td style="padding:17px 0;border-bottom:1px solid #ebe6df;font-size:15px;font-weight:600;line-height:1.4;color:#2a211b;word-break:break-word;">${email}</td></tr>
             <tr><td style="width:112px;padding:17px 12px 17px 0;border-bottom:1px solid #ebe6df;font-size:12px;font-weight:700;color:#756b62;vertical-align:top;">MOBILE</td><td style="padding:17px 0;border-bottom:1px solid #ebe6df;font-size:15px;font-weight:600;line-height:1.4;color:#2a211b;">${phone}</td></tr>
+            <tr><td style="width:112px;padding:17px 12px 17px 0;border-bottom:1px solid #ebe6df;font-size:12px;font-weight:700;color:#756b62;vertical-align:top;">TYPE</td><td style="padding:17px 0;border-bottom:1px solid #ebe6df;font-size:15px;font-weight:600;line-height:1.4;color:#2a211b;">${organizationType}</td></tr>
           </table>
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:26px;background:#f7f5ef;border-left:4px solid #676f4b;border-radius:0 10px 10px 0;">
             <tr><td style="padding:19px 21px 21px;">
@@ -85,6 +89,7 @@ export function buildContactThankYouEmail(enquiry: ContactEnquiry) {
     `Hi ${firstName},`,
     '',
     'Thank you for reaching out to NirmanSite. We received your enquiry, and our team will review it and contact you using the details you shared.',
+    `Organization type: ${enquiry.organizationType === 'BUILDER' ? 'Builder' : 'Contractor'}`,
     '',
     'If you need to add anything, reply to this email.',
     '',
@@ -108,6 +113,7 @@ export function buildContactThankYouEmail(enquiry: ContactEnquiry) {
         <tr><td style="background:#fff;padding:32px 36px 34px;border:1px solid #ece7dd;border-top:0;border-radius:0 0 22px 22px;">
           <p style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-size:27px;line-height:1.2;color:#2a211b;">We have your enquiry.</p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#554b43;">Thank you for contacting NirmanSite. Our team will review your note and get in touch using the details you shared.</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#554b43;"><strong>Organization type:</strong> ${enquiry.organizationType === 'BUILDER' ? 'Builder' : 'Contractor'}</p>
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:25px 0;background:#f7f5ef;border-left:4px solid #676f4b;border-radius:0 10px 10px 0;"><tr><td style="padding:18px 21px;font-size:14px;line-height:1.6;color:#3b322b;">Need to add something? Simply reply to this email.</td></tr></table>
           <p style="margin:0;font-size:15px;line-height:1.7;color:#554b43;">The NirmanSite team</p>
         </td></tr>

@@ -105,6 +105,11 @@ export interface OrganizationOnboardingResponse {
   };
 }
 
+export interface OwnerActivationLinkResponse {
+  organization: { id: string; name: string };
+  invitation: OrganizationOnboardingResponse["invitation"];
+}
+
 export interface UpdateOrganizationInput {
   name?: string;
   status?: OrganizationStatus;

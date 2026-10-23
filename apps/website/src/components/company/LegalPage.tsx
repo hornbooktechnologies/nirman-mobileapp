@@ -93,8 +93,8 @@ export function LegalPage({
             ))}
             <p className="mt-9 text-[16px] font-medium text-ink/75">
               Questions?{' '}
-              <a href="mailto:contact@hornbooktechnologies.com" className="font-bold text-copper-700 underline decoration-copper/40 underline-offset-2 hover:decoration-copper">
-                contact@hornbooktechnologies.com
+              <a href="mailto:contact@nirmansite.com" className="font-bold text-copper-700 underline decoration-copper/40 underline-offset-2 hover:decoration-copper">
+                contact@nirmansite.com
               </a>
             </p>
             <Link href="/contact" className="mt-4 inline-flex items-center gap-2 text-[16px] font-bold text-coffee transition-colors hover:text-copper-700">

@@ -21,6 +21,7 @@ describe("OrganizationsService", () => {
   } as unknown as jest.Mocked<ProjectAccessService>;
   const onboarding = {
     createOrganizationMemberInvitation: jest.fn(),
+    rotateOwnerActivationLink: jest.fn(),
   } as unknown as jest.Mocked<OrganizationOnboardingService>;
   const service = new OrganizationsService(
     organizationsRepo,
@@ -111,6 +112,31 @@ describe("OrganizationsService", () => {
       "Organization Owner",
       "Site Supervisor",
     ]);
+  });
+
+  it("refreshes a draft organization's Owner activation link for a platform administrator", async () => {
+    const platformActor: AuthenticatedUser = {
+      ...actor,
+      roleName: "Platform Super Admin",
+      permissions: [{ resource: "platform-organizations", action: "create" }],
+    };
+    organizationsRepo.findById.mockResolvedValue(
+      organizationAccess("Organization Owner").organization as never,
+    );
+    onboarding.rotateOwnerActivationLink.mockResolvedValue({
+      invitation: { activationUrl: "https://app.example/activate?token=new" },
+    } as never);
+
+    const result = await service.ownerActivationLink(
+      organizationId,
+      platformActor,
+    );
+
+    expect(result.invitation.activationUrl).toContain("token=new");
+    expect(onboarding.rotateOwnerActivationLink).toHaveBeenCalledWith(
+      organizationId,
+      platformActor,
+    );
   });
 
   it("prevents a non-owner administrator from inviting another Owner", async () => {

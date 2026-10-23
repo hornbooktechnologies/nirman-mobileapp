@@ -77,4 +77,13 @@ export class WebsiteEnquiriesController {
     const data = await this.service.convert(enquiryId, dto, user);
     return { success: true, message: "Website enquiry converted", data };
   }
+
+  @Post(":enquiryId/activation-link")
+  async activationLink(
+    @Param("enquiryId") enquiryId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.service.activationLink(enquiryId, user);
+    return { success: true, message: "Owner activation link refreshed", data };
+  }
 }
