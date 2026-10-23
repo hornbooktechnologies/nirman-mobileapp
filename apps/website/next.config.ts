@@ -11,8 +11,9 @@ const nextConfig: NextConfig = {
       headers: [{ key: 'X-Robots-Tag', value: 'noindex, follow' }],
     }]
   },
-  outputFileTracingIncludes: {
-    '/api/contact': ['./src/assets/brand/horizontal-logo.png'],
+  async rewrites() {
+    const api = (process.env.API_BASE_URL || 'http://localhost:4000/api/v1').replace(/\/$/, '')
+    return [{ source: '/api/contact', destination: `${api}/public/contact` }]
   },
   images: {
     // app screenshots carry small UI text, so they are served at a higher quality than the default 75

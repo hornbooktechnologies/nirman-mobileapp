@@ -19,8 +19,8 @@ async function main() {
       { expiresIn: "3m" },
     );
     for (const base of [
-      "https://nirman-mobileapp-web.vercel.app/api/v1",
-      "https://nirman-mobileapp-api.vercel.app/api/v1",
+      "https://api.nirmansite.com/api/v1",
+      "https://api.nirmansite.com/api/v1",
       "http://127.0.0.1:4000/api/v1",
     ]) {
       try {

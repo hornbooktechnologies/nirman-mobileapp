@@ -1,3 +1,4 @@
+import { publicAccountLink, mobileAccountLink } from "../../common/public-app-links";
 import {
   BadRequestException,
   ConflictException,
@@ -365,20 +366,11 @@ export class OrganizationOnboardingService {
   }
 
   private webActivationUrl(token: string) {
-    const configuredBase =
-      process.env.PUBLIC_ACTIVATION_WEB_URL?.trim() ||
-      process.env.PUBLIC_WEB_APP_URL?.trim() ||
-      "https://nirman-mobileapp-web.vercel.app";
-    return `${configuredBase.replace(/\/$/, "")}/activate?token=${encodeURIComponent(token)}`;
+    return publicAccountLink("activate", token);
   }
 
   private mobileActivationUrl(token: string) {
-    const expoGoProjectUrl = process.env.EXPO_GO_PROJECT_URL?.trim();
-    if (expoGoProjectUrl && process.env.NODE_ENV !== "production") {
-      return `${expoGoProjectUrl.replace(/\/$/, "")}/--/activate?token=${encodeURIComponent(token)}`;
-    }
-    const scheme = process.env.MOBILE_APP_SCHEME ?? "nirmansite";
-    return `${scheme}://activate?token=${encodeURIComponent(token)}`;
+    return mobileAccountLink("activate", token);
   }
 
   private isDuplicateEntryError(error: unknown) {

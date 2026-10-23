@@ -42,6 +42,8 @@ ENV NEXT_PUBLIC_API_BASE_PATH=/api/v1
 RUN pnpm --filter @nirman-app/web... build
 
 FROM workspace AS website-build
+ARG API_INTERNAL_URL=http://api:4000
+ENV API_BASE_URL=$API_INTERNAL_URL/api/v1
 ARG WEBSITE_PUBLIC_URL=https://nirmansite.com
 ARG WEBSITE_INDEXING_ENABLED=true
 ENV NEXT_PUBLIC_SITE_URL=$WEBSITE_PUBLIC_URL

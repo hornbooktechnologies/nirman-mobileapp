@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 // Local development should set NEXT_PUBLIC_API_URL=http://localhost:4000
-// in .env.local so newly implemented routes reach the local API.
+// in the root .env so newly implemented routes reach the local API.
 // Older configurations used an absolute browser base path. Treat it as
 // the proxy upstream so existing remote API configurations still work.
 const configuredBasePath = process.env.NEXT_PUBLIC_API_BASE_PATH;

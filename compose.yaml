@@ -32,10 +32,12 @@ services:
       DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env.production}
-      WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?Set WEBSITE_ENQUIRY_INGEST_KEY in .env.production}
+      WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:-}
       FRONTEND_URL: https://app.nirmansite.com,https://nirmansite.com
+      WEBSITE_URL: https://nirmansite.com
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-contact@nirmansite.com}
       PUBLIC_WEB_APP_URL: https://app.nirmansite.com
-      PUBLIC_ACTIVATION_WEB_URL: https://nirmansite.com/activate
+      PUBLIC_ACTIVATION_WEB_URL: https://app.nirmansite.com
       MOBILE_APP_SCHEME: ${MOBILE_APP_SCHEME:-nirmansite}
       SMTP_HOST: ${API_SMTP_HOST:-}
       SMTP_PORT: ${API_SMTP_PORT:-587}
@@ -111,16 +113,8 @@ services:
     environment:
       NODE_ENV: production
       API_BASE_URL: http://api:4000/api/v1
-      WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?Set WEBSITE_ENQUIRY_INGEST_KEY in .env.production}
       NEXT_PUBLIC_SITE_URL: https://nirmansite.com
       SITE_INDEXING_ENABLED: "true"
-      SMTP_HOST: ${WEBSITE_SMTP_HOST:-}
-      SMTP_PORT: ${WEBSITE_SMTP_PORT:-465}
-      SMTP_SECURE: ${WEBSITE_SMTP_SECURE:-true}
-      SMTP_USER: ${WEBSITE_SMTP_USER:-}
-      SMTP_PASS: ${WEBSITE_SMTP_PASS:-}
-      SMTP_FROM: ${WEBSITE_SMTP_FROM:-}
-      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-contact@nirmansite.com}
     depends_on:
       api:
         condition: service_healthy

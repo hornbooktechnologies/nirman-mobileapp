@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { validateRequiredEnv } from './config/env';
+import { contactWebsiteOrigin } from './common/public-website-origin';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -22,7 +23,7 @@ function getAllowedOrigins() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...(configured ?? [])]));
+  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, contactWebsiteOrigin(), ...(configured ?? [])]));
 }
 
 async function bootstrap() {

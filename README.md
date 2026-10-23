@@ -37,6 +37,12 @@ pnpm --filter @nirman-app/shared build
 pnpm dev
 ```
 
+All four local apps read one root `.env`. Fill its credentials before starting.
+For the separate API/Web/Website/Mobile startup commands, phone configuration,
+and activation/email checks, follow [Local environment setup](docs/development/local-environment.md).
+Do not create app-level environment overrides. Existing local files were backed
+up to the ignored `.env-backups/` directory during consolidation.
+
 Do not run Prisma database commands for new NirmanSite work. Use the API-local mysql2 migration and seed commands only after confirming a safe local or throwaway database target:
 
 ```bash

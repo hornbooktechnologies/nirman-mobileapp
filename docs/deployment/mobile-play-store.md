@@ -51,3 +51,25 @@ deobfuscating native crash reports after R8 is enabled.
 
 The Play Console store listing icon/screenshots are managed separately from the
 launcher assets bundled by Expo.
+
+## Invitation and password email links
+
+Deploy API and Web together for `/open-app`. Production account URLs are rooted
+at `https://app.nirmansite.com`; set `PUBLIC_WEB_APP_URL` and
+`PUBLIC_ACTIVATION_WEB_URL` to that origin (without `/activate`).
+The API also enforces this canonical origin in production to prevent stale
+Vercel/localhost links. Previously delivered emails cannot be rewritten;
+regenerate activation links or request a fresh password reset after rollout.
+
+The HTTPS mobile landing page requires a user tap. On Android, it targets
+`com.hornbook.nirmansite` via `nirmansite://activate?token=...` (or
+`reset-password`) and falls back to the Play Store when the intent cannot be
+opened. Browser completion and a direct store link remain available. After
+installation, return to the email link. In-app email browsers may require
+opening the page in Chrome. This uses the existing custom scheme, not verified
+HTTPS App Links; no signing certificate or assetlinks deployment is required.
+
+Before acceptance, test a fresh owner and member invitation on the installed
+Play build, plus a password reset, a device without the app, an expired token,
+and browser-only completion. Updated mobile token handling requires a new
+mobile release. Keep `EXPO_GO_PROJECT_URL` unset in production.

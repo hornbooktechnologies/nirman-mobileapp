@@ -33,6 +33,14 @@ Create folders only when they have a real consumer. Add `hooks`, `providers`, or
 
 ## Dependency rules
 
+The contact workflow is API-owned. The browser posts to `/api/contact`, a Next.js
+rewrite to `${API_BASE_URL}/public/contact`; no Next.js API route implements it.
+`apps/api` validates, saves through the existing enquiry repository, then sends
+the team notification and customer acknowledgement through `EmailService`.
+The website holds neither SMTP credentials nor the legacy ingestion secret.
+Activation Server Actions remain frontend API adapters; invitation validity,
+password acceptance and account mutation are owned by NestJS.
+
 1. `app` composes features and shared components; it should contain little business or content logic.
 2. `features` own their content models, feature components, and data access entry points.
 3. `components/ui` and `components/layout` must not import from features.
