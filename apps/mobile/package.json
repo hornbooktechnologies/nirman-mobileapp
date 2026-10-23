@@ -8,15 +8,15 @@
   },
   "scripts": {
     "postinstall": "cd ../.. && pnpm --filter @nirman-app/shared build",
-    "start": "expo start",
-    "start:lan": "expo start --lan --clear --max-workers 2",
-    "start:tunnel": "expo start --tunnel --clear --max-workers 2",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start",
+    "start:lan": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start --lan --clear --max-workers 2",
+    "start:tunnel": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start --tunnel --clear --max-workers 2",
+    "android": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start --android",
+    "ios": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start --ios",
+    "web": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli start --web",
     "type-check": "tsc --noEmit",
     "validate:locales": "node ./scripts/validate-locales.mjs",
-    "export:android": "expo export --platform android --clear --max-workers 2",
+    "export:android": "node --require ../../scripts/load-root-env.cjs ./node_modules/expo/bin/cli export --platform android --clear --max-workers 2",
     "release:check": "pnpm type-check && pnpm validate:locales && pnpm export:android"
   },
   "dependencies": {

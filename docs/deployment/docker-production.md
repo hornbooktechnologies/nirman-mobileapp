@@ -42,6 +42,15 @@ bash deploy/setup-production-env.sh
 
 The setup script generates independent database, JWT, refresh-token, and website-enquiry secrets without printing them. It refuses to overwrite an already configured production file. Add the SMTP, S3, and Expo credentials that are enabled for the deployment; keep `NOTIFICATIONS_PUSH_ENABLED=false` until `EXPO_ACCESS_TOKEN` is configured.
 
+Contact submissions are handled by the API at `/api/v1/public/contact`. Configure
+one API SMTP account (`API_SMTP_*`/`API_MAIL_FROM_*`) and `CONTACT_TO_EMAIL`;
+the website no longer receives SMTP credentials. Saved Admin Email Settings
+override the API's environment fallback. The API's `WEBSITE_URL` is the exact
+marketing origin (`https://nirmansite.com` in Compose). Rebuild and deploy API and
+Website together: Docker bakes the website's `/api/contact` rewrite against the
+internal `http://api:4000/api/v1` upstream. No database migration is introduced by
+this contact migration. See [contact API ownership](../architecture/website-contact-api.md).
+
 The real `.env.production` is ignored by Git. Restrict it to the deployment account (`chmod 600 .env.production` on Linux).
 
 ## 3. Create the Coolify application

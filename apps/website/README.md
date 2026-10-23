@@ -34,11 +34,19 @@ pnpm --filter @nirman-app/website verify:activation    # mocked contract checks 
 
 | Name | Used by | Notes |
 | --- | --- | --- |
-| `API_BASE_URL` | `/activate` (server only) | e.g. `https://api.nirmansite.com/api/v1` |
+| `API_BASE_URL` | Contact proxy and activation API adapter (server only) | e.g. `https://api.nirmansite.com/api/v1`; set before building |
 | `NEXT_PUBLIC_SITE_URL` | deployment/indexing gate | Set to `https://nirmansite.com` at live launch; staging keeps its own URL |
 | `SITE_INDEXING_ENABLED` | SEO metadata, headers and sitemap | Defaults off; keep `false` on staging and enable only for the live domain |
 
 See [SEO and search launch](docs/website/10-seo-and-search-launch.md) for staging safeguards, live launch steps and rendered SEO checks. Analytics and Google account setup follow live launch.
+
+Contact validation, persistence and SMTP delivery live in `apps/api`. This
+frontend posts through the `/api/contact` rewrite and needs no SMTP secrets.
+Configure the API's `WEBSITE_URL` to this website's exact public origin and use
+the root `API_SMTP_*` settings (or saved Admin Email Settings) for all emails.
+Docker builds the proxy against the internal API service; separate hosting must
+set `API_BASE_URL=https://api.nirmansite.com/api/v1` at build time and rebuild
+when that upstream changes.
 
 ## Where things live
 

@@ -6,12 +6,21 @@ const MIN_SECRET_LENGTH = 32;
 
 export function loadEnv() {
   const candidates = [
-    resolve(process.cwd(), '.env'),
     resolve(process.cwd(), '../../.env'),
+    resolve(process.cwd(), '.env'),
   ];
 
   const envFile = candidates.find((candidate) => existsSync(candidate));
   if (envFile) config({ path: envFile });
+  // Namespaced root/Compose settings map to the API's existing SMTP interface.
+  for (const key of [
+    'SMTP_HOST', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD',
+    'SMTP_ENCRYPTION', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME',
+  ]) {
+    if (process.env[key] === undefined && process.env[`API_${key}`] !== undefined) {
+      process.env[key] = process.env[`API_${key}`];
+    }
+  }
 }
 
 export function validateRequiredEnv() {

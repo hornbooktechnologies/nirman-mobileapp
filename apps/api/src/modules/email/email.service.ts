@@ -3,6 +3,11 @@ import type { InvitationDeliveryStatus } from "@nirman-app/shared";
 import nodemailer from "nodemailer";
 import { SettingsService } from "../settings/settings.service";
 import {
+  buildContactEnquiryEmail,
+  buildContactThankYouEmail,
+  type ContactEnquiry,
+} from "./contact-email.template";
+import {
   buildOrganizationOwnerInvitationEmail,
   type OrganizationOwnerInvitationEmailInput,
 } from "./invitation-email.template";
@@ -21,6 +26,65 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly settingsService: SettingsService) {}
+
+  async sendContactEmails(enquiry: ContactEnquiry) {
+    const result = { teamEmailSent: false, confirmationEmailSent: false };
+    try {
+      const smtp = this.resolveSmtpSettings(
+        (await this.settingsService.getAll()).email,
+      );
+      if (!smtp) return result;
+      const to = process.env.CONTACT_TO_EMAIL?.trim() || smtp.fromAddress;
+      const transport = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        requireTLS: smtp.requireTls,
+        auth: smtp.username
+          ? { user: smtp.username, pass: smtp.password }
+          : undefined,
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 15_000,
+      });
+      try {
+        const deliveries = [
+          {
+            flag: "teamEmailSent" as const,
+            to,
+            replyTo: enquiry.email,
+            ...buildContactEnquiryEmail(enquiry),
+          },
+          {
+            flag: "confirmationEmailSent" as const,
+            to: enquiry.email,
+            replyTo: to,
+            ...buildContactThankYouEmail(enquiry),
+          },
+        ];
+        for (const { flag, ...mail } of deliveries) {
+          try {
+            await transport.sendMail({
+              from: { name: smtp.fromName, address: smtp.fromAddress },
+              ...mail,
+            });
+            result[flag] = true;
+          } catch {
+            this.logger.warn(
+              `Website contact ${flag} delivery failed; enquiry remains saved`,
+            );
+          }
+        }
+      } finally {
+        transport.close();
+      }
+    } catch {
+      this.logger.warn(
+        "Website contact email configuration unavailable; enquiry remains saved",
+      );
+    }
+    return result;
+  }
 
   async sendOrganizationOwnerInvitation(
     invitationId: string,

@@ -33,7 +33,7 @@ import { BrochuresModule } from "./modules/brochures/brochures.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [".env", "../../.env"],
+      envFilePath: ["../../.env"],
     }),
     DatabaseModule,
     PdfExportModule,
