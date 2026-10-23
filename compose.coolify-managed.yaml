@@ -19,6 +19,7 @@ services:
   migration:
     build:
       context: .
+      dockerfile: apps/api/Dockerfile
       target: tools
     restart: "no"
     exclude_from_hc: true
@@ -40,7 +41,8 @@ services:
   api:
     build:
       context: .
-      target: api
+      dockerfile: apps/api/Dockerfile
+      target: runtime
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -82,9 +84,10 @@ services:
   web:
     build:
       context: .
-      target: web
+      dockerfile: apps/web/Dockerfile
+      target: runtime
       args:
-        API_INTERNAL_URL: http://api:4000
+        API_INTERNAL_URL: https://api.nirmansite.com
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -102,8 +105,10 @@ services:
   website:
     build:
       context: .
-      target: website
+      dockerfile: apps/website/Dockerfile
+      target: runtime
       args:
+        API_INTERNAL_URL: https://api.nirmansite.com
         WEBSITE_PUBLIC_URL: https://nirmansite.com
         WEBSITE_INDEXING_ENABLED: "true"
     restart: unless-stopped

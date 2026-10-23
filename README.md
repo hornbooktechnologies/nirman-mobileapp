@@ -61,7 +61,7 @@ Default local URLs:
 
 ## Production Deployment
 
-The repository includes Docker Compose deployment for these public hosts:
+The repository includes independently deployable Coolify/Docker Compose services for these public hosts:
 
 - `nirmansite.com` -> `apps/website`
 - `app.nirmansite.com` -> `apps/web`

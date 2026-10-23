@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": ["dist/**", ".next/**"],
+      "env": [
+        "API_BASE_URL",
+        "NEXT_PUBLIC_API_BASE_PATH",
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_SITE_URL",
+        "SITE_INDEXING_ENABLED"
+      ]
     },
 
     "dev": {
