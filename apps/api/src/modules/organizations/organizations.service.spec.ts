@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { ForbiddenException } from "@nestjs/common";
+import { ConflictException, ForbiddenException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { OrganizationOnboardingService } from "./organization-onboarding.service";
@@ -22,6 +22,7 @@ describe("OrganizationsService", () => {
   const onboarding = {
     createOrganizationMemberInvitation: jest.fn(),
     rotateOwnerActivationLink: jest.fn(),
+    rotateMemberActivationLink: jest.fn(),
   } as unknown as jest.Mocked<OrganizationOnboardingService>;
   const service = new OrganizationsService(
     organizationsRepo,
@@ -186,6 +187,48 @@ describe("OrganizationsService", () => {
       actor,
       "Site Supervisor",
     );
+  });
+
+  it("refreshes an invited member activation link after tenant authorization", async () => {
+    organizationsRepo.findMemberById.mockResolvedValue({
+      ...organizationAccess("Site Supervisor").membership,
+      id: "invited-member-id",
+      status: "INVITED",
+    } as never);
+    onboarding.rotateMemberActivationLink.mockResolvedValue({
+      member: { id: "invited-member-id" },
+      invitation: { activationUrl: "https://app.example/activate?token=new" },
+    } as never);
+
+    const result = await service.memberActivationLink(
+      organizationId,
+      "invited-member-id",
+      actor,
+    );
+
+    expect(projectAccess.resolveOrganizationAccess).toHaveBeenCalledWith(
+      actor,
+      organizationId,
+      "members:invite",
+    );
+    expect(onboarding.rotateMemberActivationLink).toHaveBeenCalledWith(
+      organizationId,
+      "invited-member-id",
+    );
+    expect(result.invitation.activationUrl).toContain("token=new");
+  });
+
+  it("does not generate an activation link for an active member", async () => {
+    organizationsRepo.findMemberById.mockResolvedValue({
+      ...organizationAccess("Site Supervisor").membership,
+      id: "active-member-id",
+      status: "ACTIVE",
+    } as never);
+
+    await expect(
+      service.memberActivationLink(organizationId, "active-member-id", actor),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(onboarding.rotateMemberActivationLink).not.toHaveBeenCalled();
   });
 
   it("prevents a member from changing their own organization role", async () => {

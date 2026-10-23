@@ -18,6 +18,7 @@ describe("OrganizationOnboardingService", () => {
     createOrganizationWithOwner: jest.fn(),
     createOrganizationMemberInvitation: jest.fn(),
     rotatePendingOwnerInvitation: jest.fn(),
+    rotatePendingMemberInvitation: jest.fn(),
     findInvitationByTokenHash: jest.fn(),
     acceptInvitation: jest.fn(),
   } as unknown as jest.Mocked<OrganizationOnboardingRepository>;
@@ -235,6 +236,37 @@ describe("OrganizationOnboardingService", () => {
     expect(result.invitation.deliveryStatus).toBe("MANUAL");
   });
 
+  it("rotates a pending member invitation into a fresh manual activation link", async () => {
+    onboardingRepo.rotatePendingMemberInvitation.mockResolvedValue(
+      invitationRow({
+        membership_id: "member-id",
+        user_name: "Sahil Supervisor",
+        user_email: "sahil@example.test",
+        role_name: "Site Supervisor",
+      }),
+    );
+
+    const result = await service.rotateMemberActivationLink(
+      "organization-id",
+      "member-id",
+    );
+
+    expect(onboardingRepo.rotatePendingMemberInvitation).toHaveBeenCalledWith(
+      "organization-id",
+      "member-id",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.any(Date),
+    );
+    expect(result.member).toEqual({
+      id: "member-id",
+      name: "Sahil Supervisor",
+      email: "sahil@example.test",
+      roleName: "Site Supervisor",
+    });
+    expect(result.invitation.activationUrl).toContain("/activate?token=");
+    expect(result.invitation.deliveryStatus).toBe("MANUAL");
+  });
+
   it("rejects an expired invitation before activation", async () => {
     onboardingRepo.findInvitationByTokenHash.mockResolvedValue(
       invitationRow({ expires_at: new Date(Date.now() - 1_000) }),
@@ -293,6 +325,10 @@ function invitationRow(
     expires_at?: Date;
     requires_password_setup?: number | boolean;
     user_is_active?: number | boolean;
+    membership_id?: string;
+    user_name?: string;
+    user_email?: string;
+    role_name?: string;
   } = {},
 ): InvitationRow {
   return {

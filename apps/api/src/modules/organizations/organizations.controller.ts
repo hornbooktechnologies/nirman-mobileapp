@@ -127,6 +127,20 @@ export class OrganizationsController {
     return { success: true, message: "Organization member invited", data };
   }
 
+  @Post(":organizationId/members/:memberId/activation-link")
+  async memberActivationLink(
+    @Param("organizationId") organizationId: string,
+    @Param("memberId") memberId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const data = await this.organizationsService.memberActivationLink(
+      organizationId,
+      memberId,
+      user,
+    );
+    return { success: true, message: "Member activation link refreshed", data };
+  }
+
   @Patch(":organizationId/members/:memberId")
   async updateMember(
     @Param("organizationId") organizationId: string,

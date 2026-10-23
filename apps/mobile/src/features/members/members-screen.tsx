@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, Share, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
@@ -37,6 +37,7 @@ import {
 import { useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { MemberProjectAssignmentsSheet } from "./member-project-assignments-sheet";
+import { MemberActivationSheet } from "./member-activation-sheet";
 import {
   deactivateOrganizationMember,
   fetchOrganizationMemberRoles,
@@ -44,6 +45,7 @@ import {
   fetchOrganizationProjectAssignments,
   fetchOrganizationSubscriptionSummary,
   inviteOrganizationMember,
+  refreshOrganizationMemberActivationLink,
   saveMemberProjectAssignments,
   updateOrganizationMember,
 } from "./services";
@@ -75,12 +77,6 @@ const subscriptionStatusTranslationKeys = {
   SUSPENDED: "subscriptionStatus.SUSPENDED",
   EXPIRED: "subscriptionStatus.EXPIRED",
   CANCELLED: "subscriptionStatus.CANCELLED",
-} as const;
-
-const deliveryStatusTranslationKeys = {
-  EMAIL_SENT: "deliveryStatus.EMAIL_SENT",
-  EMAIL_FAILED: "deliveryStatus.EMAIL_FAILED",
-  MANUAL: "deliveryStatus.MANUAL",
 } as const;
 
 export function MembersScreen() {
@@ -116,6 +112,11 @@ export function MembersScreen() {
   );
   const [invitationResult, setInvitationResult] =
     useState<OrganizationMemberInvitationResponse | null>(null);
+  const [invitationMember, setInvitationMember] = useState<{
+    name: string;
+    email: string;
+    roleName: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!session?.accessToken || !organizationId) return;
@@ -276,6 +277,31 @@ export function MembersScreen() {
     }
   }
 
+  async function showActivationLink(member: OrganizationMember) {
+    if (!session?.accessToken || !organizationId) return;
+    setSaving(true);
+    try {
+      const result = await refreshOrganizationMemberActivationLink(
+        organizationId,
+        member.id,
+        session.accessToken,
+      );
+      setActionMember(null);
+      setInvitationMember(result.member);
+      setInvitationResult({
+        membership: member,
+        invitation: result.invitation,
+      });
+    } catch (actionError) {
+      Alert.alert(
+        t("invitation.unavailableTitle"),
+        getLocalizedErrorMessage(actionError, t("errors.generic")),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function projectScopeLabel(member: OrganizationMember) {
     if (member.organizationWideProjectAccess) return t("screen.allProjects");
     const count = assignmentCounts.get(member.id) ?? 0;
@@ -394,6 +420,7 @@ export function MembersScreen() {
               const hasActions =
                 canUpdate ||
                 canDeactivate ||
+                (canInvite && member.status === "INVITED") ||
                 (canAssignProjects && member.status === "ACTIVE");
               const memberName = member.user?.name ?? t("screen.invitedMember");
               const roleName = member.role?.name ?? t("screen.noRole");
@@ -458,6 +485,13 @@ export function MembersScreen() {
                 input,
               );
               setShowInvite(false);
+              setInvitationMember({
+                name: input.name,
+                email: input.email,
+                roleName:
+                  roles.find((role) => role.id === input.roleId)?.name ??
+                  t("actions.organizationMember"),
+              });
               setInvitationResult(result);
               await load();
             } finally {
@@ -540,6 +574,15 @@ export function MembersScreen() {
               }}
             />
           ) : null}
+          {canInvite && actionMember.status === "INVITED" ? (
+            <ActionListItem
+              icon="link-variant"
+              label={t("actions.activationLink")}
+              tone="info"
+              disabled={saving}
+              onPress={() => void showActivationLink(actionMember)}
+            />
+          ) : null}
           {canUpdate &&
           ["INACTIVE", "SUSPENDED"].includes(actionMember.status) ? (
             <ActionListItem
@@ -564,39 +607,15 @@ export function MembersScreen() {
         </BottomSheet>
       ) : null}
 
-      {invitationResult ? (
-        <BottomSheet
-          visible
-          title={t("invitation.createdTitle")}
-          description={t("invitation.createdDescription")}
-          onClose={() => setInvitationResult(null)}
-        >
-          <Card variant="blueprint" style={styles.resultCard}>
-            <StatusBadge
-              label={t(
-                deliveryStatusTranslationKeys[
-                  invitationResult.invitation.deliveryStatus
-                ],
-              )}
-            />
-            <AppText style={styles.body}>
-              {t("invitation.expires", {
-                date: invitationResult.invitation.expiresAt.slice(0, 10),
-              })}
-            </AppText>
-          </Card>
-          <Button
-            label={t("invitation.share")}
-            variant="info"
-            onPress={() =>
-              void Share.share({
-                message:
-                  invitationResult.invitation.mobileActivationUrl ||
-                  invitationResult.invitation.activationUrl,
-              })
-            }
-          />
-        </BottomSheet>
+      {invitationResult && invitationMember ? (
+        <MemberActivationSheet
+          invitation={invitationResult.invitation}
+          member={invitationMember}
+          onClose={() => {
+            setInvitationResult(null);
+            setInvitationMember(null);
+          }}
+        />
       ) : null}
     </NirmanScreenBackground>
   );

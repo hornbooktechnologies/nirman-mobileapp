@@ -6,8 +6,8 @@
     "membersCount_one": "सदस्य {{count}}",
     "membersCount_other": "सदस्य {{count}}",
     "workers": "श्रमिक",
-    "searchA11y": "नियुक्त सदस्यों को खोजें",
-    "searchPlaceholder": "नाम, भूमिका या जिम्मेदारी खोजें",
+    "searchA11y": "संगठन सदस्यों को खोजें",
+    "searchPlaceholder": "नाम, भूमिका, पद या प्रोजेक्ट पहुँच खोजें",
     "loading": "प्रोजेक्ट टीम लोड हो रही है",
     "unavailable": "टीम उपलब्ध नहीं है",
     "retry": "फिर प्रयास करें",
@@ -20,7 +20,17 @@
     "noMembersTitle": "कोई प्रोजेक्ट सदस्य नहीं",
     "tryAnotherSearch": "दूसरी खोज आजमाएँ।",
     "noMembersDescription": "इस प्रोजेक्ट में किसी सक्रिय संगठन सदस्य को नियुक्त करें।",
-    "assignMember": "सदस्य नियुक्त करें"
+    "assignMember": "सदस्य नियुक्त करें",
+    "allProjects": "सभी प्रोजेक्ट",
+    "assignedToProject": "प्रोजेक्ट में नियुक्त",
+    "activationPending": "सक्रियकरण लंबित",
+    "notAssigned": "नियुक्त नहीं",
+    "member": "सदस्य",
+    "organizationMember": "संगठन सदस्य",
+    "noDesignation": "कोई पद नहीं"
+  },
+  "activation": {
+    "unavailableTitle": "सक्रियकरण लिंक उपलब्ध नहीं है"
   },
   "confirm": {
     "endTitle": "प्रोजेक्ट नियुक्ति समाप्त करें?",
@@ -102,6 +112,13 @@
     "ACTIVE": "सक्रिय",
     "INACTIVE": "निष्क्रिय",
     "ENDED": "समाप्त"
+  },
+  "organizationStatus": {
+    "INVITED": "आमंत्रित",
+    "ACTIVE": "सक्रिय",
+    "INACTIVE": "निष्क्रिय",
+    "SUSPENDED": "निलंबित",
+    "LEFT": "छोड़ दिया"
   },
   "permissionGroup": {
     "PROJECT": "प्रोजेक्ट",

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { LoadingState, LottieLoader } from "@/components/ui";
 import {
   FolderKanban,
+  KeyRound,
   Pencil,
   Plus,
   UserPlus,
@@ -32,17 +33,20 @@ import { MemberProjectAssignmentDialog } from "@/features/members/components/mem
 import {
   useDeactivateOrganizationMember,
   useInviteOrganizationMember,
+  useOrganizationMemberActivationLink,
   useOrganizationMemberRoles,
   useOrganizationMembers,
   useUpdateOrganizationMember,
 } from "@/features/organizations/hooks/use-organizations";
 import type {
   OrganizationMember,
+  OrganizationMemberActivationLinkResponse,
   OrganizationMemberInvitationResponse,
 } from "@/features/organizations/types/organizations.types";
 import { useOrganizationProjectAssignments } from "@/features/projects/hooks/use-projects";
 import { ApiError } from "@/lib/api/api-client";
 import { AdministrationFilters } from "@/features/administration/administration-filters";
+import { OwnerActivationDialog } from "@/features/organizations/components/owner-activation-dialog";
 
 const memberStatusTone = {
   ACTIVE: "active",
@@ -82,11 +86,14 @@ export function OrganizationMembersPanel({
     canInviteMembers || canUpdateMembers,
   );
   const inviteMember = useInviteOrganizationMember(organizationId);
+  const refreshMemberActivationLink =
+    useOrganizationMemberActivationLink(organizationId);
   const [isInvitingMember, setIsInvitingMember] = useState(false);
   const [assignmentMember, setAssignmentMember] =
     useState<OrganizationMember | null>(null);
-  const [editingMember, setEditingMember] =
-    useState<OrganizationMember | null>(null);
+  const [editingMember, setEditingMember] = useState<OrganizationMember | null>(
+    null,
+  );
   const [deactivatingMember, setDeactivatingMember] =
     useState<OrganizationMember | null>(null);
   const [editForm, setEditForm] = useState({
@@ -107,13 +114,22 @@ export function OrganizationMembersPanel({
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [memberInvitation, setMemberInvitation] =
     useState<OrganizationMemberInvitationResponse | null>(null);
-  const [copiedInvitationLink, setCopiedInvitationLink] = useState(false);
+  const [memberActivation, setMemberActivation] =
+    useState<OrganizationMemberActivationLinkResponse | null>(null);
+  const [activationOpen, setActivationOpen] = useState(false);
+  const [activationNotice, setActivationNotice] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
-  const [memberFilters, setMemberFilters] = useState({ status: "", roleId: "" });
-  const visibleMembers = (members.data ?? []).filter((member) =>
-    (!memberFilters.status || member.status === memberFilters.status) &&
-    (!memberFilters.roleId || member.roleId === memberFilters.roleId) &&
-    `${member.user?.name ?? ""} ${member.user?.email ?? ""} ${member.designation ?? ""}`.toLocaleLowerCase().includes(memberSearch.toLocaleLowerCase()),
+  const [memberFilters, setMemberFilters] = useState({
+    status: "",
+    roleId: "",
+  });
+  const visibleMembers = (members.data ?? []).filter(
+    (member) =>
+      (!memberFilters.status || member.status === memberFilters.status) &&
+      (!memberFilters.roleId || member.roleId === memberFilters.roleId) &&
+      `${member.user?.name ?? ""} ${member.user?.email ?? ""} ${member.designation ?? ""}`
+        .toLocaleLowerCase()
+        .includes(memberSearch.toLocaleLowerCase()),
   );
 
   async function submitMemberInvitation(event: FormEvent<HTMLFormElement>) {
@@ -126,6 +142,20 @@ export function OrganizationMembersPanel({
         designation: inviteForm.designation || undefined,
       });
       setMemberInvitation(result);
+      setMemberActivation({
+        organization: { id: organizationId, name: "" },
+        member: {
+          id: result.membership.id,
+          name: inviteForm.name.trim(),
+          email: inviteForm.email.trim().toLowerCase(),
+          roleName:
+            memberRoles.data?.find((role) => role.id === inviteForm.roleId)
+              ?.name ?? "Organization member",
+        },
+        invitation: result.invitation,
+      });
+      setActivationNotice("");
+      setActivationOpen(true);
       setInviteForm({
         name: "",
         email: "",
@@ -142,12 +172,22 @@ export function OrganizationMembersPanel({
     }
   }
 
-  async function copyMemberInvitationLink() {
-    if (!memberInvitation) return;
-    await navigator.clipboard.writeText(
-      memberInvitation.invitation.activationUrl,
-    );
-    setCopiedInvitationLink(true);
+  async function showMemberActivationLink(member: OrganizationMember) {
+    setActionError(null);
+    try {
+      const result = await refreshMemberActivationLink.mutateAsync(member.id);
+      setMemberActivation(result);
+      setActivationNotice(
+        "A fresh activation link was generated. Any previous pending link is now invalid.",
+      );
+      setActivationOpen(true);
+    } catch (error) {
+      setActionError(
+        error instanceof ApiError
+          ? error.message
+          : "Unable to generate the member activation link",
+      );
+    }
   }
 
   function openEditMember(member: OrganizationMember) {
@@ -171,8 +211,7 @@ export function OrganizationMembersPanel({
             ? {}
             : { roleId: editForm.roleId }),
           designation: editForm.designation.trim() || null,
-          organizationWideProjectAccess:
-            editForm.organizationWideProjectAccess,
+          organizationWideProjectAccess: editForm.organizationWideProjectAccess,
         },
       });
       setEditingMember(null);
@@ -220,8 +259,8 @@ export function OrganizationMembersPanel({
               Organization Members
             </h2>
             <p className="text-[13px] text-sub">
-              Everyone in the organization is listed here, including members
-              who have not yet been assigned to a project.
+              Everyone in the organization is listed here, including members who
+              have not yet been assigned to a project.
             </p>
           </div>
           {canInviteMembers ? (
@@ -244,22 +283,18 @@ export function OrganizationMembersPanel({
             <p className="mt-1 text-[12px] text-sub">
               Delivery: {memberInvitation.invitation.deliveryStatus}. The
               invitation expires{" "}
-              {new Date(
-                memberInvitation.invitation.expiresAt,
-              ).toLocaleString()}
+              {new Date(memberInvitation.invitation.expiresAt).toLocaleString()}
               .
-            </p>
-            <p className="mt-2 break-all text-[12px] text-body">
-              {memberInvitation.invitation.activationUrl}
             </p>
             <Button
               type="button"
               size="sm"
               variant="outline"
               className="mt-2"
-              onClick={copyMemberInvitationLink}
+              onClick={() => setActivationOpen(true)}
             >
-              {copiedInvitationLink ? "Copied Link" : "Copy Activation Link"}
+              <KeyRound size={14} />
+              Show Activation Link
             </Button>
           </div>
         ) : null}
@@ -269,54 +304,69 @@ export function OrganizationMembersPanel({
             className="mb-4 grid gap-3 rounded-inner border border-hairline bg-canvas p-3 md:grid-cols-2"
             onSubmit={submitMemberInvitation}
           >
-            <label className="grid gap-1 text-sm font-medium">Member name<Input
-              placeholder="Member name"
-              value={inviteForm.name}
-              onChange={(event) =>
-                setInviteForm({ ...inviteForm, name: event.target.value })
-              }
-              required
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Login email<Input
-              type="email"
-              placeholder="Login email"
-              value={inviteForm.email}
-              onChange={(event) =>
-                setInviteForm({ ...inviteForm, email: event.target.value })
-              }
-              required
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Mobile number (optional)<Input
-              placeholder="Mobile number (optional)"
-              value={inviteForm.phone}
-              onChange={(event) =>
-                setInviteForm({ ...inviteForm, phone: event.target.value })
-              }
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Organization role<Select
-              value={inviteForm.roleId}
-              onChange={(event) =>
-                setInviteForm({ ...inviteForm, roleId: event.target.value })
-              }
-              required
-            >
-              <option value="">Select organization role</option>
-              {memberRoles.data?.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </Select></label>
-            <label className="grid gap-1 text-sm font-medium">Designation (optional)<Input
-              placeholder="Designation (optional)"
-              value={inviteForm.designation}
-              onChange={(event) =>
-                setInviteForm({
-                  ...inviteForm,
-                  designation: event.target.value,
-                })
-              }
-            /></label>
+            <label className="grid gap-1 text-sm font-medium">
+              Member name
+              <Input
+                placeholder="Member name"
+                value={inviteForm.name}
+                onChange={(event) =>
+                  setInviteForm({ ...inviteForm, name: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Login email
+              <Input
+                type="email"
+                placeholder="Login email"
+                value={inviteForm.email}
+                onChange={(event) =>
+                  setInviteForm({ ...inviteForm, email: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Mobile number (optional)
+              <Input
+                placeholder="Mobile number (optional)"
+                value={inviteForm.phone}
+                onChange={(event) =>
+                  setInviteForm({ ...inviteForm, phone: event.target.value })
+                }
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Organization role
+              <Select
+                value={inviteForm.roleId}
+                onChange={(event) =>
+                  setInviteForm({ ...inviteForm, roleId: event.target.value })
+                }
+                required
+              >
+                <option value="">Select organization role</option>
+                {memberRoles.data?.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Designation (optional)
+              <Input
+                placeholder="Designation (optional)"
+                value={inviteForm.designation}
+                onChange={(event) =>
+                  setInviteForm({
+                    ...inviteForm,
+                    designation: event.target.value,
+                  })
+                }
+              />
+            </label>
             <Checkbox
               label="Access all organization projects"
               checked={inviteForm.organizationWideProjectAccess}
@@ -347,13 +397,43 @@ export function OrganizationMembersPanel({
         <AdministrationFilters
           name="members"
           scope="Organization membership is separate from project assignment. Role and project-wide access determine what each member can do."
-          search={{ value: memberSearch, placeholder: "Name, email or designation", onChange: setMemberSearch }}
+          search={{
+            value: memberSearch,
+            placeholder: "Name, email or designation",
+            onChange: setMemberSearch,
+          }}
           value={memberFilters}
           fields={[
-            { key: "status", label: "Status", options: Object.keys(memberStatusTone).map((value) => ({ value, label: value })) },
-            { key: "roleId", label: "Organization role", options: Array.from(new Map((members.data ?? []).map((member) => [member.roleId, { value: member.roleId, label: member.role?.name ?? "Role" }])).values()) },
+            {
+              key: "status",
+              label: "Status",
+              options: Object.keys(memberStatusTone).map((value) => ({
+                value,
+                label: value,
+              })),
+            },
+            {
+              key: "roleId",
+              label: "Organization role",
+              options: Array.from(
+                new Map(
+                  (members.data ?? []).map((member) => [
+                    member.roleId,
+                    {
+                      value: member.roleId,
+                      label: member.role?.name ?? "Role",
+                    },
+                  ]),
+                ).values(),
+              ),
+            },
           ]}
-          onApply={(value) => setMemberFilters({ status: value.status ?? "", roleId: value.roleId ?? "" })}
+          onApply={(value) =>
+            setMemberFilters({
+              status: value.status ?? "",
+              roleId: value.roleId ?? "",
+            })
+          }
         />
 
         {members.isLoading ? (
@@ -407,7 +487,11 @@ export function OrganizationMembersPanel({
                       {member.organizationWideProjectAccess ? (
                         <Badge variant="info">All projects</Badge>
                       ) : projectOverview.isLoading ? (
-                        <span aria-busy="true" className="inline-flex items-center gap-1.5 text-[12px] text-sub" role="status">
+                        <span
+                          aria-busy="true"
+                          className="inline-flex items-center gap-1.5 text-[12px] text-sub"
+                          role="status"
+                        >
                           <LottieLoader className="size-4" />
                           <span>Loading access</span>
                         </span>
@@ -451,6 +535,18 @@ export function OrganizationMembersPanel({
                                   label: "Edit member",
                                   icon: <Pencil size={15} />,
                                   onSelect: () => openEditMember(member),
+                                },
+                              ]
+                            : []),
+                          ...(canInviteMembers && member.status === "INVITED"
+                            ? [
+                                {
+                                  label: "Activation link",
+                                  icon: <KeyRound size={15} />,
+                                  disabled:
+                                    refreshMemberActivationLink.isPending,
+                                  onSelect: () =>
+                                    void showMemberActivationLink(member),
                                 },
                               ]
                             : []),
@@ -503,11 +599,29 @@ export function OrganizationMembersPanel({
 
         {projectOverview.isError && canViewProjectAssignments ? (
           <p className="mt-3 text-[12px] text-red-600">
-            Member project assignments could not be loaded. Organization
-            members are still shown.
+            Member project assignments could not be loaded. Organization members
+            are still shown.
           </p>
         ) : null}
       </Card>
+
+      <OwnerActivationDialog
+        open={activationOpen}
+        activation={memberActivation}
+        title="Member activation link ready"
+        description={
+          memberActivation
+            ? `${memberActivation.member.name} · ${memberActivation.member.roleName}`
+            : undefined
+        }
+        shareTitle={
+          memberActivation
+            ? `Activate ${memberActivation.member.name} on NirmanSite`
+            : undefined
+        }
+        notice={activationNotice}
+        onOpenChange={setActivationOpen}
+      />
 
       {editingMember ? (
         <Dialog
@@ -519,10 +633,7 @@ export function OrganizationMembersPanel({
           }}
           footer={
             <>
-              <Button
-                variant="outline"
-                onClick={() => setEditingMember(null)}
-              >
+              <Button variant="outline" onClick={() => setEditingMember(null)}>
                 Cancel
               </Button>
               <Button

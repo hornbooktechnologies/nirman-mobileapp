@@ -207,6 +207,47 @@ export class OrganizationOnboardingService {
     };
   }
 
+  async rotateMemberActivationLink(
+    organizationId: string,
+    membershipId: string,
+  ) {
+    const rawToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(
+      Date.now() + INVITATION_TTL_HOURS * 60 * 60 * 1000,
+    );
+    const invitation = await this.onboardingRepo.rotatePendingMemberInvitation(
+      organizationId,
+      membershipId,
+      this.hashToken(rawToken),
+      expiresAt,
+    );
+    if (!invitation) {
+      throw new ConflictException(
+        "No pending invitation is available for this organization member",
+      );
+    }
+    return {
+      organization: {
+        id: invitation.organization_id,
+        name: invitation.organization_name,
+      },
+      member: {
+        id: invitation.membership_id,
+        name: invitation.user_name,
+        email: invitation.user_email,
+        roleName: invitation.role_name,
+      },
+      invitation: {
+        id: invitation.id,
+        status: "PENDING" as const,
+        expiresAt: expiresAt.toISOString(),
+        activationUrl: this.webActivationUrl(rawToken),
+        mobileActivationUrl: this.mobileActivationUrl(rawToken),
+        deliveryStatus: "MANUAL" as const,
+      },
+    };
+  }
+
   async inspectInvitation(
     rawToken: string,
   ): Promise<OrganizationOwnerInvitationPreview> {
