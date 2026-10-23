@@ -1,6 +1,6 @@
 # NirmanSite marketing website
 
-The public website for NirmanSite: Next.js 16 (App Router), React 19, Tailwind CSS 4, TypeScript. Deployed on Vercel from this repository.
+The public website for NirmanSite: Next.js 16 (App Router), React 19, Tailwind CSS 4, TypeScript. Production domains: nirmansite.com (marketing), app.nirmansite.com (frontend), and api.nirmansite.com (API).
 
 ## Pages
 
@@ -34,7 +34,7 @@ pnpm --filter @nirman-app/website verify:activation    # mocked contract checks 
 
 | Name | Used by | Notes |
 | --- | --- | --- |
-| `API_BASE_URL` | `/activate` (server only) | e.g. `https://nirman-mobileapp-api.vercel.app/api/v1` |
+| `API_BASE_URL` | `/activate` (server only) | e.g. `https://api.nirmansite.com/api/v1` |
 | `NEXT_PUBLIC_SITE_URL` | deployment/indexing gate | Set to `https://nirmansite.com` at live launch; staging keeps its own URL |
 | `SITE_INDEXING_ENABLED` | SEO metadata, headers and sitemap | Defaults off; keep `false` on staging and enable only for the live domain |
 

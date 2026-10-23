@@ -1009,3 +1009,11 @@ Production verification reports 49 users (42 active), 30 organizations, 30 proje
 - Added permission-protected pending-member activation-link rotation and the same secure manual handoff across Web Members, Mobile Members, and Mobile Team. A fresh 48-hour link invalidates the previous pending link; accepted/active members cannot receive another invitation link, and only token hashes are stored.
 - Added a reusable localized Mobile activation sheet with member details, delivery state, expiry, selectable web link, Open, and native Share actions. English, Hindi, and Gujarati keys remain in parity.
 - Verification: API/Web/Mobile typechecks, API and Web production builds, 54 API suites / 406 tests, scoped API/Web lint, Mobile locale parity, and diff validation passed. Authenticated browser/device acceptance and a real member invitation were not performed; no migration, seed, email, or deployment was required.
+
+2026-10-23 activation follow-up: corrected both local API env account origins to https://app.nirmansite.com; retired Vercel origins now resolve to that domain in development too. Shared link/onboarding/auth tests: 21 passed. API restart and fresh invitation/browser/device acceptance pending. No email, database mutation or deployment performed.
+
+## 2026-10-23 - NirmanSite domains and sender configuration
+
+Updated active examples, deployment defaults, verification script, email preview assets and activation rollout guidance to use app.nirmansite.com (frontend/account links), nirmansite.com (marketing), api.nirmansite.com (API), and contact@nirmansite.com (mail sender/recipient). Corrected the root Web API example to the API domain. Updated ignored API env files with the marketing site mailbox configuration without printing or committing credentials. Saved platform Email Settings still take precedence; database values were not changed. Historical ledger entries and retired-host rejection fixtures retain their original references.
+
+Verification: six focused API link/onboarding/auth/email suites, 28 tests passed; diff whitespace check passed. No deployment, SMTP send, invitation creation or database mutation performed. Restart local services; production env rollout and actual delivery/browser/device acceptance remain pending.

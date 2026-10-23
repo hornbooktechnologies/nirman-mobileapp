@@ -1,3 +1,4 @@
+import { publicAccountLink, mobileAccountLink } from "../../common/public-app-links";
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -202,19 +203,11 @@ export class AuthService {
   }
 
   private webPasswordResetUrl(token: string) {
-    const configuredBase =
-      process.env.PUBLIC_WEB_APP_URL?.trim() ||
-      'https://nirman-mobileapp-web.vercel.app';
-    return `${configuredBase.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+    return publicAccountLink("reset-password", token);
   }
 
   private mobilePasswordResetUrl(token: string) {
-    const expoGoProjectUrl = process.env.EXPO_GO_PROJECT_URL?.trim();
-    if (expoGoProjectUrl && process.env.NODE_ENV !== 'production') {
-      return `${expoGoProjectUrl.replace(/\/$/, '')}/--/reset-password?token=${encodeURIComponent(token)}`;
-    }
-    const scheme = process.env.MOBILE_APP_SCHEME ?? 'nirmansite';
-    return `${scheme}://reset-password?token=${encodeURIComponent(token)}`;
+    return mobileAccountLink("reset-password", token);
   }
 
   private invalidPasswordReset(): never {

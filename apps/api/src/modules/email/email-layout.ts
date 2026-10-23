@@ -1,3 +1,5 @@
+import { publicWebOrigin } from "../../common/public-app-links";
+
 /** Shared presentation only; subjects, plain text, URLs and delivery stay in each template. */
 export function escapeEmailHtml(value: string) {
   return value.replace(
@@ -32,8 +34,7 @@ export function buildEmailLayout(input: {
   body: string;
 }) {
   const origin =
-    process.env.PUBLIC_WEB_APP_URL?.trim() ||
-    "https://nirman-mobileapp-web.vercel.app";
+    publicWebOrigin();
   const logoUrl = new URL("/brand/horizontal-logo.png", origin).href;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeEmailHtml(input.title)}</title></head>

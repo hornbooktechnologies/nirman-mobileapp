@@ -73,9 +73,9 @@ describe("OrganizationOnboardingService", () => {
     const previous = process.env.PUBLIC_ACTIVATION_WEB_URL;
     try {
       process.env.PUBLIC_ACTIVATION_WEB_URL =
-        "https://nirman-mobileapp-web.vercel.app/";
+        "https://app.nirmansite.com/";
       expect(service["webActivationUrl"]("test/token")).toBe(
-        "https://nirman-mobileapp-web.vercel.app/activate?token=test%2Ftoken",
+        "https://app.nirmansite.com/activate?token=test%2Ftoken",
       );
     } finally {
       if (previous === undefined) delete process.env.PUBLIC_ACTIVATION_WEB_URL;
@@ -130,7 +130,7 @@ describe("OrganizationOnboardingService", () => {
     expect(result.ownerMembership.status).toBe("INVITED");
     expect(result.invitation.activationUrl).toContain("/activate?token=");
     expect(result.invitation.mobileActivationUrl).toContain(
-      "nirmansite://activate?token=",
+      "https://app.nirmansite.com/open-app?screen=activate&token=",
     );
     expect(result.invitation.deliveryStatus).toBe("EMAIL_SENT");
     expect(emailService.sendOrganizationOwnerInvitation.mock.calls[0]).toEqual([

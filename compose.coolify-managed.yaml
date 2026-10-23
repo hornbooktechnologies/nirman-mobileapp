@@ -52,7 +52,7 @@ services:
       WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?}
       FRONTEND_URL: https://app.nirmansite.com,https://nirmansite.com
       PUBLIC_WEB_APP_URL: https://app.nirmansite.com
-      PUBLIC_ACTIVATION_WEB_URL: https://nirmansite.com/activate
+      PUBLIC_ACTIVATION_WEB_URL: https://app.nirmansite.com
       MOBILE_APP_SCHEME: ${MOBILE_APP_SCHEME:-nirmansite}
       SMTP_HOST: ${API_SMTP_HOST:-}
       SMTP_PORT: ${API_SMTP_PORT:-587}
@@ -117,7 +117,7 @@ services:
       SMTP_USER: ${WEBSITE_SMTP_USER:-}
       SMTP_PASS: ${WEBSITE_SMTP_PASS:-}
       SMTP_FROM: ${WEBSITE_SMTP_FROM:-}
-      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-contact@hornbooktechnologies.com}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-contact@nirmansite.com}
     depends_on:
       api:
         condition: service_healthy

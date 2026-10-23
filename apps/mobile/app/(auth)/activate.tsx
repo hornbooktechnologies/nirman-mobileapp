@@ -114,6 +114,7 @@ export default function ActivateInvitationRoute() {
 
   useEffect(() => {
     if (typeof params.token === 'string' && params.token) {
+      setToken(params.token);
       void loadInvitation(params.token);
     }
   }, [loadInvitation, params.token]);
@@ -216,6 +217,7 @@ export default function ActivateInvitationRoute() {
               <Input
                 autoCapitalize="none"
                 autoComplete="new-password"
+                autoFocus
                 invalid={Boolean(fieldErrors.password)}
                 placeholder={t('activation.createPassword')}
                 secureTextEntry

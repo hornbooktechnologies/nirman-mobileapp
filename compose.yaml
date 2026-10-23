@@ -35,7 +35,7 @@ services:
       WEBSITE_ENQUIRY_INGEST_KEY: ${WEBSITE_ENQUIRY_INGEST_KEY:?Set WEBSITE_ENQUIRY_INGEST_KEY in .env.production}
       FRONTEND_URL: https://app.nirmansite.com,https://nirmansite.com
       PUBLIC_WEB_APP_URL: https://app.nirmansite.com
-      PUBLIC_ACTIVATION_WEB_URL: https://nirmansite.com/activate
+      PUBLIC_ACTIVATION_WEB_URL: https://app.nirmansite.com
       MOBILE_APP_SCHEME: ${MOBILE_APP_SCHEME:-nirmansite}
       SMTP_HOST: ${API_SMTP_HOST:-}
       SMTP_PORT: ${API_SMTP_PORT:-587}

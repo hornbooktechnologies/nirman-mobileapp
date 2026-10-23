@@ -8,9 +8,11 @@ Server Actions call the existing invitation inspection and acceptance endpoints 
 
 ## Rollout
 
-1. Deploy the website with `API_BASE_URL=https://nirman-mobileapp-api.vercel.app/api/v1` and `NEXT_PUBLIC_SITE_URL=https://nirman-website.vercel.app`.
-2. Deploy the API change that supports `PUBLIC_ACTIVATION_WEB_URL`, setting it to `https://nirman-website.vercel.app`. Set `MOBILE_APP_SCHEME=nirmansite` and leave `EXPO_GO_PROJECT_URL` empty. The separate activation origin leaves other web auth email destinations controlled by `PUBLIC_WEB_APP_URL`.
-3. Newly generated invitation emails then point to the website activation page and the installed app. Existing emails keep their original URLs.
+1. Deploy the website with `API_BASE_URL=https://api.nirmansite.com/api/v1` and `NEXT_PUBLIC_SITE_URL=https://nirmansite.com`.
+2. Deploy the API change that supports `PUBLIC_ACTIVATION_WEB_URL`, setting it to `https://app.nirmansite.com`. Set `MOBILE_APP_SCHEME=nirmansite` and leave `EXPO_GO_PROJECT_URL` empty. The separate activation origin leaves other web auth email destinations controlled by `PUBLIC_WEB_APP_URL`.
+3. Set `PUBLIC_WEB_APP_URL=https://app.nirmansite.com` too. Newly generated invitation emails point to the frontend `/activate` page; mobile actions use its `/open-app` page. The marketing website stays at `https://nirmansite.com`. Existing emails keep their original URLs.
+
+Generate production invitations through the production API. A token created in a separate local database cannot be inspected or accepted through the public portal's API.
 
 No dependency, database, marketing layout, or native app scheme change is required. Deployment and a real invitation/device acceptance remain pending; custom-scheme handoff depends on the installed app and email client supporting it.
 

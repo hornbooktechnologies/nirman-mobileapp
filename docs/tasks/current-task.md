@@ -1,3 +1,34 @@
+## 2026-10-23 - NirmanSite domains and sender configuration
+
+Updated active examples, deployment defaults, verification script, email preview assets and activation rollout guidance to use app.nirmansite.com (frontend/account links), nirmansite.com (marketing), api.nirmansite.com (API), and contact@nirmansite.com (mail sender/recipient). Corrected the root Web API example to the API domain. Updated ignored API env files with the marketing site mailbox configuration without printing or committing credentials. Saved platform Email Settings still take precedence; database values were not changed. Historical ledger entries and retired-host rejection fixtures retain their original references.
+
+Verification: six focused API link/onboarding/auth/email suites, 28 tests passed; diff whitespace check passed. No deployment, SMTP send, invitation creation or database mutation performed. Restart local services; production env rollout and actual delivery/browser/device acceptance remain pending.
+
+## 2026-10-23 - Local activation URL follow-up
+
+Found stale Vercel account origins in both ignored API environment files (pps/api/.env takes precedence over root .env). Updated both to https://app.nirmansite.com and added a shared-link regression guard for the two retired Vercel hosts in development. Activation, recovery, email branding and mobile HTTPS handoff share this resolver. Restart the API before generating a fresh link; already-issued emails retain their URLs. Local links targeting the public portal require that portal and the issuing API to use the same database. No invitation, email, account mutation or deployment performed.
+
+## 2026-10-23 - Production activation and mobile email links
+
+Owner/member invitations, password resets and email branding now use
+`https://app.nirmansite.com` in production, overriding stale legacy/local URL
+settings. Compose activation origins corrected to avoid `/activate/activate`.
+Development origin overrides and Expo Go routes remain supported.
+
+Email mobile actions use the HTTPS `/open-app` page with an allowlisted screen
+and encoded token. Its explicit Android intent opens `com.hornbook.nirmansite`
+using the existing `nirmansite` scheme, with Play Store fallback and a browser
+alternative. The portal activation/reset pages offer the same app action.
+After installing, return to the email link; deferred token delivery through
+Play Store is not implemented. No signing-certificate-dependent verified HTTPS
+App Links are claimed. Mobile activation synchronizes newly received tokens
+and focuses the password input after invitation preview.
+
+Verification: API/Web/Mobile typechecks and 26 focused link, onboarding, auth
+and email tests passed. Deployment, real email delivery, installed Play build
+launch, store fallback and physical-device password completion remain unrun.
+No database mutation, deployment or email send performed.
+
 ## 2026-10-23 - Mobile Play release hardening and Metro stability
 
 Prepared the published Android app for its next Play update without changing

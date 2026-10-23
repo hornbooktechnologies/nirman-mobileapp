@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MobileAccountLink } from "@/features/auth/components/mobile-account-link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
@@ -65,6 +66,7 @@ function ResetPasswordContent() {
               {!token ? <Link className="block text-center text-[13px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Request a new link</Link> : null}
             </form>
           )}
+          {token && !completed ? <MobileAccountLink screen="reset-password" token={token} /> : null}
         </CardContent>
       </Card>
     </main>

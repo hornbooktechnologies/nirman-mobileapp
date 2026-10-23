@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MobileAccountLink } from "@/features/auth/components/mobile-account-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
@@ -186,6 +187,7 @@ function ActivateInvitationContent() {
               </Link>
             </div>
           ) : null}
+          {token && invitation?.requiresPasswordSetup ? <MobileAccountLink screen="activate" token={token} /> : null}
         </CardContent>
       </Card>
     </main>
