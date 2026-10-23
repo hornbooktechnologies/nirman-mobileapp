@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { ArrowUpRight, Building2, SlidersHorizontal } from "lucide-react";
+import { ArrowUpRight, Building2, Copy, ExternalLink, Share2, SlidersHorizontal } from "lucide-react";
 import type { OrganizationType } from "@nirman-app/shared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -93,6 +93,8 @@ function WebsiteEnquiriesList() {
   const [workflow, setWorkflow] = useState({ status: "SUBMITTED" as WebsiteEnquiryStatus, nextFollowUpAt: "", adminNotes: "" });
   const [formError, setFormError] = useState<string | null>(null);
   const [created, setCreated] = useState<OrganizationOnboardingResponse | null>(null);
+  const [activationOpen, setActivationOpen] = useState(false);
+  const [activationNotice, setActivationNotice] = useState("");
   const creatingBusy = createOrganization.isPending || convertEnquiry.isPending;
 
   function replace(updates: Record<string, string>) {
@@ -108,7 +110,7 @@ function WebsiteEnquiriesList() {
   function openCreate(enquiry: WebsiteEnquiry) {
     setFormError(null);
     setCreating(enquiry);
-    setOrganization({ name: enquiry.name, type: "BUILDER", ownerName: enquiry.name, ownerEmail: enquiry.email, ownerMobile: enquiry.phone.slice(0, 20) });
+    setOrganization({ name: enquiry.name, type: enquiry.organizationType ?? "BUILDER", ownerName: enquiry.name, ownerEmail: enquiry.email, ownerMobile: enquiry.phone.slice(0, 20) });
   }
 
   async function submitWorkflow(event: FormEvent<HTMLFormElement>) {
@@ -138,11 +140,41 @@ function WebsiteEnquiriesList() {
       });
       await convertEnquiry.mutateAsync({ enquiryId: creating.id, organizationId: result.organization.id });
       setCreated(result);
+      setActivationNotice("");
+      setActivationOpen(true);
       setCreating(null);
       setOrganization(EMPTY_ORGANIZATION);
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : "Unable to create the organization");
     }
+  }
+
+  async function copyActivationLink() {
+    if (!created) return;
+    try {
+      await navigator.clipboard.writeText(created.invitation.activationUrl);
+      setActivationNotice("Activation link copied.");
+    } catch {
+      setActivationNotice("Unable to copy automatically. Select and copy the link above.");
+    }
+  }
+
+  async function shareActivationLink() {
+    if (!created) return;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: `Activate ${created.organization.name} on NirmanSite`,
+          text: "Use this secure link to activate your NirmanSite Owner account and create your password.",
+          url: created.invitation.activationUrl,
+        });
+        setActivationNotice("Share options opened.");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    await copyActivationLink();
   }
 
   const canUpdate = hasPermission("platform-enquiries:update");
@@ -154,7 +186,7 @@ function WebsiteEnquiriesList() {
     <PermissionGuard permission="platform-enquiries:read">
       <div className="space-y-4">
         <PageHeader title="Website Enquiries" description="Track every contact-us submission through follow-up and organization creation." />
-        {created ? <Card variant="lime" className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold">{created.organization.name} was created.</p><p className="mt-1 text-[13px]">The enquiry remains in this list with Organization created status.</p></div><Button variant="outline" onClick={() => router.push(`/organizations/${created.organization.id}`)}>Open organization</Button></Card> : null}
+        {created ? <Card variant="lime" className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold">{created.organization.name} was created.</p><p className="mt-1 text-[13px]">The Owner activation link is available until {new Date(created.invitation.expiresAt).toLocaleString("en-IN")}.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setActivationOpen(true)}>Show activation link</Button><Button variant="outline" onClick={() => router.push(`/organizations/${created.organization.id}`)}>Open organization</Button></div></Card> : null}
         <Card padding="compact">
           <form className="flex flex-col gap-3 sm:flex-row sm:items-end" role="search" onSubmit={(event) => { event.preventDefault(); replace({ search: String(new FormData(event.currentTarget).get("search") ?? "").trim(), page: "1" }); }}>
             <label className="min-w-0 flex-1 text-[13px] font-medium text-body">Search<Input key={search} name="search" defaultValue={search} maxLength={150} placeholder="Customer name, mobile, or email" className="mt-1" /></label>
@@ -167,7 +199,7 @@ function WebsiteEnquiriesList() {
             <Table className="min-w-[1120px]">
               <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Contact</TableHead><TableHead>Message</TableHead><TableHead>Received</TableHead><TableHead>Next follow-up</TableHead><TableHead>Status</TableHead><TableHead className="w-px text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>{enquiries.data.data.map((enquiry) => <TableRow key={enquiry.id}>
-                <TableCell><p className="font-semibold">{enquiry.name}</p><a className="text-sub underline" href={`mailto:${enquiry.email}`}>{enquiry.email}</a></TableCell>
+                <TableCell><p className="font-semibold">{enquiry.name}</p><p className="text-sub">{enquiry.organizationType === "BUILDER" ? "Builder" : enquiry.organizationType === "CONTRACTOR" ? "Contractor" : "Type not recorded"}</p><a className="text-sub underline" href={`mailto:${enquiry.email}`}>{enquiry.email}</a></TableCell>
                 <TableCell><a className="underline" href={`tel:${enquiry.phone}`}>{enquiry.phone}</a></TableCell>
                 <TableCell className="max-w-sm"><p className="line-clamp-3 whitespace-pre-wrap">{enquiry.message || "—"}</p></TableCell>
                 <TableCell>{new Date(enquiry.createdAt).toLocaleString("en-IN")}</TableCell>
@@ -184,6 +216,7 @@ function WebsiteEnquiriesList() {
       <Dialog open={Boolean(managing)} title="Manage enquiry" description={managing ? `${managing.name} · ${managing.phone}` : undefined} onOpenChange={(open) => { if (!open && !updateEnquiry.isPending) setManaging(null); }} footer={<><Button variant="outline" disabled={updateEnquiry.isPending} onClick={() => setManaging(null)}>Cancel</Button><Button type="submit" form="website-enquiry-workflow" disabled={updateEnquiry.isPending || managing?.status === "CREATED"}>{updateEnquiry.isPending ? "Saving…" : "Save follow-up"}</Button></>}>
         <form id="website-enquiry-workflow" className="grid gap-4" onSubmit={submitWorkflow}>
           {formError ? <p className="rounded-inner bg-danger/10 p-3 text-danger" role="alert">{formError}</p> : null}
+          <Card variant="sunken" padding="compact"><p className="font-semibold">Organization type</p><p className="mt-1 text-sub">{managing?.organizationType === "BUILDER" ? "Builder" : managing?.organizationType === "CONTRACTOR" ? "Contractor" : "Not recorded"}</p></Card>
           <label className="grid gap-1 font-medium">Status<Select disabled={managing?.status === "CREATED"} value={workflow.status} onChange={(event) => setWorkflow((current) => ({ ...current, status: event.target.value as WebsiteEnquiryStatus }))}>{STATUSES.filter((item) => item.value !== "CREATED" || managing?.status === "CREATED").map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></label>
           <label className="grid gap-1 font-medium">Next follow-up<Input type="datetime-local" required={workflow.status === "FOLLOW_UP"} disabled={managing?.status === "CREATED"} value={workflow.nextFollowUpAt} onChange={(event) => setWorkflow((current) => ({ ...current, nextFollowUpAt: event.target.value }))} /></label>
           <label className="grid gap-1 font-medium">Admin notes<Textarea maxLength={2000} disabled={managing?.status === "CREATED"} value={workflow.adminNotes} onChange={(event) => setWorkflow((current) => ({ ...current, adminNotes: event.target.value }))} placeholder="Call outcome, customer requirement, or next action" /></label>
@@ -201,6 +234,25 @@ function WebsiteEnquiriesList() {
           <label className="text-[13px] font-medium">Owner email<Input required type="email" maxLength={190} className="mt-1" value={organization.ownerEmail} onChange={(event) => setOrganization((current) => ({ ...current, ownerEmail: event.target.value }))} /></label>
           <label className="text-[13px] font-medium">Owner mobile<Input required maxLength={20} className="mt-1" value={organization.ownerMobile} onChange={(event) => setOrganization((current) => ({ ...current, ownerMobile: event.target.value }))} /></label>
         </form>
+      </Dialog>
+
+      <Dialog open={activationOpen && Boolean(created)} title="Owner activation link ready" description={created ? `${created.organization.name} was created from the website enquiry.` : undefined} onOpenChange={setActivationOpen} footer={<><Button variant="outline" onClick={() => setActivationOpen(false)}>Close</Button><Button onClick={() => { if (created) window.open(created.invitation.activationUrl, "_blank", "noopener,noreferrer"); }}><ExternalLink aria-hidden="true" size={16} />Open activation link</Button></>}>
+        {created ? <div className="space-y-4">
+          <div className={`rounded-inner border p-3 ${created.invitation.deliveryStatus === "EMAIL_SENT" ? "border-success/20 bg-success/5" : "border-warning/30 bg-warning/5"}`}>
+            <p className="font-semibold">{created.invitation.deliveryStatus === "EMAIL_SENT" ? "Activation email sent" : "Activation email was not sent"}</p>
+            <p className="mt-1 text-sub">{created.invitation.deliveryStatus === "EMAIL_SENT" ? "You can still copy or share this link as a fallback." : "Open the link to assist the Owner, or share it securely so they can create their password."}</p>
+          </div>
+          <div>
+            <p className="mb-1 font-medium">Web activation link</p>
+            <p className="select-all break-all rounded-inner border border-hairline bg-sunken p-3 text-[12px] text-body">{created.invitation.activationUrl}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => void copyActivationLink()}><Copy aria-hidden="true" size={16} />Copy link</Button>
+            <Button type="button" variant="outline" onClick={() => void shareActivationLink()}><Share2 aria-hidden="true" size={16} />Share link</Button>
+          </div>
+          {activationNotice ? <p role="status" className="rounded-inner bg-sunken p-3 text-sub">{activationNotice}</p> : null}
+          <p className="text-[12px] text-sub">Expires {new Date(created.invitation.expiresAt).toLocaleString("en-IN")}. Share this private link only with the intended Owner; no password is included.</p>
+        </div> : null}
       </Dialog>
     </PermissionGuard>
   );

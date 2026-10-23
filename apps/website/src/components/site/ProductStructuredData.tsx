@@ -8,7 +8,7 @@ export default function ProductStructuredData() {
       {
         '@type': 'Organization', '@id': organizationId,
         name: 'Hornbook Technologies', url: `${SITE_URL}/about`,
-        email: 'contact@hornbooktechnologies.com',
+        email: 'contact@nirmansite.com',
       },
       {
         '@type': 'WebSite', '@id': `${SITE_URL}/#website`,

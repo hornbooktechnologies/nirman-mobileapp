@@ -10,7 +10,7 @@ const sections = [
   {
     "id": "enquiries",
     "title": "Website enquiries",
-    "text": "The form asks for your name, mobile number, email address and an optional description of what you would like help with. Submissions are stored in Hornbook's protected administration system and email notifications are sent to the team so they can respond and, when you proceed, set up your NirmanSite organization."
+    "text": "The form asks for your name, mobile number, email address, whether you are a builder or contractor, and an optional description of what you would like help with. Submissions are stored in Hornbook's protected administration system and email notifications are sent to the team so they can respond and, when you proceed, set up your NirmanSite organization."
   },
   {
     "id": "app-data",

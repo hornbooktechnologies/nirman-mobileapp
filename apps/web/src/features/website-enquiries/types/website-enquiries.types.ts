@@ -1,3 +1,5 @@
+import type { OrganizationType } from "@nirman-app/shared";
+
 export type WebsiteEnquiryStatus =
   | "SUBMITTED"
   | "CONTACTED"
@@ -11,6 +13,7 @@ export interface WebsiteEnquiry {
   name: string;
   phone: string;
   email: string;
+  organizationType: OrganizationType | null;
   message: string | null;
   source: string;
   status: WebsiteEnquiryStatus;

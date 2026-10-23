@@ -54,12 +54,13 @@ export function ContactForm() {
     const data = new FormData(form)
     const fields: ContactFields = {
       name: String(data.get('Full name') || ''), phone: String(data.get('Mobile number') || ''),
-      email: String(data.get('Email address') || ''), message: String(data.get('Help requested') || ''),
+      email: String(data.get('Email address') || ''), organizationType: String(data.get('Organization type') || ''),
+      message: String(data.get('Help requested') || ''),
     }
     const errors = validateContactFields(fields)
     setFieldErrors(errors)
     if (Object.keys(errors).length) {
-      form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${{ name: 'Full name', phone: 'Mobile number', email: 'Email address', message: 'Help requested' }[Object.keys(errors)[0] as ContactField]}"]`)?.focus()
+      form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[name="${{ name: 'Full name', phone: 'Mobile number', email: 'Email address', organizationType: 'Organization type', message: 'Help requested' }[Object.keys(errors)[0] as ContactField]}"]`)?.focus()
       return
     }
     setStatus('sending')
@@ -111,6 +112,15 @@ export function ContactForm() {
             {fieldError('email')}
           </label>
           <label className={`${LABEL} sm:col-span-2`}>
+            I am a <span className="text-copper-700">*</span>
+            <select name="Organization type" required defaultValue="" aria-invalid={!!fieldErrors.organizationType} aria-describedby={fieldErrors.organizationType ? 'organizationType-error' : undefined} onChange={event => updateField('organizationType', event.target.value)} onBlur={event => blurField('organizationType', event.target.value)} className={`${FIELD} h-[52px] ${errorClass('organizationType')}`}>
+              <option value="" disabled>Select builder or contractor</option>
+              <option value="BUILDER">Builder</option>
+              <option value="CONTRACTOR">Contractor</option>
+            </select>
+            {fieldError('organizationType')}
+          </label>
+          <label className={`${LABEL} sm:col-span-2`}>
             What would you like help with?
             <textarea
               name="Help requested"
@@ -140,7 +150,7 @@ export function ContactForm() {
         {feedback && (
           <div className={`mt-6 rounded-[20px] border p-5 text-[15px] font-medium leading-relaxed ${status === 'sent' ? 'border-olive/25 bg-sage text-coffee' : 'border-copper/25 bg-paper text-coffee'}`} role={status === 'error' ? 'alert' : 'status'}>
             {feedback}
-            {status === 'error' && <span> You can also write to <a className="font-bold underline" href="mailto:contact@hornbooktechnologies.com">contact@hornbooktechnologies.com</a>.</span>}
+            {status === 'error' && <span> You can also write to <a className="font-bold underline" href="mailto:contact@nirmansite.com">contact@nirmansite.com</a>.</span>}
           </div>
         )}
       </form>

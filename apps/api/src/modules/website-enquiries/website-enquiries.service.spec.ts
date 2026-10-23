@@ -41,6 +41,7 @@ describe("WebsiteEnquiriesService", () => {
       name: "Customer",
       phone: "9876543210",
       email: "customer@example.com",
+      organizationType: "BUILDER" as const,
       message: "Please call me",
       submissionKey: "submission-id",
     };

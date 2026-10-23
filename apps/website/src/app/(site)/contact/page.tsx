@@ -35,16 +35,14 @@ export default function ContactPage() {
             <span id="direct-title">Prefer to write to us?</span>
           </Eyebrow>
           <a
-            href="mailto:contact@hornbooktechnologies.com"
+            href="mailto:contact@nirmansite.com"
             className="group mt-4 inline-flex max-w-full items-center gap-2 break-all font-[family-name:var(--font-display)] text-[clamp(26px,2.6vw,36px)] leading-tight text-coffee transition-colors hover:text-copper-700"
           >
-            contact@hornbooktechnologies.com
+            contact@nirmansite.com
             <Arrow className="shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </a>
           <p className="mt-6 text-[15px] font-medium leading-relaxed text-muted">
             A product of Hornbook Technologies.
-            <br />
-            Built in Ahmedabad, for the people building every day.
           </p>
         </section>
       </div>
