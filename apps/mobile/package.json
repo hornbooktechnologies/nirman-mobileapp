@@ -1,28 +1,33 @@
 {
   "name": "@nirman-app/mobile",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "postinstall": "cd ../.. && pnpm --filter @nirman-app/shared build",
     "start": "expo start",
-    "start:lan": "set EXPO_OFFLINE=1&& expo start --lan --clear",
-    "start:tunnel": "expo start --tunnel --clear",
+    "start:lan": "expo start --lan --clear --max-workers 2",
+    "start:tunnel": "expo start --tunnel --clear --max-workers 2",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "type-check": "tsc --noEmit",
-    "validate:locales": "node ./scripts/validate-locales.mjs"
+    "validate:locales": "node ./scripts/validate-locales.mjs",
+    "export:android": "expo export --platform android --clear --max-workers 2",
+    "release:check": "pnpm type-check && pnpm validate:locales && pnpm export:android"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "15.1.1",
-    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@nirman-app/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
-    "expo": "54.0.36",
-    "expo-constants": "~18.0.13",
+    "expo": "~54.0.38",
+    "expo-build-properties": "~1.0.10",
+    "expo-constants": "~18.0.14",
     "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.24",
     "expo-font": "~14.0.12",

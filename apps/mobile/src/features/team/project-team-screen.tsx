@@ -36,19 +36,16 @@ import {
   type ProjectAssignmentDraft,
   type ProjectAssignmentFieldErrors,
 } from "../members/project-assignment-editor";
-import { MemberActivationSheet } from "../members/member-activation-sheet";
 import {
   assignProjectMember,
   fetchOrganizationMemberRoles,
   fetchOrganizationMembers,
   fetchProjectMembers,
-  refreshOrganizationMemberActivationLink,
   unassignProjectMember,
   updateProjectMember,
 } from "../members/services";
 import type {
   OrganizationMember,
-  OrganizationMemberActivationLinkResponse,
   OrganizationMemberRole,
   ProjectMember,
   ProjectMemberInput,
@@ -59,14 +56,6 @@ const projectMemberStatusTranslationKeys = {
   ACTIVE: "status.ACTIVE",
   INACTIVE: "status.INACTIVE",
   ENDED: "status.ENDED",
-} as const;
-
-const organizationMemberStatusTranslationKeys = {
-  INVITED: "organizationStatus.INVITED",
-  ACTIVE: "organizationStatus.ACTIVE",
-  INACTIVE: "organizationStatus.INACTIVE",
-  SUSPENDED: "organizationStatus.SUSPENDED",
-  LEFT: "organizationStatus.LEFT",
 } as const;
 
 export function ProjectTeamScreen() {
@@ -91,10 +80,6 @@ export function ProjectTeamScreen() {
   const canReadWorkers = permissions.includes("workers:read");
   const canReadOrganizationMembers =
     session?.permissions.includes("members:read") ?? false;
-  const canShareMemberActivation =
-    session?.permissions.includes("members:invite") ?? false;
-  const canUpdateOrganizationMembers =
-    session?.permissions.includes("members:update") ?? false;
   const [tab, setTab] = useState<"members" | "workers">(
     params.tab === "workers" && canReadWorkers
       ? "workers"
@@ -117,8 +102,6 @@ export function ProjectTeamScreen() {
     null,
   );
   const [actionMember, setActionMember] = useState<ProjectMember | null>(null);
-  const [memberActivation, setMemberActivation] =
-    useState<OrganizationMemberActivationLinkResponse | null>(null);
 
   const load = useCallback(async () => {
     if (!accessToken || !organizationId || !projectId) return;
@@ -181,25 +164,6 @@ export function ProjectTeamScreen() {
     );
   });
 
-  const projectMemberByMembershipId = useMemo(
-    () => new Map(members.map((member) => [member.memberId, member])),
-    [members],
-  );
-
-  const visibleOrganizationMembers = organizationMembers.filter((member) => {
-    const needle = search.trim().toLowerCase();
-    const assignment = projectMemberByMembershipId.get(member.id);
-    return (
-      !needle ||
-      member.user?.name.toLowerCase().includes(needle) ||
-      member.user?.email?.toLowerCase().includes(needle) ||
-      member.user?.phone?.toLowerCase().includes(needle) ||
-      member.role?.name.toLowerCase().includes(needle) ||
-      member.designation?.toLowerCase().includes(needle) ||
-      assignment?.roleLabel?.toLowerCase().includes(needle)
-    );
-  });
-
   const availableMembers = useMemo(() => {
     const assignedIds = new Set(members.map((member) => member.memberId));
     return organizationMembers.filter(
@@ -224,50 +188,6 @@ export function ProjectTeamScreen() {
       await load();
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function showActivationLink(member: OrganizationMember) {
-    if (!accessToken || !organizationId) return;
-    setSaving(true);
-    try {
-      const result = await refreshOrganizationMemberActivationLink(
-        organizationId,
-        member.id,
-        accessToken,
-      );
-      setMemberActivation(result);
-    } catch (activationError) {
-      Alert.alert(
-        t("activation.unavailableTitle"),
-        getLocalizedErrorMessage(activationError, t("errors.generic")),
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function openOrganizationMember(member: OrganizationMember) {
-    const assignment = projectMemberByMembershipId.get(member.id);
-    if (assignment && (canUpdateMembers || canUnassignMembers)) {
-      setActionMember(assignment);
-      return;
-    }
-    if (
-      member.status === "ACTIVE" &&
-      !member.organizationWideProjectAccess &&
-      canAssignMembers
-    ) {
-      setPreselectedMemberId(member.id);
-      setShowAssign(true);
-      return;
-    }
-    if (member.status === "INVITED" && canShareMemberActivation) {
-      void showActivationLink(member);
-      return;
-    }
-    if (canUpdateOrganizationMembers) {
-      router.push("/members");
     }
   }
 
@@ -365,9 +285,7 @@ export function ProjectTeamScreen() {
         {canReadMembers ? (
           <Button
             label={t("screen.membersCount", {
-              count: canReadOrganizationMembers
-                ? organizationMembers.length
-                : members.length,
+              count: members.length,
             })}
             size="sm"
             variant={tab === "members" ? "dark" : "outline"}
@@ -396,10 +314,10 @@ export function ProjectTeamScreen() {
               onChangeText={setSearch}
             />
           </ListControls>
-          {loading && !members.length && !organizationMembers.length ? (
+          {loading && !members.length ? (
             <LoadingState label={t("screen.loading")} />
           ) : null}
-          {error && !members.length && !organizationMembers.length ? (
+          {error && !members.length ? (
             <EmptyState
               title={t("screen.unavailable")}
               description={error}
@@ -407,62 +325,9 @@ export function ProjectTeamScreen() {
               onAction={() => void load()}
             />
           ) : null}
-          {(!loading || members.length > 0 || organizationMembers.length > 0) &&
-          (!error || members.length > 0 || organizationMembers.length > 0) ? (
-            canReadOrganizationMembers && visibleOrganizationMembers.length ? (
-              <View style={styles.list}>
-                {visibleOrganizationMembers.map((member) => {
-                  const assignment = projectMemberByMembershipId.get(member.id);
-                  const canOpen = Boolean(
-                    (assignment && (canUpdateMembers || canUnassignMembers)) ||
-                    (member.status === "ACTIVE" &&
-                      !member.organizationWideProjectAccess &&
-                      canAssignMembers) ||
-                    (member.status === "INVITED" && canShareMemberActivation) ||
-                    canUpdateOrganizationMembers,
-                  );
-                  const assignmentLabel = member.organizationWideProjectAccess
-                    ? t("screen.allProjects")
-                    : assignment
-                      ? (assignment.roleLabel ?? t("screen.assignedToProject"))
-                      : member.status === "INVITED"
-                        ? t("screen.activationPending")
-                        : t("screen.notAssigned");
-                  return (
-                    <OperationalEntityCard
-                      accessibilityLabel={`${member.user?.name ?? t("screen.member")}, ${member.role?.name ?? t("screen.organizationMember")}, ${assignmentLabel}, ${t(organizationMemberStatusTranslationKeys[member.status])}`}
-                      contextLeading={
-                        member.role?.name ?? t("screen.organizationMember")
-                      }
-                      contextTrailing={assignmentLabel}
-                      footerLeading={
-                        member.designation ??
-                        member.user?.phone ??
-                        t("screen.noDesignation")
-                      }
-                      footerTrailing={
-                        <StatusBadge
-                          label={t(
-                            organizationMemberStatusTranslationKeys[
-                              member.status
-                            ],
-                          )}
-                        />
-                      }
-                      key={member.id}
-                      onPress={
-                        canOpen
-                          ? () => openOrganizationMember(member)
-                          : undefined
-                      }
-                      supporting={member.user?.email ?? t("screen.noEmail")}
-                      title={member.user?.name ?? t("screen.member")}
-                      tone={getStatusTone(member.status)}
-                    />
-                  );
-                })}
-              </View>
-            ) : !canReadOrganizationMembers && visibleMembers.length ? (
+          {(!loading || members.length > 0) &&
+          (!error || members.length > 0) ? (
+            visibleMembers.length ? (
               <View style={styles.list}>
                 {visibleMembers.map((member) => (
                   <OperationalEntityCard
@@ -584,13 +449,6 @@ export function ProjectTeamScreen() {
         </BottomSheet>
       ) : null}
 
-      {memberActivation ? (
-        <MemberActivationSheet
-          invitation={memberActivation.invitation}
-          member={memberActivation.member}
-          onClose={() => setMemberActivation(null)}
-        />
-      ) : null}
     </NirmanScreenBackground>
   );
 }

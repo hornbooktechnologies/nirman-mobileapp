@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "NirmanSite application monorepo",
   "private": true,
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "dev": "pnpm --filter @nirman-app/shared build && turbo dev",
     "mobile:lan": "pnpm --filter @nirman-app/mobile start:lan",
     "mobile:tunnel": "pnpm --filter @nirman-app/mobile start:tunnel",
+    "mobile:release:check": "pnpm --filter @nirman-app/mobile release:check",
     "website:dev": "pnpm --filter @nirman-app/website dev",
     "build": "turbo build",
     "lint": "turbo lint",

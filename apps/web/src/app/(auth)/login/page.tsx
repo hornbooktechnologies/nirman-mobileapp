@@ -99,7 +99,23 @@ function LoginPageContent() {
               {login.isPending ? "Signing in" : "Sign in"}
             </Button>
           </form>
-          <div className="mt-6 flex justify-center border-t border-hairline pt-4">
+          <div className="mt-5 rounded-inner border border-hairline bg-lime/5 px-4 py-3 text-center">
+            <p className="text-[14px] font-semibold text-body">New to NirmanSite?</p>
+            <p className="mt-1 text-[13px] leading-5 text-sub">
+              Tell us about your business. Our team will contact you to help
+              set up your account.
+            </p>
+            <a
+              href="https://nirmansite.com/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Contact our team (opens in a new tab)"
+              className="mt-1 inline-flex min-h-11 items-center justify-center rounded-inner px-3 text-[13px] font-semibold text-lime underline underline-offset-4 hover:text-lime-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime"
+            >
+              Contact our team
+            </a>
+          </div>
+          <div className="mt-4 flex justify-center border-t border-hairline pt-3">
             <a
               href="https://www.hornbooktechnologies.com/"
               target="_blank"

@@ -1,7 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
+  Alert,
   Image,
+  Linking,
+  Pressable,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -44,6 +47,14 @@ export function LoginScreen() {
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionPending = useRef(false);
+
+  async function openContactForm() {
+    try {
+      await Linking.openURL("https://nirmansite.com/contact");
+    } catch {
+      Alert.alert(t("login.newUserTitle"), t("login.contactLinkError"));
+    }
+  }
 
   async function handleSignIn() {
     if (submissionPending.current) return;
@@ -213,13 +224,23 @@ export function LoginScreen() {
                   style={mobileShadows.soft}
                   onPress={handleSignIn}
                 />
-                <View style={styles.invitation}>
-                  <Button
-                    disabled={isSubmitting}
-                    label={t("login.activateInvitation")}
-                    variant="ghost"
-                    onPress={() => router.push("/(auth)/activate")}
-                  />
+                <View style={styles.contact}>
+                  <AppText weight={700} style={styles.contactTitle}>
+                    {t("login.newUserTitle")}
+                  </AppText>
+                  <AppText style={styles.contactDescription}>
+                    {t("login.newUserDescription")}
+                  </AppText>
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityHint={t("login.contactLinkHint")}
+                    onPress={() => void openContactForm()}
+                    style={({ pressed }) => [styles.contactLink, pressed && { opacity: 0.65 }]}
+                  >
+                    <AppText weight={700} style={styles.contactLinkText}>
+                      {t("login.contactLink")}
+                    </AppText>
+                  </Pressable>
                 </View>
               </GlassCard>
               <LanguagePicker compact showDescription={false} />
@@ -240,20 +261,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: mobileTheme.spacing[5],
-    paddingVertical: mobileTheme.spacing[8],
+    paddingVertical: mobileTheme.spacing[3],
   },
   content: {
     alignSelf: "center",
     width: "100%",
     maxWidth: 440,
-    gap: mobileTheme.spacing[5],
+    gap: mobileTheme.spacing[2],
   },
   brandBlock: {
     alignItems: "center",
     gap: mobileTheme.spacing[3],
   },
   logo: {
-    height: 100,
+    height: 64,
     width: "100%",
     maxWidth: 280,
   },
@@ -266,11 +287,11 @@ const styles = StyleSheet.create({
     ...mobileText.body,
     color: mobileTheme.color.text.secondary,
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   form: {
-    gap: mobileTheme.spacing[4],
-    padding: mobileTheme.spacing[5],
+    gap: mobileTheme.spacing[2],
+    padding: mobileTheme.spacing[4],
     borderRadius: mobileTheme.radius.xl,
     backgroundColor: mobileTheme.color.background.elevated,
     borderColor: mobileTheme.color.border.subtle,
@@ -286,10 +307,21 @@ const styles = StyleSheet.create({
     borderRadius: mobileTheme.radius.full,
     marginBottom: mobileTheme.spacing[2],
   },
-  input: { minHeight: 54, backgroundColor: mobileTheme.color.background.app },
-  invitation: {
+  input: { minHeight: 48, backgroundColor: mobileTheme.color.background.app },
+  contact: {
     borderTopWidth: 1,
     borderTopColor: mobileTheme.color.border.subtle,
-    paddingTop: mobileTheme.spacing[2],
+    paddingTop: mobileTheme.spacing[3],
+    alignItems: "center",
   },
+  contactTitle: { ...mobileText.body, fontSize: 14, textAlign: "center" },
+  contactDescription: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  contactLink: { minHeight: 44, justifyContent: "center", paddingHorizontal: mobileTheme.spacing[3] },
+  contactLinkText: { ...mobileText.body, color: mobileTheme.color.text.primary, fontSize: 14, textDecorationLine: "underline" },
+
 });

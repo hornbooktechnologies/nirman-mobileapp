@@ -3,8 +3,9 @@ import { Platform } from 'react-native';
 
 // Local LAN development can override the deployed API in .env.development.local
 // with http://localhost:4000/api/v1; resolveApiBaseUrl uses the Expo host on devices.
-const configuredApiBaseUrl =
-  process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
+const localApiBaseUrl = 'http://localhost:4000/api/v1';
+const productionApiBaseUrl = 'https://api.nirmansite.com/api/v1';
+const environmentApiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
 
 function isLocalDevelopmentHost(hostname: string) {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -24,8 +25,18 @@ function isLocalDevelopmentHost(hostname: string) {
 }
 
 function resolveApiBaseUrl() {
+  const configuredApiBaseUrl = environmentApiBaseUrl ||
+    (__DEV__ ? localApiBaseUrl : productionApiBaseUrl);
+
   if (!__DEV__) {
-    return configuredApiBaseUrl;
+    try {
+      const configuredUrl = new URL(configuredApiBaseUrl);
+      return isLocalDevelopmentHost(configuredUrl.hostname)
+        ? productionApiBaseUrl
+        : configuredApiBaseUrl;
+    } catch {
+      return productionApiBaseUrl;
+    }
   }
 
   const expoHost = Constants.expoConfig?.hostUri?.split(':')[0];

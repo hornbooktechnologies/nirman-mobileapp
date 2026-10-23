@@ -65,6 +65,10 @@ See [`docs/deployment/docker-production.md`](docs/deployment/docker-production.m
 
 ## Mobile Device Run
 
+Use Node 22 LTS for local Mobile and EAS work (the repository pins `22.13.0`
+in `.nvmrc`). Starting every Web/API application at the same time is not
+required for Metro and can exhaust memory on development machines.
+
 For Expo Go on a phone, start Metro with a QR code that the phone can reach:
 
 ```bash
@@ -78,6 +82,25 @@ pnpm mobile:tunnel
 ```
 
 Tunnel mode is slower, but it avoids local network, VPN, and firewall issues.
+
+## Android Play Store Release
+
+The Expo/EAS project is rooted at `apps/mobile`. Run release commands from
+that directory so EAS uses the published Android package
+`com.hornbook.nirmansite` and the correct Expo project.
+
+```bash
+pnpm mobile:release:check
+cd apps/mobile
+eas build --platform android --profile production
+eas submit --platform android --profile production
+```
+
+Production builds generate an Android App Bundle (`.aab`). EAS remotely owns
+and automatically increments `versionCode`; `app.json` owns the public store
+version. Before the first build made from a machine/account that did not create
+the Play Store release, sync EAS to the latest published Play `versionCode`
+with `eas build:version:set`.
 
 Default admin credentials are defined in `.env.example`; change them before using NirmanSite for real work.
 

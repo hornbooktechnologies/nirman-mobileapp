@@ -23,3 +23,9 @@ test("explicit remote and production API configuration is retained", () => {
   assert.equal(config("web", "localhost:8081", remote), remote);
   assert.equal(config("android", "192.168.1.39:8081", remote, false), remote);
 });
+test("production builds never use an absent, invalid, or loopback API address", () => {
+  const production = "https://api.nirmansite.com/api/v1";
+  assert.equal(config("android", "192.168.1.39:8081", undefined, false), production);
+  assert.equal(config("android", "192.168.1.39:8081", "http://localhost:4000/api/v1", false), production);
+  assert.equal(config("android", "192.168.1.39:8081", "not-a-url", false), production);
+});
