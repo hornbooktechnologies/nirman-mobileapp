@@ -3,8 +3,7 @@
     "name": "NirmanSite",
     "slug": "nirmansite-mobile",
     "scheme": "nirmansite",
-    "version": "0.1.0",
-    "orientation": "portrait",
+    "version": "1.0.1",
     "icon": "./assets/brand/app-icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,10 +13,20 @@
       "expo-font",
       "expo-notifications",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow NirmanSite to select site photos for the Project diary.",
-          "cameraPermission": "Allow NirmanSite to take site photos for the Project diary."
+          "cameraPermission": "Allow NirmanSite to take site photos for the Project diary.",
+          "microphonePermission": false
         }
       ],
       [
@@ -53,9 +62,6 @@
         "CFBundleLocalizations": [
           "en",
           "hi",
-          "gu",
-          "en",
-          "hi",
           "gu"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -63,14 +69,12 @@
     },
     "android": {
       "package": "com.hornbook.nirmansite",
+      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/app-icon.png",
         "backgroundColor": "#FAF8F5"
-      },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      }
     },
     "splash": {
       "image": "./assets/brand/app-icon.png",

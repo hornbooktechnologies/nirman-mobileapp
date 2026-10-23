@@ -55,6 +55,13 @@ export function useInviteOrganizationMember(organizationId: string) {
   });
 }
 
+export function useOrganizationMemberActivationLink(organizationId: string) {
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      organizationsService.memberActivationLink(organizationId, memberId),
+  });
+}
+
 export function useCreateOrganization() {
   const queryClient = useQueryClient();
   return useMutation({

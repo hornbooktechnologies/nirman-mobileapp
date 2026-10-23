@@ -219,6 +219,29 @@ export class OrganizationsService {
     );
   }
 
+  async memberActivationLink(
+    organizationId: string,
+    memberId: string,
+    actor: AuthenticatedUser,
+  ) {
+    await this.projectAccess.resolveOrganizationAccess(
+      actor,
+      organizationId,
+      "members:invite",
+    );
+    const member = await this.organizationsRepo.findMemberById(
+      organizationId,
+      memberId,
+    );
+    if (!member) throw new NotFoundException("Organization member not found");
+    if (member.status !== "INVITED") {
+      throw new ConflictException(
+        "Only an invited organization member has an activation link",
+      );
+    }
+    return this.onboarding.rotateMemberActivationLink(organizationId, memberId);
+  }
+
   async updateMember(
     organizationId: string,
     memberId: string,

@@ -1,7 +1,8 @@
-import { apiRequest } from '../../lib/api';
+import { apiRequest } from "../../lib/api";
 import type {
   InviteOrganizationMemberInput,
   OrganizationMember,
+  OrganizationMemberActivationLinkResponse,
   OrganizationMemberInvitationResponse,
   OrganizationMemberRole,
   OrganizationProjectAssignmentsOverview,
@@ -10,7 +11,7 @@ import type {
   SaveMemberProjectAssignmentsInput,
   SubscriptionSummary,
   UpdateOrganizationMemberInput,
-} from './types';
+} from "./types";
 
 type ApiEnvelope<TData> = {
   success: boolean;
@@ -22,18 +23,26 @@ async function requestData<TData>(
   accessToken: string,
   init: RequestInit = {},
 ) {
-  const response = await apiRequest<ApiEnvelope<TData>>(path, init, { accessToken });
+  const response = await apiRequest<ApiEnvelope<TData>>(path, init, {
+    accessToken,
+  });
   return response.data;
 }
 
-export function fetchOrganizationMembers(organizationId: string, accessToken: string) {
+export function fetchOrganizationMembers(
+  organizationId: string,
+  accessToken: string,
+) {
   return requestData<OrganizationMember[]>(
     `/organizations/${organizationId}/members`,
     accessToken,
   );
 }
 
-export function fetchOrganizationMemberRoles(organizationId: string, accessToken: string) {
+export function fetchOrganizationMemberRoles(
+  organizationId: string,
+  accessToken: string,
+) {
   return requestData<OrganizationMemberRole[]>(
     `/organizations/${organizationId}/member-roles`,
     accessToken,
@@ -48,7 +57,19 @@ export function inviteOrganizationMember(
   return requestData<OrganizationMemberInvitationResponse>(
     `/organizations/${organizationId}/invitations`,
     accessToken,
-    { method: 'POST', body: JSON.stringify(input) },
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export function refreshOrganizationMemberActivationLink(
+  organizationId: string,
+  memberId: string,
+  accessToken: string,
+) {
+  return requestData<OrganizationMemberActivationLinkResponse>(
+    `/organizations/${organizationId}/members/${memberId}/activation-link`,
+    accessToken,
+    { method: "POST" },
   );
 }
 
@@ -61,7 +82,7 @@ export function updateOrganizationMember(
   return requestData<OrganizationMember>(
     `/organizations/${organizationId}/members/${memberId}`,
     accessToken,
-    { method: 'PATCH', body: JSON.stringify(input) },
+    { method: "PATCH", body: JSON.stringify(input) },
   );
 }
 
@@ -73,7 +94,7 @@ export function deactivateOrganizationMember(
   return requestData<OrganizationMember>(
     `/organizations/${organizationId}/members/${memberId}/deactivate`,
     accessToken,
-    { method: 'POST' },
+    { method: "POST" },
   );
 }
 
@@ -103,10 +124,10 @@ export function saveMemberProjectAssignments(
   accessToken: string,
   input: SaveMemberProjectAssignmentsInput,
 ) {
-  return requestData<OrganizationProjectAssignmentsOverview['assignments']>(
+  return requestData<OrganizationProjectAssignmentsOverview["assignments"]>(
     `/organizations/${organizationId}/project-members/${memberId}/assignments`,
     accessToken,
-    { method: 'PUT', body: JSON.stringify(input) },
+    { method: "PUT", body: JSON.stringify(input) },
   );
 }
 
@@ -131,7 +152,7 @@ export function assignProjectMember(
   return requestData<ProjectMember>(
     `/organizations/${organizationId}/projects/${projectId}/members/${memberId}`,
     accessToken,
-    { method: 'PUT', body: JSON.stringify(input) },
+    { method: "PUT", body: JSON.stringify(input) },
   );
 }
 
@@ -145,7 +166,7 @@ export function updateProjectMember(
   return requestData<ProjectMember>(
     `/organizations/${organizationId}/projects/${projectId}/members/${memberId}`,
     accessToken,
-    { method: 'PATCH', body: JSON.stringify(input) },
+    { method: "PATCH", body: JSON.stringify(input) },
   );
 }
 
@@ -158,6 +179,6 @@ export function unassignProjectMember(
   return requestData<null>(
     `/organizations/${organizationId}/projects/${projectId}/members/${memberId}`,
     accessToken,
-    { method: 'DELETE' },
+    { method: "DELETE" },
   );
 }

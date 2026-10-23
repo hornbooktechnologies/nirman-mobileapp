@@ -10,11 +10,17 @@ export function OwnerActivationDialog({
   open,
   activation,
   notice,
+  title = "Owner activation link ready",
+  description,
+  shareTitle,
   onOpenChange,
 }: {
   open: boolean;
   activation: OwnerActivationLinkResponse | null;
   notice?: string;
+  title?: string;
+  description?: string;
+  shareTitle?: string;
   onOpenChange: (open: boolean) => void;
 }) {
   const [actionResult, setActionResult] = useState<{
@@ -44,8 +50,10 @@ export function OwnerActivationDialog({
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({
-          title: `Activate ${activation.organization.name} on NirmanSite`,
-          text: "Use this secure link to activate your NirmanSite Owner account and create your password.",
+          title:
+            shareTitle ??
+            `Activate ${activation.organization.name} on NirmanSite`,
+          text: "Use this secure link to activate your NirmanSite account and create your password.",
           url: activation.invitation.activationUrl,
         });
         setActionResult({
@@ -64,11 +72,12 @@ export function OwnerActivationDialog({
   return (
     <Dialog
       open={open && Boolean(activation)}
-      title="Owner activation link ready"
+      title={title}
       description={
-        activation
+        description ??
+        (activation
           ? `${activation.organization.name} Owner activation.`
-          : undefined
+          : undefined)
       }
       onOpenChange={onOpenChange}
       footer={

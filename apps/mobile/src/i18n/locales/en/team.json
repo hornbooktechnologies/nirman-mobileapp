@@ -6,8 +6,8 @@
     "membersCount_one": "Members {{count}}",
     "membersCount_other": "Members {{count}}",
     "workers": "Workers",
-    "searchA11y": "Search assigned members",
-    "searchPlaceholder": "Search name, role or responsibility",
+    "searchA11y": "Search organization members",
+    "searchPlaceholder": "Search name, role, designation or project access",
     "loading": "Loading Project Team",
     "unavailable": "Team unavailable",
     "retry": "Retry",
@@ -20,7 +20,17 @@
     "noMembersTitle": "No Project Members",
     "tryAnotherSearch": "Try another search.",
     "noMembersDescription": "Assign an active organization member to this project.",
-    "assignMember": "Assign Member"
+    "assignMember": "Assign Member",
+    "allProjects": "All projects",
+    "assignedToProject": "Assigned to project",
+    "activationPending": "Activation pending",
+    "notAssigned": "Not assigned",
+    "member": "Member",
+    "organizationMember": "Organization member",
+    "noDesignation": "No designation"
+  },
+  "activation": {
+    "unavailableTitle": "Activation link unavailable"
   },
   "confirm": {
     "endTitle": "End project assignment?",
@@ -102,6 +112,13 @@
     "ACTIVE": "Active",
     "INACTIVE": "Inactive",
     "ENDED": "Ended"
+  },
+  "organizationStatus": {
+    "INVITED": "Invited",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "SUSPENDED": "Suspended",
+    "LEFT": "Left"
   },
   "permissionGroup": {
     "PROJECT": "Project",

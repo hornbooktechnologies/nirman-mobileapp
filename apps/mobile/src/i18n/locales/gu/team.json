@@ -6,8 +6,8 @@
     "membersCount_one": "સભ્યો {{count}}",
     "membersCount_other": "સભ્યો {{count}}",
     "workers": "કામદારો",
-    "searchA11y": "સોંપેલા સભ્યો શોધો",
-    "searchPlaceholder": "નામ, ભૂમિકા અથવા જવાબદારી શોધો",
+    "searchA11y": "ઓર્ગેનાઇઝેશન સભ્યો શોધો",
+    "searchPlaceholder": "નામ, ભૂમિકા, હોદ્દો અથવા પ્રોજેક્ટ ઍક્સેસ શોધો",
     "loading": "પ્રોજેક્ટ ટીમ લોડ થઈ રહી છે",
     "unavailable": "ટીમ ઉપલબ્ધ નથી",
     "retry": "ફરી પ્રયાસ કરો",
@@ -20,7 +20,17 @@
     "noMembersTitle": "કોઈ પ્રોજેક્ટ સભ્ય નથી",
     "tryAnotherSearch": "બીજી શોધ અજમાવો.",
     "noMembersDescription": "આ પ્રોજેક્ટમાં સક્રિય ઓર્ગેનાઇઝેશન સભ્યને સોંપો.",
-    "assignMember": "સભ્ય સોંપો"
+    "assignMember": "સભ્ય સોંપો",
+    "allProjects": "બધા પ્રોજેક્ટ",
+    "assignedToProject": "પ્રોજેક્ટમાં સોંપાયેલ",
+    "activationPending": "સક્રિયકરણ બાકી",
+    "notAssigned": "સોંપાયેલ નથી",
+    "member": "સભ્ય",
+    "organizationMember": "ઓર્ગેનાઇઝેશન સભ્ય",
+    "noDesignation": "કોઈ હોદ્દો નથી"
+  },
+  "activation": {
+    "unavailableTitle": "સક્રિયકરણ લિંક ઉપલબ્ધ નથી"
   },
   "confirm": {
     "endTitle": "પ્રોજેક્ટ સોંપણી સમાપ્ત કરવી છે?",
@@ -102,6 +112,13 @@
     "ACTIVE": "સક્રિય",
     "INACTIVE": "નિષ્ક્રિય",
     "ENDED": "સમાપ્ત"
+  },
+  "organizationStatus": {
+    "INVITED": "આમંત્રિત",
+    "ACTIVE": "સક્રિય",
+    "INACTIVE": "નિષ્ક્રિય",
+    "SUSPENDED": "સ્થગિત",
+    "LEFT": "છોડી દીધું"
   },
   "permissionGroup": {
     "PROJECT": "પ્રોજેક્ટ",

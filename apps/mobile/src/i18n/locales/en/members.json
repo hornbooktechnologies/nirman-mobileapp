@@ -40,6 +40,7 @@
     "manageProjects": "Manage projects",
     "assignProjects": "Assign to projects",
     "editAccess": "Edit role and access",
+    "activationLink": "Show activation link",
     "activate": "Activate member",
     "deactivate": "Deactivate member"
   },
@@ -55,8 +56,15 @@
   "invitation": {
     "createdTitle": "Invitation created",
     "createdDescription": "The member appears as Invited until activation is completed.",
+    "readyTitle": "Member activation link ready",
+    "readyDescription": "Share this private link with {{name}} so they can activate their account.",
     "expires": "Expires {{date}}",
-    "share": "Share activation link"
+    "share": "Share activation link",
+    "open": "Open activation link",
+    "linkLabel": "Web activation link",
+    "shareTitle": "Activate {{name}} on NirmanSite",
+    "securityNote": "Only share this private link with the intended member. Generating a fresh link invalidates the previous pending link.",
+    "unavailableTitle": "Activation link unavailable"
   },
   "invite": {
     "title": "Invite member",

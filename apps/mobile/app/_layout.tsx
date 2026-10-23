@@ -6,7 +6,7 @@ import { AppProvider } from '../src/providers';
 export default function RootLayout() {
   return (
     <AppProvider>
-      <StatusBar backgroundColor="transparent" style="dark" translucent />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />

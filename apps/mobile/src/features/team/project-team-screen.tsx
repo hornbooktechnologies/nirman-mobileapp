@@ -78,6 +78,8 @@ export function ProjectTeamScreen() {
   const canUpdateMembers = permissions.includes("project-members:update");
   const canUnassignMembers = permissions.includes("project-members:unassign");
   const canReadWorkers = permissions.includes("workers:read");
+  const canReadOrganizationMembers =
+    session?.permissions.includes("members:read") ?? false;
   const [tab, setTab] = useState<"members" | "workers">(
     params.tab === "workers" && canReadWorkers
       ? "workers"
@@ -95,6 +97,7 @@ export function ProjectTeamScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showAssign, setShowAssign] = useState(false);
+  const [preselectedMemberId, setPreselectedMemberId] = useState("");
   const [editingMember, setEditingMember] = useState<ProjectMember | null>(
     null,
   );
@@ -109,7 +112,7 @@ export function ProjectTeamScreen() {
         canReadMembers
           ? fetchProjectMembers(organizationId, projectId, accessToken)
           : Promise.resolve([]),
-        canAssignMembers
+        canReadOrganizationMembers
           ? fetchOrganizationMembers(organizationId, accessToken)
           : Promise.resolve([]),
         canAssignMembers || canUpdateMembers
@@ -135,6 +138,7 @@ export function ProjectTeamScreen() {
     accessToken,
     canAssignMembers,
     canReadMembers,
+    canReadOrganizationMembers,
     canUpdateMembers,
     organizationId,
     projectId,
@@ -180,6 +184,7 @@ export function ProjectTeamScreen() {
         input,
       );
       setShowAssign(false);
+      setPreselectedMemberId("");
       await load();
     } finally {
       setSaving(false);
@@ -257,7 +262,10 @@ export function ProjectTeamScreen() {
               icon="account-plus-outline"
               accessibilityLabel={t("screen.assignMemberA11y")}
               variant="primary"
-              onPress={() => setShowAssign(true)}
+              onPress={() => {
+                setPreselectedMemberId("");
+                setShowAssign(true);
+              }}
             />
           ) : undefined
         }
@@ -276,7 +284,9 @@ export function ProjectTeamScreen() {
       <View style={styles.tabs}>
         {canReadMembers ? (
           <Button
-            label={t("screen.membersCount", { count: members.length })}
+            label={t("screen.membersCount", {
+              count: members.length,
+            })}
             size="sm"
             variant={tab === "members" ? "dark" : "outline"}
             fullWidth={false}
@@ -321,23 +331,12 @@ export function ProjectTeamScreen() {
               <View style={styles.list}>
                 {visibleMembers.map((member) => (
                   <OperationalEntityCard
-                    accessibilityLabel={`${member.user.name}, ${member.role.name}, ${member.roleLabel ?? t("screen.projectMember")}, ${t(projectMemberStatusTranslationKeys[member.status])}, ${member.permissionMode === "CUSTOM" ? t("screen.customActions", { count: member.grantedPermissions.length }) : t("screen.roleDefaults")}`}
+                    accessibilityLabel={`${member.user.name}, ${member.role.name}, ${member.roleLabel ?? t("screen.projectMember")}, ${t(projectMemberStatusTranslationKeys[member.status])}`}
                     contextLeading={member.role.name}
                     contextTrailing={
                       member.roleLabel ?? t("screen.projectMember")
                     }
-                    footerLeading={
-                      !member.startsOn && !member.endsOn
-                        ? t("assignment.withoutDateLimit")
-                        : t("assignment.dateRange", {
-                            start:
-                              member.startsOn?.slice(0, 10) ??
-                              t("assignment.now"),
-                            end:
-                              member.endsOn?.slice(0, 10) ??
-                              t("assignment.ongoing"),
-                          })
-                    }
+                    footerLeading={member.user.email ?? t("screen.noEmail")}
                     footerTrailing={
                       <StatusBadge
                         label={t(
@@ -351,7 +350,9 @@ export function ProjectTeamScreen() {
                         ? () => setActionMember(member)
                         : undefined
                     }
-                    supporting={member.user.email ?? t("screen.noEmail")}
+                    supporting={
+                      member.roleLabel ?? t("assignment.withoutDateLimit")
+                    }
                     title={member.user.name}
                     tone={getStatusTone(member.status)}
                   />
@@ -376,7 +377,10 @@ export function ProjectTeamScreen() {
                 }
                 onAction={
                   !search && canAssignMembers
-                    ? () => setShowAssign(true)
+                    ? () => {
+                        setPreselectedMemberId("");
+                        setShowAssign(true);
+                      }
                     : undefined
                 }
               />
@@ -393,9 +397,13 @@ export function ProjectTeamScreen() {
         <ProjectMemberEditorSheet
           mode="assign"
           availableMembers={availableMembers}
+          initialMemberId={preselectedMemberId}
           roles={roles}
           saving={saving}
-          onClose={() => setShowAssign(false)}
+          onClose={() => {
+            setShowAssign(false);
+            setPreselectedMemberId("");
+          }}
           onSave={saveNewMember}
         />
       ) : null}
@@ -440,6 +448,7 @@ export function ProjectTeamScreen() {
           ) : null}
         </BottomSheet>
       ) : null}
+
     </NirmanScreenBackground>
   );
 }
@@ -448,6 +457,7 @@ function ProjectMemberEditorSheet({
   mode,
   member,
   availableMembers = [],
+  initialMemberId = "",
   roles,
   saving,
   onClose,
@@ -456,6 +466,7 @@ function ProjectMemberEditorSheet({
   mode: "assign" | "edit";
   member?: ProjectMember;
   availableMembers?: OrganizationMember[];
+  initialMemberId?: string;
   roles: OrganizationMemberRole[];
   saving: boolean;
   onClose: () => void;
@@ -464,7 +475,7 @@ function ProjectMemberEditorSheet({
   const { t } = useTranslation("team");
   const { t: tCommon } = useTranslation("common");
   const [selectedMemberId, setSelectedMemberId] = useState(
-    member?.memberId ?? "",
+    member?.memberId ?? initialMemberId,
   );
   const [memberSearch, setMemberSearch] = useState("");
   const [pickerVisible, setPickerVisible] = useState(false);

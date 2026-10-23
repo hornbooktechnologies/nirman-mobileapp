@@ -6,7 +6,7 @@ import type {
   ProjectPermissionMode,
   ProjectStatus,
   SubscriptionStatus,
-} from '@nirman-app/shared';
+} from "@nirman-app/shared";
 
 export type OrganizationMember = {
   id: string;
@@ -53,12 +53,23 @@ export type OrganizationMemberInvitationResponse = {
   membership: OrganizationMember;
   invitation: {
     id: string;
-    status: 'PENDING';
+    status: "PENDING";
     expiresAt: string;
     activationUrl: string;
     mobileActivationUrl: string;
     deliveryStatus: InvitationDeliveryStatus;
   };
+};
+
+export type OrganizationMemberActivationLinkResponse = {
+  organization: { id: string; name: string };
+  member: {
+    id: string;
+    name: string;
+    email: string;
+    roleName: string;
+  };
+  invitation: OrganizationMemberInvitationResponse["invitation"];
 };
 
 export type UpdateOrganizationMemberInput = {

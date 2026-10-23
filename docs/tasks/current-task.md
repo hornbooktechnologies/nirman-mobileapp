@@ -1,3 +1,33 @@
+## 2026-10-23 - Mobile Play release hardening and Metro stability
+
+Prepared the published Android app for its next Play update without changing
+`com.hornbook.nirmansite`. Public version is now 1.0.1; EAS retains remote,
+auto-incremented versionCode ownership and produces a production AAB. Removed
+conflicting root Expo/EAS identities, pinned the recommended Node version,
+made LAN/tunnel bundling memory-safe, removed forced offline mode, updated Expo
+54 patch dependencies, removed an unused Web Lottie dependency, and blocked the
+unused microphone permission. Production bundles now reject loopback/invalid API
+configuration and fall back to the HTTPS production API.
+
+Play Console follow-up: the published 1.0.0 bundle reported 2% DEX
+obfuscation, deprecated edge-to-edge APIs, and portrait/large-screen
+restrictions. Release builds now enable R8 minification and resource shrinking
+through the Expo 54 build-properties plugin. Android edge-to-edge is explicit,
+and the global portrait restriction is removed for resizable tablet/foldable
+and multi-window support. Deprecated status-bar background/translucency props
+were removed; the app already uses safe-area-aware screen shells.
+The edge-to-edge warning may remain on the historical 1.0.0 artifact and can
+only be reassessed after Play analyzes the new AAB; native framework references,
+not direct NirmanSite calls, caused that static warning.
+
+Verification: exact `pnpm mobile:lan` command started Metro on LAN and reported
+packager running; Android Hermes export completed with 1,908 modules; Expo
+Doctor passed 18/18; dependency/peer checks, Mobile typecheck, API-base tests,
+19-namespace en/hi/gu validation and diff checks passed. Expo remote version
+read remains blocked because the configured Expo token is invalid; an account
+owner must log in and sync EAS to the latest Play versionCode before the next
+store build. No EAS build, submission, Play rollout, commit or push performed.
+
 ## 2026-10-22 - Production website contact origin validation
 
 Fixed the public `/api/contact` origin guard for the Coolify/Traefik deployment. The browser sends `Origin: https://nirmansite.com`, while Next.js reconstructs the request with the website container's internal origin; the previous exact comparison therefore rejected legitimate submissions with HTTP 403. The route now accepts the exact request origin or the explicitly configured `NEXT_PUBLIC_SITE_URL` origin without trusting forwarded headers. Missing, null, malformed, path-bearing, lookalike and foreign origins remain rejected.
