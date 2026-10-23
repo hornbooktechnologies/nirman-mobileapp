@@ -25,7 +25,7 @@ services:
     command: ["bash", "deploy/coolify-migrate.sh"]
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:?}
+      DATABASE_URL: "mysql://${MYSQL_USER:?}:${MYSQL_PASSWORD:?}@database:3306/${MYSQL_DATABASE:?}"
       DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
       DB_MIGRATION_SQL_DIR: /app/src/database/sql/migrations
       MYSQL_DATABASE: ${MYSQL_DATABASE:?}
@@ -45,7 +45,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: ${DATABASE_URL:?}
+      DATABASE_URL: "mysql://${MYSQL_USER:?}:${MYSQL_PASSWORD:?}@database:3306/${MYSQL_DATABASE:?}"
       DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
       JWT_SECRET: ${JWT_SECRET:?}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?}
