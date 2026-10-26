@@ -23,7 +23,8 @@ services:
   api:
     build:
       context: .
-      target: api
+      dockerfile: apps/api/Dockerfile
+      target: runtime
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -68,6 +69,7 @@ services:
     profiles: ["tools"]
     build:
       context: .
+      dockerfile: apps/api/Dockerfile
       target: tools
     environment:
       NODE_ENV: production
@@ -83,7 +85,8 @@ services:
   web:
     build:
       context: .
-      target: web
+      dockerfile: apps/web/Dockerfile
+      target: runtime
       args:
         API_INTERNAL_URL: http://api:4000
     restart: unless-stopped
@@ -105,7 +108,8 @@ services:
   website:
     build:
       context: .
-      target: website
+      dockerfile: apps/website/Dockerfile
+      target: runtime
       args:
         WEBSITE_PUBLIC_URL: https://nirmansite.com
         WEBSITE_INDEXING_ENABLED: "true"

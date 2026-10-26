@@ -19,13 +19,14 @@ services:
   migration:
     build:
       context: .
+      dockerfile: apps/api/Dockerfile
       target: tools
     restart: "no"
     exclude_from_hc: true
     command: ["bash", "deploy/coolify-migrate.sh"]
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:?}
+      DATABASE_URL: "mysql://${MYSQL_USER:?}:${MYSQL_PASSWORD:?}@database:3306/${MYSQL_DATABASE:?}"
       DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
       DB_MIGRATION_SQL_DIR: /app/src/database/sql/migrations
       MYSQL_DATABASE: ${MYSQL_DATABASE:?}
@@ -40,12 +41,13 @@ services:
   api:
     build:
       context: .
-      target: api
+      dockerfile: apps/api/Dockerfile
+      target: runtime
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: ${DATABASE_URL:?}
+      DATABASE_URL: "mysql://${MYSQL_USER:?}:${MYSQL_PASSWORD:?}@database:3306/${MYSQL_DATABASE:?}"
       DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT:-10}
       JWT_SECRET: ${JWT_SECRET:?}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?}
@@ -82,9 +84,10 @@ services:
   web:
     build:
       context: .
-      target: web
+      dockerfile: apps/web/Dockerfile
+      target: runtime
       args:
-        API_INTERNAL_URL: http://api:4000
+        API_INTERNAL_URL: https://api.nirmansite.com
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -102,8 +105,10 @@ services:
   website:
     build:
       context: .
-      target: website
+      dockerfile: apps/website/Dockerfile
+      target: runtime
       args:
+        API_INTERNAL_URL: https://api.nirmansite.com
         WEBSITE_PUBLIC_URL: https://nirmansite.com
         WEBSITE_INDEXING_ENABLED: "true"
     restart: unless-stopped
