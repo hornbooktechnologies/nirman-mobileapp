@@ -1,3 +1,27 @@
+## 2026-10-26 - Brochure server size ceiling restored at 1 GiB
+
+User-authorized supersession: API enforces 1,073,741,824 bytes per uploaded file and per Project aggregate stored brochures, counting active and archived assets. Multipart rejects oversized files; service validates size; repository checks total inside the existing Project row lock. Storage cleanup and readable errors are preserved. Web/Mobile retain no size policy copy or storage meter. Quota response again reports actual numeric capacity. No database changes. This bounds uploads but does not guarantee protection against concurrent memory exhaustion: existing multipart/storage handling buffers files in memory.
+
+## 2026-10-26 - Public email/share links use the live app
+
+Updated active root .env and .env.example public Web/activation origins to https://app.nirmansite.com. Brochure shares now reuse publicWebOrigin instead of a separate localhost fallback. This fixes phone browsers opening their own localhost from newly generated links. Mobile API/Expo settings are unchanged: the user confirmed the failure was opening email/share links on a phone. Existing emails require fresh links; API restart is required for root environment changes. No deployment or database mutation. Live HTTP acceptance could not be confirmed from this environment.
+
+## 2026-10-26 - Local Web brochure route recovered
+
+The existing project brochure route returned HTTP 404 with an incomplete generated route manifest. Restored missing installed dependency files using pnpm install --frozen-lockfile --force, removed the corrupt generated Next.js cache, and restarted only the local Web server. The exact /projects/423a4f43-147b-4fe6-a685-f605ea0064ef/sales/brochures URL now returns HTTP 200. No route source or lockfile change was required. Authenticated brochure data acceptance remains unverified; the local API upstream on port 4000 reported connection refused. No database mutation or deployment performed.
+
+## 2026-10-26 - Web Organizations module reserved for platform administration
+
+User-authorized Web scope change: Organizations navigation and the dashboard shortcut require platform-organizations:read. Both /organizations and /organizations/[id] are guarded before their query components mount, so organization users receive the existing access-denied state without fetching management page data. Platform admins retain the full organization list, onboarding, detail and lifecycle tools. Organization APIs and shared hooks remain available for the top-bar organization switcher, project context and Members workflows; existing API tenancy and platform permission enforcement remain authoritative.
+
+Verification: focused ESLint checks passed for navigation, dashboard and both management pages. Web typecheck is blocked by pre-existing malformed generated .next/dev/types/routes.d.ts and validator.ts. Browser acceptance remains unrun. No API, database or deployment changes.
+
+## 2026-10-26 - Brochure upload size restriction removed
+
+Removed the application-level per-file and Project aggregate 50 MiB checks in API and size-based upload blocking/storage meters on Web and Mobile. Supported formats and access controls remain; en/hi/gu descriptions omit size policy wording. Shared quota capacity fields are nullable. No DB changes or deployment.
+
+Verification: shared build, API and Mobile typechecks, all 7 focused brochure API tests, 19-namespace en/hi/gu parity and diff whitespace checks passed. Web typecheck is blocked by syntax errors in existing generated .next/dev/types/routes.d.ts and validator.ts. Authenticated browser/device and deployed uploads remain unrun; no deployment or database mutation performed.
+
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======

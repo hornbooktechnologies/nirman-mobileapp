@@ -70,6 +70,61 @@ describe("BrochuresService", () => {
     );
   });
 
+  it("accepts a supported file above the former 50 MiB ceiling", async () => {
+    const buffer = Buffer.alloc(50 * 1024 * 1024 + 1);
+    buffer.write("%PDF-");
+    await expect(
+      service.upload(
+        "org",
+        "project",
+        dto,
+        { ...file, buffer, size: buffer.length },
+        actor,
+      ),
+    ).resolves.toEqual({ id: dto.assetId });
+    expect(repo.create).toHaveBeenCalledWith(
+      "org",
+      "project",
+      expect.objectContaining({ byteSize: buffer.length }),
+    );
+  });
+
+  it("rejects files above 1 GiB before storage", async () => {
+    await expect(
+      service.upload(
+        "org",
+        "project",
+        dto,
+        { ...file, size: 1024 * 1024 * 1024 + 1 },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
+  it("returns a readable error and cleans storage when project capacity is exceeded", async () => {
+    repo.create.mockRejectedValueOnce(
+      Object.assign(new Error("full"), { code: "BROCHURE_QUOTA_EXCEEDED" }),
+    );
+    await expect(
+      service.upload("org", "project", dto, file, actor),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(storage.delete).toHaveBeenCalled();
+  });
+
+  it("rejects empty files before storage", async () => {
+    await expect(
+      service.upload(
+        "org",
+        "project",
+        dto,
+        { ...file, buffer: Buffer.alloc(0), size: 0 },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(storage.upload).not.toHaveBeenCalled();
+  });
+
   it("rejects mismatched file signatures before storage", async () => {
     await expect(
       service.upload(
@@ -91,6 +146,19 @@ describe("BrochuresService", () => {
     expect(storage.delete).toHaveBeenCalledWith(
       expect.stringContaining("/assets/brochures/"),
     );
+  });
+
+  it("uses the canonical live origin for production brochure links", () => {
+    const previous = { ...process.env };
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.PUBLIC_WEB_APP_URL = "http://localhost:3000";
+      expect(
+        (service as unknown as { url(token: string): string }).url("a/b"),
+      ).toBe("https://app.nirmansite.com/brochure-share/a%2Fb");
+    } finally {
+      process.env = previous;
+    }
   });
 
   it("rejects unavailable Lead-share selections before Lead creation", async () => {

@@ -1,5 +1,12 @@
 # Identity Access Contract
 
+## 2026-10-26 - Web Organizations module reserved for platform administration
+
+User-authorized Web scope change: Organizations navigation and the dashboard shortcut require platform-organizations:read. Both /organizations and /organizations/[id] are guarded before their query components mount, so organization users receive the existing access-denied state without fetching management page data. Platform admins retain the full organization list, onboarding, detail and lifecycle tools. Organization APIs and shared hooks remain available for the top-bar organization switcher, project context and Members workflows; existing API tenancy and platform permission enforcement remain authoritative.
+
+Verification: focused ESLint checks passed for navigation, dashboard and both management pages. Web typecheck is blocked by pre-existing malformed generated .next/dev/types/routes.d.ts and validator.ts. Browser acceptance remains unrun. No API, database or deployment changes.
+
+
 ## 1. Status
 
 Phase 0 aligned draft for product-owner review.

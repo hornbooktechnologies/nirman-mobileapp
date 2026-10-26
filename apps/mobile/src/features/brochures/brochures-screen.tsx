@@ -7,7 +7,6 @@ import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import {
   BROCHURE_CATEGORIES,
   BROCHURE_MAX_SELECTION,
-  BROCHURE_PROJECT_QUOTA_BYTES,
   type BrochureAsset,
 } from "@nirman-app/shared";
 import {
@@ -55,7 +54,6 @@ export function BrochuresScreen() {
   const alive = useRef(true);
   const lock = useRef(false);
   const [items, setItems] = useState<BrochureAsset[]>([]);
-  const [used, setUsed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -92,7 +90,6 @@ export function BrochuresScreen() {
       );
       if (alive.current) {
         setItems(response.items);
-        setUsed(response.quota.usedBytes);
         setSelected((current) =>
           current.filter((id) => response.items.some((item) => item.id === id)),
         );
@@ -232,11 +229,6 @@ export function BrochuresScreen() {
     }
     setSelected((current) => [...current, assetId]);
   }
-  const remaining = Math.max(0, BROCHURE_PROJECT_QUOTA_BYTES - used);
-  const percentage = Math.min(
-    100,
-    Math.round((used / BROCHURE_PROJECT_QUOTA_BYTES) * 100),
-  );
   return (
     <NirmanScreenBackground scroll>
       <View style={styles.screen}>
@@ -261,39 +253,6 @@ export function BrochuresScreen() {
             />
           }
         />
-        <Card variant="blueprint" style={styles.quotaCard}>
-          <View style={styles.quotaHeader}>
-            <View style={styles.quotaIcon}>
-              <AppIcon
-                name="folder-multiple-image"
-                size={22}
-                color={mobileTheme.color.brand.blueprint}
-              />
-            </View>
-            <AppText style={styles.quotaLabel} weight={700}>
-              {t("brochures.storage")}
-            </AppText>
-          </View>
-          <View style={styles.usageRow}>
-            <AppText style={styles.quotaValue} weight={700}>
-              {size(used)}
-            </AppText>
-            <AppText style={styles.quotaLimit} weight={600}>
-              {t("brochures.ofLimit")}
-            </AppText>
-          </View>
-          <View
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: percentage }}
-            style={styles.track}
-          >
-            <View style={[styles.fill, { width: `${percentage}%` }]} />
-          </View>
-          <AppText style={styles.quotaRemaining} weight={600}>
-            {t("brochures.remaining", { value: size(remaining) })}
-          </AppText>
-        </Card>
         {canUpload ? (
           <Button
             label={t("brochures.upload")}
@@ -464,11 +423,7 @@ export function BrochuresScreen() {
             loading={working}
             disabled={
               !picked ||
-              title.trim().length < 2 ||
-              Boolean(
-                picked?.size &&
-                picked.size + used > BROCHURE_PROJECT_QUOTA_BYTES,
-              )
+              title.trim().length < 2
             }
             onPress={() => void upload()}
           />
@@ -554,59 +509,6 @@ const styles = StyleSheet.create({
   screen: {
     gap: mobileTheme.spacing[4],
     paddingBottom: mobileTheme.spacing[4],
-  },
-  quotaCard: {
-    gap: mobileTheme.spacing[3],
-  },
-  quotaHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: mobileTheme.spacing[2],
-  },
-  quotaIcon: {
-    alignItems: "center",
-    backgroundColor: mobileTheme.color.status.info.background,
-    borderColor: mobileTheme.color.status.info.border,
-    borderRadius: mobileTheme.radius.md,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  quotaLabel: {
-    ...mobileText.label,
-    color: mobileTheme.color.brand.blueprint,
-    flex: 1,
-  },
-  usageRow: {
-    alignItems: "baseline",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileTheme.spacing[2],
-  },
-  quotaValue: {
-    ...mobileText.title,
-    color: mobileTheme.color.text.primary,
-    fontSize: mobileTheme.typography.size.xxl,
-  },
-  quotaLimit: {
-    ...mobileText.body,
-    color: mobileTheme.color.text.secondary,
-  },
-  quotaRemaining: {
-    ...mobileText.caption,
-    color: mobileTheme.color.text.brand,
-  },
-  track: {
-    backgroundColor: mobileTheme.color.border.blueprint,
-    borderRadius: 99,
-    height: 8,
-    overflow: "hidden",
-  },
-  fill: {
-    backgroundColor: mobileTheme.color.brand.secondary,
-    borderRadius: 99,
-    height: 8,
   },
   emptyState: {
     backgroundColor: mobileTheme.color.surface.raised,

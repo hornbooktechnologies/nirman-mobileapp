@@ -1,4 +1,13 @@
+## 2026-10-26 - Brochure server size ceiling restored at 1 GiB
+
+User-authorized supersession: API enforces 1,073,741,824 bytes per uploaded file and per Project aggregate stored brochures, counting active and archived assets. Multipart rejects oversized files; service validates size; repository checks total inside the existing Project row lock. Storage cleanup and readable errors are preserved. Web/Mobile retain no size policy copy or storage meter. Quota response again reports actual numeric capacity. No database changes. This bounds uploads but does not guarantee protection against concurrent memory exhaustion: existing multipart/storage handling buffers files in memory.
+
 # Sales Brochures Contract
+
+## 2026-10-26 - Brochure storage policy update
+
+User-authorized change supersedes the earlier 50 MiB requirements below: brochure uploads have no application-level per-file or aggregate storage size ceiling. API multipart, service and repository quota enforcement are removed. The library response retains usedBytes; limitBytes, remainingBytes and percentage are null. Mobile and Web omit storage meters, capacity wording and size-based upload blocking; en/hi/gu upload guidance lists file formats only. Existing supported formats, signature validation, empty-file rejection, permissions, sharing selection count, private storage and cleanup remain in place. No schema change is required. Uploads still use the existing memory-backed transport and remain subject to hosting/storage resources.
+
 
 ## A. Module Identity And Status
 

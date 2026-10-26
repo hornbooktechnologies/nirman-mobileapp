@@ -26,9 +26,9 @@ export interface BrochureAsset {
 
 export interface BrochureQuota {
   usedBytes: number;
-  limitBytes: number;
-  remainingBytes: number;
-  percentage: number;
+  limitBytes: number | null;
+  remainingBytes: number | null;
+  percentage: number | null;
 }
 
 export interface BrochureLibraryResponse {

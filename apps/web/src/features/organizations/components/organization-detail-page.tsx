@@ -105,9 +105,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
   }
 
   return (
-    <PermissionGuard
-      anyOf={["platform-organizations:read", "organizations:read"]}
-    >
+    <>
       <div className="space-y-4">
         <PageHeader
           title={organization.data?.name ?? "Organization"}
@@ -345,7 +343,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
           )}
         </Dialog>
       </div>
-    </PermissionGuard>
+    </>
   );
 }
 
@@ -355,8 +353,10 @@ export function OrganizationDetailPage({
   organizationId: string;
 }) {
   return (
-    <Suspense fallback={<LoadingState label="Loading organization" />}>
-      <OrganizationDetail organizationId={organizationId} />
-    </Suspense>
+    <PermissionGuard permission="platform-organizations:read">
+      <Suspense fallback={<LoadingState label="Loading organization" />}>
+        <OrganizationDetail organizationId={organizationId} />
+      </Suspense>
+    </PermissionGuard>
   );
 }

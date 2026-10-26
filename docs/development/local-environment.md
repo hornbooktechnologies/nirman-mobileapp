@@ -45,3 +45,7 @@ For Docker/Coolify, rebuild and deploy API and Website together: the website's
 contact rewrite targets the internal `api:4000` service at build time. The API
 receives `WEBSITE_URL=https://nirmansite.com`, `CONTACT_TO_EMAIL`, and the shared
 SMTP configuration. No new database migration is required for this refactor.
+
+## Public email and phone links (2026-10-26)
+
+The active workspace and root template use PUBLIC_WEB_APP_URL and PUBLIC_ACTIVATION_WEB_URL=https://app.nirmansite.com. This supersedes the localhost/LAN public-link examples above for the current configuration. Brochure shares use the same public origin helper as account links; production always uses the canonical live app domain. Restart API after edits and generate fresh links; existing email URLs do not change. Local Web/API and Expo transport settings remain local. Live recipient pages must be deployed with the relevant routes and use the same backing data/token configuration as the API issuing the links. If local and live APIs use separate data or signing secrets, generate customer links from the live system instead. No deployment or database changes were performed.
