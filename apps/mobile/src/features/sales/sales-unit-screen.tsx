@@ -114,7 +114,7 @@ export function SalesUnitScreen() {
           <SalesSectionHeading title={t('unitQueue.interestedCustomers')} description={t('unitQueue.description')} />
         </>}
       </View>}
-      ListEmptyComponent={!initialLoading && !error ? <EmptyState title={t('unitQueue.emptyTitle')} description={t('unitQueue.emptyDescription')} /> : null}
+      ListEmptyComponent={!initialLoading && !error ? <EmptyState title={t('unitQueue.emptyTitle')} description={t('unitQueue.emptyDescription')} /> : undefined}
     />
 
     {decision && unit ? <UnitWorkflowSheet key={`${unit.id}:${decision}:${selectedInterest?.id}`} unit={unit} action={decision} interest={selectedInterest ?? undefined} close={() => setDecision(null)} saved={() => { setDecision(null); void load(true); }} /> : null}

@@ -361,7 +361,7 @@ export function WorkerAttendanceScreen() {
               title={t("history.emptyTitle")}
               description={t("history.emptyDescription")}
             />
-          ) : null)
+          ) : undefined)
         }
         contentContainerStyle={styles.listContent}
         refreshing={false}

@@ -40,7 +40,7 @@ export function AuthScreenShell({ title, description, children }: AuthScreenShel
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileTheme.color.background.app },
   flex: { flex: 1 },
-  background: { ...StyleSheet.absoluteFillObject, height: '100%', width: '100%' },
+  background: { ...StyleSheet.absoluteFill, height: '100%', width: '100%' },
   screen: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: mobileTheme.spacing[5], paddingVertical: mobileTheme.spacing[8] },
   content: { alignSelf: 'center', gap: mobileTheme.spacing[5], maxWidth: 440, width: '100%' },
   logo: { alignSelf: 'center', height: 100, maxWidth: 280, width: '100%' },

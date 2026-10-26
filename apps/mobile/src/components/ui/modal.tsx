@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     backgroundColor: mobileTheme.color.surface.scrim,
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   sheet: {
     backgroundColor: mobileTheme.color.surface.app,

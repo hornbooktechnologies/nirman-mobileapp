@@ -13,7 +13,6 @@ import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Image,
-  InteractionManager,
   Pressable,
   SectionList,
   ScrollView,
@@ -463,7 +462,7 @@ export function GalleryScreen() {
           )
         }
         ListFooterComponent={
-          loadingMore ? <LoadingState label={t("loading.more")} /> : null
+          loadingMore ? <LoadingState label={t("loading.more")} /> : undefined
         }
         onEndReachedThreshold={0.35}
         onEndReached={() => {
@@ -567,9 +566,9 @@ export function GalleryScreen() {
           onClose={() => setCaptureOpen(false)}
           onQueued={(item) => {
             setCaptureOpen(false);
-            InteractionManager.runAfterInteractions(() => {
+            requestIdleCallback(() => {
               void sendQueued(item);
-            });
+            }, { timeout: 1000 });
           }}
         />
       ) : null}

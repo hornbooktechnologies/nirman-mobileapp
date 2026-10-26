@@ -445,7 +445,7 @@ export function WageBatchDetailScreen() {
                 title={t("detail.emptyTitle")}
                 description={t("detail.emptyDescription")}
               />
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }) => {
             const settledByKharchi = isSettledByKharchi(item);

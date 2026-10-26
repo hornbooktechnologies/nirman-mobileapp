@@ -176,8 +176,8 @@ export function SalesUnitImportScreen() {
         </View> : null}
         {rows.length ? <AppText style={styles.previewTitle} weight={700}>{t('unitImport.previewTitle')}</AppText> : null}
       </View>}
-      ListEmptyComponent={!working ? <EmptyState title={t('unitImport.emptyTitle')} description={t('unitImport.emptyDescription')} /> : null}
-      ListFooterComponent={rows.length ? <Button disabled={working || review || !active || invalidCount > 0 || !preview} label={working ? t('unitImport.importing') : t('unitImport.confirm')} onPress={() => void confirmImport()} style={styles.confirm} /> : null}
+      ListEmptyComponent={!working ? <EmptyState title={t('unitImport.emptyTitle')} description={t('unitImport.emptyDescription')} /> : undefined}
+      ListFooterComponent={rows.length ? <Button disabled={working || review || !active || invalidCount > 0 || !preview} label={working ? t('unitImport.importing') : t('unitImport.confirm')} onPress={() => void confirmImport()} style={styles.confirm} /> : undefined}
     />
   </NirmanScreenBackground>;
 }

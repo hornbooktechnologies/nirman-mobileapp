@@ -4,7 +4,7 @@ import { test } from "node:test";
 import ts from "typescript";
 
 const code = ts.transpileModule(readFileSync(new URL("./app.ts", import.meta.url), "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS },
+  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: false },
 }).outputText;
 function config(platform, host, url, dev = true) {
   const exports = {};

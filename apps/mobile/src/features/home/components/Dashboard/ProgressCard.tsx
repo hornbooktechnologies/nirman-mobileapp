@@ -65,7 +65,7 @@ export function ProgressCard({
           colors={mobileTheme.gradient.summarySurface}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[StyleSheet.absoluteFillObject, styles.wash]}
+          style={[StyleSheet.absoluteFill, styles.wash]}
         />
         <View style={styles.content}>
           <SectionTitle title={title} icon="chart-timeline-variant" />
@@ -104,7 +104,7 @@ export function ProgressCard({
                     colors={mobileTheme.gradient.progressAccent}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={StyleSheet.absoluteFillObject}
+                    style={StyleSheet.absoluteFill}
                   />
                 </Animated.View>
               </View>

@@ -256,7 +256,7 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: mobileTheme.color.background.app },
   flex: { flex: 1 },
-  backgroundImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  backgroundImage: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   screen: {
     flexGrow: 1,
     justifyContent: "center",

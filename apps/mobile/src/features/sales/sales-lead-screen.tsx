@@ -1149,7 +1149,7 @@ export function SalesLeadScreen() {
               title={t("leadDetail.emptyTimeline")}
               description={t("leadDetail.emptyTimelineDescription")}
             />
-          ) : null
+          ) : undefined
         }
         ListFooterComponent={
           activities.length > 3 ? (
@@ -1166,7 +1166,7 @@ export function SalesLeadScreen() {
                 })
               }
             />
-          ) : null
+          ) : undefined
         }
       />
 
