@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> d28fefc6c6e0786461d32eaa7aebce1794b62605
 ## 2026-10-26 - Mobile Expo SDK 58 upgrade
 
 Upgraded Mobile from Expo 54 to 58.0.19 with React Native 0.88, React 19.3,
@@ -24,13 +27,19 @@ remain pending. SDK 58-compatible Expo Go is required; its release announcement
 still describes the store rollout as pending, so upgrading code alone cannot
 guarantee the installed phone client is compatible. No EAS build, store upload,
 deployment or database mutation was performed. See docs/architecture/mobile.md.
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> d28fefc6c6e0786461d32eaa7aebce1794b62605
 ## 2026-10-24 - Changed-service-only Coolify deployment
 
 Kept the pnpm/Turborepo monorepo and split production into independent API, Web, and Website Coolify Compose applications. Added service-specific `turbo prune --docker` images with shared pnpm caching, per-service Turbo caching, and Next.js build caches. The API application retains the existing external MySQL volume and owns its migration job; the aggregate Compose definition remains a rollback path. The LAN poller now maps Git changes to service UUIDs while retaining legacy single-application compatibility. Migration deployments skip the database dump and mutation path when no migrations are pending.
 
 Verification: API, Web, Website, and migration-tools Docker targets built successfully; repeated unchanged image builds completed locally in 2.9s, 1.7s, and 1.8s respectively. All Compose files parsed; standard Compose rendering passed, with Coolify's `exclude_from_hc` extension omitted only for local schema validation. Changed shell scripts passed ShellCheck. Simulated migration status verified the zero-pending no-op and pending-without-approval refusal. Diff whitespace checks passed. No database connection/mutation, production deployment, Coolify configuration change, commit, or push was performed. The production cutover and authenticated runtime smoke remain pending.
+<<<<<<< HEAD
 >>>>>>> 9cfb21b5b629dc4d210ad0324845a15493ee43cb
+=======
+>>>>>>> d28fefc6c6e0786461d32eaa7aebce1794b62605
 
 ## 2026-10-23 - API-owned marketing contact flow
 
