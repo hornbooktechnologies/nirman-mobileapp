@@ -8,7 +8,7 @@ import {
   type StyleProp,
   type ViewProps,
   type ViewStyle,
-  type ScrollView,
+  type ScrollViewInstance,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,7 +21,7 @@ const DASHBOARD_LAYER_SOURCE = require('../../../assets/brand/background1.png');
 type NirmanScreenBackgroundProps = Omit<ViewProps, 'style'> & {
   footer?: ReactNode;
   scrollY?: Animated.Value;
-  scrollRef?: Ref<ScrollView>;
+  scrollRef?: Ref<ScrollViewInstance>;
   scroll?: boolean;
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'dashboard';
@@ -105,13 +105,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   background: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     height: '100%',
     width: '100%',
   },
-  dashboardLayers: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  dashboardLayers: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   dashboardTexture: { height: '72%', opacity: 0.18, position: 'absolute', right: '-18%', top: 0, width: '118%' },
-  dashboardWash: { ...StyleSheet.absoluteFillObject, opacity: 0.7 },
+  dashboardWash: { ...StyleSheet.absoluteFill, opacity: 0.7 },
   dashboardGlow: { height: 340, opacity: 0.58, position: 'absolute', right: -110, top: -80, width: 330 },
   safeArea: {
     flex: 1,

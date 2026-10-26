@@ -12,6 +12,7 @@ import {
   findNodeHandle,
   StyleSheet,
   View,
+  type ViewInstance,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
@@ -177,7 +178,7 @@ export function AttendanceMarkScreen() {
   const [formError, setFormError] = useState("");
   const [isMutating, setIsMutating] = useState(false);
   const requestId = useRef(0);
-  const headingRef = useRef<View>(null);
+  const headingRef = useRef<ViewInstance>(null);
   const contextKey = `${organizationId ?? ""}:${projectId ?? ""}`;
   const sheetContextKey = useRef(contextKey);
   const originalDraft = editingRow
@@ -588,7 +589,7 @@ export function AttendanceMarkScreen() {
                   : t("empty.noDailyWorkersDescription")
               }
             />
-          ) : null)
+          ) : undefined)
         }
         ListFooterComponent={
           summary && summary.meta.page < summary.meta.totalPages ? (
@@ -598,7 +599,7 @@ export function AttendanceMarkScreen() {
               variant="secondary"
               onPress={() => void load(summary.meta.page + 1)}
             />
-          ) : null
+          ) : undefined
         }
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"

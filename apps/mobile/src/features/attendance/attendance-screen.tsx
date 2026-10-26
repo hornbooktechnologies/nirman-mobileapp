@@ -273,10 +273,10 @@ export function AttendanceScreen() {
             title={debouncedSearch || exceptionsOnly ? t('empty.noMatchesTitle') : t('empty.noWorkersTitle')}
             description={debouncedSearch || exceptionsOnly ? t('empty.noMatchesDescription') : t('empty.noWorkersDescription')}
           />
-        ) : null)}
+        ) : undefined)}
         ListFooterComponent={summary && summary.meta.page < summary.meta.totalPages ? (
           <Button disabled={isLoadingMore} label={isLoadingMore ? t('loading.more') : t('actions.loadMore')} variant="secondary" onPress={() => void load(summary.meta.page + 1)} />
-        ) : null}
+        ) : undefined}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         refreshing={false}

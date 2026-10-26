@@ -1,3 +1,29 @@
+## 2026-10-26 - Mobile Expo SDK 58 upgrade
+
+Upgraded Mobile from Expo 54 to 58.0.19 with React Native 0.88, React 19.3,
+Router/native library alignment, TypeScript 6 and the matching Metro config.
+Migrated native instance ref types, list empty values, absolute-fill styles and
+the removed InteractionManager API. Replaced retired architecture/edge-to-edge
+flags and legacy splash configuration with the splash-screen plugin. Explicit
+CommonJS interop keeps the existing API-config test harness compatible with TS6.
+Android/iOS package identities and EAS remote version ownership are preserved.
+
+Verification: Mobile typecheck, all 19 existing tests, 19-namespace en/hi/gu
+validation, Expo Doctor 20/20, lockfile peer checks and diff checks passed.
+iOS and Android Hermes exports passed (2,024 / 2,028 modules). A temporary LAN
+server returned an SDK 58 iOS manifest and PNG icon with HTTP 200, without the
+previous manifest-asset warning. An existing user server on port 8081 still
+serves SDK 54; stop/restart that terminal before scanning a new QR code.
+The temporary SDK 58 server used port 8082. The default pnpm peers report keeps
+stale pre-upgrade warnings; direct runtime dependency resolution and
+`pnpm peers check --lockfile-only` confirm aligned dependencies.
+
+Physical iPhone/Android, authenticated workflows and native build acceptance
+remain pending. SDK 58-compatible Expo Go is required; its release announcement
+still describes the store rollout as pending, so upgrading code alone cannot
+guarantee the installed phone client is compatible. No EAS build, store upload,
+deployment or database mutation was performed. See docs/architecture/mobile.md.
+
 ## 2026-10-23 - API-owned marketing contact flow
 
 Migrated website contact handling into the existing NestJS Website Enquiries module: POST /api/v1/public/contact owns exact configured Origin validation, bounded payloads, honeypot, per-process burst limiting, authoritative fields, durable storage and independent team/customer email delivery via the existing EmailService. The old Next route, frontend mail templates/origin helper and Nodemailer dependencies were removed. Website /api/contact is now only a rewrite to API_BASE_URL/public/contact. API accepts WEBSITE_URL in CORS and owns CONTACT_TO_EMAIL and the single API SMTP configuration. Removed WEBSITE_SMTP namespace from root env/examples and all website SMTP/ingest-secret injection. Legacy keyed ingestion remains API-only and is optional for deployment. Updated Docker build-time API upstream and both Compose configurations. No schema or admin permission/workflow changes.

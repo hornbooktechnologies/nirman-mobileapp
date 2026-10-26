@@ -1317,7 +1317,7 @@ export function SalesScreen() {
                 onPress={() => setPage(page + 1)}
               />
             </View>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           !loading && !error ? (
@@ -1325,7 +1325,7 @@ export function SalesScreen() {
               title={t(`views.${view}.emptyTitle`)}
               description={t(`views.${view}.emptyDescription`)}
             />
-          ) : null
+          ) : undefined
         }
       />
 

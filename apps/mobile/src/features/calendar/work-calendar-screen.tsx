@@ -16,6 +16,7 @@ import {
   Pressable,
   StyleSheet,
   View,
+  type ViewInstance,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -145,7 +146,7 @@ export function WorkCalendarScreen() {
   const [overrideApiError, setOverrideApiError] = useState("");
   const [isMutatingOverride, setIsMutatingOverride] = useState(false);
   const requestId = useRef(0);
-  const headingRef = useRef<View>(null);
+  const headingRef = useRef<ViewInstance>(null);
   const sheetContext = useRef("");
   const contextKey = `${organizationId ?? ""}:${projectId ?? ""}`;
   const range = useMemo(() => monthRange(month), [month]);

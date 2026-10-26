@@ -2,7 +2,7 @@ import { SourcePaymentsPanel } from "../total-expenses/source-payments-panel";
 import type { MaterialRequestDetail } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Alert, StyleSheet, View, type ScrollView } from "react-native";
+import { Alert, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 
@@ -74,7 +74,7 @@ export function MaterialDetailScreen() {
     purchaseId?: string;
     projectId?: string;
   }>();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const sectionTop = useRef<number | null>(null);
   const purchaseTop = useRef<number | null>(null);
   const focused = useRef(false);

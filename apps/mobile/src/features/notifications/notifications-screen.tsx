@@ -99,7 +99,7 @@ export function NotificationsScreen() {
     <FlatList data={items} keyExtractor={(item) => item.id} removeClippedSubviews={false} contentContainerStyle={[styles.list, !items.length && !loading && styles.emptyList]} ListHeaderComponent={header}
       refreshControl={<GuardedRefreshControl busy={loading || refreshing} refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await Promise.allSettled([load(1), refreshUnreadCount()]); }} />}
       ListEmptyComponent={loading ? <LoadingState label={t('loading')} /> : error ? <EmptyState title={t('errors.title')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : <EmptyState title={unreadOnly ? t('empty.unreadTitle') : t('empty.title')} description={unreadOnly ? t('empty.unreadDescription') : t('empty.description')} />}
-      ListFooterComponent={loadingMore ? <LoadingState label={t('loadingMore')} /> : null}
+      ListFooterComponent={loadingMore ? <LoadingState label={t('loadingMore')} /> : undefined}
       onEndReachedThreshold={0.35} onEndReached={() => { if (!loading && !loadingMore && page < totalPages) void load(page + 1, true); }}
       renderItem={({ item }) => <NotificationCard item={item} language={language} onPress={() => void open(item)} />}
     />

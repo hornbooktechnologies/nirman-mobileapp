@@ -149,7 +149,7 @@ export function SalesActivityScreen() {
               title={t("leadDetail.emptyTimeline")}
               description={t("leadDetail.emptyTimelineDescription")}
             />
-          ) : null
+          ) : undefined
         }
       />
     </NirmanScreenBackground>

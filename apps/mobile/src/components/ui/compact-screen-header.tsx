@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewInstance, type ViewProps } from 'react-native';
 
 import { mobileText, mobileTheme } from '../../theme';
 import { AppText } from './app-text';
@@ -9,7 +9,7 @@ type CompactScreenHeaderProps = ViewProps & {
   subtitle?: string;
   leading?: ReactNode;
   action?: ReactNode;
-  copyRef?: Ref<View>;
+  copyRef?: Ref<ViewInstance>;
 };
 
 export function CompactScreenHeader({ title, subtitle, leading, action, copyRef, style, ...props }: CompactScreenHeaderProps) {

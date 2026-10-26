@@ -392,7 +392,7 @@ export function KharchiScreen() {
           )
         }
         ListFooterComponent={
-          loadingMore ? <LoadingState label={t("loading.more")} /> : null
+          loadingMore ? <LoadingState label={t("loading.more")} /> : undefined
         }
         refreshControl={
           <GuardedRefreshControl

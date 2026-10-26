@@ -1,3 +1,21 @@
+## 2026-10-26 - Mobile Expo SDK 58 upgrade
+
+- Updated Mobile Expo/React Native/React/Router and native libraries to SDK 58;
+  migrated strict instance ref types, list placeholders, absolute-fill styles,
+  gallery idle scheduling and the splash-screen plugin/configuration. Kept the
+  published Android package ID, iOS bundle ID and EAS remote version ownership.
+- Passed Mobile typecheck, 19 existing tests, all en/hi/gu namespace checks,
+  Expo Doctor 20/20, lockfile peer validation, and iOS/Android Hermes exports
+  (2,024 / 2,028 modules). Verified SDK 58 iOS manifest and app icon HTTP 200
+  on a temporary LAN server. Default pnpm peer metadata is stale; actual
+  resolved peers and the updated lockfile are aligned.
+- Found the user's existing port 8081 Metro still serving SDK 54. Restart it
+  and scan the new QR after signing into the same Expo account on CLI/iPhone.
+  A matching SDK 58 phone client is required; the SDK 58 release announcement
+  describes its store Expo Go rollout as pending. Physical-device and native
+  build acceptance remain unrun. No EAS build, deployment, store submission or
+  database operation was performed.
+
 ## 2026-10-22 - Production website contact origin validation
 
 Corrected the public contact route's strict origin validation for the production reverse-proxy topology. Legitimate `https://nirmansite.com` browser requests are now matched against the configured canonical site origin in addition to the internal request origin; forwarded headers are not trusted, and missing/malformed/lookalike/foreign origins remain denied. Contact validation, honeypot behavior, durable API ingest and email delivery behavior are unchanged.

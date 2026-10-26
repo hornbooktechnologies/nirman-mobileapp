@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     width: 1440,
   },
   backgroundOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(255, 255, 255, 0.16)",
   },
   top: {
