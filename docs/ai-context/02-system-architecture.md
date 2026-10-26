@@ -19,6 +19,16 @@ The web frontend calls the API through `NEXT_PUBLIC_API_BASE_PATH`. The mobile a
 
 NirmanSite's database architecture is MySQL/MariaDB access through `mysql2/promise` inside `apps/api` repositories. Web, mobile, and shared packages must not import database drivers or execute SQL.
 
+## Production deployment boundaries
+
+The source remains one pnpm/Turborepo monorepo, but production deployment units are independent:
+
+- `compose.coolify-api.yaml` deploys the API, migration job, and existing MySQL volume.
+- `compose.coolify-web.yaml` deploys the customer Web application.
+- `compose.coolify-website.yaml` deploys the marketing Website.
+
+Each application uses its own Dockerfile with a pruned workspace graph and BuildKit caches. The LAN Coolify poller maps changed paths to application UUIDs; `packages/shared` affects API and Web. The aggregate `compose.coolify-managed.yaml` is retained only for rollback and must never run alongside the split API stack against the same external database volume.
+
 ## Extension Pattern
 
 New product modules should add:
