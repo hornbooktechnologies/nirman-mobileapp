@@ -10,7 +10,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent" ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -23,7 +23,7 @@ services:
       target: tools
     restart: "no"
     exclude_from_hc: true
-    command: ["bash", "deploy/coolify-migrate.sh"]
+    command: [ "bash", "deploy/coolify-migrate.sh" ]
     environment:
       NODE_ENV: production
       DATABASE_URL: "mysql://${MYSQL_USER:?}:${MYSQL_PASSWORD:?}@database:3306/${MYSQL_DATABASE:?}"
@@ -65,17 +65,17 @@ services:
       SMTP_ENCRYPTION: ${API_SMTP_ENCRYPTION:-tls}
       MAIL_FROM_ADDRESS: ${API_MAIL_FROM_ADDRESS:-}
       MAIL_FROM_NAME: ${API_MAIL_FROM_NAME:-NirmanSite}
-      AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${STORAGE_AWS_REGION:?}
+      AWS_S3_BUCKET: ${STORAGE_S3_BUCKET:?}
+      AWS_ACCESS_KEY_ID: ${STORAGE_AWS_ACCESS_KEY_ID:?}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_AWS_SECRET_ACCESS_KEY:?}
       NOTIFICATIONS_PUSH_ENABLED: ${NOTIFICATIONS_PUSH_ENABLED:-false}
       EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
     depends_on:
       migration:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test: [ "CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))" ]
       interval: 15s
       timeout: 5s
       retries: 10
