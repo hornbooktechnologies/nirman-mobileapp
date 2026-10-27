@@ -1,3 +1,4 @@
+import { ProfilePhotoButton } from "./components/profile-photo-button";
 import { RefreshButton } from "../../components/ui/refresh-button";
 import type {
   DashboardActionKey,
@@ -21,6 +22,7 @@ import {
   ActionListItem,
   AppIcon,
   Badge,
+  BottomSheet,
   Button,
   CompactScreenHeader,
   EmptyState,
@@ -129,6 +131,7 @@ export function DashboardScreen() {
   const { session } = useSession();
   const { unreadCount } = useNotifications();
   const { language } = useLocalization();
+  const [projectList, setProjectList] = useState<"ACTIVE" | "ALL" | null>(null);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [dashboardResponse, setDashboard] =
@@ -562,6 +565,7 @@ export function DashboardScreen() {
               }),
               icon: "office-building-marker-outline",
               label: tHome("metrics.workingSites"),
+              onPress: () => setProjectList("ACTIVE"),
               tone: "brand",
               value: availableProjects.filter(
                 (project) => project.status === "ACTIVE",
@@ -573,6 +577,7 @@ export function DashboardScreen() {
               }),
               icon: "shield-check-outline",
               label: tHome("metrics.projectScope"),
+              onPress: () => setProjectList("ALL"),
               tone: "warm",
               value: projectScopeLabel,
             },
@@ -785,6 +790,32 @@ export function DashboardScreen() {
           />
         ) : null}
       </DashboardBackdrop>
+
+      <BottomSheet
+        visible={projectList !== null}
+        title={projectList === "ACTIVE" ? tHome("metrics.workingSites") : projectScopeLabel}
+        description={tHome("projectContext.pickerDescription")}
+        scroll
+        onClose={() => setProjectList(null)}
+      >
+        {availableProjects.filter(project => projectList !== "ACTIVE" || project.status === "ACTIVE").map(project => (
+          <ListItem
+            key={project.id}
+            accessibilityRole="button"
+            title={project.name}
+            subtitle={project.roleLabel ?? project.projectCode ?? tHome("projectContext.projectAccess")}
+            leading={<IconContainer icon="office-building-marker-outline" size="sm" />}
+            trailing={<AppIcon name="chevron-right" size={20} color={mobileTheme.color.text.secondary} />}
+            onPress={() => {
+              setProjectList(null);
+              router.push({ pathname: "/(app)/project-detail", params: { projectId: project.id } });
+            }}
+          />
+        ))}
+        {!availableProjects.some(project => projectList !== "ACTIVE" || project.status === "ACTIVE") ? (
+          <EmptyState title={tHome("projectContext.noProjectAvailable")} description={tHome("projectContext.pickerDescription")} />
+        ) : null}
+      </BottomSheet>
 
       {showCreateProject && canCreateProject ? (
         <CreateProjectSheet onClose={() => setShowCreateProject(false)} />
@@ -1138,7 +1169,6 @@ export function MenuScreen() {
           />
         </GlassCard>
       }
-      style={styles.menuContent}
     >
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
@@ -1158,31 +1188,7 @@ export function MenuScreen() {
       </View>
 
       <GlassCard variant="strong" style={styles.profileCard}>
-        <View
-          accessible={false}
-          importantForAccessibility="no-hide-descendants"
-          style={styles.avatarWrap}
-        >
-          {session?.user.avatarUrl ? (
-            <Image
-              source={{ uri: session.user.avatarUrl }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <AppIcon
-              color={mobileTheme.color.text.brand}
-              name="account"
-              size={mobileTheme.icon.xl}
-            />
-          )}
-          <View style={styles.avatarEditMark}>
-            <AppIcon
-              color={mobileTheme.color.text.inverse}
-              name="camera-outline"
-              size={mobileTheme.icon.xs}
-            />
-          </View>
-        </View>
+        <ProfilePhotoButton />
         <View style={styles.projectCopy}>
           <AppText numberOfLines={1} style={styles.cardTitle} weight={700}>
             {session?.user.name ?? t("menu.customerUser")}
@@ -1430,9 +1436,6 @@ const styles = StyleSheet.create({
   profileRole: {
     ...mobileText.caption,
     color: mobileTheme.color.text.brand,
-  },
-  menuContent: {
-    paddingBottom: 176,
   },
   menuQuickActions: {
     alignItems: "center",

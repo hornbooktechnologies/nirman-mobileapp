@@ -1,3 +1,4 @@
+import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type {
   AttendanceException,
@@ -126,8 +127,17 @@ export function WorkerAttendanceScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [deepLinkReady, setDeepLinkReady] = useState(false);
-  const requestId = useRef(0);
-  const deepLinkHandled = useRef(false);
+  const readRequest = useRef(new AttendanceReadRequest());
+  const sessionActions = useRef({ refreshSession, signOut });
+  sessionActions.current = { refreshSession, signOut };
+  const hasData = useRef(false);
+  hasData.current = Boolean(period);
+  const cancelRead = useCallback(() => {
+    readRequest.current.cancel();
+    setIsLoading(false);
+    setIsRefreshing(false);
+  }, []);
+  const deepLinkHandled = useRef<string | null>(null);
   const invalidRange = startDate > endDate;
   const requiredParamsMissing = !params.workerId || !params.projectId;
   const requestedProjectAccessible = Boolean(
@@ -139,8 +149,11 @@ export function WorkerAttendanceScreen() {
   const contextKey = `${organizationId ?? ""}:${projectId ?? ""}:${workerId}`;
 
   useEffect(() => {
-    if (deepLinkHandled.current || !session) return;
-    deepLinkHandled.current = true;
+    if (!session) return;
+    const targetScope = `${organizationId}:${params.projectId ?? ""}`;
+    if (deepLinkHandled.current === targetScope) return;
+    deepLinkHandled.current = targetScope;
+    setDeepLinkReady(false);
     if (!params.projectId) {
       setDeepLinkReady(true);
       return;
@@ -153,14 +166,27 @@ export function WorkerAttendanceScreen() {
       return;
     }
     void switchActiveProject(target.id)
-      .catch(() => undefined)
-      .finally(() => setDeepLinkReady(true));
-  }, [params.projectId, session, switchActiveProject]);
+      .catch(() => {
+        if (deepLinkHandled.current === targetScope)
+          setError(t("errors.accessChanged"));
+      })
+      .finally(() => {
+        if (deepLinkHandled.current === targetScope) setDeepLinkReady(true);
+      });
+  }, [organizationId, params.projectId, session, switchActiveProject, t]);
+
+  const latestReadScope = useRef(
+    `${organizationId}:${projectId}:${workerId}:${startDate}:${endDate}`,
+  );
+  latestReadScope.current = `${organizationId}:${projectId}:${workerId}:${startDate}:${endDate}`;
 
   const load = useCallback(
     async (background = false) => {
       if (
         !deepLinkReady ||
+        requiredParamsMissing ||
+        !requestedProjectAccessible ||
+        projectId !== params.projectId ||
         !session?.accessToken ||
         !organizationId ||
         !projectId ||
@@ -169,8 +195,19 @@ export function WorkerAttendanceScreen() {
         invalidRange
       )
         return;
-      const activeRequest = ++requestId.current;
-      if (background && period) setIsRefreshing(true);
+      // Ignore a delayed reload from a mutation belonging to an old filter/Project.
+      if (
+        latestReadScope.current !==
+        `${organizationId}:${projectId}:${workerId}:${startDate}:${endDate}`
+      )
+        return;
+      const request = readRequest.current.start(
+        `${organizationId}:${projectId}:${workerId}:${startDate}:${endDate}`,
+      );
+      if (!request) return;
+      setIsLoading(false);
+      setIsRefreshing(false);
+      if (background && hasData.current) setIsRefreshing(true);
       else setIsLoading(true);
       setError("");
       try {
@@ -180,40 +217,42 @@ export function WorkerAttendanceScreen() {
           workerId,
           { startDate, endDate },
           session.accessToken,
+          request.signal,
         );
-        if (activeRequest === requestId.current) setPeriod(response);
+        if (request.isCurrent()) setPeriod(response);
       } catch (loadError) {
-        if (activeRequest !== requestId.current) return;
+        if (!request.isCurrent()) return;
         if (loadError instanceof ApiRequestError && loadError.status === 401) {
-          await signOut();
+          await sessionActions.current.signOut();
           return;
         }
         if (loadError instanceof ApiRequestError && loadError.status === 403) {
           setError(t("errors.accessChanged"));
-          await refreshSession().catch(() => undefined);
+          await sessionActions.current.refreshSession().catch(() => undefined);
         } else {
           setError(
             getLocalizedErrorMessage(loadError, t("errors.loadHistory")),
           );
         }
       } finally {
-        if (activeRequest === requestId.current) {
+        if (request.isCurrent()) {
           setIsLoading(false);
           setIsRefreshing(false);
+          request.finish();
         }
       }
     },
     [
       canRead,
       deepLinkReady,
+      requiredParamsMissing,
+      requestedProjectAccessible,
+      params.projectId,
       endDate,
       invalidRange,
       organizationId,
-      period,
       projectId,
-      refreshSession,
       session?.accessToken,
-      signOut,
       startDate,
       t,
       workerId,
@@ -223,7 +262,13 @@ export function WorkerAttendanceScreen() {
   useRefreshOnFocus({
     scopeKey: `${contextKey}:${deepLinkReady}:${startDate}:${endDate}`,
     refresh: load,
-    reset: () => setPeriod(null),
+    cancel: cancelRead,
+    reset: () => {
+      hasData.current = false;
+      setPeriod(null);
+      setIsLoading(false);
+      setIsRefreshing(false);
+    },
   });
 
   const workerName = params.workerName ?? t("history.workerFallback");

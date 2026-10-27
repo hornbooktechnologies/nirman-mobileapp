@@ -1,10 +1,12 @@
+import { uuid } from "expo";
+import { appendUploadFile, multipartUpload } from "../../lib/multipart-upload";
 import type {
   BrochureAsset,
   BrochureLibraryResponse,
   BrochureShareResult,
 } from "@nirman-app/shared";
 import { appConfig } from "../../config";
-import { ApiRequestError, apiRequest } from "../../lib/api";
+import { apiRequest } from "../../lib/api";
 
 type Envelope<T> = {
   success: boolean;
@@ -44,7 +46,7 @@ export const createBrochureShareLink = (
 ) =>
   data<BrochureShareResult>(`${base(o, p)}/shares/other`, token, {
     method: "POST",
-    body: JSON.stringify({ assetIds, idempotencyKey: crypto.randomUUID() }),
+    body: JSON.stringify({ assetIds, idempotencyKey: uuid.v4() }),
   });
 export const archiveBrochure = (
   o: string,
@@ -71,31 +73,15 @@ export async function uploadBrochure(
   },
 ) {
   const form = new FormData();
-  form.append("assetId", crypto.randomUUID());
-  form.append("idempotencyKey", crypto.randomUUID());
+  form.append("assetId", uuid.v4());
+  form.append("idempotencyKey", uuid.v4());
   form.append("title", input.title);
   form.append("category", input.category);
   if (input.description) form.append("description", input.description);
-  form.append("file", {
+  await appendUploadFile(form, {
     uri: input.uri,
     name: input.name,
     type: input.mimeType,
-  } as unknown as Blob);
-  const response = await fetch(`${appConfig.apiBaseUrl}${base(o, p)}`, {
-    method: "POST",
-    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-    body: form,
   });
-  const payload = (await response
-    .json()
-    .catch(() => null)) as Envelope<BrochureAsset> | null;
-  if (!response.ok)
-    throw new ApiRequestError(
-      payload?.error?.message ??
-        payload?.message ??
-        `Upload failed with ${response.status}`,
-      response.status,
-      payload?.error?.code,
-    );
-  return payload!.data;
+  return multipartUpload<BrochureAsset>(base(o, p), token, form);
 }

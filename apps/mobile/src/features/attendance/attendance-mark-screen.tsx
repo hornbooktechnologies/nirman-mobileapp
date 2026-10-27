@@ -1,3 +1,4 @@
+import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type {
   AttendanceSummaryResponse,
@@ -177,7 +178,17 @@ export function AttendanceMarkScreen() {
   );
   const [formError, setFormError] = useState("");
   const [isMutating, setIsMutating] = useState(false);
-  const requestId = useRef(0);
+  const readRequest = useRef(new AttendanceReadRequest());
+  const sessionActions = useRef({ refreshSession, signOut });
+  sessionActions.current = { refreshSession, signOut };
+  const hasData = useRef(false);
+  hasData.current = Boolean(summary);
+  const cancelRead = useCallback(() => {
+    readRequest.current.cancel();
+    setIsLoading(false);
+    setIsRefreshing(false);
+    setIsLoadingMore(false);
+  }, []);
   const headingRef = useRef<ViewInstance>(null);
   const contextKey = `${organizationId ?? ""}:${projectId ?? ""}`;
   const sheetContextKey = useRef(contextKey);
@@ -202,13 +213,31 @@ export function AttendanceMarkScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const latestReadScope = useRef(
+    `${organizationId}:${projectId}:${date}:${debouncedSearch}`,
+  );
+  latestReadScope.current = `${organizationId}:${projectId}:${date}:${debouncedSearch}`;
+
   const load = useCallback(
-    async (page = 1, background = false) => {
+    async (page = 1, background = false, force = false) => {
       if (!session?.accessToken || !organizationId || !projectId || !canRead)
         return;
-      const activeRequest = ++requestId.current;
+      // Ignore a delayed reload from a mutation belonging to an old filter/Project.
+      if (
+        latestReadScope.current !==
+        `${organizationId}:${projectId}:${date}:${debouncedSearch}`
+      )
+        return;
+      if (force) readRequest.current.cancel();
+      const request = readRequest.current.start(
+        `${organizationId}:${projectId}:${date}:${debouncedSearch}:${page}`,
+      );
+      if (!request) return;
+      setIsLoading(false);
+      setIsRefreshing(false);
+      setIsLoadingMore(false);
       if (page > 1) setIsLoadingMore(true);
-      else if (background && summary) setIsRefreshing(true);
+      else if (background && hasData.current) setIsRefreshing(true);
       else setIsLoading(true);
       if (page === 1) setError("");
       try {
@@ -224,8 +253,9 @@ export function AttendanceMarkScreen() {
             pageSize: PAGE_SIZE,
           },
           session.accessToken,
+          request.signal,
         );
-        if (activeRequest !== requestId.current) return;
+        if (!request.isCurrent()) return;
         setSummary((current) =>
           page === 1
             ? response
@@ -235,22 +265,23 @@ export function AttendanceMarkScreen() {
               },
         );
       } catch (loadError) {
-        if (activeRequest !== requestId.current) return;
+        if (!request.isCurrent()) return;
         if (loadError instanceof ApiRequestError && loadError.status === 401) {
-          await signOut();
+          await sessionActions.current.signOut();
           return;
         }
         if (loadError instanceof ApiRequestError && loadError.status === 403) {
           setError(t("errors.accessChanged"));
-          await refreshSession().catch(() => undefined);
+          await sessionActions.current.refreshSession().catch(() => undefined);
         } else {
           setError(getLocalizedErrorMessage(loadError, t("errors.loadDaily")));
         }
       } finally {
-        if (activeRequest === requestId.current) {
+        if (request.isCurrent()) {
           setIsLoading(false);
           setIsRefreshing(false);
           setIsLoadingMore(false);
+          request.finish();
         }
       }
     },
@@ -260,10 +291,7 @@ export function AttendanceMarkScreen() {
       debouncedSearch,
       organizationId,
       projectId,
-      refreshSession,
       session?.accessToken,
-      signOut,
-      summary,
       t,
     ],
   );
@@ -271,8 +299,13 @@ export function AttendanceMarkScreen() {
   useRefreshOnFocus({
     scopeKey: `${contextKey}:${date}:${debouncedSearch}`,
     refresh: load,
+    cancel: cancelRead,
     reset: () => {
+      hasData.current = false;
       setSummary(null);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      setIsLoadingMore(false);
       setSuccess("");
     },
   });
@@ -384,7 +417,7 @@ export function AttendanceMarkScreen() {
       setEditingRow(null);
       restoreHeadingFocus();
       AccessibilityInfo.announceForAccessibility(message);
-      await load(1, true);
+      await load(1, true, true);
     } catch (saveError) {
       if (saveError instanceof ApiRequestError && saveError.status === 401)
         await signOut();
@@ -432,7 +465,7 @@ export function AttendanceMarkScreen() {
       const message = t("success.removed");
       setSuccess(message);
       AccessibilityInfo.announceForAccessibility(message);
-      await load(1, true);
+      await load(1, true, true);
     } catch (removeError) {
       if (removeError instanceof ApiRequestError && removeError.status === 401)
         await signOut();

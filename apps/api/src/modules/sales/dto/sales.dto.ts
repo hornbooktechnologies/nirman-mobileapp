@@ -121,7 +121,7 @@ export class UpdateLeadDto {
   @IsString()
   @Length(7, 24)
   alternateMobile?: string;
-  @IsOptional() @Transform(trim) @IsEmail() @MaxLength(190) email?: string;
+  @IsOptional() @Transform(trim) @IsEmail() @MaxLength(190) email?: string | null;
   @IsOptional()
   @Transform(trim)
   @IsString()

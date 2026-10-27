@@ -1,9 +1,14 @@
+import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
+import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
-import type { AttendanceSummaryResponse, AttendanceSummaryRow } from '@nirman-app/shared';
-import { router, useFocusEffect, type Href } from 'expo-router';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import type {
+  AttendanceSummaryResponse,
+  AttendanceSummaryRow,
+} from "@nirman-app/shared";
+import { router, type Href } from "expo-router";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import {
   AppIcon,
@@ -21,32 +26,36 @@ import {
   OperationalEntityCard,
   SearchField,
   Toggle,
-} from '../../components/ui';
-import { getLocalizedErrorMessage } from '../../i18n';
-import { ApiRequestError } from '../../lib/api';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
-import { useLocalization, useSession } from '../../providers';
-import { mobileText, mobileTheme } from '../../theme';
-import { CustomerTabBar } from '../home/components';
-import { ProjectContextCard } from '../projects';
-import { AttendanceTotalsTable, formatAttendanceNumber } from './attendance-ui';
-import { monthRange, monthValue, todayDateOnly } from './date-utils';
-import { exportAttendancePdf, fetchAttendanceSummary } from './services';
-import { usePdfExport } from '../../lib/exports/use-pdf-export';
+} from "../../components/ui";
+import { getLocalizedErrorMessage } from "../../i18n";
+import { ApiRequestError } from "../../lib/api";
+import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { useLocalization, useSession } from "../../providers";
+import { mobileText, mobileTheme } from "../../theme";
+import { CustomerTabBar } from "../home/components";
+import { ProjectContextCard } from "../projects";
+import { AttendanceTotalsTable, formatAttendanceNumber } from "./attendance-ui";
+import { monthRange, monthValue, todayDateOnly } from "./date-utils";
+import { exportAttendancePdf, fetchAttendanceSummary } from "./services";
+import { usePdfExport } from "../../lib/exports/use-pdf-export";
 
 const PAGE_SIZE = 20;
 
-const WorkerSummaryCard = memo(function WorkerSummaryCard({ locale, row, onView }: {
+const WorkerSummaryCard = memo(function WorkerSummaryCard({
+  locale,
+  row,
+  onView,
+}: {
   locale: string;
   row: AttendanceSummaryRow;
   onView: (row: AttendanceSummaryRow) => void;
 }) {
-  const { t } = useTranslation('attendance');
+  const { t } = useTranslation("attendance");
 
   return (
     <OperationalEntityCard
-      accessibilityHint={t('workerCard.viewHint')}
-      accessibilityLabel={t('workerCard.summaryA11y', {
+      accessibilityHint={t("workerCard.viewHint")}
+      accessibilityLabel={t("workerCard.summaryA11y", {
         name: row.worker.name,
         code: row.worker.workerCode,
         trade: row.worker.trade,
@@ -58,9 +67,15 @@ const WorkerSummaryCard = memo(function WorkerSummaryCard({ locale, row, onView 
       contextLeading={row.worker.workerCode}
       contextTrailing={row.worker.trade}
       details={<AttendanceTotalsTable embedded locale={locale} totals={row} />}
-      footerLeading={t('actions.viewAttendance')}
+      footerLeading={t("actions.viewAttendance")}
       footerTone="info"
-      footerTrailing={<AppIcon name="chevron-right" size={20} color={mobileTheme.color.status.info.foreground} />}
+      footerTrailing={
+        <AppIcon
+          name="chevron-right"
+          size={20}
+          color={mobileTheme.color.status.info.foreground}
+        />
+      }
       onPress={() => onView(row)}
       title={row.worker.name}
     />
@@ -68,97 +83,191 @@ const WorkerSummaryCard = memo(function WorkerSummaryCard({ locale, row, onView 
 });
 
 export function AttendanceScreen() {
-  const { t } = useTranslation('attendance');
-  const { t: tCommon } = useTranslation('common');
+  const { t } = useTranslation("attendance");
+  const { t: tCommon } = useTranslation("common");
   const { locale } = useLocalization();
   const { refreshSession, session, signOut } = useSession();
   const activeProject = getActiveProject(session);
   const permissions = getActiveProjectPermissions(session);
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
-  const canRead = permissions.includes('attendance:read');
-  const canMark = permissions.includes('attendance:mark') || permissions.includes('attendance:update');
-  const canViewCalendar = permissions.includes('work-calendar:read');
-  const initialRange = useMemo(() => ({
-    ...monthRange(monthValue()),
-    endDate: todayDateOnly(),
-  }), []);
+  const canRead = permissions.includes("attendance:read");
+  const canMark =
+    permissions.includes("attendance:mark") ||
+    permissions.includes("attendance:update");
+  const canViewCalendar = permissions.includes("work-calendar:read");
+  const initialRange = useMemo(
+    () => ({
+      ...monthRange(monthValue()),
+      endDate: todayDateOnly(),
+    }),
+    [],
+  );
   const latestAttendanceDate = new Date(`${todayDateOnly()}T12:00:00`);
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [exceptionsOnly, setExceptionsOnly] = useState(false);
-  const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
+  const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState('');
-  const requestId = useRef(0);
-  const contextKey = `${organizationId ?? ''}:${projectId ?? ''}`;
+  const [error, setError] = useState("");
+  const readRequest = useRef(new AttendanceReadRequest());
+  const sessionActions = useRef({ refreshSession, signOut });
+  sessionActions.current = { refreshSession, signOut };
+  const hasData = useRef(false);
+  hasData.current = Boolean(summary);
+  const cancelRead = useCallback(() => {
+    readRequest.current.cancel();
+    setIsLoading(false);
+    setIsRefreshing(false);
+    setIsLoadingMore(false);
+  }, []);
+  const contextKey = `${organizationId ?? ""}:${projectId ?? ""}`;
   const invalidRange = startDate > endDate;
   const pdfExport = usePdfExport(`${organizationId}:${projectId}`);
 
   async function exportPeriod() {
-    if (!organizationId || !projectId || !session?.accessToken || invalidRange || !permissions.includes('attendance:export')) return;
-    await pdfExport.run((signal) => exportAttendancePdf(organizationId, projectId, startDate, endDate, session.accessToken, signal), `${t('period.title')} · ${activeProject?.name ?? projectId} · ${startDate} – ${endDate}`);
+    if (
+      !organizationId ||
+      !projectId ||
+      !session?.accessToken ||
+      invalidRange ||
+      !permissions.includes("attendance:export")
+    )
+      return;
+    await pdfExport.run(
+      (signal) =>
+        exportAttendancePdf(
+          organizationId,
+          projectId,
+          startDate,
+          endDate,
+          session.accessToken,
+          signal,
+        ),
+      `${t("period.title")} · ${activeProject?.name ?? projectId} · ${startDate} – ${endDate}`,
+    );
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), search.trim() ? 300 : 0);
+    const timer = setTimeout(
+      () => setDebouncedSearch(search.trim()),
+      search.trim() ? 300 : 0,
+    );
     return () => clearTimeout(timer);
   }, [search]);
 
-  const load = useCallback(async (page = 1, background = false) => {
-    if (!session?.accessToken || !organizationId || !projectId || !canRead || invalidRange) return;
-    const activeRequest = ++requestId.current;
-    if (page > 1) setIsLoadingMore(true);
-    else if (background) setIsRefreshing(true);
-    else setIsLoading(true);
-    if (page === 1) setError('');
-    try {
-      const response = await fetchAttendanceSummary(organizationId, projectId, {
-        startDate,
-        endDate,
-        search: debouncedSearch || undefined,
-        exceptionsOnly: exceptionsOnly || undefined,
-        page,
-        pageSize: PAGE_SIZE,
-      }, session.accessToken);
-      if (activeRequest !== requestId.current) return;
-      setSummary((current) => page === 1 ? response : {
-        ...response,
-        rows: [...(current?.rows ?? []), ...response.rows],
-      });
-    } catch (loadError) {
-      if (activeRequest !== requestId.current) return;
-      if (loadError instanceof ApiRequestError && loadError.status === 401) {
-        await signOut();
-        return;
-      }
-      if (loadError instanceof ApiRequestError && loadError.status === 403) {
-        setError(t('errors.accessChanged'));
-        await refreshSession().catch(() => undefined);
-      } else {
-        setError(getLocalizedErrorMessage(loadError, t('errors.load')));
-      }
-    } finally {
-      if (activeRequest === requestId.current) {
-        setIsLoading(false);
-        setIsRefreshing(false);
-        setIsLoadingMore(false);
-      }
-    }
-  }, [canRead, debouncedSearch, endDate, exceptionsOnly, invalidRange, organizationId, projectId, refreshSession, session?.accessToken, signOut, startDate, t]);
+  const latestReadScope = useRef(
+    `${organizationId}:${projectId}:${startDate}:${endDate}:${debouncedSearch}:${exceptionsOnly}`,
+  );
+  latestReadScope.current = `${organizationId}:${projectId}:${startDate}:${endDate}:${debouncedSearch}:${exceptionsOnly}`;
 
-  useFocusEffect(useCallback(() => {
-    void load(1, Boolean(summary));
-  }, [contextKey, startDate, endDate, debouncedSearch, exceptionsOnly, load]));
+  const load = useCallback(
+    async (page = 1, background = false) => {
+      if (
+        !session?.accessToken ||
+        !organizationId ||
+        !projectId ||
+        !canRead ||
+        invalidRange
+      )
+        return;
+      // Ignore a delayed reload from a mutation belonging to an old filter/Project.
+      if (
+        latestReadScope.current !==
+        `${organizationId}:${projectId}:${startDate}:${endDate}:${debouncedSearch}:${exceptionsOnly}`
+      )
+        return;
+      const request = readRequest.current.start(
+        `${organizationId}:${projectId}:${startDate}:${endDate}:${debouncedSearch}:${exceptionsOnly}:${page}`,
+      );
+      if (!request) return;
+      setIsLoading(false);
+      setIsRefreshing(false);
+      setIsLoadingMore(false);
+      if (page > 1) setIsLoadingMore(true);
+      else if (background && hasData.current) setIsRefreshing(true);
+      else setIsLoading(true);
+      if (page === 1) setError("");
+      try {
+        const response = await fetchAttendanceSummary(
+          organizationId,
+          projectId,
+          {
+            startDate,
+            endDate,
+            search: debouncedSearch || undefined,
+            exceptionsOnly: exceptionsOnly || undefined,
+            page,
+            pageSize: PAGE_SIZE,
+          },
+          session.accessToken,
+          request.signal,
+        );
+        if (!request.isCurrent()) return;
+        setSummary((current) =>
+          page === 1
+            ? response
+            : {
+                ...response,
+                rows: [...(current?.rows ?? []), ...response.rows],
+              },
+        );
+      } catch (loadError) {
+        if (!request.isCurrent()) return;
+        if (loadError instanceof ApiRequestError && loadError.status === 401) {
+          await sessionActions.current.signOut();
+          return;
+        }
+        if (loadError instanceof ApiRequestError && loadError.status === 403) {
+          setError(t("errors.accessChanged"));
+          await sessionActions.current.refreshSession().catch(() => undefined);
+        } else {
+          setError(getLocalizedErrorMessage(loadError, t("errors.load")));
+        }
+      } finally {
+        if (request.isCurrent()) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+          setIsLoadingMore(false);
+          request.finish();
+        }
+      }
+    },
+    [
+      canRead,
+      debouncedSearch,
+      endDate,
+      exceptionsOnly,
+      invalidRange,
+      organizationId,
+      projectId,
+      session?.accessToken,
+      startDate,
+      t,
+    ],
+  );
+
+  const refreshSummary = useCallback(() => load(1, true), [load]);
+  useRefreshOnFocus({
+    scopeKey: `${contextKey}:${startDate}:${endDate}:${debouncedSearch}:${exceptionsOnly}`,
+    refresh: refreshSummary,
+    cancel: cancelRead,
+    reset: () => {
+      hasData.current = false;
+      setSummary(null);
+    },
+  });
 
   function openWorkerHistory(row: AttendanceSummaryRow) {
     if (!projectId) return;
     router.push({
-      pathname: '/(app)/worker-attendance',
+      pathname: "/(app)/worker-attendance",
       params: {
         workerId: row.worker.id,
         projectId,
@@ -174,52 +283,85 @@ export function AttendanceScreen() {
   const header = (
     <View style={styles.headerContent}>
       <CompactScreenHeader
-        leading={<IconButton accessibilityLabel={tCommon('actions.back')} icon="arrow-left" variant="glass" onPress={() => router.back()} />}
-        title={t('summaryScreen.title')}
-        subtitle={activeProject?.name ?? t('project.none')}
-        action={canViewCalendar ? (
+        leading={
           <IconButton
-            accessibilityLabel={t('actions.openCalendar')}
-            icon="calendar-month-outline"
+            accessibilityLabel={tCommon("actions.back")}
+            icon="arrow-left"
             variant="glass"
-            onPress={() => router.push('/(app)/work-calendar' as Href)}
+            onPress={() => router.back()}
           />
-        ) : undefined}
+        }
+        title={t("summaryScreen.title")}
+        subtitle={activeProject?.name ?? t("project.none")}
+        action={
+          canViewCalendar ? (
+            <IconButton
+              accessibilityLabel={t("actions.openCalendar")}
+              icon="calendar-month-outline"
+              variant="glass"
+              onPress={() => router.push("/(app)/work-calendar" as Href)}
+            />
+          ) : undefined
+        }
       />
       <ProjectContextCard compact showSwitchAction />
       {canRead && canMark ? (
         <Card variant="blueprint" style={styles.taskCard}>
           <View style={styles.taskCopy}>
-            <AppText style={styles.taskTitle} weight={700}>{t('summaryScreen.markTitle')}</AppText>
-            <AppText style={styles.taskDescription} weight={500}>{t('summaryScreen.markDescription')}</AppText>
+            <AppText style={styles.taskTitle} weight={700}>
+              {t("summaryScreen.markTitle")}
+            </AppText>
+            <AppText style={styles.taskDescription} weight={500}>
+              {t("summaryScreen.markDescription")}
+            </AppText>
           </View>
           <Button
-            accessibilityHint={t('summaryScreen.markHint')}
-            label={t('actions.markAttendance')}
+            accessibilityHint={t("summaryScreen.markHint")}
+            label={t("actions.markAttendance")}
             leadingIcon="clipboard-edit-outline"
-            onPress={() => router.push('/(app)/attendance-mark' as Href)}
+            onPress={() => router.push("/(app)/attendance-mark" as Href)}
           />
         </Card>
       ) : null}
       <Card style={styles.periodCard}>
         <View style={styles.sectionHeading}>
-          <AppText style={styles.sectionTitle} weight={700}>{t('period.title')}</AppText>
-          <AppText style={styles.sectionDescription} weight={500}>{t('period.description')}</AppText>
+          <AppText style={styles.sectionTitle} weight={700}>
+            {t("period.title")}
+          </AppText>
+          <AppText style={styles.sectionDescription} weight={500}>
+            {t("period.description")}
+          </AppText>
         </View>
         <View style={styles.dateRow}>
-          <FormField label={t('period.startDate')} required style={styles.dateField}>
+          <FormField
+            label={t("period.startDate")}
+            required
+            style={styles.dateField}
+          >
             <DateInput
               allowClear={false}
-              accessibilityLabel={t('period.selectStartDate')}
-              maximumDate={new Date(Math.min(new Date(`${endDate}T12:00:00`).getTime(), latestAttendanceDate.getTime()))}
+              accessibilityLabel={t("period.selectStartDate")}
+              maximumDate={
+                new Date(
+                  Math.min(
+                    new Date(`${endDate}T12:00:00`).getTime(),
+                    latestAttendanceDate.getTime(),
+                  ),
+                )
+              }
               value={startDate}
               onChangeText={(value) => value && setStartDate(value)}
             />
           </FormField>
-          <FormField label={t('period.endDate')} required error={invalidRange ? t('period.invalidRange') : undefined} style={styles.dateField}>
+          <FormField
+            label={t("period.endDate")}
+            required
+            error={invalidRange ? t("period.invalidRange") : undefined}
+            style={styles.dateField}
+          >
             <DateInput
               allowClear={false}
-              accessibilityLabel={t('period.selectEndDate')}
+              accessibilityLabel={t("period.selectEndDate")}
               minimumDate={new Date(`${startDate}T12:00:00`)}
               maximumDate={latestAttendanceDate}
               value={endDate}
@@ -229,54 +371,136 @@ export function AttendanceScreen() {
         </View>
       </Card>
       <ListControls>
-        <SearchField debounceMs={0} accessibilityLabel={t('filters.searchA11y')} placeholder={t('filters.searchPlaceholder')} value={search} onChangeText={setSearch} />
-        <Toggle accessibilityRole="checkbox" accessibilityState={{ checked: exceptionsOnly }} label={t('filters.exceptionsOnly')} value={exceptionsOnly} onValueChange={setExceptionsOnly} />
+        <SearchField
+          debounceMs={0}
+          accessibilityLabel={t("filters.searchA11y")}
+          placeholder={t("filters.searchPlaceholder")}
+          value={search}
+          onChangeText={setSearch}
+        />
+        <Toggle
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: exceptionsOnly }}
+          label={t("filters.exceptionsOnly")}
+          value={exceptionsOnly}
+          onValueChange={setExceptionsOnly}
+        />
       </ListControls>
-      {permissions.includes('attendance:export') && organizationId && projectId ? <>
-        <Button label={tCommon('pdfExport.action')} leadingIcon="file-pdf-box" variant="secondary" disabled={invalidRange || pdfExport.busy} onPress={() => void exportPeriod()} />
-        <AppText style={styles.cardNote}>{tCommon('pdfExport.attendanceScope')}</AppText>
-      </> : null}
+      {permissions.includes("attendance:export") &&
+      organizationId &&
+      projectId ? (
+        <>
+          <Button
+            label={tCommon("pdfExport.action")}
+            leadingIcon="file-pdf-box"
+            variant="secondary"
+            disabled={invalidRange || pdfExport.busy}
+            onPress={() => void exportPeriod()}
+          />
+          <AppText style={styles.cardNote}>
+            {tCommon("pdfExport.attendanceScope")}
+          </AppText>
+        </>
+      ) : null}
       {isRefreshing ? (
         <View accessibilityLiveRegion="polite" style={styles.refreshing}>
           <LottieLoader size={24} />
-          <AppText style={styles.cardNote}>{t('loading.refreshing')}</AppText>
+          <AppText style={styles.cardNote}>{t("loading.refreshing")}</AppText>
         </View>
       ) : null}
-      {error ? <EmptyState title={t('errors.loadTitle')} description={error} actionLabel={tCommon('actions.retry')} onAction={() => void load(1)} /> : null}
-      {!canMark && canRead ? <Card><AppText style={styles.cardNote} weight={500}>{t('readOnly')}</AppText></Card> : null}
+      {error ? (
+        <EmptyState
+          title={t("errors.loadTitle")}
+          description={error}
+          actionLabel={tCommon("actions.retry")}
+          onAction={() => void load(1)}
+        />
+      ) : null}
+      {!canMark && canRead ? (
+        <Card>
+          <AppText style={styles.cardNote} weight={500}>
+            {t("readOnly")}
+          </AppText>
+        </Card>
+      ) : null}
     </View>
   );
 
-  const noContext = !session?.activeOrganization
-    ? <EmptyState title={t('empty.noOrganizationTitle')} description={t('empty.noOrganizationDescription')} />
-    : session.projectAccess.projects.length === 0
-      ? <EmptyState title={t('empty.noAccessibleProjectsTitle')} description={t('empty.noAccessibleProjectsDescription')} />
-      : !activeProject
-        ? <EmptyState title={t('empty.noProjectTitle')} description={t('empty.noProjectDescription')} />
-        : !canRead
-          ? <EmptyState title={t('empty.permissionTitle')} description={t('empty.permissionDescription')} actionLabel={tCommon('actions.retry')} onRefresh={() => refreshSession()} />
-          : null;
-  const rows = noContext || error || invalidRange ? [] : summary?.rows ?? [];
+  const noContext = !session?.activeOrganization ? (
+    <EmptyState
+      title={t("empty.noOrganizationTitle")}
+      description={t("empty.noOrganizationDescription")}
+    />
+  ) : session.projectAccess.projects.length === 0 ? (
+    <EmptyState
+      title={t("empty.noAccessibleProjectsTitle")}
+      description={t("empty.noAccessibleProjectsDescription")}
+    />
+  ) : !activeProject ? (
+    <EmptyState
+      title={t("empty.noProjectTitle")}
+      description={t("empty.noProjectDescription")}
+    />
+  ) : !canRead ? (
+    <EmptyState
+      title={t("empty.permissionTitle")}
+      description={t("empty.permissionDescription")}
+      actionLabel={tCommon("actions.retry")}
+      onRefresh={() => refreshSession()}
+    />
+  ) : null;
+  const rows = noContext || error || invalidRange ? [] : (summary?.rows ?? []);
 
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="attendance" />} scroll={false}>
+    <NirmanScreenBackground
+      footer={<CustomerTabBar activeKey="attendance" />}
+      scroll={false}
+    >
       {pdfExport.popup}
-      <RefreshFlatList busy={isLoading || isRefreshing}
+      <RefreshFlatList
+        busy={isLoading || isRefreshing}
         data={rows}
         keyExtractor={(row) => row.workerAssignmentId}
-        renderItem={({ item }) => <WorkerSummaryCard locale={locale} row={item} onView={openWorkerHistory} />}
-        ListHeaderComponent={header}
-        ListEmptyComponent={noContext ?? (isLoading ? (
-          <View style={styles.loading}><LottieLoader /><AppText>{t('loading.attendance')}</AppText></View>
-        ) : !error && !invalidRange ? (
-          <EmptyState
-            title={debouncedSearch || exceptionsOnly ? t('empty.noMatchesTitle') : t('empty.noWorkersTitle')}
-            description={debouncedSearch || exceptionsOnly ? t('empty.noMatchesDescription') : t('empty.noWorkersDescription')}
+        renderItem={({ item }) => (
+          <WorkerSummaryCard
+            locale={locale}
+            row={item}
+            onView={openWorkerHistory}
           />
-        ) : undefined)}
-        ListFooterComponent={summary && summary.meta.page < summary.meta.totalPages ? (
-          <Button disabled={isLoadingMore} label={isLoadingMore ? t('loading.more') : t('actions.loadMore')} variant="secondary" onPress={() => void load(summary.meta.page + 1)} />
-        ) : undefined}
+        )}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          noContext ??
+          (isLoading ? (
+            <View style={styles.loading}>
+              <LottieLoader />
+              <AppText>{t("loading.attendance")}</AppText>
+            </View>
+          ) : !error && !invalidRange ? (
+            <EmptyState
+              title={
+                debouncedSearch || exceptionsOnly
+                  ? t("empty.noMatchesTitle")
+                  : t("empty.noWorkersTitle")
+              }
+              description={
+                debouncedSearch || exceptionsOnly
+                  ? t("empty.noMatchesDescription")
+                  : t("empty.noWorkersDescription")
+              }
+            />
+          ) : undefined)
+        }
+        ListFooterComponent={
+          summary && summary.meta.page < summary.meta.totalPages ? (
+            <Button
+              disabled={isLoadingMore}
+              label={isLoadingMore ? t("loading.more") : t("actions.loadMore")}
+              variant="secondary"
+              onPress={() => void load(summary.meta.page + 1)}
+            />
+          ) : undefined
+        }
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         refreshing={false}
@@ -288,8 +512,14 @@ export function AttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
-  listContent: { gap: mobileTheme.spacing[3], paddingBottom: mobileTheme.spacing[4] },
-  headerContent: { gap: mobileTheme.spacing[4], marginBottom: mobileTheme.spacing[1] },
+  listContent: {
+    gap: mobileTheme.spacing[3],
+    paddingBottom: mobileTheme.spacing[4],
+  },
+  headerContent: {
+    gap: mobileTheme.spacing[4],
+    marginBottom: mobileTheme.spacing[1],
+  },
   taskCard: { gap: mobileTheme.spacing[4] },
   taskCopy: { gap: mobileTheme.spacing[1] },
   taskTitle: { ...mobileText.sectionTitle },
@@ -297,10 +527,26 @@ const styles = StyleSheet.create({
   periodCard: { gap: mobileTheme.spacing[4] },
   sectionHeading: { gap: mobileTheme.spacing[1] },
   sectionTitle: { ...mobileText.sectionTitle },
-  sectionDescription: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
-  dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: mobileTheme.spacing[3] },
+  sectionDescription: {
+    ...mobileText.caption,
+    color: mobileTheme.color.text.secondary,
+  },
+  dateRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileTheme.spacing[3],
+  },
   dateField: { flexBasis: 150, flexGrow: 1 },
-  refreshing: { alignItems: 'center', flexDirection: 'row', gap: mobileTheme.spacing[2] },
+  refreshing: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: mobileTheme.spacing[2],
+  },
   cardNote: { ...mobileText.caption, color: mobileTheme.color.text.secondary },
-  loading: { alignItems: 'center', gap: mobileTheme.spacing[3], justifyContent: 'center', minHeight: 180 },
+  loading: {
+    alignItems: "center",
+    gap: mobileTheme.spacing[3],
+    justifyContent: "center",
+    minHeight: 180,
+  },
 });

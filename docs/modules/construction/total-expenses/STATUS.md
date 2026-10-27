@@ -1,3 +1,7 @@
+## 2026-10-27 - Total Expenses Mobile layout parity
+
+Added the standard glass back IconButton with localized accessibility label to the compact header and a dashboard fallback when opened without navigation history. Header now identifies the report Project, active-Project reports reuse the compact switchable ProjectContextCard, and explicitly routed reports retain their target Project instead of showing the active Project's identity. Uses the shared footer spacing and theme gap tokens. No API, financial calculation or report-filter behavior changes. Physical-device visual/back navigation acceptance remains pending.
+
 # Total Expenses status
 
 ## 2026-10-22 — Paid-only Materials and deducted Kharchi

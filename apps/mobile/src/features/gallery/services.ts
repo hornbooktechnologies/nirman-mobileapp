@@ -1,10 +1,11 @@
+import { appendUploadFile, multipartUpload } from "../../lib/multipart-upload";
 import type {
   GalleryEntry,
   GalleryListResponse,
   GallerySummary,
 } from "@nirman-app/shared";
 import { appConfig } from "../../config";
-import { ApiRequestError, apiRequest } from "../../lib/api";
+import { apiRequest } from "../../lib/api";
 import type { GalleryQuery, QueuedGalleryUpload } from "./types";
 
 type Envelope<T> = { success: boolean; data: T };
@@ -74,32 +75,14 @@ export async function uploadGalleryEntry(
   if (item.caption) form.append("caption", item.caption);
   if (item.width) form.append("width", String(item.width));
   if (item.height) form.append("height", String(item.height));
-  form.append("file", {
+  await appendUploadFile(form, {
     uri: item.uri,
     name: item.fileName,
     type: item.mimeType,
-  } as unknown as Blob);
-  const response = await fetch(
-    `${appConfig.apiBaseUrl}${base(item.organizationId, item.projectId)}/entries`,
-    {
-      method: "POST",
-      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-      body: form,
-    },
+  });
+  return multipartUpload<GalleryEntry>(
+    `${base(item.organizationId, item.projectId)}/entries`,
+    token,
+    form,
   );
-  const payload = (await response.json().catch(() => null)) as
-    | (Envelope<GalleryEntry> & {
-        error?: { code?: string; message?: string };
-        message?: string;
-      })
-    | null;
-  if (!response.ok)
-    throw new ApiRequestError(
-      payload?.error?.message ??
-        payload?.message ??
-        `Upload failed with ${response.status}`,
-      response.status,
-      payload?.error?.code,
-    );
-  return payload!.data;
 }

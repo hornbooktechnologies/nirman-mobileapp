@@ -160,3 +160,5 @@ node_modules
 
 dist
 .next
+
+.next-dev/

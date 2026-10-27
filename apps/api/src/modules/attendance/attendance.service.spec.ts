@@ -254,6 +254,13 @@ describe("AttendanceService", () => {
       undefined,
       "worker-id",
     );
+    expect(attendanceRepo.findExceptions).toHaveBeenCalledWith(
+      "org",
+      "project",
+      "2026-08-12",
+      "2026-08-13",
+      "worker-id",
+    );
   });
 
   it("provides derived full, half, and absent day counts for Wages", async () => {

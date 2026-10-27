@@ -237,6 +237,8 @@ export function LeadForm({
           "interestedUnitId",
         ] as const)
           if (v[name]?.trim()) input[name] = v[name].trim();
+        // PATCH must distinguish clearing an email from leaving it unchanged.
+        if (lead && !v.email?.trim()) input.email = null;
         if (v.priority) input.priority = v.priority as LeadPriority;
         if (v.budgetMin !== "") input.budgetMin = Number(v.budgetMin);
         if (v.budgetMax !== "") input.budgetMax = Number(v.budgetMax);

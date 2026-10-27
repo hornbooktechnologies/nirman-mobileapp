@@ -1,3 +1,45 @@
+## 2026-10-27 - Total Expenses Mobile layout parity
+
+Added the standard glass back IconButton with localized accessibility label to the compact header and a dashboard fallback when opened without navigation history. Header now identifies the report Project, active-Project reports reuse the compact switchable ProjectContextCard, and explicitly routed reports retain their target Project instead of showing the active Project's identity. Uses the shared footer spacing and theme gap tokens. No API, financial calculation or report-filter behavior changes. Physical-device visual/back navigation acceptance remains pending.
+
+## 2026-10-27 - Web lead-detail 404 and clearing lead email
+
+Verification: exact Lead detail URL returned HTTP 200; 24 focused Sales service/repository tests and API/Web typechecks passed. No authenticated browser write or database mutation performed.
+
+The existing project Lead detail route returned HTTP 404 from the local dev process. Isolated Next development output under .next-dev (production retains .next), updated generated type inclusion/exclusion and ignored development artifacts in Git/Docker. Config reload rebuilt the route; the exact reported URL now responds HTTP 200. This avoids reusing development/build route artifacts between modes and preserves the existing route path and returnTo behavior.
+
+Lead edit previously omitted blank optional email from PATCH, leaving the old database value. Web now sends explicit email:null for an intentionally cleared email; shared Web form typing and API UpdateLeadDto declare nullable email. Creation still omits an empty optional email. Existing repository null handling persists the clear and detail form displays null as an empty field. No migration/data mutation/deployment. Authenticated browser edit/reopen acceptance remains pending; mocked validation/persistence regression tests cover explicit null, omission and malformed email.
+
+## 2026-10-27 - Mobile brochure/gallery upload failures and error popups
+
+Brochure requests used browser crypto.randomUUID and its loader depended on a freshly normalized Project object, causing native compatibility failures and response-driven refetches. Switched brochure upload/share IDs to Expo uuid.v4 and loader dependencies to scalar Organization/Project/token values. Gallery and brochure now share multipart submission through the authenticated API client, reject missing/malformed success data, and append browser Blob versus native URI parts correctly without manually setting multipart Content-Type. Missing brochure picker MIME can be inferred from accepted filename extensions; iOS gallery picker requests compatible representation.
+
+Load/upload/picker/queue failures now show native Alerts alongside retained inline/queued errors, including localized explanation, server error detail and HTTP status/code. Gallery failure items remain queued for explicit retry; preparation/storage errors also reach the popup. Existing limits, formats, authorization and idempotency semantics remain. Updated the existing gallery queue verification harness for TS6 CommonJS interop; no queue production logic changed. No API/DB/deployment changes. Real phone upload and deployed upstream configuration acceptance remain pending.
+
+Verification: six multipart/native UUID/stable brochure-loader regression tests, gallery queue checks, attendance loading checks and Mobile typecheck passed. See src/lib/multipart-upload.test.mjs. Physical-device upload and preview remain unverified; further server/proxy/storage errors will now be visible rather than hidden behind sheets.
+
+## 2026-10-27 - Home project summary card actions
+
+Home Working sites and Project access (All/Assigned projects) cards now open an accessible project-list sheet. Working sites filters to ACTIVE; the access card lists the existing accessible non-archived project collection. Tapping a row opens the existing Project detail route with projectId, preserving access scope. Existing localized labels, components and empty state are reused. No API or database changes; physical-device tap acceptance pending.
+
+## 2026-10-27 - Shared Mobile bottom-tab spacing
+
+Removed duplicate safe-area accounting and excess 40-point footer clearance from NirmanScreenBackground. The wrapper now measures footer height and reserves only its overlap with the SafeAreaView plus the existing 8-point spacing token. This reduces the visible dead gap above floating tabs for list-based modules and excess trailing padding for scroll-based modules, while preserving safe positioning over Android navigation and accommodating taller text/custom footers. No-footer screens keep their existing padding. Applies through the shared wrapper; no per-module workflow or navigation changes. Physical-device visual acceptance remains pending.
+
+## 2026-10-27 - Mobile native notification startup crash guard
+
+Pasted Android logs repeatedly reported missing ExpoTopicSubscriptionModule during the expo-notifications barrel import, followed by a Router ErrorBoundary failure. Removed eager runtime import from NotificationsProvider. The native adapter avoids importing notifications in Expo Go/Web, checks the SDK 58 Android native module before evaluation, caches availability, and logs one warning for incompatible standalone clients. API-backed inbox/unread UI remains usable without native push; compatible native builds retain existing handlers and registration. Added rejection handling for last-notification-response lookup. This does not restore the previously reverted live-push setup, Firebase wiring, receipt migration or delivery-worker changes.
+
+Verified five adapter tests (Expo Go, Web, missing Android module, supported native client, import failure), Mobile typecheck, Android Hermes export (2,030 modules), and the existing attendance loading regression harness. Physical-device startup remains pending. Missing native capabilities require a compatible/rebuilt native client for push; JavaScript cannot install native modules. Attendance and brochure edits are preserved.
+
+## 2026-10-27 - Mobile Attendance repeated-request and stale-response fixes
+
+Confirmed response-driven fetch loops in Worker Attendance detail (period in loader dependencies) and Attendance marking (summary in loader dependencies). Rotating session action callbacks also retriggered reads after 403/session refresh. Removed response/action identity dependencies, retaining current actions/data availability through refs. Summary, daily marking and Worker history now cancel on blur/context/filter change, deduplicate identical pending reads, ignore stale results and reject delayed mutation reloads for an old scope. Scope reset clears prior data; normal refocus retains current data while refreshing. Worker detail no longer fetches under an inaccessible/missing/mismatched Project link.
+
+Audited summary, worker period, exception create/update/delete, CSV/PDF export and legacy compatibility API routes. Existing permission/tenant/calendar/primary-assignment derivation rules remain. Worker period now queries only that Worker's exceptions within the requested tenant/Project/date range, avoiding unrelated Project history. No schema, wage arithmetic, notification or brochure changes.
+
+Verification: 38 API tests across Attendance, Calendar and Wages passed; API and Mobile typechecks passed. Executable Mobile hook regression harness checks all three screens for one initial successful read, no callback-identity loop, bounded 403 refresh, date changes and stale mutation reloads; request gate checks deduplication, abort and generation isolation. Command: node apps/mobile/scripts/verify-attendance-loading.cjs. API lint reports existing any/unsafe typing issues in Attendance service/repository/tests; it is not recorded as passing. Authenticated API/physical-device acceptance remains unrun. No DB connection/mutation, migration or deployment performed.
+
 ## 2026-10-26 - Brochure server size ceiling restored at 1 GiB
 
 User-authorized supersession: API enforces 1,073,741,824 bytes per uploaded file and per Project aggregate stored brochures, counting active and archived assets. Multipart rejects oversized files; service validates size; repository checks total inside the existing Project row lock. Storage cleanup and readable errors are preserved. Web/Mobile retain no size policy copy or storage meter. Quota response again reports actual numeric capacity. No database changes. This bounds uploads but does not guarantee protection against concurrent memory exhaustion: existing multipart/storage handling buffers files in memory.
@@ -979,3 +1021,29 @@ Shared/API/Mobile checks, 29 focused API tests, three Mobile request/cache tests
 Implemented the Mobile reliability/performance pass described in [mobile-focus-refresh-performance-plan.md](mobile-focus-refresh-performance-plan.md). Session hydration no longer times out into an incorrect protected-route decision on slower devices. All data-driven operational screens now refresh when focused, including return navigation after create/edit/detail work. Same-scope records remain visible during automatic refresh, while real organization/project/filter changes reset old-scope content. Dashboard/location and high-traffic list reads reject stale responses on blur or newer requests.
 
 No API, database, migration, production data, or deployment changes. Existing pull-to-refresh, explicit refresh, permissions and mutation flows remain in place. Mobile typecheck, 19-namespace/three-language locale parity, all 18 Mobile regression tests, route-focus source coverage, scoped diff checks, and an Android Expo export passed. The temporary export was removed after verification. Physical-device slow-start and navigation acceptance remain pending. The optional ui-ux-pro-max companion was unavailable, so the repository's established Mobile patterns and React review were used.
+
+## 2026-10-27 — User profile photos across API, Web and Mobile
+
+Implemented user-requested profile photo upload, replacement and removal. Mobile Menu avatar/camera now opens camera/library/removal actions (Android-compatible), with permission handling, upload progress and visible errors; en/hi/gu translations included. Web Profile provides upload/removal controls and the header links to Profile and displays the saved photo. Both refresh authenticated user data after changes.
+
+Authenticated POST/GET/DELETE `/users/me/avatar` use only the current user ID. Upload accepts JPEG/PNG/WebP up to 5 MiB with server signature checks; private objects use the existing S3 storage configuration and existing user.avatar column. Concurrent updates use compare-and-set; failed saves clean newly uploaded objects and successful replacement/removal cleans only objects owned by that user. No migration or new environment variables required. Prior brochure and other work preserved.
+
+Verification: 12 Users API tests pass; API/Web typechecks and scoped API/Web lint pass. Mobile typecheck and locale parity checked. Real S3 upload, camera/gallery and browser/device acceptance remain pending; existing bucket credentials must permit upload/download/delete for profile-photos/*. No database mutation or deployment performed.
+
+## 2026-10-27 — Mobile floating tabs overlap follow-up
+
+Audited Wages, Total Expenses and all CustomerTabBar/FloatingTabBar call sites. The shared NirmanScreenBackground previously reserved footer height only within scroll content, allowing cards and controls to pass behind the tabs during scrolling. It now reserves measured footer height outside the scroll/list viewport, subtracting the safe-area inset already supplied by SafeAreaView. Both scrolling and list-based layouts use the same small trailing gap and clipped, bounded viewport; screens without footers retain their previous bottom padding. Removed Menu's hard-coded 176-point trailing spacer so the shared layout owns clearance consistently. No financial behavior, API, database or navigation changes.
+
+Verification: Mobile type-check passes; shared layout and footer call sites reviewed, diff whitespace checks pass. Android/iOS physical-device scrolling, gesture/button navigation and large-font visual acceptance remain pending. UI companion ui-ux-pro-max is unavailable; existing theme and component patterns used, with React quality review.
+
+## 2026-10-27 — Expo profile photo FormData compatibility
+
+Reproduced the reported Unsupported FormDataPart implementation against the installed Expo 58 multipart converter: it accepts Blob/bytes() parts and rejects URI-only objects. Shared appendUploadFile now provides lazy expo-file-system File.bytes() alongside URI/name/MIME, supporting Expo fetch while retaining React Native fetch metadata. Web continues to append browser blobs. This fixes the common path used by profile photos, brochures and gallery without API/environment/native dependency changes.
+
+Verification: seven multipart regression tests pass, including actual installed Expo converter serialization for Android/iOS parts with filename, MIME, file bytes and ordinary text fields. Mobile type-check passes. Actual device upload to configured storage remains pending; reload the updated Mobile bundle before retrying.
+
+## 2026-10-27 — Mobile saved profile photo display
+
+Menu photo now reads the authoritative `/users/me` avatar whenever the route gains focus, so Web changes are visible without signing out. On native devices, private photo bytes are downloaded with the access token into a unique temporary cache file before Image renders a local URI, rather than relying on the native Image remote-auth/cache behavior. Upload/removal triggers another photo read; state is scoped by user, stale asynchronous results are discarded on blur and temporary files are cleaned up. Load/download failures show the existing translated photo error alert. Web fallback and existing session refresh remain supported.
+
+Mobile type-check passes. Physical-device upload/display, cross-client replacement/removal and background navigation acceptance remain pending. No API, environment or schema change required.

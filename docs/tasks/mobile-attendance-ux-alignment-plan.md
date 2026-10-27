@@ -1,3 +1,11 @@
+## 2026-10-27 - Mobile Attendance repeated-request and stale-response fixes
+
+Confirmed response-driven fetch loops in Worker Attendance detail (period in loader dependencies) and Attendance marking (summary in loader dependencies). Rotating session action callbacks also retriggered reads after 403/session refresh. Removed response/action identity dependencies, retaining current actions/data availability through refs. Summary, daily marking and Worker history now cancel on blur/context/filter change, deduplicate identical pending reads, ignore stale results and reject delayed mutation reloads for an old scope. Scope reset clears prior data; normal refocus retains current data while refreshing. Worker detail no longer fetches under an inaccessible/missing/mismatched Project link.
+
+Audited summary, worker period, exception create/update/delete, CSV/PDF export and legacy compatibility API routes. Existing permission/tenant/calendar/primary-assignment derivation rules remain. Worker period now queries only that Worker's exceptions within the requested tenant/Project/date range, avoiding unrelated Project history. No schema, wage arithmetic, notification or brochure changes.
+
+Verification: 38 API tests across Attendance, Calendar and Wages passed; API and Mobile typechecks passed. Executable Mobile hook regression harness checks all three screens for one initial successful read, no callback-identity loop, bounded 403 refresh, date changes and stale mutation reloads; request gate checks deduplication, abort and generation isolation. Command: node apps/mobile/scripts/verify-attendance-loading.cjs. API lint reports existing any/unsafe typing issues in Attendance service/repository/tests; it is not recorded as passing. Authenticated API/physical-device acceptance remains unrun. No DB connection/mutation, migration or deployment performed.
+
 # Mobile Attendance UX Alignment Plan
 
 ## Status

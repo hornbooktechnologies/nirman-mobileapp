@@ -1,3 +1,5 @@
+import { uuid } from "expo";
+import { uploadErrorMessage } from "../../lib/upload-errors";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,7 +27,6 @@ import {
   NirmanScreenBackground,
   RefreshIconButton,
 } from "../../components/ui";
-import { getLocalizedErrorMessage } from "../../i18n";
 import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
 import { isValidEmail } from "../../lib/validation";
 import { useSession } from "../../providers";
@@ -79,14 +80,17 @@ export function BrochuresScreen() {
       alive.current = false;
     };
   }, []);
+  const loadOrganizationId = session?.activeOrganization?.id;
+  const loadProjectId = project?.id;
+  const loadAccessToken = session?.accessToken;
   const load = useCallback(async () => {
-    if (!session?.activeOrganization || !project) return;
+    if (!loadOrganizationId || !loadProjectId || !loadAccessToken) return;
     setError("");
     try {
       const response = await fetchBrochures(
-        session.activeOrganization.id,
-        project.id,
-        session.accessToken,
+        loadOrganizationId,
+        loadProjectId,
+        loadAccessToken,
       );
       if (alive.current) {
         setItems(response.items);
@@ -95,12 +99,15 @@ export function BrochuresScreen() {
         );
       }
     } catch (cause) {
-      if (alive.current)
-        setError(getLocalizedErrorMessage(cause, t("brochures.errors.load")));
+      if (alive.current) {
+        const message = uploadErrorMessage(cause, t("brochures.errors.load"));
+        setError(message);
+        Alert.alert(t("brochures.errors.load"), message);
+      }
     } finally {
       if (alive.current) setLoading(false);
     }
-  }, [project, session, t]);
+  }, [loadOrganizationId, loadProjectId, loadAccessToken, t]);
   useRefreshOnFocus({
     scopeKey: `${session?.activeOrganization?.id ?? ""}:${project?.id ?? ""}`,
     refresh: load,
@@ -120,27 +127,47 @@ export function BrochuresScreen() {
   const projectId = project.id;
   const accessToken = session.accessToken;
   async function choose() {
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      type: [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "video/mp4",
-        "video/quicktime",
-      ],
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    const next = {
-      uri: asset.uri,
-      name: asset.name,
-      mimeType: asset.mimeType ?? "application/octet-stream",
-      size: asset.size,
-    };
-    setPicked(next);
-    if (!title) setTitle(asset.name.replace(/\.[^.]+$/, ""));
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "video/mp4",
+          "video/quicktime",
+        ],
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const next = {
+        uri: asset.uri,
+        name: asset.name,
+        mimeType:
+          asset.mimeType && asset.mimeType !== "application/octet-stream"
+            ? asset.mimeType
+            : ((
+                {
+                  pdf: "application/pdf",
+                  jpg: "image/jpeg",
+                  jpeg: "image/jpeg",
+                  png: "image/png",
+                  webp: "image/webp",
+                  mp4: "video/mp4",
+                  mov: "video/quicktime",
+                } as Record<string, string>
+              )[asset.name.split(".").pop()?.toLowerCase() ?? ""] ??
+              "application/octet-stream"),
+        size: asset.size,
+      };
+      setPicked(next);
+      if (!title) setTitle(asset.name.replace(/\.[^.]+$/, ""));
+    } catch (cause) {
+      const message = uploadErrorMessage(cause, t("brochures.errors.action"));
+      setError(message);
+      Alert.alert(t("brochures.uploadTitle"), message);
+    }
   }
   async function run(action: () => Promise<string>) {
     if (lock.current) return;
@@ -154,8 +181,11 @@ export function BrochuresScreen() {
         await load();
       }
     } catch (cause) {
-      if (alive.current)
-        setError(getLocalizedErrorMessage(cause, t("brochures.errors.action")));
+      if (alive.current) {
+        const message = uploadErrorMessage(cause, t("brochures.errors.action"));
+        setError(message);
+        Alert.alert(t("brochures.errors.action"), message);
+      }
     } finally {
       lock.current = false;
       if (alive.current) setWorking(false);
@@ -209,7 +239,7 @@ export function BrochuresScreen() {
           assetIds: selected,
           recipientEmail: email.trim(),
           recipientName: name.trim() || undefined,
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: uuid.v4(),
         },
       );
       setShowEmail(false);
@@ -421,10 +451,7 @@ export function BrochuresScreen() {
           <Button
             label={t("brochures.upload")}
             loading={working}
-            disabled={
-              !picked ||
-              title.trim().length < 2
-            }
+            disabled={!picked || title.trim().length < 2}
             onPress={() => void upload()}
           />
         }

@@ -16,3 +16,5 @@ apps/mobile
 !.env.example
 !.env.production.example
 *.log
+
+**/.next-dev

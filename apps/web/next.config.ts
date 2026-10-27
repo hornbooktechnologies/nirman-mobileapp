@@ -9,10 +9,14 @@ const configuredBasePath = process.env.NEXT_PUBLIC_API_BASE_PATH;
 const API_URL = (
   configuredBasePath && /^https?:\/\//.test(configuredBasePath)
     ? configuredBasePath
-    : process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
-).replace(/\/+$/, "").replace(/\/api\/v1$/, "");
+    : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000")
+)
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/, "");
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Keep local route/type caches separate from production builds.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   outputFileTracingRoot: path.join(__dirname, "../.."),
   async rewrites() {
     return [
