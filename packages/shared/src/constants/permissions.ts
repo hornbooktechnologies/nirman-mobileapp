@@ -686,7 +686,7 @@ export const PERMISSION_DESCRIPTIONS: Record<KnownPermissionKey, string> = {
 
   "brochures:read": "Read Project sales brochures and share history.",
   "brochures:upload": "Upload Project sales brochure files.",
-  "brochures:manage": "Edit, archive, restore, delete, and revoke sales brochure content.",
+  "brochures:manage": "Edit, delete, and revoke sales brochure content.",
   "brochures:share": "Share selected Project brochures by email or platform share sheet.",
 
   "leads:read-own": "Read assigned and self-created leads.",

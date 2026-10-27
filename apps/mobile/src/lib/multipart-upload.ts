@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import { File } from "expo-file-system";
 import { apiRequest } from "./api";
 
 export async function appendUploadFile(
@@ -11,14 +10,8 @@ export async function appendUploadFile(
     if (!response.ok) throw new Error("Unable to read the selected file");
     form.append("file", await response.blob(), file.name);
   } else {
-    const localFile = new File(file.uri);
-    // Expo's fetch requires bytes(), while React Native's fetch uses uri.
-    // Preserve the chosen filename/MIME for both transports without reading
-    // the entire file into JS memory before the request is submitted.
-    form.append("file", {
-      ...file,
-      bytes: () => localFile.bytes(),
-    } as unknown as Blob);
+    // apiRequest uses native multipart networking for these URI-backed parts.
+    form.append("file", file as unknown as Blob);
   }
 }
 

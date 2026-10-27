@@ -195,36 +195,6 @@ export class BrochuresService {
       throw this.notFound("BROCHURE_ASSET_NOT_FOUND", "Brochure not found");
     return this.repo.update(organizationId, projectId, assetId, dto, actor.id);
   }
-  async archive(
-    organizationId: string,
-    projectId: string,
-    assetId: string,
-    actor: AuthenticatedUser,
-  ) {
-    await this.manage(organizationId, projectId, actor);
-    return this.repo.setStatus(
-      organizationId,
-      projectId,
-      assetId,
-      "ARCHIVED",
-      actor.id,
-    );
-  }
-  async restore(
-    organizationId: string,
-    projectId: string,
-    assetId: string,
-    actor: AuthenticatedUser,
-  ) {
-    await this.manage(organizationId, projectId, actor);
-    return this.repo.setStatus(
-      organizationId,
-      projectId,
-      assetId,
-      "ACTIVE",
-      actor.id,
-    );
-  }
   async delete(
     organizationId: string,
     projectId: string,
@@ -237,11 +207,8 @@ export class BrochuresService {
       projectId,
       assetId,
     );
-    if (!current || current.status !== "ARCHIVED")
-      throw this.bad(
-        "VALIDATION_FAILED",
-        "Archive this brochure before permanent deletion",
-      );
+    if (!current || current.status === "DELETED")
+      throw this.notFound("BROCHURE_ASSET_NOT_FOUND", "Brochure not found");
     const stored = await this.repo.storage(organizationId, projectId, assetId);
     if (!stored)
       throw this.notFound("BROCHURE_ASSET_NOT_FOUND", "Brochure not found");
