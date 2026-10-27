@@ -79,22 +79,6 @@ export class BrochuresController {
   ) {
     return this.result("Brochure updated", this.service.update(o, p, id, d, a));
   }
-  @Post(":assetId/archive") @RequirePermissions("brochures:manage") archive(
-    @Param("organizationId", ParseUUIDPipe) o: string,
-    @Param("projectId", ParseUUIDPipe) p: string,
-    @Param("assetId", ParseUUIDPipe) id: string,
-    @CurrentUser() a: AuthenticatedUser,
-  ) {
-    return this.result("Brochure archived", this.service.archive(o, p, id, a));
-  }
-  @Post(":assetId/restore") @RequirePermissions("brochures:manage") restore(
-    @Param("organizationId", ParseUUIDPipe) o: string,
-    @Param("projectId", ParseUUIDPipe) p: string,
-    @Param("assetId", ParseUUIDPipe) id: string,
-    @CurrentUser() a: AuthenticatedUser,
-  ) {
-    return this.result("Brochure restored", this.service.restore(o, p, id, a));
-  }
   @Delete(":assetId") @RequirePermissions("brochures:manage") remove(
     @Param("organizationId", ParseUUIDPipe) o: string,
     @Param("projectId", ParseUUIDPipe) p: string,

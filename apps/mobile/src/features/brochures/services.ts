@@ -48,13 +48,13 @@ export const createBrochureShareLink = (
     method: "POST",
     body: JSON.stringify({ assetIds, idempotencyKey: uuid.v4() }),
   });
-export const archiveBrochure = (
+export const deleteBrochure = (
   o: string,
   p: string,
   token: string,
   id: string,
 ) =>
-  data<BrochureAsset>(`${base(o, p)}/${id}/archive`, token, { method: "POST" });
+  data<BrochureAsset>(`${base(o, p)}/${id}`, token, { method: "DELETE", body: JSON.stringify({ confirmation: "DELETE" }) });
 export const brochureMediaUrl = (asset: BrochureAsset) =>
   `${appConfig.apiBaseUrl}${asset.mediaPath}`;
 

@@ -1,4 +1,6 @@
 import { appConfig } from '../../config';
+import { Platform } from 'react-native';
+import { nativeMultipartRequest } from './native-multipart';
 
 type ApiClientOptions = {
   accessToken?: string;
@@ -60,7 +62,9 @@ export async function apiRequest<TResponse>(path: string, init: RequestInit = {}
     headers.set('Authorization', `Bearer ${options.accessToken}`);
   }
 
-  const response = await fetch(`${appConfig.apiBaseUrl}${path}`, {
+  const response = Platform.OS !== 'web' && init.body instanceof FormData
+    ? await nativeMultipartRequest(`${appConfig.apiBaseUrl}${path}`, init, headers)
+    : await fetch(`${appConfig.apiBaseUrl}${path}`, {
     ...init,
     headers,
   });

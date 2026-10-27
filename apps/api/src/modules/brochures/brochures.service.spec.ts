@@ -3,6 +3,9 @@ import { BrochuresService } from "./brochures.service";
 
 describe("BrochuresService", () => {
   const repo = {
+    findById: jest.fn(),
+    storage: jest.fn(),
+    setStatus: jest.fn(),
     findReplay: jest.fn(),
     create: jest.fn(),
     validateAssets: jest.fn(),
@@ -55,6 +58,41 @@ describe("BrochuresService", () => {
     repo.create.mockResolvedValue({ id: dto.assetId });
     storage.upload.mockResolvedValue(undefined);
     storage.delete.mockResolvedValue(undefined);
+  });
+
+  it.each(["ACTIVE", "ARCHIVED"])(
+    "deletes %s brochures directly and records the deleted status",
+    async (status) => {
+      repo.findById.mockResolvedValue({ status });
+      repo.storage.mockResolvedValue({ storageKey: "private-brochure" });
+      repo.setStatus.mockResolvedValue({ id: "asset", status: "DELETED" });
+      await expect(
+        service.delete("org", "project", "asset", actor),
+      ).resolves.toEqual({ id: "asset", status: "DELETED" });
+      expect(access.resolveProjectAccess).toHaveBeenCalledWith(
+        actor,
+        "org",
+        "project",
+        "brochures:manage",
+      );
+      expect(storage.delete).toHaveBeenCalledWith("private-brochure");
+      expect(repo.setStatus).toHaveBeenCalledWith(
+        "org",
+        "project",
+        "asset",
+        "DELETED",
+        "user-1",
+      );
+    },
+  );
+  it("does not mark a brochure deleted when storage deletion fails", async () => {
+    repo.findById.mockResolvedValue({ status: "ACTIVE" });
+    repo.storage.mockResolvedValue({ storageKey: "private-brochure" });
+    storage.delete.mockRejectedValueOnce(new Error("Storage unavailable"));
+    await expect(
+      service.delete("org", "project", "asset", actor),
+    ).rejects.toThrow("Storage unavailable");
+    expect(repo.setStatus).not.toHaveBeenCalled();
   });
 
   it("stores a signature-validated PDF in the private project prefix", async () => {

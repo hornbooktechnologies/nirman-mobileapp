@@ -380,3 +380,11 @@ Decisions requiring Product Owner approval before implementation:
 4. Approve a 30-day default share expiry, revocation, approximate open tracking, and archive-then-explicit-delete lifecycle.
 
 Runtime implementation is authorized. Migration-file preparation is authorized; database migration/seed execution remains a separate approval gate.
+
+## 2026-10-27 — Direct Brochure deletion and Mobile image preview
+
+User-authorized lifecycle change supersedes the prior archive-before-delete contract: Mobile and Web now expose confirmed Delete, and DELETE /organizations/:organizationId/projects/:projectId/brochures/:assetId accepts ACTIVE or legacy ARCHIVED assets with the existing confirmation: DELETE body and brochures:manage permission. Archive/Restore API routes and service methods have been removed. Private storage bytes are deleted, existing metadata/audit records are retained with DELETED status, and deleted assets remain unavailable to sharing/media. Existing archived database records are retained; no migration or database mutation performed. Storage failure prevents marking the record deleted. UI selection is reconciled on reload.
+
+Mobile Brochure image cards now download protected media with Authorization into unique temporary local cache files before rendering. Cleanup discards stale downloads and deletes temporary files; failed downloads/decoding show localized error and Retry preview instead of a blank card. PDF/video cards retain their existing type representation. en/hi/gu delete and preview labels synchronized.
+
+Verification: API/Web/Mobile typechecks, Web scoped lint, locale parity and 13 Brochure API tests pass, including direct ACTIVE/ARCHIVED deletion and storage-failure behavior. Actual storage deletion, Mobile image preview, share-link expiry after deletion and physical-device acceptance remain pending. Restart/redeploy API and reload the Mobile/Web bundles together to use the new direct-delete behavior.

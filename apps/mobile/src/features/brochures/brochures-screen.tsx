@@ -3,7 +3,8 @@ import { uploadErrorMessage } from "../../lib/upload-errors";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Image, Pressable, Share, StyleSheet, View } from "react-native";
+import { Alert, Pressable, Share, StyleSheet, View } from "react-native";
+import { BrochureImage } from "./brochure-image";
 import { useTranslation } from "react-i18next";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import {
@@ -32,7 +33,7 @@ import { isValidEmail } from "../../lib/validation";
 import { useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import {
-  archiveBrochure,
+  deleteBrochure,
   brochureMediaUrl,
   createBrochureShareLink,
   fetchBrochures,
@@ -321,13 +322,7 @@ export function BrochuresScreen() {
                   >
                     <View style={styles.preview}>
                       {asset.mimeType.startsWith("image/") ? (
-                        <Image
-                          source={{
-                            uri: brochureMediaUrl(asset),
-                            headers: { Authorization: `Bearer ${accessToken}` },
-                          }}
-                          style={styles.image}
-                        />
+                        <BrochureImage key={`${asset.id}:${accessToken}`} url={brochureMediaUrl(asset)} token={accessToken} title={asset.title} />
                       ) : (
                         <View style={styles.fileType}>
                           <AppIcon
@@ -382,10 +377,10 @@ export function BrochuresScreen() {
                           fullWidth={false}
                           size="sm"
                           variant="ghost"
-                          label={t("brochures.archive")}
+                          label={t("brochures.delete")}
                           onPress={() =>
                             Alert.alert(
-                              t("brochures.archiveTitle"),
+                              t("brochures.deleteTitle"),
                               asset.title,
                               [
                                 {
@@ -393,17 +388,17 @@ export function BrochuresScreen() {
                                   style: "cancel",
                                 },
                                 {
-                                  text: t("brochures.archive"),
+                                  text: t("brochures.delete"),
                                   style: "destructive",
                                   onPress: () =>
                                     void run(async () => {
-                                      await archiveBrochure(
+                                      await deleteBrochure(
                                         organizationId,
                                         projectId,
                                         accessToken,
                                         asset.id,
                                       );
-                                      return t("brochures.archived");
+                                      return t("brochures.deleted");
                                     }),
                                 },
                               ],

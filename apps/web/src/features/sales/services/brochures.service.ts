@@ -52,8 +52,8 @@ export const brochuresService = {
     }),
   history: (o: string, p: string, signal?: AbortSignal) =>
     api.get<BrochureShare[]>(`${base(o, p)}/shares`, { signal }),
-  archive: (o: string, p: string, id: string) =>
-    api.post<BrochureAsset>(`${base(o, p)}/${encodeURIComponent(id)}/archive`),
+  delete: (o: string, p: string, id: string) =>
+    api.delete<BrochureAsset>(`${base(o, p)}/${encodeURIComponent(id)}`, { data: { confirmation: "DELETE" } }),
   media: (o: string, p: string, id: string, signal?: AbortSignal) =>
     api.get<Blob>(`${base(o, p)}/${encodeURIComponent(id)}/media`, {
       responseType: "blob",

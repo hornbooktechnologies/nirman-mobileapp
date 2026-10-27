@@ -22,25 +22,10 @@ test('native multipart retains URI/name/MIME without setting a JSON content type
   assert.equal(parts[0][1].uri, file.uri);
   assert.equal(parts[0][1].name, file.name);
   assert.equal(parts[0][1].type, file.type);
-  assert.equal(new TextDecoder().decode(await parts[0][1].bytes()), file.uri);
+  assert.equal(parts[0][1].bytes, undefined, 'native files must not invoke Expo File.bytes');
   assert.deepEqual(await api.multipartUpload('/uploads', 'token', form), { id: 'asset' });
   assert.equal(api.calls[0][1].body, form);
   assert.equal(api.calls[0][1].headers, undefined);
-});
-test('native upload parts serialize through the installed Expo fetch converter', async () => {
-  const converterSource = ts.transpileModule(readFileSync(new URL('../../node_modules/expo/src/winter/fetch/convertFormData.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const converter = {};
-  new Function('exports', 'require', converterSource)(converter, () => ({ blobToArrayBufferAsync: blob => blob.arrayBuffer() }));
-  for (const platform of ['android', 'ios']) {
-    const parts = [['title', 'Profile photo']];
-    await client(platform).appendUploadFile({ append: (...args) => parts.push(args) }, { uri: 'file:///photo.jpg', name: 'profile.jpg', type: 'image/jpeg' });
-    const { body } = await converter.convertFormDataAsync({ entries: () => parts }, 'test-boundary');
-    const encoded = new TextDecoder().decode(body);
-    assert.match(encoded, /filename="profile.jpg"/);
-    assert.match(encoded, /content-type: image\/jpeg/);
-    assert.match(encoded, /file:\/\/\/photo.jpg/);
-    assert.match(encoded, /Profile photo/);
-  }
 });
 test('Expo web appends file bytes with a filename instead of a React Native object', async () => {
   const api = client('web'); const parts = [];

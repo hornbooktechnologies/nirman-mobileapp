@@ -266,11 +266,11 @@ function Brochures({ c }: { c: SalesContext }) {
                 selected={selected.includes(asset.id)}
                 toggle={() => toggleAsset(asset.id)}
                 canManage={c.permissions.includes("brochures:manage")}
-                archive={() =>
+                remove={() =>
                   void run(async () => {
-                    await brochuresService.archive(c.org, c.project, asset.id);
+                    await brochuresService.delete(c.org, c.project, asset.id);
                     setSelected((v) => v.filter((id) => id !== asset.id));
-                    return "Brochure archived.";
+                    return "Brochure deleted.";
                   })
                 }
               />
@@ -343,7 +343,7 @@ function AssetCard({
   selected,
   toggle,
   canManage,
-  archive,
+  remove,
 }: {
   asset: BrochureAsset;
   org: string;
@@ -351,7 +351,7 @@ function AssetCard({
   selected: boolean;
   toggle: () => void;
   canManage: boolean;
-  archive: () => void;
+  remove: () => void;
 }) {
   return (
     <article
@@ -381,8 +381,8 @@ function AssetCard({
           )}
         </div>
         {canManage && (
-          <Button variant="ghost" onClick={archive}>
-            Archive
+          <Button variant="ghost" onClick={() => { if (window.confirm("Permanently delete this brochure? Existing share links will no longer show it.")) remove(); }}>
+            Delete
           </Button>
         )}
       </div>
