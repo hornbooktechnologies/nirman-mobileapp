@@ -171,13 +171,11 @@ function OrganizationList() {
   }
 
   return (
-    <PermissionGuard
-      anyOf={["platform-organizations:read", "organizations:read"]}
-    >
+    <>
       <div className="space-y-4">
         <PageHeader
           title="Organizations"
-          description="Manage tenant profiles, operating setup, and member access."
+          description="Manage all organization profiles, operating setup, and member access."
           actions={
             hasPermission("platform-organizations:create") ? (
               <Button onClick={() => setIsCreating((current) => !current)}>
@@ -190,7 +188,7 @@ function OrganizationList() {
 
         <AdministrationFilters
           name="organizations"
-          scope="Showing organizations available to your account. Status, type and search filter the retrieved list."
+          scope="Showing all organizations. Status, type and search filter the retrieved list."
           search={{
             value: search,
             placeholder: "Organization name or operating profile",
@@ -528,15 +526,17 @@ function OrganizationList() {
         notice={activationNotice}
         onOpenChange={setActivationOpen}
       />
-    </PermissionGuard>
+    </>
   );
 }
 
 export function OrganizationListPage() {
   return (
-    <Suspense fallback={<LoadingState label="Loading organizations" />}>
-      <OrganizationList />
-    </Suspense>
+    <PermissionGuard permission="platform-organizations:read">
+      <Suspense fallback={<LoadingState label="Loading organizations" />}>
+        <OrganizationList />
+      </Suspense>
+    </PermissionGuard>
   );
 }
 

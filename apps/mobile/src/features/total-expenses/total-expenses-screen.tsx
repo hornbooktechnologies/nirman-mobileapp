@@ -31,6 +31,7 @@ import {
   FormError,
   FormField,
   Input,
+  IconButton,
   LoadingState,
   NirmanScreenBackground,
   StatusBadge,
@@ -73,6 +74,7 @@ function Report({
   project: ReturnType<typeof getRouteProject>;
 }) {
   const { t } = useTranslation("totalExpenses");
+  const { t: commonCopy } = useTranslation("common");
   const { t: expenseCopy } = useTranslation("expenses");
   const { language } = useLocalization();
   const { session } = useSession();
@@ -256,14 +258,25 @@ function Report({
     );
   }
   return (
-    <NirmanScreenBackground footer={<CustomerTabBar activeKey="menu" />}>
-      <CompactScreenHeader title={t("title")} subtitle={t("subtitle")} />
-      {project ? (
+    <NirmanScreenBackground footer={<CustomerTabBar activeKey="totalExpenses" />}>
+      <CompactScreenHeader
+        leading={
+          <IconButton
+            icon="arrow-left"
+            accessibilityLabel={commonCopy("actions.back")}
+            variant="glass"
+            onPress={() => router.canGoBack() ? router.back() : router.replace("/(app)/dashboard")}
+          />
+        }
+        title={t("title")}
+        subtitle={project?.name ?? t("subtitle")}
+      />
+      {!project || project.id === session?.activeProjectId ? (
+        <ProjectContextCard compact showSwitchAction />
+      ) : (
         <Card>
           <AppText weight={700}>{project.name}</AppText>
         </Card>
-      ) : (
-        <ProjectContextCard />
       )}
       {!project ? (
         <Card>
@@ -565,7 +578,7 @@ function Report({
   );
 }
 const styles = StyleSheet.create({
-  stack: { gap: 12 },
+  stack: { gap: mobileTheme.spacing[3] },
   controls: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -584,12 +597,12 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: mobileTheme.spacing[2],
   },
   stats: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  stat: { flexGrow: 1, flexBasis: "45%", gap: 8 },
+  stat: { flexGrow: 1, flexBasis: "45%", gap: mobileTheme.spacing[2] },
   amount: { fontSize: 22, lineHeight: 30, fontVariant: ["tabular-nums"] },
-  barRow: { marginTop: 12, gap: 4 },
+  barRow: { marginTop: mobileTheme.spacing[3], gap: mobileTheme.spacing[1] },
   track: {
     height: 10,
     borderRadius: 5,

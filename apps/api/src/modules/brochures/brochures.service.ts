@@ -1,3 +1,4 @@
+import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 import {
   BadRequestException,
   ConflictException,
@@ -6,14 +7,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { createHash, createHmac, randomUUID } from "node:crypto";
-import {
-  BROCHURE_ALLOWED_MIME_TYPES,
-  BROCHURE_PROJECT_QUOTA_BYTES,
-} from "@nirman-app/shared";
+import { BROCHURE_ALLOWED_MIME_TYPES } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { EmailService } from "../email/email.service";
 import { ProjectAccessService } from "../project-access/project-access.service";
 import { StorageService } from "../upload/storage.service";
+import { publicWebOrigin } from "../../common/public-app-links";
 import { BrochuresRepository } from "./brochures.repository";
 import type {
   BrochureSelectionDto,
@@ -78,11 +77,13 @@ export class BrochuresService {
         "BROCHURE_FILE_TYPE_UNSUPPORTED",
         "Use PDF, JPEG, PNG, WebP, MP4, or MOV files",
       );
-    if (!file.size || file.size > BROCHURE_PROJECT_QUOTA_BYTES)
+    if (file.size > BROCHURE_PROJECT_QUOTA_BYTES)
       throw this.bad(
         "BROCHURE_FILE_TOO_LARGE",
-        "File must be 50 MiB or smaller",
+        "The selected file is too large to upload",
       );
+    if (!file.size)
+      throw this.bad("BROCHURE_FILE_REQUIRED", "Select a non-empty file");
     if (!this.filenameMatches(file.originalname, file.mimetype))
       throw this.bad(
         "BROCHURE_FILE_SIGNATURE_INVALID",
@@ -144,7 +145,7 @@ export class BrochuresService {
       if (this.code(error) === "BROCHURE_QUOTA_EXCEEDED")
         throw this.bad(
           "BROCHURE_QUOTA_EXCEEDED",
-          "This upload exceeds the Project's 50 MiB brochure limit",
+          "Project brochure storage is full. Remove unused brochures before uploading.",
         );
       throw error;
     }
@@ -656,10 +657,7 @@ export class BrochuresService {
     return createHash("sha256").update(token).digest("hex");
   }
   private url(token: string) {
-    const base =
-      process.env.PUBLIC_WEB_APP_URL?.trim() ||
-      process.env.FRONTEND_URL?.split(",")[0]?.trim() ||
-      "http://localhost:3000";
+    const base = publicWebOrigin();
     return `${base.replace(/\/$/, "")}/brochure-share/${encodeURIComponent(token)}`;
   }
   private normalize(value: string) {

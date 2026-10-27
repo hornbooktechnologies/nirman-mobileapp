@@ -200,6 +200,18 @@ export class UsersRepository {
     );
   }
 
+  async replaceAvatar(
+    id: string,
+    previous: string | null,
+    next: string | null,
+  ) {
+    const result = await this.database.execute(
+      "UPDATE `user` SET avatar = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ? AND avatar <=> ?",
+      [next, id, previous],
+    );
+    return result.affectedRows > 0;
+  }
+
   private async updateFields(
     id: string,
     data: UpdateUserDto | UpdateProfileDto,

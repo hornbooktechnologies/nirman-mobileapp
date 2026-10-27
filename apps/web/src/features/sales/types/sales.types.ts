@@ -45,7 +45,7 @@ export type LeadInput = {
   customerName: string;
   primaryMobile: string;
   alternateMobile?: string;
-  email?: string;
+  email?: string | null;
   preferredUnitType?: string;
   budgetMin?: number;
   budgetMax?: number;

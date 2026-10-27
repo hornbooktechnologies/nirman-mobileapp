@@ -1,4 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import "reflect-metadata";
+import { plainToInstance } from "class-transformer";
+import { validateSync } from "class-validator";
+import { UpdateLeadDto } from "./dto/sales.dto";
 import type { ResultSetHeader } from "mysql2/promise";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseTransaction } from "../../database/database.types";
@@ -261,5 +265,65 @@ describe("SalesRepository dynamic scheduled searches", () => {
     const [sql, params] = database.query.mock.calls[0];
     expect(sql).not.toContain("' OR 1=1 --");
     expect(params).toContain("%' OR 1=1 --%");
+  });
+
+});
+
+
+describe("Lead email updates", () => {
+  const connection = {} as DatabaseTransaction;
+  const database = { query: jest.fn(), execute: jest.fn(), transaction: jest.fn() } as unknown as jest.Mocked<DatabaseService>;
+  const repository = new SalesRepository(database, { record: jest.fn() } as unknown as AuditService);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    database.transaction.mockImplementation(callback => callback(connection));
+  });
+  it("persists a cleared email and returns it cleared on reopening", async () => {
+    let email: string | null = "old@example.test";
+    const find = jest
+      .spyOn(repository, "findLead")
+      .mockImplementation(() =>
+        Promise.resolve({ id: "lead-id", email } as never),
+      );
+    database.execute.mockImplementation((_sql, params) => {
+      if (params?.[0] === null) email = null;
+      return Promise.resolve({ affectedRows: 1 } as ResultSetHeader);
+    });
+    try {
+      const dto = plainToInstance(UpdateLeadDto, { email: null });
+      expect(validateSync(dto)).toEqual([]);
+      await expect(
+        repository.updateLead("org", "project", "lead-id", dto, "actor"),
+      ).resolves.toMatchObject({ email: null });
+      await expect(
+        repository.findLead("org", "project", "lead-id"),
+      ).resolves.toMatchObject({ email: null });
+      expect(database.execute.mock.calls[0][1]).toEqual([
+        null,
+        "org",
+        "project",
+        "lead-id",
+      ]);
+    } finally {
+      find.mockRestore();
+    }
+  });
+
+  it("leaves email unchanged when omitted and rejects malformed replacement emails", async () => {
+    const find = jest
+      .spyOn(repository, "findLead")
+      .mockResolvedValue({ id: "lead-id", email: "old@example.test" } as never);
+    try {
+      await expect(
+        repository.updateLead("org", "project", "lead-id", {}, "actor"),
+      ).resolves.toMatchObject({ email: "old@example.test" });
+      expect(database.execute).not.toHaveBeenCalled();
+      expect(
+        validateSync(plainToInstance(UpdateLeadDto, { email: "invalid" }))
+          .length,
+      ).toBeGreaterThan(0);
+    } finally {
+      find.mockRestore();
+    }
   });
 });

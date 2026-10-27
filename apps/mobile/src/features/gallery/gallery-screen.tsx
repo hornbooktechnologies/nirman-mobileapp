@@ -1,3 +1,4 @@
+import { uploadErrorMessage } from "../../lib/upload-errors";
 import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import {
@@ -12,6 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   SectionList,
@@ -172,7 +174,9 @@ export function GalleryScreen() {
         if (nextSummary) setSummary(nextSummary);
       } catch (loadError) {
         if (request === requestSequence.current) {
-          setError(getLocalizedErrorMessage(loadError, t("errors.loadFailed")));
+          const message = uploadErrorMessage(loadError, t("errors.loadFailed"));
+          setError(message);
+          Alert.alert(t("errors.title"), message);
         }
       } finally {
         if (request === requestSequence.current) {
@@ -199,25 +203,27 @@ export function GalleryScreen() {
   async function sendQueued(item: QueuedGalleryUpload) {
     if (!token) return;
     await runGalleryUpload(item.entryId, async () => {
-      await updateGalleryQueue(item.entryId, {
-        state: "UPLOADING",
-        attempts: item.attempts + 1,
-        lastError: undefined,
-      });
-      await refreshQueue();
       try {
+        await updateGalleryQueue(item.entryId, {
+          state: "UPLOADING",
+          attempts: item.attempts + 1,
+          lastError: undefined,
+        });
+        await refreshQueue();
         await uploadGalleryEntry(item, token);
         await removeGalleryQueue(item.entryId);
         setSuccess(t("success.uploaded"));
         await refreshTogether([refreshQueue(), load(1)]);
       } catch (uploadError) {
+        const message = uploadErrorMessage(
+          uploadError,
+          t("errors.uploadFailed"),
+        );
+        Alert.alert(t("errors.title"), message);
         await updateGalleryQueue(item.entryId, {
           state: "FAILED",
           attempts: item.attempts + 1,
-          lastError: getLocalizedErrorMessage(
-            uploadError,
-            t("errors.uploadFailed"),
-          ),
+          lastError: message,
         });
         await refreshQueue();
       }
@@ -400,7 +406,14 @@ export function GalleryScreen() {
             <QueueCard
               key={item.entryId}
               item={item}
-              onRetry={() => void sendQueued(item)}
+              onRetry={() =>
+                void sendQueued(item).catch((cause) =>
+                  Alert.alert(
+                    t("errors.title"),
+                    uploadErrorMessage(cause, t("errors.uploadFailed")),
+                  ),
+                )
+              }
             />
           ))}
         </View>
@@ -566,9 +579,17 @@ export function GalleryScreen() {
           onClose={() => setCaptureOpen(false)}
           onQueued={(item) => {
             setCaptureOpen(false);
-            requestIdleCallback(() => {
-              void sendQueued(item);
-            }, { timeout: 1000 });
+            requestIdleCallback(
+              () => {
+                void sendQueued(item).catch((cause) =>
+                  Alert.alert(
+                    t("errors.title"),
+                    uploadErrorMessage(cause, t("errors.uploadFailed")),
+                  ),
+                );
+              },
+              { timeout: 1000 },
+            );
           }}
         />
       ) : null}
@@ -877,26 +898,36 @@ function CaptureSheet({
   const [error, setError] = useState("");
   async function pick(source: "camera" | "library") {
     setError("");
-    const permission =
-      source === "camera"
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError(t(`capture.${source}Permission`));
-      return;
+    try {
+      const permission =
+        source === "camera"
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setError(t(`capture.${source}Permission`));
+        Alert.alert(t("errors.title"), t(`capture.${source}Permission`));
+        return;
+      }
+      const result =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ["images"],
+              quality: 0.75,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ["images"],
+              quality: 0.75,
+              selectionLimit: 1,
+              preferredAssetRepresentationMode:
+                ImagePicker.UIImagePickerPreferredAssetRepresentationMode
+                  .Compatible,
+            });
+      if (!result.canceled) setAsset(result.assets[0]);
+    } catch (cause) {
+      const message = uploadErrorMessage(cause, t("errors.queueFailed"));
+      setError(message);
+      Alert.alert(t("errors.title"), message);
     }
-    const result =
-      source === "camera"
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ["images"],
-            quality: 0.75,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            quality: 0.75,
-            selectionLimit: 1,
-          });
-    if (!result.canceled) setAsset(result.assets[0]);
   }
   async function save() {
     if (!asset) {
@@ -917,7 +948,9 @@ function CaptureSheet({
         }),
       );
     } catch (queueError) {
-      setError(getLocalizedErrorMessage(queueError, t("errors.queueFailed")));
+      const message = uploadErrorMessage(queueError, t("errors.queueFailed"));
+      setError(message);
+      Alert.alert(t("errors.title"), message);
     } finally {
       setWorking(false);
     }

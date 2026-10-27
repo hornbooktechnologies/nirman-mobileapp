@@ -1,6 +1,8 @@
 "use client";
+import Link from "next/link";
+import { UserAvatar } from "@/features/profile/components/user-avatar";
 
-import { Building2, FolderKanban, LogOut, UserCircle } from "lucide-react";
+import { Building2, FolderKanban, LogOut } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { IconButton, Select } from "@/components/ui";
@@ -76,7 +78,8 @@ function ProjectSwitcher({
       >
         {projects.map((project) => (
           <option key={project.id} value={project.id}>
-            {project.name}{project.status === "ARCHIVED" ? " · Archived" : ""}
+            {project.name}
+            {project.status === "ARCHIVED" ? " · Archived" : ""}
           </option>
         ))}
       </Select>
@@ -84,7 +87,11 @@ function ProjectSwitcher({
   );
 }
 
-export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) {
+export function TopBar({
+  isMenuOpen = false,
+  menuId,
+  onOpenMenu,
+}: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, activeOrganizationId, clearSession } = useAuth();
@@ -124,15 +131,27 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
           aria-expanded={isMenuOpen}
           onClick={onOpenMenu}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
             <line x1="2" y1="5" x2="14" y2="5" />
             <line x1="2" y1="9" x2="14" y2="9" />
             <line x1="2" y1="13" x2="14" y2="13" />
           </svg>
         </IconButton>
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-bold uppercase tracking-[0.8px] text-muted">NirmanSite</p>
-          <p className="truncate text-[14px] font-semibold leading-tight text-body">{getRouteTitle(pathname)}</p>
+          <p className="truncate text-[10px] font-bold uppercase tracking-[0.8px] text-muted">
+            NirmanSite
+          </p>
+          <p className="truncate text-[14px] font-semibold leading-tight text-body">
+            {getRouteTitle(pathname)}
+          </p>
         </div>
       </div>
 
@@ -141,7 +160,11 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
         <NotificationBell />
         {organizations.data?.length === 1 && activeOrganization ? (
           <div className="hidden max-w-44 items-center gap-2 rounded-sub border border-hairline bg-sunken/60 px-2.5 py-1.5 text-[11px] font-medium text-body md:flex">
-            <Building2 size={14} className="shrink-0 text-muted" aria-hidden="true" />
+            <Building2
+              size={14}
+              className="shrink-0 text-muted"
+              aria-hidden="true"
+            />
             <span className="truncate">{activeOrganization.name}</span>
           </div>
         ) : organizations.data && organizations.data.length > 1 ? (
@@ -168,14 +191,22 @@ export function TopBar({ isMenuOpen = false, menuId, onOpenMenu }: TopBarProps) 
 
         {/* User meta — hidden on mobile */}
         <div className="hidden min-w-0 text-right sm:block">
-          <p className="truncate text-[12.5px] font-semibold text-body">{user?.name}</p>
-          <p className="truncate text-[10px] font-medium text-muted">{user?.roleName}</p>
+          <p className="truncate text-[12.5px] font-semibold text-body">
+            {user?.name}
+          </p>
+          <p className="truncate text-[10px] font-medium text-muted">
+            {user?.roleName}
+          </p>
         </div>
 
         {/* Avatar */}
-        <span className="grid size-8 shrink-0 place-items-center rounded-sub border border-hairline bg-sunken text-sub">
-          <UserCircle size={17} strokeWidth={1.7} aria-hidden="true" />
-        </span>
+        <Link
+          href="/profile"
+          aria-label="Open profile"
+          className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-hairline bg-sunken text-sub"
+        >
+          <UserAvatar avatar={user?.avatar} className="size-8" />
+        </Link>
 
         {/* Logout — icon-only on mobile, text on sm+ */}
         <IconButton

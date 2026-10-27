@@ -196,5 +196,16 @@
     "create": "Create",
     "attendance": "Attendance",
     "progress": "Progress"
+  },
+  "profilePhoto": {
+    "title": "Profile photo",
+    "help": "Choose a JPEG, PNG or WebP image up to 5 MB.",
+    "camera": "Take photo",
+    "library": "Choose photo",
+    "remove": "Remove photo",
+    "cancel": "Cancel",
+    "permission": "Allow camera or photo-library access in your device settings.",
+    "tooLarge": "Choose an image up to 5 MB.",
+    "failed": "Unable to update your profile photo."
   }
 }

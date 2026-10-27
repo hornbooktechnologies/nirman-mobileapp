@@ -341,6 +341,7 @@ export class AttendanceService {
         projectId,
         startDate,
         endDate,
+        workerId,
       ),
       this.calendarService.resolveDaysForAttendance(
         organizationId,

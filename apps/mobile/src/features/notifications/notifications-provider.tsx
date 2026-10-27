@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
+import type { NotificationResponse } from 'expo-notifications';
+import { getNativeNotifications } from './native-notifications';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { Platform } from 'react-native';
@@ -11,7 +12,9 @@ import { notificationHref } from './notification-routing';
 type NotificationsContextValue = { unreadCount: number; refreshUnreadCount: () => Promise<void>; setUnreadCount: (count: number) => void };
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
-if (Platform.OS !== 'web') {
+const Notifications = getNativeNotifications();
+
+if (Notifications) {
   Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }) });
 }
 
@@ -31,7 +34,7 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
   useEffect(() => { void refreshUnreadCount(); const timer = setInterval(() => void refreshUnreadCount(), 60_000); return () => clearInterval(timer); }, [refreshUnreadCount]);
 
   useEffect(() => {
-    if (!session || !organizationId || !canRead || Platform.OS === 'web') return;
+    if (!session || !organizationId || !canRead || !Notifications) return;
     let active = true;
     let registered: { id: string } | null = null;
     void (async () => {
@@ -51,8 +54,8 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
   }, [canRead, language, organizationId, session]);
 
   useEffect(() => {
-    if (!session || !canRead || Platform.OS === 'web') return;
-    const handleResponse = (response: Notifications.NotificationResponse) => {
+    if (!session || !canRead || !Notifications) return;
+    const handleResponse = (response: NotificationResponse) => {
       if (handledResponseId.current === response.notification.request.identifier) return;
       handledResponseId.current = response.notification.request.identifier;
       const data = response.notification.request.content.data as Record<string, unknown>;
@@ -67,7 +70,7 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
         await refreshUnreadCount();
       })();
     };
-    void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) handleResponse(response); });
+    void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) handleResponse(response); }).catch(() => undefined);
     const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
     return () => subscription.remove();
   }, [canRead, organizationId, refreshUnreadCount, session, switchActiveProject]);

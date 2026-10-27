@@ -74,3 +74,19 @@ API-backed PDF reports use `src/lib/exports/pdf.ts` and `use-pdf-export.tsx`: th
 - Photo and document upload.
 - Sales follow-ups and customer quick view.
 - Notifications.
+
+## 2026-10-27 - Shared Mobile bottom-tab spacing
+
+Removed duplicate safe-area accounting and excess 40-point footer clearance from NirmanScreenBackground. The wrapper now measures footer height and reserves only its overlap with the SafeAreaView plus the existing 8-point spacing token. This reduces the visible dead gap above floating tabs for list-based modules and excess trailing padding for scroll-based modules, while preserving safe positioning over Android navigation and accommodating taller text/custom footers. No-footer screens keep their existing padding. Applies through the shared wrapper; no per-module workflow or navigation changes. Physical-device visual acceptance remains pending.
+
+## 2026-10-27 — Mobile floating tabs overlap follow-up
+
+Audited Wages, Total Expenses and all CustomerTabBar/FloatingTabBar call sites. The shared NirmanScreenBackground previously reserved footer height only within scroll content, allowing cards and controls to pass behind the tabs during scrolling. It now reserves measured footer height outside the scroll/list viewport, subtracting the safe-area inset already supplied by SafeAreaView. Both scrolling and list-based layouts use the same small trailing gap and clipped, bounded viewport; screens without footers retain their previous bottom padding. Removed Menu's hard-coded 176-point trailing spacer so the shared layout owns clearance consistently. No financial behavior, API, database or navigation changes.
+
+Verification: Mobile type-check passes; shared layout and footer call sites reviewed, diff whitespace checks pass. Android/iOS physical-device scrolling, gesture/button navigation and large-font visual acceptance remain pending. UI companion ui-ux-pro-max is unavailable; existing theme and component patterns used, with React quality review.
+
+## 2026-10-27 — Expo profile photo FormData compatibility
+
+Reproduced the reported Unsupported FormDataPart implementation against the installed Expo 58 multipart converter: it accepts Blob/bytes() parts and rejects URI-only objects. Shared appendUploadFile now provides lazy expo-file-system File.bytes() alongside URI/name/MIME, supporting Expo fetch while retaining React Native fetch metadata. Web continues to append browser blobs. This fixes the common path used by profile photos, brochures and gallery without API/environment/native dependency changes.
+
+Verification: seven multipart regression tests pass, including actual installed Expo converter serialization for Android/iOS parts with filename, MIME, file bytes and ordinary text fields. Mobile type-check passes. Actual device upload to configured storage remains pending; reload the updated Mobile bundle before retrying.

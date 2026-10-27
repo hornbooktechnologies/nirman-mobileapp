@@ -154,13 +154,21 @@ export class AttendanceRepository {
     projectId: string,
     startDate: string,
     endDate: string,
+    workerId?: string,
   ): Promise<AttendanceException[]> {
     const rows = await this.database.query<any>(
       `SELECT * FROM attendance_exceptions
        WHERE organization_id = ? AND project_id = ?
          AND work_date BETWEEN ? AND ? AND deleted_at IS NULL
+         ${workerId ? "AND worker_assignment_id IN (SELECT id FROM worker_project_assignments WHERE organization_id = ? AND project_id = ? AND worker_id = ?)" : ""}
        ORDER BY work_date ASC`,
-      [organizationId, projectId, startDate, endDate],
+      [
+        organizationId,
+        projectId,
+        startDate,
+        endDate,
+        ...(workerId ? [organizationId, projectId, workerId] : []),
+      ],
     );
     return rows.map((row: any) => this.mapException(row));
   }

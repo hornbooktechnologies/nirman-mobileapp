@@ -1,5 +1,12 @@
 # Identity Access Contract
 
+## 2026-10-26 - Web Organizations module reserved for platform administration
+
+User-authorized Web scope change: Organizations navigation and the dashboard shortcut require platform-organizations:read. Both /organizations and /organizations/[id] are guarded before their query components mount, so organization users receive the existing access-denied state without fetching management page data. Platform admins retain the full organization list, onboarding, detail and lifecycle tools. Organization APIs and shared hooks remain available for the top-bar organization switcher, project context and Members workflows; existing API tenancy and platform permission enforcement remain authoritative.
+
+Verification: focused ESLint checks passed for navigation, dashboard and both management pages. Web typecheck is blocked by pre-existing malformed generated .next/dev/types/routes.d.ts and validator.ts. Browser acceptance remains unrun. No API, database or deployment changes.
+
+
 ## 1. Status
 
 Phase 0 aligned draft for product-owner review.
@@ -1144,3 +1151,7 @@ Conflicts found between docs and current code:
 - Access-model conflict is resolved: model future access through `organization_members` and `project_members`; inherited global `users.roleId` compatibility is not the target model.
 - Template completeness conflict is addressed by the Phase 0 template updates.
 - Current mobile session stores only placeholder `accessToken` and `userName`; MVP requires active organisation, active project, memberships, permissions, and feature flags in the session. Recommendation: update mobile architecture after Identity Access approval.
+
+## User profile photo implementation (2026-10-27)
+
+Self-service authenticated POST/GET/DELETE `/users/me/avatar` manage the current user's identity-level photo across organizations. POST takes multipart `file`, accepts JPEG/PNG/WebP up to 5 MiB, validates signatures and returns `{ avatar: storageKey }` in the standard API envelope. DELETE returns `{ avatar: null }`; GET returns private image bytes with no-store/nosniff headers and 404 when absent. No target user ID or arbitrary storage key is accepted. Existing `user.avatar` stores the private `profile-photos/{userId}/{uuid}.{extension}` reference; no schema change is needed. Storage reuses existing S3 configuration. Replacement uses a null-safe compare-and-set, with 409 on concurrent changes; cleanup never deletes another user's or a legacy external object. Clients refresh their session/profile after mutation and fetch private photo bytes with authentication. Mobile Menu supports camera/library/remove, Web Profile supports upload/remove and header preview. Authentication is required; no platform-administration permission is needed for one's own photo.

@@ -68,7 +68,7 @@ export const navGroups: NavGroup[] = [
         label: "Organizations",
         href: "/organizations",
         icon: Building2,
-        permissionAnyOf: ["platform-organizations:read", "organizations:read"],
+        permission: "platform-organizations:read",
       },
       {
         label: "Subscriptions",

@@ -1,9 +1,9 @@
+import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 /** Read-only authenticated Owner smoke for Brochure visibility and library quota. */
 import * as dotenv from "dotenv";
 import * as path from "node:path";
 import { JwtService } from "@nestjs/jwt";
 import { createPool, type RowDataPacket } from "mysql2/promise";
-import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 import { parseMigrationDatabaseUrl } from "../src/database/migrations/migration-safety";
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
@@ -93,14 +93,14 @@ async function main() {
       `${baseUrl}/organizations/${context.organizationId}/projects/${context.projectId}/brochures`,
       { headers },
     ),
-  )) as { items?: unknown[]; quota?: { limitBytes?: number } };
+  )) as { items?: unknown[]; quota?: { limitBytes?: number | null } };
   if (
     !Array.isArray(library.items) ||
     library.quota?.limitBytes !== BROCHURE_PROJECT_QUOTA_BYTES
   )
     throw new Error("Owner brochure library returned an invalid contract");
   console.log(
-    `Authenticated Organization Owner brochure access passed with ${library.items.length} existing assets and a 50 MiB quota.`,
+    `Authenticated Organization Owner brochure access passed with ${library.items.length} existing assets and a configured brochure storage ceiling.`,
   );
 }
 

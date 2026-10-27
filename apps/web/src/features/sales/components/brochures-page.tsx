@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BROCHURE_CATEGORIES,
   BROCHURE_MAX_SELECTION,
-  BROCHURE_PROJECT_QUOTA_BYTES,
   type BrochureAsset,
 } from "@nirman-app/shared";
 import {
@@ -105,7 +104,6 @@ function Brochures({ c }: { c: SalesContext }) {
         <Button onClick={() => void query.refetch()}>Retry</Button>
       </Card>
     );
-  const quota = query.data.quota;
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -126,39 +124,12 @@ function Brochures({ c }: { c: SalesContext }) {
           Refresh
         </RefreshButton>
       </header>
-      <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm text-sub">Project storage</p>
-            <p className="text-2xl font-semibold tabular-nums">
-              {size(quota.usedBytes)}{" "}
-              <span className="text-base font-medium text-sub">of 50 MiB</span>
-            </p>
-          </div>
-          <p className="text-sm text-sub">
-            {size(quota.remainingBytes)} available
-          </p>
-        </div>
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-sunken"
-          role="progressbar"
-          aria-label="Brochure storage used"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={quota.percentage}
-        >
-          <div
-            className="h-full rounded-full bg-lime transition-[width]"
-            style={{ width: `${quota.percentage}%` }}
-          />
-        </div>
-      </Card>
       {c.active && c.permissions.includes("brochures:upload") && (
         <Card className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold">Add marketing material</h2>
             <p className="text-sm text-sub">
-              PDF, JPEG, PNG, WebP, MP4 or MOV. Total library limit: 50 MiB.
+              PDF, JPEG, PNG, WebP, MP4 or MOV.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -226,8 +197,7 @@ function Brochures({ c }: { c: SalesContext }) {
             disabled={
               busy ||
               !file ||
-              title.trim().length < 2 ||
-              file.size + quota.usedBytes > BROCHURE_PROJECT_QUOTA_BYTES
+              title.trim().length < 2
             }
             onClick={() =>
               void run(async () => {

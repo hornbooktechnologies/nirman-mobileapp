@@ -1,4 +1,4 @@
-import { memo, type ReactNode, type Ref } from 'react';
+import { memo, useState, type ReactNode, type Ref } from 'react';
 import {
   Image,
   Animated,
@@ -49,12 +49,16 @@ export function NirmanScreenBackground({
   ...props
 }: NirmanScreenBackgroundProps) {
   const insets = useSafeAreaInsets();
+  const [footerHeight, setFooterHeight] = useState<number>(mobileTheme.layout.bottomNavHeight);
+  const footerBottom = Math.max(insets.bottom, mobileTheme.spacing[3]);
+  // Reserve the footer outside the scroll viewport so content cannot slide
+  // underneath the tabs. SafeAreaView adds the system inset itself.
+  const footerInset = footer
+    ? Math.max(0, footerHeight + footerBottom - insets.bottom)
+    : 0;
   const contentInset = {
-    paddingBottom: footer
-      ? mobileTheme.layout.bottomNavHeight + insets.bottom + mobileTheme.spacing[10]
-      : mobileTheme.spacing[8],
+    paddingBottom: footer ? mobileTheme.spacing[2] : mobileTheme.spacing[8],
   };
-
   return (
     <View style={styles.root} {...props}>
       <BackgroundImage />
@@ -65,32 +69,30 @@ export function NirmanScreenBackground({
           <LinearGradient colors={[mobileTheme.color.status.warning.background, 'transparent']} start={{ x: 1, y: 0 }} end={{ x: 0.2, y: 1 }} style={styles.dashboardGlow} />
         </View>
       ) : null}
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { paddingBottom: footerInset }]}>
         {scroll ? (
-          <Animated.ScrollView
+          <Animated.ScrollView style={styles.viewport}
             ref={scrollRef}
             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
             onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
             scrollEventThrottle={scrollY ? 16 : undefined}
-            contentContainerStyle={[styles.content, contentInset, style]}
+            contentContainerStyle={[styles.content, style, contentInset]}
             showsVerticalScrollIndicator={false}
           >
             {children}
           </Animated.ScrollView>
         ) : (
-          <View style={[styles.content, styles.flexContent, contentInset, style]}>
+          <View style={[styles.content, styles.flexContent, style, contentInset]}>
             {children}
           </View>
         )}
       </SafeAreaView>
       {footer ? (
         <View
-          style={[
-            styles.footer,
-            { bottom: Math.max(insets.bottom, mobileTheme.spacing[3]) },
-          ]}
+          onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+          style={[styles.footer, { bottom: footerBottom }]}
         >
           {footer}
         </View>
@@ -121,8 +123,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: mobileTheme.spacing[5],
     paddingTop: mobileTheme.spacing[5],
   },
+  viewport: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
   flexContent: {
     flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
   },
   footer: {
     left: mobileTheme.spacing[5],

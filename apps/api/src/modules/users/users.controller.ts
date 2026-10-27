@@ -1,3 +1,9 @@
+import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
+import {
+  ProfilePhotoService,
+  PROFILE_PHOTO_MAX_BYTES,
+} from "./profile-photo.service";
 import {
   Body,
   Controller,
@@ -10,6 +16,9 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Res,
 } from "@nestjs/common";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
@@ -25,7 +34,10 @@ import { UsersService } from "./users.service";
 @Controller("users")
 @UseGuards(PermissionsGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly photos: ProfilePhotoService,
+  ) {}
 
   @Get()
   @RequirePermissions("platform-users:read")
@@ -38,6 +50,44 @@ export class UsersController {
   async me(@CurrentUser() user: AuthenticatedUser) {
     const data = await this.usersService.findById(user.id);
     return { success: true, message: "Profile retrieved", data };
+  }
+
+  @Post("me/avatar")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: PROFILE_PHOTO_MAX_BYTES, files: 1 },
+    }),
+  )
+  async uploadAvatar(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return {
+      success: true,
+      message: "Profile photo updated",
+      data: await this.photos.upload(user.id, file),
+    };
+  }
+
+  @Get("me/avatar")
+  async avatar(
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() response: Response,
+  ) {
+    const media = await this.photos.media(user.id);
+    response.setHeader("Content-Type", media.contentType);
+    response.setHeader("Cache-Control", "private, no-store");
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.send(media.body);
+  }
+
+  @Delete("me/avatar")
+  async removeAvatar(@CurrentUser() user: AuthenticatedUser) {
+    return {
+      success: true,
+      message: "Profile photo removed",
+      data: await this.photos.remove(user.id),
+    };
   }
 
   @Patch("me")

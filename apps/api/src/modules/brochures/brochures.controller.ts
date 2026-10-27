@@ -1,3 +1,4 @@
+import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 import {
   Body,
   Controller,
@@ -15,7 +16,6 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
-import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
@@ -48,7 +48,7 @@ export class BrochuresController {
   @RequirePermissions("brochures:upload")
   @UseInterceptors(
     FileInterceptor("file", {
-      limits: { fileSize: BROCHURE_PROJECT_QUOTA_BYTES },
+      limits: { fileSize: BROCHURE_PROJECT_QUOTA_BYTES, files: 1 },
     }),
   )
   upload(

@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 const source = fs.readFileSync(path.join(__dirname, '../src/features/gallery/queue.ts'), 'utf8');
-const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: false } }).outputText;
 let stored = JSON.stringify([{ entryId: 'photo', state: 'QUEUED', attempts: 0, idempotencyKey: 'stable' }]);
 function runtime() {
   const exports = {};

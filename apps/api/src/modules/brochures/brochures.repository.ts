@@ -1,11 +1,8 @@
+import { BROCHURE_PROJECT_QUOTA_BYTES } from "@nirman-app/shared";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
-import {
-  BROCHURE_PROJECT_QUOTA_BYTES,
-  type BrochureAsset,
-  type BrochureShare,
-} from "@nirman-app/shared";
+import { type BrochureAsset, type BrochureShare } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
 import type { DatabaseConnection } from "../../database/database.types";
 import { AuditService } from "../audit/audit.service";

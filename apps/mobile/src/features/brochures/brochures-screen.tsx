@@ -1,3 +1,5 @@
+import { uuid } from "expo";
+import { uploadErrorMessage } from "../../lib/upload-errors";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,7 +9,6 @@ import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import {
   BROCHURE_CATEGORIES,
   BROCHURE_MAX_SELECTION,
-  BROCHURE_PROJECT_QUOTA_BYTES,
   type BrochureAsset,
 } from "@nirman-app/shared";
 import {
@@ -26,7 +27,6 @@ import {
   NirmanScreenBackground,
   RefreshIconButton,
 } from "../../components/ui";
-import { getLocalizedErrorMessage } from "../../i18n";
 import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
 import { isValidEmail } from "../../lib/validation";
 import { useSession } from "../../providers";
@@ -55,7 +55,6 @@ export function BrochuresScreen() {
   const alive = useRef(true);
   const lock = useRef(false);
   const [items, setItems] = useState<BrochureAsset[]>([]);
-  const [used, setUsed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -81,29 +80,34 @@ export function BrochuresScreen() {
       alive.current = false;
     };
   }, []);
+  const loadOrganizationId = session?.activeOrganization?.id;
+  const loadProjectId = project?.id;
+  const loadAccessToken = session?.accessToken;
   const load = useCallback(async () => {
-    if (!session?.activeOrganization || !project) return;
+    if (!loadOrganizationId || !loadProjectId || !loadAccessToken) return;
     setError("");
     try {
       const response = await fetchBrochures(
-        session.activeOrganization.id,
-        project.id,
-        session.accessToken,
+        loadOrganizationId,
+        loadProjectId,
+        loadAccessToken,
       );
       if (alive.current) {
         setItems(response.items);
-        setUsed(response.quota.usedBytes);
         setSelected((current) =>
           current.filter((id) => response.items.some((item) => item.id === id)),
         );
       }
     } catch (cause) {
-      if (alive.current)
-        setError(getLocalizedErrorMessage(cause, t("brochures.errors.load")));
+      if (alive.current) {
+        const message = uploadErrorMessage(cause, t("brochures.errors.load"));
+        setError(message);
+        Alert.alert(t("brochures.errors.load"), message);
+      }
     } finally {
       if (alive.current) setLoading(false);
     }
-  }, [project, session, t]);
+  }, [loadOrganizationId, loadProjectId, loadAccessToken, t]);
   useRefreshOnFocus({
     scopeKey: `${session?.activeOrganization?.id ?? ""}:${project?.id ?? ""}`,
     refresh: load,
@@ -123,27 +127,47 @@ export function BrochuresScreen() {
   const projectId = project.id;
   const accessToken = session.accessToken;
   async function choose() {
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      type: [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "video/mp4",
-        "video/quicktime",
-      ],
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    const next = {
-      uri: asset.uri,
-      name: asset.name,
-      mimeType: asset.mimeType ?? "application/octet-stream",
-      size: asset.size,
-    };
-    setPicked(next);
-    if (!title) setTitle(asset.name.replace(/\.[^.]+$/, ""));
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "video/mp4",
+          "video/quicktime",
+        ],
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const next = {
+        uri: asset.uri,
+        name: asset.name,
+        mimeType:
+          asset.mimeType && asset.mimeType !== "application/octet-stream"
+            ? asset.mimeType
+            : ((
+                {
+                  pdf: "application/pdf",
+                  jpg: "image/jpeg",
+                  jpeg: "image/jpeg",
+                  png: "image/png",
+                  webp: "image/webp",
+                  mp4: "video/mp4",
+                  mov: "video/quicktime",
+                } as Record<string, string>
+              )[asset.name.split(".").pop()?.toLowerCase() ?? ""] ??
+              "application/octet-stream"),
+        size: asset.size,
+      };
+      setPicked(next);
+      if (!title) setTitle(asset.name.replace(/\.[^.]+$/, ""));
+    } catch (cause) {
+      const message = uploadErrorMessage(cause, t("brochures.errors.action"));
+      setError(message);
+      Alert.alert(t("brochures.uploadTitle"), message);
+    }
   }
   async function run(action: () => Promise<string>) {
     if (lock.current) return;
@@ -157,8 +181,11 @@ export function BrochuresScreen() {
         await load();
       }
     } catch (cause) {
-      if (alive.current)
-        setError(getLocalizedErrorMessage(cause, t("brochures.errors.action")));
+      if (alive.current) {
+        const message = uploadErrorMessage(cause, t("brochures.errors.action"));
+        setError(message);
+        Alert.alert(t("brochures.errors.action"), message);
+      }
     } finally {
       lock.current = false;
       if (alive.current) setWorking(false);
@@ -212,7 +239,7 @@ export function BrochuresScreen() {
           assetIds: selected,
           recipientEmail: email.trim(),
           recipientName: name.trim() || undefined,
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: uuid.v4(),
         },
       );
       setShowEmail(false);
@@ -232,11 +259,6 @@ export function BrochuresScreen() {
     }
     setSelected((current) => [...current, assetId]);
   }
-  const remaining = Math.max(0, BROCHURE_PROJECT_QUOTA_BYTES - used);
-  const percentage = Math.min(
-    100,
-    Math.round((used / BROCHURE_PROJECT_QUOTA_BYTES) * 100),
-  );
   return (
     <NirmanScreenBackground scroll>
       <View style={styles.screen}>
@@ -261,39 +283,6 @@ export function BrochuresScreen() {
             />
           }
         />
-        <Card variant="blueprint" style={styles.quotaCard}>
-          <View style={styles.quotaHeader}>
-            <View style={styles.quotaIcon}>
-              <AppIcon
-                name="folder-multiple-image"
-                size={22}
-                color={mobileTheme.color.brand.blueprint}
-              />
-            </View>
-            <AppText style={styles.quotaLabel} weight={700}>
-              {t("brochures.storage")}
-            </AppText>
-          </View>
-          <View style={styles.usageRow}>
-            <AppText style={styles.quotaValue} weight={700}>
-              {size(used)}
-            </AppText>
-            <AppText style={styles.quotaLimit} weight={600}>
-              {t("brochures.ofLimit")}
-            </AppText>
-          </View>
-          <View
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: percentage }}
-            style={styles.track}
-          >
-            <View style={[styles.fill, { width: `${percentage}%` }]} />
-          </View>
-          <AppText style={styles.quotaRemaining} weight={600}>
-            {t("brochures.remaining", { value: size(remaining) })}
-          </AppText>
-        </Card>
         {canUpload ? (
           <Button
             label={t("brochures.upload")}
@@ -462,14 +451,7 @@ export function BrochuresScreen() {
           <Button
             label={t("brochures.upload")}
             loading={working}
-            disabled={
-              !picked ||
-              title.trim().length < 2 ||
-              Boolean(
-                picked?.size &&
-                picked.size + used > BROCHURE_PROJECT_QUOTA_BYTES,
-              )
-            }
+            disabled={!picked || title.trim().length < 2}
             onPress={() => void upload()}
           />
         }
@@ -554,59 +536,6 @@ const styles = StyleSheet.create({
   screen: {
     gap: mobileTheme.spacing[4],
     paddingBottom: mobileTheme.spacing[4],
-  },
-  quotaCard: {
-    gap: mobileTheme.spacing[3],
-  },
-  quotaHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: mobileTheme.spacing[2],
-  },
-  quotaIcon: {
-    alignItems: "center",
-    backgroundColor: mobileTheme.color.status.info.background,
-    borderColor: mobileTheme.color.status.info.border,
-    borderRadius: mobileTheme.radius.md,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  quotaLabel: {
-    ...mobileText.label,
-    color: mobileTheme.color.brand.blueprint,
-    flex: 1,
-  },
-  usageRow: {
-    alignItems: "baseline",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: mobileTheme.spacing[2],
-  },
-  quotaValue: {
-    ...mobileText.title,
-    color: mobileTheme.color.text.primary,
-    fontSize: mobileTheme.typography.size.xxl,
-  },
-  quotaLimit: {
-    ...mobileText.body,
-    color: mobileTheme.color.text.secondary,
-  },
-  quotaRemaining: {
-    ...mobileText.caption,
-    color: mobileTheme.color.text.brand,
-  },
-  track: {
-    backgroundColor: mobileTheme.color.border.blueprint,
-    borderRadius: 99,
-    height: 8,
-    overflow: "hidden",
-  },
-  fill: {
-    backgroundColor: mobileTheme.color.brand.secondary,
-    borderRadius: 99,
-    height: 8,
   },
   emptyState: {
     backgroundColor: mobileTheme.color.surface.raised,

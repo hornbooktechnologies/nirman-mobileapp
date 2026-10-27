@@ -1,4 +1,23 @@
+## 2026-10-27 - Mobile brochure/gallery upload failures and error popups
+
+Brochure requests used browser crypto.randomUUID and its loader depended on a freshly normalized Project object, causing native compatibility failures and response-driven refetches. Switched brochure upload/share IDs to Expo uuid.v4 and loader dependencies to scalar Organization/Project/token values. Gallery and brochure now share multipart submission through the authenticated API client, reject missing/malformed success data, and append browser Blob versus native URI parts correctly without manually setting multipart Content-Type. Missing brochure picker MIME can be inferred from accepted filename extensions; iOS gallery picker requests compatible representation.
+
+Load/upload/picker/queue failures now show native Alerts alongside retained inline/queued errors, including localized explanation, server error detail and HTTP status/code. Gallery failure items remain queued for explicit retry; preparation/storage errors also reach the popup. Existing limits, formats, authorization and idempotency semantics remain. Updated the existing gallery queue verification harness for TS6 CommonJS interop; no queue production logic changed. No API/DB/deployment changes. Real phone upload and deployed upstream configuration acceptance remain pending.
+
+Verification: six multipart/native UUID/stable brochure-loader regression tests, gallery queue checks, attendance loading checks and Mobile typecheck passed. See src/lib/multipart-upload.test.mjs. Physical-device upload and preview remain unverified; further server/proxy/storage errors will now be visible rather than hidden behind sheets.
+
+## 2026-10-26 - Brochure server size ceiling restored at 1 GiB
+
+User-authorized supersession: API enforces 1,073,741,824 bytes per uploaded file and per Project aggregate stored brochures, counting active and archived assets. Multipart rejects oversized files; service validates size; repository checks total inside the existing Project row lock. Storage cleanup and readable errors are preserved. Web/Mobile retain no size policy copy or storage meter. Quota response again reports actual numeric capacity. No database changes. This bounds uploads but does not guarantee protection against concurrent memory exhaustion: existing multipart/storage handling buffers files in memory.
+
 # Sales Brochures Implementation Review
+
+## 2026-10-26 - Brochure storage policy update
+
+User-authorized change supersedes the earlier 50 MiB requirements below: brochure uploads have no application-level per-file or aggregate storage size ceiling. API multipart, service and repository quota enforcement are removed. The library response retains usedBytes; limitBytes, remainingBytes and percentage are null. Mobile and Web omit storage meters, capacity wording and size-based upload blocking; en/hi/gu upload guidance lists file formats only. Existing supported formats, signature validation, empty-file rejection, permissions, sharing selection count, private storage and cleanup remain in place. No schema change is required. Uploads still use the existing memory-backed transport and remain subject to hosting/storage resources.
+
+Verification: shared build, API and Mobile typechecks, all 7 focused brochure API tests, 19-namespace en/hi/gu parity and diff whitespace checks passed. Web typecheck is blocked by syntax errors in existing generated .next/dev/types/routes.d.ts and validator.ts. Authenticated browser/device and deployed uploads remain unrun; no deployment or database mutation performed.
+
 
 ## Status
 

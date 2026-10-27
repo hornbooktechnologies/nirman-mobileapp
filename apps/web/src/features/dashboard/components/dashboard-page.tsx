@@ -107,8 +107,7 @@ function DashboardWorkspace() {
             title="Choose an organization"
             description="Project operations appear after you select an organization you can access."
           />
-          {hasPermission("platform-organizations:read") ||
-          hasPermission("organizations:read") ? (
+          {hasPermission("platform-organizations:read") ? (
             <Link
               className="inline-flex min-h-11 items-center underline"
               href="/organizations"
