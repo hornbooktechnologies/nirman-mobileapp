@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
@@ -153,10 +154,10 @@ export function SubscriptionsPage() {
 
         <Card className="space-y-4">
           <div><h2 className="text-[18px] font-medium text-body">Organization provisioning</h2><p className="text-[13px] text-sub">Select an organization, then assign its current capacity plan.</p></div>
-          <label className="grid gap-1 text-sm font-medium">Organization<Select value={selectedOrganizationId} onChange={(event) => { setSelectedOrganizationId(event.target.value); setAssignment({ planId: "", status: "ACTIVE", startsAt: today(), endsAt: "", internalNote: "" }); setSavedOrganizationId(""); setError(""); }}>
+          <ValidatedField className="grid gap-1 text-sm font-medium">Organization<Select value={selectedOrganizationId} onChange={(event) => { setSelectedOrganizationId(event.target.value); setAssignment({ planId: "", status: "ACTIVE", startsAt: today(), endsAt: "", internalNote: "" }); setSavedOrganizationId(""); setError(""); }}>
             <option value="">Select organization</option>
             {(organizations.data ?? []).map((organization) => <option key={organization.id} value={organization.id}>{organization.name} · {organization.type}</option>)}
-          </Select></label>
+          </Select></ValidatedField>
           {organizations.isError && <p role="alert" className="text-sm text-danger">Unable to load organizations for provisioning.</p>}
           {selectedOrganizationId ? (
             <>
@@ -167,12 +168,12 @@ export function SubscriptionsPage() {
                 <h3 className="font-semibold">Assign capacity plan</h3>
                 <p className="text-sm text-sub">This changes the selected organization’s capacity. Review the plan, status and dates before saving.</p>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <label className="grid gap-1 text-sm font-medium">Plan<Select value={assignment.planId} onChange={(event) => setAssignment({ ...assignment, planId: event.target.value })}><option value="">Select plan</option>{(plans.data ?? []).filter((plan) => plan.isActive).map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</Select></label>
-                <label className="grid gap-1 text-sm font-medium">Status<Select value={assignment.status} onChange={(event) => setAssignment({ ...assignment, status: event.target.value as SubscriptionStatus })}>{SUBSCRIPTION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</Select></label>
-                <label className="grid gap-1 text-sm font-medium">Starts on<Input type="date" value={assignment.startsAt} onChange={(event) => setAssignment({ ...assignment, startsAt: event.target.value })} /></label>
-                <label className="grid gap-1 text-sm font-medium">Ends on (optional)<Input type="date" min={assignment.startsAt} value={assignment.endsAt} onChange={(event) => setAssignment({ ...assignment, endsAt: event.target.value })} /></label>
+                <ValidatedField className="grid gap-1 text-sm font-medium">Plan<Select value={assignment.planId} onChange={(event) => setAssignment({ ...assignment, planId: event.target.value })}><option value="">Select plan</option>{(plans.data ?? []).filter((plan) => plan.isActive).map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</Select></ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">Status<Select value={assignment.status} onChange={(event) => setAssignment({ ...assignment, status: event.target.value as SubscriptionStatus })}>{SUBSCRIPTION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</Select></ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">Starts on<Input type="date" value={assignment.startsAt} onChange={(event) => setAssignment({ ...assignment, startsAt: event.target.value })} /></ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">Ends on (optional)<Input type="date" min={assignment.startsAt} value={assignment.endsAt} onChange={(event) => setAssignment({ ...assignment, endsAt: event.target.value })} /></ValidatedField>
               </div>
-              <label className="grid gap-1 text-sm font-medium">Internal provisioning note<Input placeholder="Internal provisioning note" value={assignment.internalNote} onChange={(event) => setAssignment({ ...assignment, internalNote: event.target.value })} /></label>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Internal provisioning note<Input placeholder="Internal provisioning note" value={assignment.internalNote} onChange={(event) => setAssignment({ ...assignment, internalNote: event.target.value })} /></ValidatedField>
               <Button disabled={!assignment.planId || assignSubscription.isPending} onClick={saveAssignment}>Save Subscription</Button>
               {savedOrganizationId === selectedOrganizationId && <p role="status" className="text-sm text-success">Subscription saved for this organization.</p>}
               </section>}
@@ -184,14 +185,14 @@ export function SubscriptionsPage() {
 
         {showCreate && canUpdate ? (
           <Dialog open title="Create Subscription Plan" description="Plan values remain configurable; blank capacity means unlimited." onOpenChange={(open) => !open && setShowCreate(false)} footer={<><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button type="submit" form="create-plan-form" disabled={createPlan.isPending}>Create Plan</Button></>}>
-            <form id="create-plan-form" className="grid gap-3 md:grid-cols-2" onSubmit={submitPlan}>
-              <label className="grid gap-1 text-sm font-medium">Plan key<Input required placeholder="Plan key" value={planForm.planKey} onChange={(event) => setPlanForm({ ...planForm, planKey: event.target.value })} /></label>
-              <label className="grid gap-1 text-sm font-medium">Plan name<Input required placeholder="Plan name" value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} /></label>
-              <label className="grid gap-1 text-sm font-medium">Max active projects (blank means unlimited)<Input type="number" min="1" placeholder="Max active projects" value={planForm.maxActiveProjects} onChange={(event) => setPlanForm({ ...planForm, maxActiveProjects: event.target.value })} /></label>
-              <label className="grid gap-1 text-sm font-medium">Max active members (blank means unlimited)<Input type="number" min="1" placeholder="Max active members" value={planForm.maxActiveMembers} onChange={(event) => setPlanForm({ ...planForm, maxActiveMembers: event.target.value })} /></label>
-              <label className="grid gap-1 text-sm font-medium">Storage allowance in GB<Input type="number" min="1" placeholder="Storage allowance (GB)" value={planForm.storageLimitGb} onChange={(event) => setPlanForm({ ...planForm, storageLimitGb: event.target.value })} /></label>
-              <label className="grid gap-1 text-sm font-medium">Description<Input placeholder="Description" value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} /></label>
-            </form>
+            <ValidatedForm id="create-plan-form" className="grid gap-3 md:grid-cols-2" onSubmit={submitPlan}>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Plan key<Input required placeholder="Plan key" value={planForm.planKey} onChange={(event) => setPlanForm({ ...planForm, planKey: event.target.value })} /></ValidatedField>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Plan name<Input required placeholder="Plan name" value={planForm.name} onChange={(event) => setPlanForm({ ...planForm, name: event.target.value })} /></ValidatedField>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Max active projects (blank means unlimited)<Input type="number" min="1" placeholder="Max active projects" value={planForm.maxActiveProjects} onChange={(event) => setPlanForm({ ...planForm, maxActiveProjects: event.target.value })} /></ValidatedField>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Max active members (blank means unlimited)<Input type="number" min="1" placeholder="Max active members" value={planForm.maxActiveMembers} onChange={(event) => setPlanForm({ ...planForm, maxActiveMembers: event.target.value })} /></ValidatedField>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Storage allowance in GB<Input type="number" min="1" placeholder="Storage allowance (GB)" value={planForm.storageLimitGb} onChange={(event) => setPlanForm({ ...planForm, storageLimitGb: event.target.value })} /></ValidatedField>
+              <ValidatedField className="grid gap-1 text-sm font-medium">Description<Input placeholder="Description" value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} /></ValidatedField>
+            </ValidatedForm>
           </Dialog>
         ) : null}
       </div>

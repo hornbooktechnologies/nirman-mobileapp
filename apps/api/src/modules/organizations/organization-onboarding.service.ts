@@ -1,4 +1,7 @@
-import { publicAccountLink, mobileAccountLink } from "../../common/public-app-links";
+import {
+  publicAccountLink,
+  mobileAccountLink,
+} from "../../common/public-app-links";
 import {
   BadRequestException,
   ConflictException,

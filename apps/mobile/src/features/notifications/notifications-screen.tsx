@@ -9,7 +9,7 @@ import { formatDate, getLocalizedErrorMessage, type SupportedLanguage } from '..
 import { useLocalization, useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { CustomerTabBar } from '../home/components';
-import { notificationHref } from './notification-routing';
+import { notificationHref, notificationProjectAccess } from './notification-routing';
 import { useNotifications } from './notifications-provider';
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead } from './services';
 
@@ -17,7 +17,7 @@ export function NotificationsScreen() {
   const { t } = useTranslation('notifications');
   const { t: tCommon } = useTranslation('common');
   const { language } = useLocalization();
-  const { session } = useSession();
+  const { session, switchActiveProject } = useSession();
   const { setUnreadCount, refreshUnreadCount, unreadCount } = useNotifications();
   const organizationId = session?.activeOrganization?.id;
   const token = session?.accessToken;
@@ -31,6 +31,8 @@ export function NotificationsScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState('');
+  const currentScope = useRef('');
+  currentScope.current = `${organizationId}:${session?.user.id}:${JSON.stringify(session?.projectAccess.projects)}`;
   const sequence = useRef(0);
   const hasLoaded = useRef(false);
   const loadedUnreadOnly = useRef<boolean | null>(null);
@@ -59,11 +61,14 @@ export function NotificationsScreen() {
   }, [load, refreshUnreadCount]));
 
   async function open(item: NotificationItem) {
-    if (!organizationId || !token) return;
+    if (!organizationId || !token || !session) return;
+    if (item.userId !== session.user.id || !notificationProjectAccess(item, organizationId, session.projectAccess.projects)) { setError(t('errors.target')); return; }
+    const scope = currentScope.current;
     const href = notificationHref(item);
     if (!item.readAt) {
       try {
         await markNotificationRead(organizationId, item.id, token);
+        if (scope !== currentScope.current) return;
         setUnreadCount(Math.max(0, unreadCount - 1));
         setItems((current) => unreadOnly
           ? current.filter((row) => row.id !== item.id)
@@ -72,7 +77,11 @@ export function NotificationsScreen() {
             : row));
       } catch { /* target remains usable if read receipt fails */ }
     }
-    if (href) router.push(href);
+    if (scope !== currentScope.current) return;
+    if (href) {
+      try { if (item.projectId && item.projectId !== session.activeProjectId && session.projectAccess.projects.find(project => project.id === item.projectId)?.status !== 'ARCHIVED') await switchActiveProject(item.projectId); if (currentScope.current.startsWith(`${organizationId}:${session.user.id}:`)) router.push(href); }
+      catch (reason) { setError(getLocalizedErrorMessage(reason, t('errors.target'))); }
+    }
   }
 
   async function markAll() {

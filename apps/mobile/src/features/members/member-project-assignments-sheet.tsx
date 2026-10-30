@@ -167,7 +167,7 @@ export function MemberProjectAssignmentsSheet({
         ) : (
           <>
             <Button label={t('assignments.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} />
-            <Button
+            <Button validateForm
               label={saving ? t('assignments.saving') : t('assignments.save')}
               variant="brand"
               disabled={saving}

@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -45,15 +46,15 @@ function ForgotPasswordContent() {
               <Link className="block text-center text-[13px] font-semibold text-lime hover:text-lime-sub" href={`/login?email=${encodeURIComponent(email.trim())}`}>Back to Login</Link>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={submit}>
-              <label className="block space-y-2">
+            <ValidatedForm className="space-y-4" onSubmit={submit}>
+              <ValidatedField className="block space-y-2">
                 <span className="text-[12px] font-semibold text-body">Email</span>
                 <Input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-              </label>
+              </ValidatedField>
               {error ? <p className="text-[12px] text-danger" role="alert">{error}</p> : null}
               <Button className="w-full" size="lg" type="submit" disabled={working}>{working ? "Sending link" : "Send reset link"}</Button>
               <Link className="block text-center text-[13px] font-semibold text-lime hover:text-lime-sub" href={`/login?email=${encodeURIComponent(email.trim())}`}>Back to Login</Link>
-            </form>
+            </ValidatedForm>
           )}
         </CardContent>
       </Card>

@@ -47,8 +47,19 @@
     "leadEmailRequired": "ब्रोशर भेजने के लिए मान्य ईमेल दर्ज करें।",
     "selectRequired": "कम से कम एक ब्रोशर चुनें।",
     "selectionLimit": "एक बार में अधिकतम {{count}} ब्रोशर चुनें।",
-    "category": { "COMPANY": "कंपनी", "PROJECT": "प्रोजेक्ट", "HOUSE": "घर", "FLOOR_PLAN": "फ़्लोर प्लान", "AMENITIES": "सुविधाएँ", "PRICE_LIST": "मूल्य सूची", "OTHER": "अन्य" },
-    "errors": { "load": "ब्रोशर लोड नहीं हो सके।", "action": "ब्रोशर कार्रवाई पूरी नहीं हो सकी।" }
+    "category": {
+      "COMPANY": "कंपनी",
+      "PROJECT": "प्रोजेक्ट",
+      "HOUSE": "घर",
+      "FLOOR_PLAN": "फ़्लोर प्लान",
+      "AMENITIES": "सुविधाएँ",
+      "PRICE_LIST": "मूल्य सूची",
+      "OTHER": "अन्य"
+    },
+    "errors": {
+      "load": "ब्रोशर लोड नहीं हो सके।",
+      "action": "ब्रोशर कार्रवाई पूरी नहीं हो सकी।"
+    }
   },
   "search": {
     "a11y": "मौजूदा सेल्स अनुभाग में खोजें",
@@ -520,5 +531,25 @@
     "noInterests": "यूनिट में रुचि दर्ज नहीं है।",
     "blockedBy": "ब्लॉक करने वाला",
     "nameUnavailable": "नाम उपलब्ध नहीं"
+  },
+  "brochureHistory": {
+    "title": "साझा करने का इतिहास",
+    "limit": "API से प्राप्त नवीनतम 100 साझा रिकॉर्ड।",
+    "failed": "साझा इतिहास लोड नहीं हुआ",
+    "loading": "साझा इतिहास लोड हो रहा है",
+    "empty": "अभी साझा इतिहास नहीं है।",
+    "other": "अन्य साझा माध्यम",
+    "files": "{{count}} फ़ाइलें",
+    "expires": "समाप्ति {{date}}",
+    "status": {
+      "ACTIVE": "सक्रिय",
+      "REVOKED": "रद्द",
+      "EXPIRED": "समाप्त",
+      "NOT_APPLICABLE": "लागू नहीं",
+      "PENDING": "लंबित",
+      "EMAIL_SENT": "ईमेल भेजा गया",
+      "EMAIL_FAILED": "ईमेल विफल",
+      "MANUAL": "मैनुअल"
+    }
   }
 }

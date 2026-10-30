@@ -48,7 +48,7 @@ export function ForgotPasswordScreen() {
           <FormField label={t('login.email')} required error={fieldError}>
             <Input accessibilityLabel={t('login.email')} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" invalid={Boolean(fieldError)} value={email} onChangeText={(value) => { setEmail(value); setFieldError(''); }} />
           </FormField>
-          <Button label={working ? t('recovery.sending') : t('recovery.send')} loading={working} disabled={working} onPress={() => void submit()} />
+          <Button validateForm label={working ? t('recovery.sending') : t('recovery.send')} loading={working} disabled={working} onPress={() => void submit()} />
         </>
       )}
       <Button label={t('activation.backToLogin')} variant="ghost" onPress={() => router.replace({ pathname: '/(auth)/login', params: { email } })} />

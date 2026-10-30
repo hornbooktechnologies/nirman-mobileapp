@@ -1,3 +1,4 @@
+import { attendanceRowActions } from '@nirman-app/shared';
 import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type {
@@ -5,7 +6,7 @@ import type {
   AttendanceSummaryRow,
   DerivedAttendanceState,
 } from "@nirman-app/shared";
-import { router } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -32,6 +33,7 @@ import {
   LottieLoader,
   NirmanScreenBackground,
   SearchField,
+  Toggle,
 } from "../../components/ui";
 import { getLocalizedErrorMessage } from "../../i18n";
 import { ApiRequestError } from "../../lib/api";
@@ -72,7 +74,11 @@ const DailyWorkerCard = memo(function DailyWorkerCard({
   row,
   onEdit,
   onRestore,
+  onHistory,
+  busy,
 }: {
+  busy: boolean;
+  onHistory: (row: AttendanceSummaryRow) => void;
   canCreate: boolean;
   canUpdate: boolean;
   row: AttendanceSummaryRow;
@@ -81,7 +87,7 @@ const DailyWorkerCard = memo(function DailyWorkerCard({
 }) {
   const { t } = useTranslation("attendance");
   const state = row.selectedDate?.state ?? "NON_WORKING";
-  const hasException = Boolean(row.selectedDate?.exception);
+  const actions = attendanceRowActions(row.selectedDate, ["attendance:read", ...(canCreate ? ["attendance:mark"] : []), ...(canUpdate ? ["attendance:update"] : [])]);
 
   return (
     <Card style={styles.workerCard}>
@@ -111,22 +117,25 @@ const DailyWorkerCard = memo(function DailyWorkerCard({
           tone={stateTones[state]}
         />
       </View>
-      {state === "PRESENT" && canCreate ? (
+      {actions.mark ? (
         <Button
           accessibilityHint={t("workerCard.markHint")}
+          disabled={busy}
           label={t("actions.markAbsent")}
           onPress={() => onEdit(row)}
         />
-      ) : hasException && canUpdate ? (
+      ) : actions.edit || actions.restore ? (
         <View style={styles.rowActions}>
-          <Button
+          {actions.edit ? <Button
+            disabled={busy}
             fullWidth={false}
             label={t("actions.editAttendance")}
             style={styles.rowAction}
             variant="secondary"
             onPress={() => onEdit(row)}
-          />
+          /> : null}
           <Button
+            disabled={busy}
             fullWidth={false}
             label={t("actions.restorePresent")}
             style={styles.rowAction}
@@ -143,11 +152,13 @@ const DailyWorkerCard = memo(function DailyWorkerCard({
           {t("workerCard.readOnly")}
         </AppText>
       )}
+      <Button label={t("actions.viewAttendance")} variant="ghost" onPress={() => onHistory(row)} />
     </Card>
   );
 });
 
 export function AttendanceMarkScreen() {
+  const params = useLocalSearchParams<{ date?: string; workerSearch?: string; projectId?: string }>();
   const { t } = useTranslation("attendance");
   const { t: tCommon } = useTranslation("common");
   const { locale } = useLocalization();
@@ -159,9 +170,11 @@ export function AttendanceMarkScreen() {
   const canRead = permissions.includes("attendance:read");
   const canCreate = permissions.includes("attendance:mark");
   const canUpdate = permissions.includes("attendance:update");
-  const [date, setDate] = useState(todayDateOnly());
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const workingTimezone = session?.activeOrganization?.workingTimezone ?? session?.activeOrganization?.timezone;
+  const [date, setDate] = useState(() => params.date ?? todayDateOnly(workingTimezone));
+  const [search, setSearch] = useState(params.workerSearch ?? "");
+  const [debouncedSearch, setDebouncedSearch] = useState(params.workerSearch ?? "");
+  const [exceptionsOnly, setExceptionsOnly] = useState(false);
   const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(
     null,
   );
@@ -214,9 +227,9 @@ export function AttendanceMarkScreen() {
   }, [search]);
 
   const latestReadScope = useRef(
-    `${organizationId}:${projectId}:${date}:${debouncedSearch}`,
+    `${organizationId}:${projectId}:${date}:${debouncedSearch}:${exceptionsOnly}`,
   );
-  latestReadScope.current = `${organizationId}:${projectId}:${date}:${debouncedSearch}`;
+  latestReadScope.current = `${organizationId}:${projectId}:${date}:${debouncedSearch}:${exceptionsOnly}`;
 
   const load = useCallback(
     async (page = 1, background = false, force = false) => {
@@ -225,12 +238,12 @@ export function AttendanceMarkScreen() {
       // Ignore a delayed reload from a mutation belonging to an old filter/Project.
       if (
         latestReadScope.current !==
-        `${organizationId}:${projectId}:${date}:${debouncedSearch}`
+        `${organizationId}:${projectId}:${date}:${debouncedSearch}:${exceptionsOnly}`
       )
         return;
       if (force) readRequest.current.cancel();
       const request = readRequest.current.start(
-        `${organizationId}:${projectId}:${date}:${debouncedSearch}:${page}`,
+        `${organizationId}:${projectId}:${date}:${debouncedSearch}:${exceptionsOnly}:${page}`,
       );
       if (!request) return;
       setIsLoading(false);
@@ -248,6 +261,7 @@ export function AttendanceMarkScreen() {
             startDate: date,
             endDate: date,
             selectedDate: date,
+            exceptionsOnly: exceptionsOnly || undefined,
             search: debouncedSearch || undefined,
             page,
             pageSize: PAGE_SIZE,
@@ -289,6 +303,7 @@ export function AttendanceMarkScreen() {
       canRead,
       date,
       debouncedSearch,
+      exceptionsOnly,
       organizationId,
       projectId,
       session?.accessToken,
@@ -297,7 +312,7 @@ export function AttendanceMarkScreen() {
   );
 
   useRefreshOnFocus({
-    scopeKey: `${contextKey}:${date}:${debouncedSearch}`,
+    scopeKey: `${contextKey}:${date}:${debouncedSearch}:${exceptionsOnly}`,
     refresh: load,
     cancel: cancelRead,
     reset: () => {
@@ -511,7 +526,6 @@ export function AttendanceMarkScreen() {
           <DateInput
             allowClear={false}
             accessibilityLabel={t("period.selectDate")}
-            maximumDate={new Date(`${todayDateOnly()}T12:00:00`)}
             value={date}
             onChangeText={(value) => value && setDate(value)}
           />
@@ -542,6 +556,7 @@ export function AttendanceMarkScreen() {
           value={search}
           onChangeText={setSearch}
         />
+        <Toggle accessibilityRole="checkbox" accessibilityState={{ checked: exceptionsOnly }} label={t("filters.exceptionsOnly")} value={exceptionsOnly} onValueChange={setExceptionsOnly} />
       </ListControls>
       {!canCreate && !canUpdate && canRead ? (
         <Card>
@@ -594,11 +609,13 @@ export function AttendanceMarkScreen() {
         keyExtractor={(row) => row.workerAssignmentId}
         renderItem={({ item }) => (
           <DailyWorkerCard
+            busy={isMutating}
             canCreate={canCreate}
             canUpdate={canUpdate}
             row={item}
             onEdit={openSheet}
             onRestore={confirmRestore}
+            onHistory={(row) => router.push({ pathname: "/(app)/worker-attendance", params: { workerId: row.worker.id, workerName: row.worker.name, workerCode: row.worker.workerCode, workerTrade: row.worker.trade, projectId: projectId ?? "", startDate: date, endDate: date } } as Href)}
           />
         )}
         ListHeaderComponent={header}
@@ -612,12 +629,12 @@ export function AttendanceMarkScreen() {
           ) : !error ? (
             <EmptyState
               title={
-                debouncedSearch
+                debouncedSearch || exceptionsOnly
                   ? t("empty.noMatchesTitle")
                   : t("empty.noDailyWorkersTitle")
               }
               description={
-                debouncedSearch
+                debouncedSearch || exceptionsOnly
                   ? t("empty.noMatchesDescription")
                   : t("empty.noDailyWorkersDescription")
               }

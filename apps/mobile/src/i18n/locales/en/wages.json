@@ -1,5 +1,8 @@
 {
-  "screen": { "title": "Wages", "chooseProject": "Choose a project" },
+  "screen": {
+    "title": "Wages",
+    "chooseProject": "Choose a project"
+  },
   "empty": {
     "noProjectTitle": "No project selected",
     "noProjectDescription": "Choose an accessible project before opening Wages."
@@ -114,7 +117,10 @@
   "adjustment": {
     "title": "Wage adjustment",
     "description": "Add an extra amount or deduct an approved correction.",
-    "mode": { "ADD": "Add +", "DEDUCT": "Deduct −" },
+    "mode": {
+      "ADD": "Add +",
+      "DEDUCT": "Deduct −"
+    },
     "amount": "Adjustment amount",
     "addHelper": "This amount will increase the worker's net wage.",
     "deductHelper": "This amount will reduce the worker's net wage.",
@@ -166,5 +172,45 @@
     "confirmMessage": "Check wage readiness and try again.",
     "batchTitle": "Batch unavailable",
     "batchMessage": "Unable to load this wage batch."
+  },
+  "history": {
+    "calculation": "Calculation details",
+    "saved": "Saved calculation",
+    "snapshot": "These day counts, rates and amounts were saved at confirmation. Later source changes do not rewrite them.",
+    "rateMissing": "Rate unavailable",
+    "multipleRates": "Multiple period rates (representative latest: {{amount}}/day)",
+    "rate": "Calculation rate: {{amount}}/day",
+    "days": "{{present}} full · {{half}} half · {{absent}} absent · {{holiday}} non-working",
+    "payments": "Payment history",
+    "noPayments": "No payments recorded.",
+    "none": "None",
+    "recorded": "Recorded {{date}} · Actor {{actor}}",
+    "attendance": "Worker attendance",
+    "allocations": "Show / hide Kharchi allocations",
+    "kharchiPermission": "Kharchi history requires Kharchi read permission.",
+    "loading": "Loading history",
+    "noAdvances": "No advances found.",
+    "page": "Page {{page}} of {{pages}}",
+    "previous": "Previous",
+    "next": "Next",
+    "balance": "Advance balance: {{amount}}",
+    "openAdvance": "Open advance and correction history",
+    "allocated": "Allocated",
+    "reversed": "Reversed",
+    "nameUnavailable": "Name unavailable",
+    "noAllocations": "This advance has no allocations to this wage item.",
+    "uncertain": "The payment result is uncertain. Retry the same payment to recover its result safely. Keep this screen open until resolved.",
+    "retryPayment": "Retry same payment",
+    "changed": "This wage item changed. Close and reopen the worker to review the latest values before adjusting.",
+    "discard": "Discard unsaved changes?",
+    "discardHelp": "Your unsaved payment or adjustment form will be cleared.",
+    "archived": "This project is archived. Wage records are read-only.",
+    "details": "Details",
+    "csv": "Export CSV",
+    "refresh": "Refresh",
+    "ledger": "Assignment Kharchi ledger",
+    "reloadWorker": "Reload worker",
+    "multipleRateLabel": "Multiple saved rates",
+    "openLedger": "Open full assignment ledger"
   }
 }

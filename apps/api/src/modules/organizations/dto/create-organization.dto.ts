@@ -3,8 +3,8 @@ import {
   ORGANIZATION_TYPES,
   type OperatingProfile,
   type OrganizationType,
-} from '@nirman-app/shared';
-import { Type } from 'class-transformer';
+} from "@nirman-app/shared";
+import { Type } from "class-transformer";
 import {
   IsIn,
   IsDefined,
@@ -13,8 +13,8 @@ import {
   IsString,
   MaxLength,
   ValidateNested,
-} from 'class-validator';
-import { PrimaryOwnerDto } from './primary-owner.dto';
+} from "class-validator";
+import { PrimaryOwnerDto } from "./primary-owner.dto";
 
 export class CreateOrganizationDto {
   @IsString()
@@ -27,16 +27,16 @@ export class CreateOrganizationDto {
 
   @IsOptional()
   @IsIn(OPERATING_PROFILES)
-  operatingProfile?: OperatingProfile = 'CUSTOM';
+  operatingProfile?: OperatingProfile = "CUSTOM";
 
   @IsOptional()
   @IsString()
   @MaxLength(64)
-  timezone?: string = 'Asia/Kolkata';
+  timezone?: string = "Asia/Kolkata";
 
   @IsOptional()
-  @IsIn(['INR'])
-  currency?: string = 'INR';
+  @IsIn(["INR"])
+  currency?: string = "INR";
 
   @IsDefined()
   @ValidateNested()

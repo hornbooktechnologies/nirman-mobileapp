@@ -1,16 +1,23 @@
-import { publicAccountLink, mobileAccountLink } from "../../common/public-app-links";
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { createHash, randomBytes } from 'crypto';
-import { AuthRepository } from './auth.repository';
-import { LoginDto } from './dto/login.dto';
-import { ChangeOwnPasswordDto } from './dto/change-own-password.dto';
-import { AuthTokens, AuthenticatedUser, JwtPayload } from './types/auth.types';
-import { ProjectAccessService } from '../project-access/project-access.service';
-import { EmailService } from '../email/email.service';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  publicAccountLink,
+  mobileAccountLink,
+} from "../../common/public-app-links";
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcryptjs";
+import { createHash, randomBytes } from "crypto";
+import { AuthRepository } from "./auth.repository";
+import { LoginDto } from "./dto/login.dto";
+import { ChangeOwnPasswordDto } from "./dto/change-own-password.dto";
+import { AuthTokens, AuthenticatedUser, JwtPayload } from "./types/auth.types";
+import { ProjectAccessService } from "../project-access/project-access.service";
+import { EmailService } from "../email/email.service";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
@@ -28,41 +35,44 @@ export class AuthService {
     private readonly emailService: EmailService,
   ) {}
 
-  async login(dto: LoginDto): Promise<AuthTokens & { user: AuthenticatedUser }> {
+  async login(
+    dto: LoginDto,
+  ): Promise<AuthTokens & { user: AuthenticatedUser }> {
     const user = await this.authRepo.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
       throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Invalid credentials',
+        code: "AUTH_INVALID_CREDENTIALS",
+        message: "Invalid credentials",
       });
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) {
       throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Invalid credentials',
+        code: "AUTH_INVALID_CREDENTIALS",
+        message: "Invalid credentials",
       });
     }
 
     const tokens = await this.issueTokens(user.id, user.email, user.roleId);
 
     const authenticatedUser = {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        phone: user.phone,
-        avatar: user.avatar,
-        isActive: user.isActive,
-        roleId: user.roleId,
-        roleName: user.role.name,
-        permissions: user.role.permissions.map((permission) => ({
-          resource: permission.resource,
-          action: permission.action,
-        })),
-      };
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      avatar: user.avatar,
+      isActive: user.isActive,
+      roleId: user.roleId,
+      roleName: user.role.name,
+      permissions: user.role.permissions.map((permission) => ({
+        resource: permission.resource,
+        action: permission.action,
+      })),
+    };
 
-    const session = await this.projectAccess.getSessionForUser(authenticatedUser);
+    const session =
+      await this.projectAccess.getSessionForUser(authenticatedUser);
 
     return {
       ...tokens,
@@ -80,11 +90,15 @@ export class AuthService {
     const stored = await this.authRepo.findRefreshToken(lookupKey);
 
     if (!stored || stored.expiresAt < new Date()) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException("Invalid or expired refresh token");
     }
 
     await this.authRepo.deleteRefreshToken(lookupKey);
-    return this.issueTokens(stored.user.id, stored.user.email, stored.user.roleId);
+    return this.issueTokens(
+      stored.user.id,
+      stored.user.email,
+      stored.user.roleId,
+    );
   }
 
   async logout(rawToken: string): Promise<void> {
@@ -101,14 +115,18 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.currentPassword, user.password);
     if (!valid) {
       throw new BadRequestException({
-        code: 'AUTH_CURRENT_PASSWORD_INVALID',
-        message: 'Current password is incorrect',
+        code: "AUTH_CURRENT_PASSWORD_INVALID",
+        message: "Current password is incorrect",
       });
     }
 
     const hashed = await bcrypt.hash(dto.newPassword, 12);
     await this.authRepo.updatePasswordAndRevokeSessions(userId, hashed);
-    void this.emailService.sendPasswordChangedNotice(user.id, user.name, user.email);
+    void this.emailService.sendPasswordChangedNotice(
+      user.id,
+      user.name,
+      user.email,
+    );
   }
 
   async requestPasswordReset(dto: ForgotPasswordDto, requestIp?: string) {
@@ -129,7 +147,7 @@ export class AuthService {
 
     const user = await this.authRepo.findUserByEmail(email);
     const recoverableUser = user?.isActive ? user : null;
-    const rawToken = randomBytes(32).toString('base64url');
+    const rawToken = randomBytes(32).toString("base64url");
     const expiresAt = new Date(
       Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
     );
@@ -178,7 +196,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET,
-      expiresIn: '1h',
+      expiresIn: "1h",
     });
 
     const refreshToken = this.jwtService.sign(payload, {
@@ -195,11 +213,15 @@ export class AuthService {
       expiresAt,
     );
 
-    return { accessToken, refreshToken, expiresInSeconds: ACCESS_TOKEN_TTL_SECONDS };
+    return {
+      accessToken,
+      refreshToken,
+      expiresInSeconds: ACCESS_TOKEN_TTL_SECONDS,
+    };
   }
 
   private hashToken(token: string) {
-    return createHash('sha256').update(token).digest('hex');
+    return createHash("sha256").update(token).digest("hex");
   }
 
   private webPasswordResetUrl(token: string) {
@@ -212,8 +234,8 @@ export class AuthService {
 
   private invalidPasswordReset(): never {
     throw new BadRequestException({
-      code: 'AUTH_PASSWORD_RESET_INVALID',
-      message: 'This password reset link is invalid or expired',
+      code: "AUTH_PASSWORD_RESET_INVALID",
+      message: "This password reset link is invalid or expired",
     });
   }
 }

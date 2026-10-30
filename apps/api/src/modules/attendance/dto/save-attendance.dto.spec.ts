@@ -41,8 +41,8 @@ describe("SaveAttendanceDto", () => {
     });
 
     const errors = validateSync(dto);
-    expect(
-      errors[0]?.children?.[0]?.children?.[0]?.constraints?.matches,
-    ).toBe("checkIn must be a valid HH:mm or HH:mm:ss time");
+    expect(errors[0]?.children?.[0]?.children?.[0]?.constraints?.matches).toBe(
+      "checkIn must be a valid HH:mm or HH:mm:ss time",
+    );
   });
 });

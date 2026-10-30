@@ -1,9 +1,14 @@
-import type { RoleEntity } from '../../roles/roles.types';
-import type { UserEntity } from '../../users/users.types';
+import type { RoleEntity } from "../../roles/roles.types";
+import type { UserEntity } from "../../users/users.types";
 
 export interface UserWithRolePermissions extends UserEntity {
   role: RoleEntity & {
-    permissions: { id: string; resource: string; action: string; roleId: string }[];
+    permissions: {
+      id: string;
+      resource: string;
+      action: string;
+      roleId: string;
+    }[];
   };
 }
 

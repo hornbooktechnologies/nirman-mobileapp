@@ -5,8 +5,8 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
+} from "class-validator";
+import { Transform } from "class-transformer";
 
 export class UpdateUserDto {
   @IsOptional()

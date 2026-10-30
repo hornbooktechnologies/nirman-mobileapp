@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import Link from "next/link";
@@ -135,7 +136,7 @@ function Import({ c }: { c: SalesContext }) {
         >
           Download CSV template
         </Button>
-        <label className="block">
+        <ValidatedField className="block">
           CSV file
           <Input
             type="file"
@@ -167,7 +168,7 @@ function Import({ c }: { c: SalesContext }) {
               });
             }}
           />
-        </label>
+        </ValidatedField>
       </Card>
       {pending && <p role="status">Processing…</p>}
       {error && <Card role="alert">{error}</Card>}

@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 import {
   UpdateEmailSettingsDto,
   UpdateGeneralDto,
-} from './dto/update-settings.dto';
-import { SETTING_KEYS, SettingKey, SettingsRepository } from './settings.repository';
+} from "./dto/update-settings.dto";
+import {
+  SETTING_KEYS,
+  SettingKey,
+  SettingsRepository,
+} from "./settings.repository";
 
 @Injectable()
 export class SettingsService {

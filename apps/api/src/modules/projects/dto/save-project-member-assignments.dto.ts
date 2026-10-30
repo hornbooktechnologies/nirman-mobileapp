@@ -1,6 +1,6 @@
-import { Type } from 'class-transformer';
-import { ArrayUnique, IsArray, IsUUID, ValidateNested } from 'class-validator';
-import { UpsertProjectMemberDto } from './upsert-project-member.dto';
+import { Type } from "class-transformer";
+import { ArrayUnique, IsArray, IsUUID, ValidateNested } from "class-validator";
+import { UpsertProjectMemberDto } from "./upsert-project-member.dto";
 
 export class ProjectMemberBatchAssignmentDto extends UpsertProjectMemberDto {
   @IsUUID()

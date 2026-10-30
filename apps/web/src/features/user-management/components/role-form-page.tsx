@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -32,12 +33,12 @@ function RoleForm() {
     <div className="space-y-4">
       <PageHeader title="Add Role" description="Create a custom application role." />
       <Card>
-        <form className="space-y-4" onSubmit={submit}>
-          <label className="grid gap-1 text-sm font-medium">Role name<Input placeholder="Role name" value={name} onChange={(e) => setName(e.target.value)} required /></label>
-          <label className="grid gap-1 text-sm font-medium">Description<Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} /></label>
+        <ValidatedForm className="space-y-4" onSubmit={submit}>
+          <ValidatedField className="grid gap-1 text-sm font-medium">Role name<Input placeholder="Role name" maxLength={50} value={name} onChange={(e) => setName(e.target.value)} required /></ValidatedField>
+          <ValidatedField className="grid gap-1 text-sm font-medium">Description<Textarea placeholder="Description" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} /></ValidatedField>
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <div className="flex flex-wrap items-center gap-3"><Link className="underline" href={returnTo}>Cancel and return to roles</Link><Button type="submit" disabled={createRole.isPending}>Create Role</Button></div>
-        </form>
+        </ValidatedForm>
       </Card>
     </div>
     </PermissionGuard>

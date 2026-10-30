@@ -1,8 +1,10 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 
-import Link from "next/link";
+import { useState } from "react";
+import { AttendanceHistoryCorrection } from "@/features/attendance/components/attendance-history-correction";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useProjectAccess } from "@/features/projects/hooks/use-projects";
 import { periodError, workMonthRange, workToday } from "@/features/attendance/date-utils";
@@ -52,9 +54,11 @@ export function WorkerAttendancePanel({
   organizationId,
   workerId,
   assignments,
+  workerName,
 }: {
   organizationId: string;
   workerId: string;
+  workerName?: string;
   assignments?: WorkerProjectAssignmentSummary[];
 }) {
   const router = useRouter();
@@ -103,7 +107,7 @@ export function WorkerAttendancePanel({
     <div className="space-y-4 text-base [&_button]:min-h-11 [&_button]:text-sm [&_input]:min-h-11 [&_select]:min-h-11 [&_td]:text-sm [&_th]:text-sm">
       <Card padding="compact">
         <div className="grid gap-3 md:grid-cols-3">
-          <label className="grid gap-1.5 font-semibold">
+          <ValidatedField className="grid gap-1.5 font-semibold">
             Project
             <Select
               className="text-base"
@@ -116,8 +120,8 @@ export function WorkerAttendancePanel({
                 </option>
               ))}
             </Select>
-          </label>
-          <label className="grid gap-1.5 font-semibold">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">
             Start date *
             <Input
               className="text-base"
@@ -127,8 +131,8 @@ export function WorkerAttendancePanel({
               max={endDate}
               onChange={(event) => replaceQuery({ startDate: event.target.value })}
             />
-          </label>
-          <label className="grid gap-1.5 font-semibold">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">
             End date *
             <Input
               className="text-base"
@@ -138,14 +142,12 @@ export function WorkerAttendancePanel({
               min={startDate}
               onChange={(event) => replaceQuery({ endDate: event.target.value })}
             />
-          </label>
+          </ValidatedField>
         </div>
       </Card>
 
       <p className="text-sm text-sub">Working timezone: {activeOrganizationTimezone}. Totals include only eligible primary-project working dates.</p>
       {invalidPeriod ? <p role="alert" className="text-danger">{invalidPeriod}</p> : null}
-      <Link className="inline-flex min-h-11 items-center underline" href={`/attendance?${new URLSearchParams({ projectId, startDate, endDate, search: searchParams.get("search") ?? "", exceptionsOnly: searchParams.get("exceptionsOnly") ?? "", page: searchParams.get("page") ?? "1" })}`}>Attendance summary</Link>
-      <Link className="inline-flex min-h-11 items-center px-3 underline" href={`/attendance/mark?${new URLSearchParams({ projectId, date: endDate, returnTo: `${pathname}?${searchParams}` })}`}>Daily attendance</Link>
       {attendance.data && !attendance.isError && !invalidPeriod ? (
         <section aria-label="Worker attendance totals" className="grid grid-cols-3 gap-2">
           <Metric label="Expected days" value={attendance.data.totals.expectedWorkingDays} />
@@ -174,7 +176,7 @@ export function WorkerAttendancePanel({
           description={attendance.data.totals.expectedWorkingDays === 0 ? "There are no eligible primary-project working dates in this period. Non-working dates do not count as absences." : "The worker is derived as present on every expected working day."}
         />
       ) : (
-        <AbsenceList exceptions={attendance.data?.exceptions ?? []} projectId={projectId} returnTo={`${pathname}?${searchParams}`} />
+        <AbsenceList key={`${projectId}:${workerId}`} organizationId={organizationId} workerName={workerName ?? searchParams.get("workerName") ?? workerId} canUpdate={projects.find((project) => project.id === projectId)?.permissions.includes("attendance:update") ?? false} exceptions={attendance.data?.exceptions ?? []} projectId={projectId} />
       )}
     </div>
   );
@@ -189,9 +191,11 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: AttendanceException[]; projectId: string; returnTo: string }) {
-  const dailyHref = (date: string) => `/attendance/mark?${new URLSearchParams({ projectId, date, returnTo })}`;
+function AbsenceList({ exceptions, projectId, organizationId, workerName, canUpdate }: { exceptions: AttendanceException[]; projectId: string; organizationId: string; workerName: string; canUpdate: boolean }) {
+  const [correction, setCorrection] = useState<{ exception: AttendanceException; mode: "edit" | "restore" } | null>(null);
+  const actions = (exception: AttendanceException) => canUpdate ? <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setCorrection({ exception, mode: "edit" })}>Edit</Button><Button variant="outline" onClick={() => setCorrection({ exception, mode: "restore" })}>Restore Present</Button></div> : <span className="text-sub">Read only</span>;
   return (
+    <>
     <Card className="space-y-4" padding="compact">
       <div>
         <h2 className="text-[17px] font-semibold text-body">Absence details</h2>
@@ -204,13 +208,13 @@ function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: Attendan
               <TableHead>Date</TableHead>
               <TableHead>Attendance</TableHead>
               <TableHead>Reason</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead>Notes</TableHead><TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {exceptions.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-semibold"><Link className="underline" href={dailyHref(item.workDate)}>{displayDate(item.workDate)}</Link></TableCell>
+                <TableCell className="font-semibold">{displayDate(item.workDate)}</TableCell>
                 <TableCell>
                   <StatusBadge tone={item.duration === "FULL_DAY" ? "danger" : "warning"}>
                     {item.duration === "FULL_DAY" ? "Absent" : "Half day"}
@@ -219,7 +223,7 @@ function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: Attendan
                 <TableCell>{reasonLabel(item.reasonCode)}</TableCell>
                 <TableCell className="max-w-md whitespace-normal text-sub">
                   {item.notes || "—"}
-                </TableCell>
+                </TableCell><TableCell>{actions(item)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -229,7 +233,7 @@ function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: Attendan
         {exceptions.map((item) => (
           <div key={item.id} className="rounded-xl border border-hairline p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link className="font-semibold underline" href={dailyHref(item.workDate)}>{displayDate(item.workDate)}</Link>
+              <p className="font-semibold">{displayDate(item.workDate)}</p>
               <StatusBadge tone={item.duration === "FULL_DAY" ? "danger" : "warning"}>
                 {item.duration === "FULL_DAY" ? "Absent" : "Half day"}
               </StatusBadge>
@@ -237,10 +241,12 @@ function AbsenceList({ exceptions, projectId, returnTo }: { exceptions: Attendan
             <dl className="mt-3 grid gap-2 text-sm">
               <div><dt className="text-sub">Reason</dt><dd>{reasonLabel(item.reasonCode)}</dd></div>
               <div><dt className="text-sub">Notes</dt><dd>{item.notes || "—"}</dd></div>
-            </dl>
+            </dl><div className="mt-3">{actions(item)}</div>
           </div>
         ))}
       </div>
     </Card>
+    {correction ? <AttendanceHistoryCorrection key={`${correction.exception.id}:${correction.mode}`} organizationId={organizationId} projectId={projectId} workerName={workerName} exception={correction.exception} mode={correction.mode} canUpdate={canUpdate} close={() => setCorrection(null)} /> : null}
+    </>
   );
 }

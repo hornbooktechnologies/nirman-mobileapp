@@ -1,3 +1,4 @@
+import { WorkerProfileActions } from "./worker-profile-actions";
 import { refreshTogether } from "@nirman-app/shared";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
 
@@ -36,7 +37,7 @@ import {
   StatusBadge,
   Toggle,
 } from "../../components/ui";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getActiveProjectPermissions, getRouteProject } from "../../lib/auth";
 import { ApiRequestError } from "../../lib/api";
 import { formatInr, getLocalizedErrorMessage } from "../../i18n";
 import {
@@ -163,23 +164,22 @@ export function WorkersPanel({
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
   const { refreshSession, session, signOut } = useSession();
-  const activeProject =
-    session?.projectAccess.projects.find(
-      (project) => project.id === projectIdOverride,
-    ) ?? getActiveProject(session);
+  const activeProject = projectIdOverride ? getRouteProject(session, projectIdOverride) : getActiveProject(session);
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
   const projectPermissions =
-    activeProject?.permissions ?? getActiveProjectPermissions(session);
+    activeProject?.permissions ?? (projectIdOverride ? [] : getActiveProjectPermissions(session));
   const workerScope = `${organizationId}:${projectId}:${session?.user.id}:${projectPermissions.join(",")}`;
   const canCreate = projectPermissions.includes("workers:create");
-  const canAssign = projectPermissions.includes("workers:assign-project");
-  const canUpdateRate = projectPermissions.includes("workers:update-rate");
+  const canAssign = Boolean(projectId) && activeProject?.status !== 'ARCHIVED' && projectPermissions.includes("workers:assign-project");
+  const canUpdateRate = Boolean(projectId) && activeProject?.status !== 'ARCHIVED' && projectPermissions.includes("workers:update-rate");
   const [workers, setWorkers] = useState<WorkerSummary[]>([]);
   const [roster, setRoster] = useState<ProjectWorkerRosterItem[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<WorkerFilter>("all");
   const [draftFilter, setDraftFilter] = useState<WorkerFilter>("all");
+  const [directoryStatus, setDirectoryStatus] = useState<'ACTIVE' | 'INACTIVE' | null>('ACTIVE');
+  const [draftDirectoryStatus, setDraftDirectoryStatus] = useState<'ACTIVE' | 'INACTIVE' | null>('ACTIVE');
   const [tradeFilter, setTradeFilter] = useState<string | null>(null);
   const [draftTradeFilter, setDraftTradeFilter] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -247,7 +247,7 @@ export function WorkersPanel({
 
   const loadWorkers = useCallback(
     async (refresh = false) => {
-      if (!session?.accessToken || !organizationId || !projectId) return;
+      if (!session?.accessToken || !organizationId || !projectPermissions.includes('workers:read')) return;
       if (refresh) setIsRefreshing(true);
       else setIsLoading(true);
       const sequence = ++searchSequence.current;
@@ -260,8 +260,8 @@ export function WorkersPanel({
       setAvailabilityMessage("");
       try {
         const [organizationWorkers, projectRoster] = await refreshTogether([
-          fetchOrganizationWorkers(organizationId, session.accessToken, search),
-          !refresh && rosterCache.current?.scope === workerScope
+          fetchOrganizationWorkers(organizationId, session.accessToken, search, directoryStatus),
+          !projectId ? Promise.resolve({ data: [] }) : !refresh && rosterCache.current?.scope === workerScope
             ? Promise.resolve({ data: rosterCache.current.data })
             : fetchProjectWorkers(
                 organizationId,
@@ -302,6 +302,7 @@ export function WorkersPanel({
     [
       workerScope,
       search,
+      directoryStatus,
       organizationId,
       projectId,
       refreshSession,
@@ -339,7 +340,7 @@ export function WorkersPanel({
       ].sort((left, right) => left.localeCompare(right)),
     [workers],
   );
-  const activeFilterCount =
+  const activeFilterCount = Number(directoryStatus !== 'ACTIVE') +
     Number(filter !== "all") + Number(tradeFilter !== null);
   const visibleWorkers = workers.filter((worker) => {
     const isAssignedHere = rosterByWorkerId.has(worker.id);
@@ -873,9 +874,9 @@ export function WorkersPanel({
   }
 
   if (
-    !activeProject ||
+    (projectIdOverride && !activeProject) ||
+    !projectPermissions.includes('workers:read') ||
     !organizationId ||
-    !projectId ||
     !session?.accessToken
   ) {
     return (
@@ -910,13 +911,13 @@ export function WorkersPanel({
       worker,
       assignedWorker,
     );
-    const assignmentLabel = {
+    const assignmentLabel = worker.status === 'INACTIVE' ? t('profile.inactive') : {
       working_here: t("card.workingHere"),
       assigned_here: t("card.assignedHere"),
       assigned_elsewhere: t("card.assignedElsewhere"),
       not_assigned: t("card.notAssigned"),
     }[assignmentState];
-    const assignmentTone =
+    const assignmentTone = worker.status === 'INACTIVE' ? 'neutral' :
       assignmentState === "working_here" || assignmentState === "assigned_here"
         ? "success"
         : assignmentState === "not_assigned"
@@ -926,7 +927,7 @@ export function WorkersPanel({
       worker.activeAssignmentCount - (assignedWorker ? 1 : 0),
       0,
     );
-    const supporting = assignedWorker
+    const supporting = worker.status === 'INACTIVE' ? t('profile.inactive') : assignedWorker
       ? otherAssignmentCount > 0
         ? t("card.assignedHereOther", { count: otherAssignmentCount })
         : t("card.projectAllocation")
@@ -1040,7 +1041,7 @@ export function WorkersPanel({
             disabled={isLoading || isRefreshing}
             onRefresh={() => loadWorkers(true)}
           />
-          {canCreate && canAssign ? (
+          {canCreate ? (
             <IconButton
               icon="account-hard-hat-outline"
               accessibilityLabel={t("panel.addA11y")}
@@ -1074,12 +1075,14 @@ export function WorkersPanel({
           expanded={filtersOpen}
           onOpenFilters={() => {
             setDraftFilter(filter);
+            setDraftDirectoryStatus(directoryStatus);
             setDraftTradeFilter(tradeFilter);
             setFiltersOpen(true);
           }}
         />
         {activeFilterCount ? (
           <AppliedFilters>
+            {directoryStatus !== 'ACTIVE' ? <AppliedFilterChip label={t(directoryStatus === 'INACTIVE' ? 'profile.inactive' : 'profile.all')} removeAccessibilityLabel={tCommon('listFilters.removeA11y', { filter: t('profile.status') })} onRemove={() => setDirectoryStatus('ACTIVE')} /> : null}
             {filter !== "all" ? (
               <AppliedFilterChip
                 label={
@@ -1190,6 +1193,7 @@ export function WorkersPanel({
         clearLabel={tCommon("listFilters.clearAll")}
         applyLabel={tCommon("listFilters.apply")}
         onClear={() => {
+          setDirectoryStatus('ACTIVE'); setDraftDirectoryStatus('ACTIVE');
           setDraftFilter("all");
           setDraftTradeFilter(null);
           setFilter("all");
@@ -1197,12 +1201,18 @@ export function WorkersPanel({
           setFiltersOpen(false);
         }}
         onApply={() => {
+          setDirectoryStatus(draftDirectoryStatus);
           setFilter(draftFilter);
           setTradeFilter(draftTradeFilter);
           setFiltersOpen(false);
         }}
         onClose={() => setFiltersOpen(false)}
       >
+        <FilterGroup label={t('profile.status')}>
+          <FilterOption label={t('profile.active')} selected={draftDirectoryStatus === 'ACTIVE'} onPress={() => setDraftDirectoryStatus('ACTIVE')} />
+          <FilterOption label={t('profile.inactive')} selected={draftDirectoryStatus === 'INACTIVE'} onPress={() => setDraftDirectoryStatus('INACTIVE')} />
+          <FilterOption label={t('profile.all')} selected={draftDirectoryStatus === null} onPress={() => setDraftDirectoryStatus(null)} />
+        </FilterGroup>
         <FilterGroup label={t("panel.filterGroup")}>
           <FilterOption
             label={t("panel.allCount", { count: workers.length })}
@@ -1246,6 +1256,7 @@ export function WorkersPanel({
         <CreateWorkerSheet
           organizationId={organizationId}
           projectId={projectId}
+          allowAssignment={canAssign}
           accessToken={session.accessToken}
           saving={isSubmitting}
           onClose={() => setShowCreate(false)}
@@ -1346,6 +1357,7 @@ export function WorkersPanel({
                   </AppText>
                 </Card>
               ) : null}
+              <WorkerProfileActions key={workerDetail.id} worker={workerDetail} permissions={projectPermissions} onSaved={(updated) => { setWorkerDetail(updated); setDetailWorker({ ...detailWorker, name: updated.name, trade: updated.trade }); void loadWorkers(true); }} onDeleted={() => { setDetailWorker(null); setWorkerDetail(null); void loadWorkers(true); }} />
               <View style={styles.detailFacts}>
                 <View style={styles.detailFact}>
                   <AppText style={styles.subtle} weight={600}>
@@ -1468,7 +1480,7 @@ export function WorkersPanel({
                         />
                       ) : null}
                     </>
-                  ) : canAssign ? (
+                  ) : canAssign && workerDetail.status === 'ACTIVE' ? (
                     <ActionListItem
                       icon="account-plus-outline"
                       label={t("details.assignHere")}
@@ -1511,7 +1523,7 @@ export function WorkersPanel({
                 style={styles.footerButton}
                 onPress={() => setPrimaryWorker(null)}
               />
-              <Button
+              <Button validateForm
                 label={
                   isSubmitting ? t("primary.saving") : t("primary.confirm")
                 }
@@ -1633,7 +1645,7 @@ export function WorkersPanel({
                 style={styles.footerButton}
                 onPress={() => setEditingWorker(null)}
               />
-              <Button
+              <Button validateForm
                 label={isSubmitting ? t("edit.saving") : t("edit.save")}
                 variant="brand"
                 disabled={isSubmitting}
@@ -1704,7 +1716,7 @@ export function WorkersPanel({
                 style={styles.footerButton}
                 onPress={() => setRateWorker(null)}
               />
-              <Button
+              <Button validateForm
                 label={isSubmitting ? t("rate.saving") : t("rate.save")}
                 variant="brand"
                 disabled={isSubmitting}
@@ -1872,6 +1884,7 @@ export function WorkersPanel({
 function CreateWorkerSheet({
   organizationId,
   projectId,
+  allowAssignment,
   accessToken,
   saving,
   onClose,
@@ -1879,7 +1892,8 @@ function CreateWorkerSheet({
   onSaved,
 }: {
   organizationId: string;
-  projectId: string;
+  projectId: string | null;
+  allowAssignment: boolean;
   accessToken: string;
   saving: boolean;
   onClose: () => void;
@@ -1895,6 +1909,8 @@ function CreateWorkerSheet({
     dailyRate: "",
     startsOn: today(),
   });
+  const [assignToProject, setAssignToProject] = useState(Boolean(projectId && allowAssignment));
+  const submissionLock = useRef(false);
   const [duplicates, setDuplicates] = useState<WorkerDuplicateCandidate[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState("");
@@ -1907,8 +1923,7 @@ function CreateWorkerSheet({
     >
   >({});
 
-  async function submit() {
-    setError("");
+  function validationErrors() {
     const nextFieldErrors: Partial<
       Record<
         "name" | "trade" | "mobileNumber" | "dailyRate" | "startsOn",
@@ -1925,16 +1940,24 @@ function CreateWorkerSheet({
       });
     else if (!isValidNonNegativeNumber(form.dailyRate))
       nextFieldErrors.dailyRate = tCommon("validation.number");
-    if (!form.startsOn)
+    if (assignToProject && !form.startsOn)
       nextFieldErrors.startsOn = tCommon("validation.required", {
         field: t("create.startsOn"),
       });
-    else if (!isValidDateOnly(form.startsOn))
+    else if (assignToProject && !isValidDateOnly(form.startsOn))
       nextFieldErrors.startsOn = tCommon("validation.date");
+    return nextFieldErrors;
+  }
+
+  async function submit() {
+    if (submissionLock.current || saving) return;
+    setError("");
+    const nextFieldErrors = validationErrors();
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) {
       return;
     }
+    submissionLock.current = true;
     onSaving(true);
     try {
       const candidates = await fetchWorkerDuplicateCandidates(
@@ -1952,8 +1975,8 @@ function CreateWorkerSheet({
         trade: form.trade.trim(),
         mobileNumber: form.mobileNumber.trim() || null,
         dailyRate: form.dailyRate.trim(),
-        projectId,
-        startsOn: form.startsOn,
+        projectId: assignToProject && allowAssignment ? projectId : null,
+        startsOn: assignToProject && allowAssignment ? form.startsOn : null,
         acknowledgeDuplicateWarning: acknowledged,
       });
       await onSaved();
@@ -1964,6 +1987,7 @@ function CreateWorkerSheet({
           : getLocalizedErrorMessage(createError, t("errors.generic")),
       );
     } finally {
+      submissionLock.current = false;
       onSaving(false);
     }
   }
@@ -1984,7 +2008,7 @@ function CreateWorkerSheet({
             style={styles.footerButton}
             onPress={onClose}
           />
-          <Button
+          <Button validateForm
             label={saving ? t("create.creating") : t("create.action")}
             disabled={saving}
             style={styles.footerButton}
@@ -1994,7 +2018,7 @@ function CreateWorkerSheet({
       }
     >
       <FormError message={error} />
-      <FormField label={t("create.name")} required error={fieldErrors.name}>
+      <FormField label={t("create.name")} required error={fieldErrors.name} validate={() => validationErrors().name}>
         <Input
           accessibilityLabel={t("create.nameA11y")}
           invalid={Boolean(fieldErrors.name)}
@@ -2008,7 +2032,7 @@ function CreateWorkerSheet({
           }}
         />
       </FormField>
-      <FormField label={t("create.trade")} required error={fieldErrors.trade}>
+      <FormField label={t("create.trade")} required error={fieldErrors.trade} validate={() => validationErrors().trade}>
         <Input
           accessibilityLabel={t("create.tradeA11y")}
           invalid={Boolean(fieldErrors.trade)}
@@ -2057,7 +2081,7 @@ function CreateWorkerSheet({
           })}
         </View>
       </FormField>
-      <FormField label={t("create.mobile")} error={fieldErrors.mobileNumber}>
+      <FormField label={t("create.mobile")} error={fieldErrors.mobileNumber} validate={() => validationErrors().mobileNumber}>
         <Input
           accessibilityLabel={t("create.mobileA11y")}
           invalid={Boolean(fieldErrors.mobileNumber)}
@@ -2087,11 +2111,13 @@ function CreateWorkerSheet({
           }}
         />
       </FormField>
+      {projectId && allowAssignment ? <Toggle label={t('profile.assignNow')} value={assignToProject} disabled={saving} onValueChange={setAssignToProject} /> : null}
+      {assignToProject ? <>
       <FormField
         label={t("create.startsOn")}
         required
         helperText={t("create.startsOnHelp")}
-        error={fieldErrors.startsOn}
+        error={fieldErrors.startsOn} validate={() => validationErrors().startsOn}
       >
         <DateInput
           allowClear={false}
@@ -2108,12 +2134,12 @@ function CreateWorkerSheet({
               }));
           }}
         />
-      </FormField>
+      </FormField></> : null}
       <FormField
         label={t("create.rate")}
         required
         helperText={t("create.rateHelp")}
-        error={fieldErrors.dailyRate}
+        error={fieldErrors.dailyRate} validate={() => validationErrors().dailyRate}
       >
         <Input
           accessibilityLabel={t("create.rateA11y")}

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useRef, type ReactNode, type Ref } from 'react';
 import {
   KeyboardAvoidingView,
   Modal as NativeModal,
@@ -8,12 +8,14 @@ import {
   StyleSheet,
   View,
   type ModalProps,
+  type ScrollViewInstance,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { mobileShadows, mobileText, mobileTheme } from '../../theme';
 import { Button } from './button';
 import { AppText } from './app-text';
+import { FormScope, FormScrollContext } from './form-scope';
 
 type BottomSheetProps = ModalProps & {
   title: string;
@@ -21,6 +23,7 @@ type BottomSheetProps = ModalProps & {
   onClose: () => void;
   footer?: ReactNode;
   scroll?: boolean;
+  scrollRef?: Ref<ScrollViewInstance>;
   showCloseButton?: boolean;
 };
 
@@ -31,17 +34,20 @@ export function BottomSheet({
   footer,
   onClose,
   scroll = false,
+  scrollRef,
   showCloseButton = true,
   transparent = true,
   animationType = 'slide',
   ...props
 }: BottomSheetProps) {
   const { t } = useTranslation('common');
+  const internalScroll = useRef<ScrollViewInstance>(null);
+  const offset = useRef(0);
   const useAutomaticKeyboardInsets = Platform.OS === 'ios' && Platform.isPad && scroll;
   const content = <View style={styles.content}>{children}</View>;
 
   return (
-    <NativeModal transparent={transparent} animationType={animationType} onRequestClose={onClose} {...props}>
+    <FormScope key={props.visible === false ? 'hidden' : 'visible'}><FormScrollContext.Provider value={{ scroll: internalScroll, offset }}><NativeModal transparent={transparent} animationType={animationType} onRequestClose={onClose} {...props}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' && !useAutomaticKeyboardInsets ? 'padding' : undefined}
         style={styles.keyboardView}
@@ -55,6 +61,13 @@ export function BottomSheet({
           </View>
           {scroll ? (
             <ScrollView
+              ref={(instance) => {
+                internalScroll.current = instance;
+                if (typeof scrollRef === 'function') scrollRef(instance);
+                else if (scrollRef) scrollRef.current = instance;
+              }}
+              onScroll={(event) => { offset.current = event.nativeEvent.contentOffset.y; }}
+              scrollEventThrottle={16}
               automaticallyAdjustKeyboardInsets={useAutomaticKeyboardInsets}
               contentContainerStyle={styles.scrollContent}
               keyboardDismissMode="on-drag"
@@ -69,7 +82,7 @@ export function BottomSheet({
           {showCloseButton && !footer ? <Button label={t('actions.close')} variant="secondary" onPress={onClose} /> : null}
         </View>
       </KeyboardAvoidingView>
-    </NativeModal>
+    </NativeModal></FormScrollContext.Provider></FormScope>
   );
 }
 

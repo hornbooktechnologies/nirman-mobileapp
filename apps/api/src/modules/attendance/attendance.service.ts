@@ -511,7 +511,7 @@ export class AttendanceService {
       if (
         error instanceof Error &&
         (error.message === "ATTENDANCE_EXCEPTION_DUPLICATE" ||
-          (error as any).code === "ER_DUP_ENTRY")
+          ("code" in error && error.code === "ER_DUP_ENTRY"))
       ) {
         throw new ConflictException(
           this.error(

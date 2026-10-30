@@ -14,6 +14,7 @@ type DateInputProps = {
   accessibilityLabel: string;
   value: string;
   onChangeText: (value: string) => void;
+  onBlur?: () => void;
   invalid?: boolean;
   minimumDate?: Date;
   maximumDate?: Date;
@@ -25,6 +26,7 @@ export function DateInput({
   accessibilityLabel,
   value,
   onChangeText,
+  onBlur,
   invalid = false,
   minimumDate,
   maximumDate,
@@ -69,6 +71,7 @@ export function DateInput({
             accessibilityRole="button"
             accessibilityState={{ expanded: pickerVisible }}
             style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}
+            onBlur={onBlur}
             onPress={openPicker}
           >
             <AppIcon name="calendar-month-outline" size={22} color={mobileTheme.color.action.primary} />
@@ -80,6 +83,7 @@ export function DateInput({
             accessibilityRole="button"
             accessibilityState={{ expanded: pickerVisible }}
             style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}
+            onBlur={onBlur}
             onPress={openPicker}
           >
             <AppIcon name="calendar-month-outline" size={22} color={mobileTheme.color.action.primary} />

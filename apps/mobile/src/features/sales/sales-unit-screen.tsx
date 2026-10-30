@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, CompactScreenHeader, EmptyState, FormError, IconButton, LoadingState, NirmanScreenBackground, OperationalEntityCard } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { formatDate, formatInr, formatNumber } from '../../i18n/formatters';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getActiveProjectPermissions, getRouteProject } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { mobileTheme } from '../../theme';
 import { fetchUnitInterests, fetchUnits } from './services';
@@ -20,15 +20,15 @@ import { SalesDetailRows, SalesSectionHeading } from './sales-ui';
 import type { SalesUnit, SalesUnitInterest } from './types';
 
 export function SalesUnitScreen() {
-  const { unitId } = useLocalSearchParams<{ unitId?: string }>();
+  const { unitId, projectId: requestedProjectId } = useLocalSearchParams<{ unitId?: string; projectId?: string }>();
   const { t, i18n } = useTranslation('sales');
   const { t: tCommon } = useTranslation('common');
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const project = requestedProjectId ? getRouteProject(session, requestedProjectId) : getActiveProject(session);
   const activeOrganizationId = session?.activeOrganization?.id;
   const activeProjectId = project?.id;
   const accessToken = session?.accessToken;
-  const permissions = getActiveProjectPermissions(session);
+  const permissions = requestedProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
   const [unit, setUnit] = useState<SalesUnit | null>(null);
   const [interests, setInterests] = useState<SalesUnitInterest[]>([]);

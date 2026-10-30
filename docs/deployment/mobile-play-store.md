@@ -14,9 +14,9 @@ Its immutable Play package is `com.hornbook.nirmansite`.
 - R8 minification and resource shrinking: enabled for release builds.
 - Android edge-to-edge and resizable portrait/landscape layouts: enabled.
 
-Expo SDK 54 / React Native 0.81 targets Android API 36 and uses the New
-Architecture. Do not change the Android package or EAS project ID for an update
-to the existing Play listing.
+The current manifest uses Expo SDK 58 / React Native 0.88. Confirm generated
+native target settings in the EAS release build and Play Console. Do not change
+the Android package or EAS project ID for an update to the existing Play listing.
 
 ## One-time version synchronization
 

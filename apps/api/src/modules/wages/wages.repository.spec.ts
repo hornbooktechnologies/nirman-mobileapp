@@ -2,7 +2,7 @@
 import type { ResultSetHeader } from "mysql2/promise";
 import type { WageBatchDetail } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type { DatabaseTransaction } from "../../database/database.types";
+import type { DatabaseTransaction, DbRow } from "../../database/database.types";
 import { AuditService } from "../audit/audit.service";
 import { KharchiRepository } from "../kharchi/kharchi.repository";
 import { WagesRepository } from "./wages.repository";
@@ -140,4 +140,65 @@ describe("WagesRepository cancellation", () => {
     expect(database.execute).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
   });
+});
+
+describe("WagesRepository saved rate metadata", () => {
+  const database = {
+    query: jest.fn(),
+  } as unknown as jest.Mocked<DatabaseService>;
+  const repository = new WagesRepository(
+    database,
+    {} as KharchiRepository,
+    {} as AuditService,
+  );
+  const breakdown = [
+    {
+      dailyRate: "800.00",
+      presentDays: 2,
+      halfDays: 1,
+      absentDays: 0,
+      grossAmount: "2000.00",
+    },
+  ];
+
+  it.each([
+    ["native JSON", breakdown, breakdown],
+    ["serialized JSON", JSON.stringify(breakdown), breakdown],
+    ["missing metadata", null, undefined],
+    ["invalid JSON", "{broken", undefined],
+    ["unexpected object", { rate: 800 }, undefined],
+    ["null entry", [null], undefined],
+    ["incomplete entry", [{ dailyRate: "800.00" }], undefined],
+    ["wrong day type", [{ ...breakdown[0], presentDays: "2" }], undefined],
+    ["non-finite days", [{ ...breakdown[0], halfDays: Infinity }], undefined],
+  ])(
+    "reads %s without losing saved financial amounts",
+    async (_label, stored, expected) => {
+      database.query
+        .mockResolvedValueOnce([
+          { id: "batch", period_start: "2026-09-01", period_end: "2026-09-03" },
+        ] as unknown as DbRow[])
+        .mockResolvedValueOnce([
+          {
+            id: "item",
+            gross_amount: "2000.00",
+            net_amount: "1700.00",
+            paid_amount: "500.00",
+            rate_breakdown: stored,
+          },
+        ] as unknown as DbRow[])
+        .mockResolvedValueOnce([]);
+      const detail = await repository.findBatchDetail(
+        "org",
+        "project",
+        "batch",
+      );
+      expect(detail?.items[0]).toMatchObject({
+        grossAmount: "2000.00",
+        netAmount: "1700.00",
+        paidAmount: "500.00",
+        rateBreakdown: expected,
+      });
+    },
+  );
 });

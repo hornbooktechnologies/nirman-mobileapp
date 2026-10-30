@@ -1,4 +1,11 @@
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from "class-validator";
 
 export class UpdateSubscriptionPlanDto {
   @IsOptional()
@@ -29,4 +36,3 @@ export class UpdateSubscriptionPlanDto {
   @IsBoolean()
   isActive?: boolean;
 }
-

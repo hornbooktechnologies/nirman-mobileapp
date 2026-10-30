@@ -1,3 +1,4 @@
+import { CsvExportButton } from "../../components/ui/csv-export-button";
 import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
@@ -65,6 +66,7 @@ import { expenseTone, mutationKey } from "./expenses-ui";
 import {
   configureExpenseSettings,
   exportExpensesPdf,
+  exportExpensesCsv,
   fetchExpenseSettings,
   fetchExpenses,
   fetchExpenseSummary,
@@ -513,6 +515,7 @@ export function ExpensesScreen() {
           </AppliedFilters>
         ) : null}
       </ListControls>
+      {canExport && organizationId && projectId && token ? <CsvExportButton scope={`${organizationId}:${projectId}:${JSON.stringify(query)}`} filename="expenses.csv" disabled={exporting} load={signal => exportExpensesCsv(organizationId, projectId, token, query, signal)} /> : null}
       {canExport ? (
         <Button
           label={exporting ? t("export.preparing") : t("export.action")}
@@ -1015,7 +1018,7 @@ function SettingsSheet({
             disabled={!command.canClose}
             onPress={close}
           />
-          <Button
+          <Button validateForm
             style={styles.footerButton}
             label={
               working

@@ -11,7 +11,7 @@ const TIME_VALUE_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
 
 export class UpdateAttendanceDto {
   @IsOptional()
-  @IsEnum(ATTENDANCE_STATUSES as readonly AttendanceStatus[])
+  @IsEnum(ATTENDANCE_STATUSES)
   status?: AttendanceStatus;
 
   @IsOptional()

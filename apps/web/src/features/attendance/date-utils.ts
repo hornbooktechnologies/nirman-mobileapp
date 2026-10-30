@@ -1,4 +1,5 @@
 // Date-only helpers validate input; attendance eligibility and totals belong to the API.
+import { attendancePeriodIssue } from '@nirman-app/shared';
 export function workToday(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const value = (type: string) => parts.find(part => part.type === type)!.value;
@@ -21,8 +22,9 @@ export function workMonthRange(month: string) {
 }
 
 export function periodError(start: string, end: string) {
-  if (!validDate(start) || !validDate(end)) return "Choose valid start and end dates.";
-  if (end < start) return "End date must be on or after the start date.";
-  if ((Date.parse(`${end}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / 86400000 >= 366) return "Choose a period of 366 days or fewer.";
+  const issue = attendancePeriodIssue(start, end);
+  if (issue === 'date') return "Choose valid start and end dates.";
+  if (issue === 'order') return "End date must be on or after the start date.";
+  if (issue === 'limit') return "Choose a period of 366 days or fewer.";
   return "";
 }

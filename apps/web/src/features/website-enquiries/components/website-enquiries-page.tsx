@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
@@ -331,7 +332,7 @@ function WebsiteEnquiriesList() {
           </Card>
         ) : null}
         <Card padding="compact">
-          <form
+          <ValidatedForm
             className="flex flex-col gap-3 sm:flex-row sm:items-end"
             role="search"
             onSubmit={(event) => {
@@ -344,7 +345,7 @@ function WebsiteEnquiriesList() {
               });
             }}
           >
-            <label className="min-w-0 flex-1 text-[13px] font-medium text-body">
+            <ValidatedField className="min-w-0 flex-1 text-[13px] font-medium text-body">
               Search
               <Input
                 key={search}
@@ -354,8 +355,8 @@ function WebsiteEnquiriesList() {
                 placeholder="Customer name, mobile, or email"
                 className="mt-1"
               />
-            </label>
-            <label className="text-[13px] font-medium text-body sm:w-52">
+            </ValidatedField>
+            <ValidatedField className="text-[13px] font-medium text-body sm:w-52">
               Status
               <Select
                 value={status ?? ""}
@@ -371,9 +372,9 @@ function WebsiteEnquiriesList() {
                   </option>
                 ))}
               </Select>
-            </label>
+            </ValidatedField>
             <Button type="submit">Search</Button>
-          </form>
+          </ValidatedForm>
         </Card>
         {enquiries.isPending ? (
           <LoadingState label="Loading website enquiries" />
@@ -553,7 +554,7 @@ function WebsiteEnquiriesList() {
           </>
         }
       >
-        <form
+        <ValidatedForm
           id="website-enquiry-workflow"
           className="grid gap-4"
           onSubmit={submitWorkflow}
@@ -576,7 +577,7 @@ function WebsiteEnquiriesList() {
                   : "Not recorded"}
             </p>
           </Card>
-          <label className="grid gap-1 font-medium">
+          <ValidatedField className="grid gap-1 font-medium">
             Status
             <Select
               disabled={managing?.status === "CREATED"}
@@ -597,8 +598,8 @@ function WebsiteEnquiriesList() {
                 </option>
               ))}
             </Select>
-          </label>
-          <label className="grid gap-1 font-medium">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1 font-medium">
             Next follow-up
             <Input
               type="datetime-local"
@@ -612,8 +613,8 @@ function WebsiteEnquiriesList() {
                 }))
               }
             />
-          </label>
-          <label className="grid gap-1 font-medium">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1 font-medium">
             Admin notes
             <Textarea
               maxLength={2000}
@@ -627,7 +628,7 @@ function WebsiteEnquiriesList() {
               }
               placeholder="Call outcome, customer requirement, or next action"
             />
-          </label>
+          </ValidatedField>
           {managing?.message ? (
             <Card variant="sunken" padding="compact">
               <p className="font-semibold">Customer message</p>
@@ -668,7 +669,7 @@ function WebsiteEnquiriesList() {
               <p className="text-sub">No follow-up activity yet.</p>
             )}
           </div>
-        </form>
+        </ValidatedForm>
       </Dialog>
 
       <Dialog
@@ -697,7 +698,7 @@ function WebsiteEnquiriesList() {
           </>
         }
       >
-        <form
+        <ValidatedForm
           id="website-enquiry-organization"
           className="grid gap-3"
           onSubmit={submitOrganization}
@@ -710,7 +711,7 @@ function WebsiteEnquiriesList() {
               {formError}
             </p>
           ) : null}
-          <label className="text-[13px] font-medium">
+          <ValidatedField className="text-[13px] font-medium">
             Organization name
             <Input
               required
@@ -724,8 +725,8 @@ function WebsiteEnquiriesList() {
                 }))
               }
             />
-          </label>
-          <label className="text-[13px] font-medium">
+          </ValidatedField>
+          <ValidatedField className="text-[13px] font-medium">
             Organization type
             <Select
               className="mt-1"
@@ -740,8 +741,8 @@ function WebsiteEnquiriesList() {
               <option value="BUILDER">Builder</option>
               <option value="CONTRACTOR">Contractor</option>
             </Select>
-          </label>
-          <label className="text-[13px] font-medium">
+          </ValidatedField>
+          <ValidatedField className="text-[13px] font-medium">
             Owner name
             <Input
               required
@@ -755,8 +756,8 @@ function WebsiteEnquiriesList() {
                 }))
               }
             />
-          </label>
-          <label className="text-[13px] font-medium">
+          </ValidatedField>
+          <ValidatedField className="text-[13px] font-medium">
             Owner email
             <Input
               required
@@ -771,8 +772,8 @@ function WebsiteEnquiriesList() {
                 }))
               }
             />
-          </label>
-          <label className="text-[13px] font-medium">
+          </ValidatedField>
+          <ValidatedField className="text-[13px] font-medium">
             Owner mobile
             <Input
               required
@@ -786,8 +787,8 @@ function WebsiteEnquiriesList() {
                 }))
               }
             />
-          </label>
-        </form>
+          </ValidatedField>
+        </ValidatedForm>
       </Dialog>
 
       <OwnerActivationDialog

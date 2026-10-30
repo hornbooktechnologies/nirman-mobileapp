@@ -26,6 +26,7 @@ export function DailyAttendanceTotals({ locale, totals }: {
 
   return (
     <View style={styles.grid}>
+      <AttendanceMetric label={t("summary.workers")} value={formatAttendanceNumber(locale, totals.workers)} />
       <AttendanceMetric label={t('dailyTotals.expectedWorkers')} value={formatAttendanceNumber(locale, totals.expectedWorkingDays)} />
       <AttendanceMetric label={t('dailyTotals.presentWorkers')} value={formatAttendanceNumber(locale, totals.presentDays)} />
       <AttendanceMetric label={t('dailyTotals.absentWorkers')} value={formatAttendanceNumber(locale, totals.absentDays)} />

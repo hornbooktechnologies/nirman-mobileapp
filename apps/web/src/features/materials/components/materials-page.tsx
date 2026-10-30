@@ -1,4 +1,6 @@
 "use client";
+import { CsvExportButton } from "@/components/ui/csv-export-button";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { downloadPdf } from "@/lib/exports/pdf";
@@ -211,6 +213,7 @@ function List({ context }: { context: MaterialsContext }) {
         />
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => { setSearchReset(n => n + 1); setSearch(""); setMemberSearch(""); setQuery(defaultMaterialsQuery); }}>Clear all</Button>
+          {can("export") && <CsvExportButton key={`${context.org}:${context.project}:${JSON.stringify(query)}`} filename="materials.csv" disabled={exporting.isPending} load={() => materialsService.export(context.org, context.project, query)} />}
           {can("export") && <Button variant="outline" disabled={exporting.isPending} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing PDF…" : "Export filtered PDF"}</Button>}
         </div>
         {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered PDF to retry.</p>}
@@ -389,9 +392,9 @@ function Settings({
             <RefreshButton variant="outline" onRefresh={async () => { await cache.invalidateQueries({ queryKey: materialKey(context.org, context.project) }); close(); }}>Close and refresh settings</RefreshButton>
           </div>
         )}
-        <label>
+        <ValidatedField>
           Workflow *
-          <Select
+          <Select required
             disabled={mutation.isPending}
             value={mode}
             onChange={(e) => setMode(e.target.value as MaterialWorkflowMode)}
@@ -402,7 +405,7 @@ function Settings({
               </option>
             ))}
           </Select>
-        </label>
+        </ValidatedField>
         <p>
           {mode === "DIRECT"
             ? "Submission approves the request directly."
@@ -413,10 +416,10 @@ function Settings({
           <p className="text-sm text-muted-foreground">Only the organization Owner can grant or revoke approval. Members need active project access and Materials read access.</p>
           {(settings.approvalMembers ?? []).filter((m) => m.isOwner && m.canApprove).map((m) => <p key={m.memberId}>{m.name} — Owner</p>)}
           {(settings.approvalMembers ?? []).filter((m) => !m.isOwner).map((m) => (
-            <label key={m.memberId} className="flex min-h-11 items-center gap-3">
+            <ValidatedField key={m.memberId} className="flex min-h-11 items-center gap-3">
               <input type="checkbox" checked={approvers.includes(m.memberId)} onChange={(e) => setApprovers((current) => e.target.checked ? [...current, m.memberId] : current.filter((id) => id !== m.memberId))} />
               <span>{m.name} · {m.roleName}</span>
-            </label>
+            </ValidatedField>
           ))}
         </fieldset>
       </div>

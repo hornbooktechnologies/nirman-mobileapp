@@ -11,5 +11,5 @@ export default async function Page({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <SharedBrochuresPage token={token} />;
+  return <SharedBrochuresPage key={token} token={token} />;
 }

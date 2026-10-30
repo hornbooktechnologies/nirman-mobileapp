@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -68,15 +69,16 @@ function LoginPageContent() {
           </p>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-            <label className="block space-y-2 text-[13px] font-medium text-body">
+          <ValidatedForm className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+            <ValidatedField className="block space-y-2 text-[13px] font-medium text-body">
               <span>Email</span>
               <Input
+                required
                 type="email"
                 placeholder="admin@example.local"
                 {...form.register("email")}
               />
-            </label>
+            </ValidatedField>
             <div>
               {form.formState.errors.email ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.email.message}</p>
@@ -84,10 +86,10 @@ function LoginPageContent() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-medium text-body">Password</span>
+                <span className="text-[13px] font-medium text-body">Password <span className="text-danger" aria-label="required">*</span></span>
                 <Link className="text-[12px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Forgot password?</Link>
               </div>
-              <label className="block"><span className="sr-only">Password</span><PasswordInput autoComplete="current-password" {...form.register("password")} /></label>
+              <ValidatedField className="block"><span className="sr-only">Password</span><PasswordInput required autoComplete="current-password" {...form.register("password")} /></ValidatedField>
               {form.formState.errors.password ? (
                 <p className="text-[12px] text-red-600">{form.formState.errors.password.message}</p>
               ) : null}
@@ -98,7 +100,7 @@ function LoginPageContent() {
             <Button type="submit" variant="primary" className="w-full" disabled={login.isPending}>
               {login.isPending ? "Signing in" : "Sign in"}
             </Button>
-          </form>
+          </ValidatedForm>
           <div className="mt-5 rounded-inner border border-hairline bg-lime/5 px-4 py-3 text-center">
             <p className="text-[14px] font-semibold text-body">New to NirmanSite?</p>
             <p className="mt-1 text-[13px] leading-5 text-sub">

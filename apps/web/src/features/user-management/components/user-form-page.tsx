@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -53,33 +54,36 @@ function UserForm() {
           description="Create a NirmanSite administration account. Customer members must be invited from their Organization."
         />
         <Card>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-            <label className="grid gap-1 text-sm font-medium">Name<Input
+          <ValidatedForm className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Name<Input
               placeholder="Name"
+              maxLength={100}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Email<Input
+            /></ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Email<Input
               placeholder="Email"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Password<PasswordInput
+            /></ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Password<PasswordInput
               placeholder="Password"
+              minLength={8}
               autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Phone (optional)<Input
+            /></ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Phone (optional)<Input
               placeholder="Phone"
+              maxLength={20}
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Platform role<Select
+            /></ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Platform role<Select
               value={form.roleId}
               onChange={(e) => setForm({ ...form, roleId: e.target.value })}
               required
@@ -90,7 +94,7 @@ function UserForm() {
                   {role.name}
                 </option>
               ))}
-            </Select></label>
+            </Select></ValidatedField>
             {formError ? (
               <p className="text-[13px] text-red-600 md:col-span-2">
                 {formError}
@@ -102,7 +106,7 @@ function UserForm() {
                 {createUser.isPending ? "Creating" : "Create Platform User"}
               </Button>
             </div>
-          </form>
+          </ValidatedForm>
         </Card>
       </div>
     </PermissionGuard>

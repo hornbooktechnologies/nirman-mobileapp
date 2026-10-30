@@ -115,7 +115,7 @@ export function ProgressUpdateSheet({
       footer={(
         <View style={styles.footer}>
           <Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" disabled={working} onPress={onClose} />
-          <Button style={styles.footerButton} label={working ? t('loading.saving') : t('update.save')} disabled={working} onPress={() => void save()} />
+          <Button validateForm style={styles.footerButton} label={working ? t('loading.saving') : t('update.save')} disabled={working} onPress={() => void save()} />
         </View>
       )}
     >
@@ -146,7 +146,7 @@ export function ProgressUpdateSheet({
         <AppText style={styles.currentValue} weight={700}>{current}%</AppText>
       </Card>
 
-      <FormField label={t('fields.percentage')} required helperText={t('update.percentageHelp')}>
+      <FormField validate={() => !Number.isFinite(Number(percentage)) || Number(percentage) < 0 || Number(percentage) > 100 || !/^\d+(\.\d{1,2})?$/.test(percentage) ? t('validation.percentage') : undefined} label={t('fields.percentage')} required helperText={t('update.percentageHelp')}>
         <View style={styles.presets} accessibilityRole="radiogroup">
           {presets.map((value) => (
             <Pressable
@@ -170,7 +170,7 @@ export function ProgressUpdateSheet({
         />
       </FormField>
 
-      <FormField label={t('fields.updateDate')} required>
+      <FormField validate={() => !updateDate ? t('validation.date') : undefined} label={t('fields.updateDate')} required>
         <DateInput
           accessibilityLabel={t('fields.updateDate')}
           allowClear={false}
@@ -181,7 +181,7 @@ export function ProgressUpdateSheet({
       </FormField>
 
       <FormField
-        label={t('fields.notes')}
+        validate={() => Number(percentage) < current && !notes.trim() ? t('validation.regressionNote') : undefined} label={t('fields.notes')}
         required={Number(percentage) < current}
         helperText={Number(percentage) < current ? t('update.regressionHelp') : t('update.notesHelp')}
       >

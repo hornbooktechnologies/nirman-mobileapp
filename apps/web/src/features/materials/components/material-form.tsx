@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -141,7 +142,7 @@ export function MaterialForm({
   ) {
     const quantity = name.endsWith("Quantity");
     return (
-      <label className="block space-y-1" key={name}>
+      <ValidatedField className="block space-y-1" key={name}>
         {title}
         {required ? " *" : ""}
         <Input
@@ -165,7 +166,7 @@ export function MaterialForm({
             {errors[name]}
           </span>
         )}
-      </label>
+      </ValidatedField>
     );
   }
   async function submit(event: FormEvent) {
@@ -348,7 +349,7 @@ export function MaterialForm({
         </>
       }
     >
-      <form
+      <ValidatedForm
         id="material-form"
         ref={form}
         onSubmit={submit}
@@ -409,9 +410,9 @@ export function MaterialForm({
               {field("materialName", "Material name", "text", true, 160)}
               {field("category", "Category")}
               {field("requestedQuantity", "Requested quantity", "number", true)}
-              <label>
+              <ValidatedField>
                 Unit *
-                <Select
+                <Select required
                   name="unitOfMeasure"
                   value={values.unitOfMeasure}
                   onChange={(e) => change("unitOfMeasure", e.target.value)}
@@ -422,7 +423,7 @@ export function MaterialForm({
                     </option>
                   ))}
                 </Select>
-              </label>
+              </ValidatedField>
               {values.unitOfMeasure === "OTHER" &&
                 field("customUnitLabel", "Custom unit", "text", true, 80)}
               {field("requestedOn", "Requested on", "date", true)}
@@ -442,7 +443,7 @@ export function MaterialForm({
                       </Button>
                     </p>
                   )}
-                  <label>
+                  <ValidatedField>
                     Responsible member
                     <SearchableSelect
                       id="responsibleContractorMemberId"
@@ -455,7 +456,7 @@ export function MaterialForm({
                       listLabel="Active responsible members"
                       onValueChange={(value) => change("responsibleContractorMemberId", value)}
                     />
-                  </label>
+                  </ValidatedField>
                 </div>
               )}
             </>
@@ -479,7 +480,7 @@ export function MaterialForm({
               {field("deliveredQuantity", "Delivered quantity", "number", true)}
               {field("deliveredOn", "Delivered on", "date", true)}
               {field("deliveryReference", "Delivery reference")}
-              <label>
+              <ValidatedField>
                 Purchase reference
                 <Select
                   value={values.materialPurchaseId ?? ""}
@@ -493,10 +494,10 @@ export function MaterialForm({
                     </option>
                   ))}
                 </Select>
-              </label>
+              </ValidatedField>
             </>
           )}
-          <label className="sm:col-span-2">
+          <ValidatedField className="sm:col-span-2">
             {request || purchase || delivery
               ? "Notes"
               : `Comment / reason${["RETURN", "REJECT", "CANCEL"].includes(action) ? " *" : ""}`}
@@ -525,9 +526,9 @@ export function MaterialForm({
                 {errors.comment}
               </span>
             )}
-          </label>
+          </ValidatedField>
         </fieldset>
-      </form>
+      </ValidatedForm>
     </Dialog>
   );
 }

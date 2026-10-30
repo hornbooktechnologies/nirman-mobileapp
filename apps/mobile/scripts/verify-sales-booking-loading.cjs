@@ -27,6 +27,7 @@ const memo = (factory, deps) => {
 
 vm.runInNewContext(ts.transpileModule(hooks, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
   exports: exportsObject,
+  useFocusEffect: (effect) => memo(() => { effects.push(effect); }, [effect]),
   useLocalSearchParams: () => ({ bookingId: 'booking-1' }),
   useTranslation: () => ({ t, i18n: { resolvedLanguage: 'en' } }),
   useSession: () => ({ session }),

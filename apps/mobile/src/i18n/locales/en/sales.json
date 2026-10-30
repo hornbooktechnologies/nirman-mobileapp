@@ -47,8 +47,19 @@
     "leadEmailRequired": "Enter a valid email to send brochures.",
     "selectRequired": "Select at least one brochure.",
     "selectionLimit": "You can select up to {{count}} brochures at a time.",
-    "category": { "COMPANY": "Company", "PROJECT": "Project", "HOUSE": "House", "FLOOR_PLAN": "Floor plan", "AMENITIES": "Amenities", "PRICE_LIST": "Price list", "OTHER": "Other" },
-    "errors": { "load": "Brochures could not be loaded.", "action": "The brochure action could not be completed." }
+    "category": {
+      "COMPANY": "Company",
+      "PROJECT": "Project",
+      "HOUSE": "House",
+      "FLOOR_PLAN": "Floor plan",
+      "AMENITIES": "Amenities",
+      "PRICE_LIST": "Price list",
+      "OTHER": "Other"
+    },
+    "errors": {
+      "load": "Brochures could not be loaded.",
+      "action": "The brochure action could not be completed."
+    }
   },
   "search": {
     "a11y": "Search current Sales section",
@@ -520,5 +531,25 @@
     "noInterests": "No unit interests recorded.",
     "blockedBy": "Blocked by",
     "nameUnavailable": "Name unavailable"
+  },
+  "brochureHistory": {
+    "title": "Share history",
+    "limit": "The latest 100 share records returned by the API.",
+    "failed": "Unable to load share history",
+    "loading": "Loading share history",
+    "empty": "No share history yet.",
+    "other": "Other sharing channel",
+    "files": "{{count}} files",
+    "expires": "Expires {{date}}",
+    "status": {
+      "ACTIVE": "Active",
+      "REVOKED": "Revoked",
+      "EXPIRED": "Expired",
+      "NOT_APPLICABLE": "Not applicable",
+      "PENDING": "Pending",
+      "EMAIL_SENT": "Email sent",
+      "EMAIL_FAILED": "Email failed",
+      "MANUAL": "Manual"
+    }
   }
 }

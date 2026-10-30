@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { DEFAULT_APP_NAME } from '@nirman-app/shared';
-import { DatabaseService } from './database/database.service';
+import { Injectable } from "@nestjs/common";
+import { DEFAULT_APP_NAME } from "@nirman-app/shared";
+import { DatabaseService } from "./database/database.service";
 
 @Injectable()
 export class AppService {
@@ -11,8 +11,8 @@ export class AppService {
 
     return {
       app: DEFAULT_APP_NAME,
-      status: 'ok',
-      database: 'ok',
+      status: "ok",
+      database: "ok",
     };
   }
 }

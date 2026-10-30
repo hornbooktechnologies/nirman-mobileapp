@@ -1,12 +1,14 @@
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
 import { SalesBookingScreen } from "../../src/features/sales/sales-booking-screen";
-import { getActiveProjectPermissions } from "../../src/lib/auth";
+import { getRouteProject } from "../../src/lib/auth";
 import { useSession } from "../../src/providers";
 
 export default function SalesBookingRoute() {
   const { session } = useSession();
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = getRouteProject(session, projectId);
+  const permissions = (project?.permissions ?? []);
   const canRead = permissions.some(
     (permission) =>
       permission === "leads:read-own" ||
@@ -14,5 +16,5 @@ export default function SalesBookingRoute() {
       permission === "leads:read-all",
   );
   if (!canRead) return <Redirect href="/(app)/dashboard" />;
-  return <SalesBookingScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
+  return <SalesBookingScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${project?.id}:${permissions.join(",")}:${project?.status}`} />;
 }

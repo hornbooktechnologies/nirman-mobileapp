@@ -11,17 +11,21 @@ import {
   normalizeProjectInput,
 } from "@/features/projects/components/project-form-fields";
 import { useCreateProject } from "@/features/projects/hooks/use-projects";
+import { useFieldValidation } from "@/lib/forms/use-field-validation";
+import { validateProjectForm } from "../project-validation";
 
 export function ProjectFormPage() {
   const router = useRouter();
   const { activeOrganizationId } = useAuth();
   const organizationId = activeOrganizationId ?? "";
   const [form, setForm] = useState(emptyProjectForm);
+  const validation = useFieldValidation(form, validateProjectForm);
   const [error, setError] = useState("");
   const createProject = useCreateProject(organizationId);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createProject.isPending || !validation.check(event.currentTarget)) return;
     setError("");
     try {
       const project = await createProject.mutateAsync(normalizeProjectInput(form));
@@ -40,8 +44,8 @@ export function ProjectFormPage() {
           onBack={() => router.push("/projects")}
         />
         <Card>
-          <form className="space-y-4" onSubmit={submit}>
-            <ProjectFormFields form={form} setForm={setForm} />
+          <form noValidate className="space-y-4" onSubmit={submit}>
+            <ProjectFormFields form={form} setForm={setForm} errors={validation.errors} onBlur={validation.blur} />
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <Button type="submit" disabled={!organizationId || createProject.isPending}>
               {createProject.isPending ? "Creating" : "Create Project"}

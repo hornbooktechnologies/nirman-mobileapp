@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 
 import { RefreshButton } from "../../components/ui/refresh-button";
 import { mobileTheme } from '../../theme';
@@ -8,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { BottomSheet, Button, DateInput, FormError, FormField, Input, TimeInput } from '../../components/ui';
 import { ApiRequestError } from '../../lib/api';
 import { getLocalizedErrorMessage } from '../../i18n';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { canWriteLead, localTime, scheduleInstant, uncertainWrite } from './sales-rules';
 import { fetchFollowUps, fetchLead, updateFollowUp } from './services';
@@ -19,8 +20,9 @@ export function FollowUpUpdateSheet({ item, complete, close, saved }: { item: Sa
   const { t } = useTranslation('sales');
   const { t: common } = useTranslation('common');
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
   const initialTime = item.nextFollowUpAt ? localTime(item.nextFollowUpAt, timezone) : '';
   const [status, setStatus] = useState<FollowUpStatus>(complete ? 'COMPLETED' : item.status);
@@ -67,7 +69,7 @@ export function FollowUpUpdateSheet({ item, complete, close, saved }: { item: Sa
     if (lock.current) return;
     Alert.alert(t('parity.discardTitle'), review ? t('parity.uncertain') : t('parity.discardDescription'), [{ text: common('actions.cancel'), style: 'cancel' }, { text: common('actions.close'), style: 'destructive', onPress: close }]);
   }
-  return <BottomSheet visible scroll title={complete ? t('followUps.completeTitle') : t('parity.update')} showCloseButton={false} onClose={requestClose} footer={<><Button label={common('actions.cancel')} variant="secondary" disabled={working} onPress={requestClose} /><Button label={working ? t('saving') : t('save')} disabled={working || review || project?.status !== 'ACTIVE'} onPress={() => void submit()} /></>}>
+  return <BottomSheet visible scroll title={complete ? t('followUps.completeTitle') : t('parity.update')} showCloseButton={false} onClose={requestClose} footer={<><Button label={common('actions.cancel')} variant="secondary" disabled={working} onPress={requestClose} /><Button validateForm label={working ? t('saving') : t('save')} disabled={working || review || project?.status !== 'ACTIVE'} onPress={() => void submit()} /></>}>
     <FormError message={error} />
     {review ? <RefreshButton label={t('refresh')} variant="secondary" disabled={working} onRefresh={() => refresh()} /> : null}
     <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>

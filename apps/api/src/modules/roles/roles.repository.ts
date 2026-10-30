@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { DatabaseService } from '../../database/database.service';
-import { QueryParam } from '../../database/database.types';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { PermissionItemDto } from './dto/set-permissions.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
-import { PermissionEntity, PermissionRow, RoleEntity, RoleRow } from './roles.types';
+import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import { DatabaseService } from "../../database/database.service";
+import { QueryParam } from "../../database/database.types";
+import { CreateRoleDto } from "./dto/create-role.dto";
+import { PermissionItemDto } from "./dto/set-permissions.dto";
+import { UpdateRoleDto } from "./dto/update-role.dto";
+import {
+  PermissionEntity,
+  PermissionRow,
+  RoleEntity,
+  RoleRow,
+} from "./roles.types";
 
 function mapRoleRow(row: RoleRow): RoleEntity {
   return {
@@ -88,16 +93,17 @@ export class RolesRepository {
   }
 
   async update(id: string, dto: UpdateRoleDto) {
-    const entries = (Object.entries({
-      name: dto.name,
-      description: dto.description,
-    }) as [string, QueryParam | undefined][])
-      .filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
+    const entries = (
+      Object.entries({
+        name: dto.name,
+        description: dto.description,
+      }) as [string, QueryParam | undefined][]
+    ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
 
     if (entries.length > 0) {
       await this.database.execute(
         `UPDATE \`role\`
-        SET ${entries.map(([column]) => `\`${column}\` = ?`).join(', ')},
+        SET ${entries.map(([column]) => `\`${column}\` = ?`).join(", ")},
           updatedAt = CURRENT_TIMESTAMP(3)
         WHERE id = ?`,
         [...entries.map(([, value]) => value), id],
@@ -111,12 +117,12 @@ export class RolesRepository {
   async delete(id: string) {
     await this.database.transaction(async (connection) => {
       await this.database.execute(
-        'DELETE FROM permission WHERE roleId = ?',
+        "DELETE FROM permission WHERE roleId = ?",
         [id],
         connection,
       );
       await this.database.execute(
-        'DELETE FROM `role` WHERE id = ?',
+        "DELETE FROM `role` WHERE id = ?",
         [id],
         connection,
       );
@@ -136,11 +142,15 @@ export class RolesRepository {
 
   async replacePermissions(roleId: string, permissions: PermissionItemDto[]) {
     await this.database.transaction(async (connection) => {
-      await this.database.execute('DELETE FROM permission WHERE roleId = ?', [roleId], connection);
+      await this.database.execute(
+        "DELETE FROM permission WHERE roleId = ?",
+        [roleId],
+        connection,
+      );
 
       for (const permission of permissions) {
         await this.database.execute(
-          'INSERT IGNORE INTO permission (id, resource, action, roleId) VALUES (?, ?, ?, ?)',
+          "INSERT IGNORE INTO permission (id, resource, action, roleId) VALUES (?, ?, ?, ?)",
           [randomUUID(), permission.resource, permission.action, roleId],
           connection,
         );

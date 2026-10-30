@@ -654,8 +654,7 @@ function InviteMemberSheet({
     Partial<Record<"name" | "email" | "phone" | "roleId", string>>
   >({});
 
-  async function submit() {
-    setError("");
+  function validationErrors() {
     const nextFieldErrors: Partial<
       Record<"name" | "email" | "phone" | "roleId", string>
     > = {};
@@ -666,6 +665,12 @@ function InviteMemberSheet({
     if (form.phone.trim() && !isValidPhone(form.phone))
       nextFieldErrors.phone = tCommon("validation.phone");
     if (!form.roleId) nextFieldErrors.roleId = t("invite.roleRequired");
+    return nextFieldErrors;
+  }
+
+  async function submit() {
+    setError("");
+    const nextFieldErrors = validationErrors();
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) {
       return;
@@ -700,7 +705,7 @@ function InviteMemberSheet({
             style={styles.footerButton}
             onPress={onClose}
           />
-          <Button
+          <Button validateForm
             label={saving ? t("invite.sending") : t("invite.send")}
             disabled={saving}
             style={styles.footerButton}
@@ -710,7 +715,7 @@ function InviteMemberSheet({
       }
     >
       <FormError message={error} />
-      <FormField label={t("invite.name")} required error={fieldErrors.name}>
+      <FormField label={t("invite.name")} required error={fieldErrors.name} validate={() => validationErrors().name}>
         <Input
           accessibilityLabel={t("invite.nameA11y")}
           invalid={Boolean(fieldErrors.name)}
@@ -723,7 +728,7 @@ function InviteMemberSheet({
           }}
         />
       </FormField>
-      <FormField label={t("invite.email")} required error={fieldErrors.email}>
+      <FormField label={t("invite.email")} required error={fieldErrors.email} validate={() => validationErrors().email}>
         <Input
           accessibilityLabel={t("invite.emailA11y")}
           invalid={Boolean(fieldErrors.email)}
@@ -738,7 +743,7 @@ function InviteMemberSheet({
           }}
         />
       </FormField>
-      <FormField label={t("invite.mobile")} error={fieldErrors.phone}>
+      <FormField label={t("invite.mobile")} error={fieldErrors.phone} validate={() => validationErrors().phone}>
         <Input
           accessibilityLabel={t("invite.mobileA11y")}
           invalid={Boolean(fieldErrors.phone)}
@@ -770,7 +775,7 @@ function InviteMemberSheet({
       <FormField
         label={t("invite.role")}
         required
-        error={fieldErrors.roleId}
+        error={fieldErrors.roleId} validate={() => validationErrors().roleId}
         helperText={t("invite.roleHelp")}
       >
         <RolePicker
@@ -866,7 +871,7 @@ function EditMemberSheet({
             style={styles.footerButton}
             onPress={onClose}
           />
-          <Button
+          <Button validateForm
             label={saving ? t("edit.saving") : t("edit.save")}
             variant="brand"
             disabled={saving}

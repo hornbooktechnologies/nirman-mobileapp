@@ -1,8 +1,12 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { SetPermissionsDto } from './dto/set-permissions.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
-import { RolesRepository } from './roles.repository';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { CreateRoleDto } from "./dto/create-role.dto";
+import { SetPermissionsDto } from "./dto/set-permissions.dto";
+import { UpdateRoleDto } from "./dto/update-role.dto";
+import { RolesRepository } from "./roles.repository";
 
 @Injectable()
 export class RolesService {
@@ -19,7 +23,7 @@ export class RolesService {
 
   async findById(id: string) {
     const role = await this.rolesRepo.findById(id);
-    if (!role) throw new NotFoundException('Role not found');
+    if (!role) throw new NotFoundException("Role not found");
     return role;
   }
 
@@ -29,15 +33,17 @@ export class RolesService {
 
   async update(id: string, dto: UpdateRoleDto) {
     const role = await this.findById(id);
-    if (role.isSystem) throw new ConflictException('System roles are read-only');
+    if (role.isSystem)
+      throw new ConflictException("System roles are read-only");
     return this.rolesRepo.update(id, dto);
   }
 
   async delete(id: string) {
     const role = await this.findById(id);
-    if (role.isSystem) throw new ConflictException('System roles cannot be deleted');
+    if (role.isSystem)
+      throw new ConflictException("System roles cannot be deleted");
     if (role._count.users > 0) {
-      throw new ConflictException('Cannot delete a role assigned to users');
+      throw new ConflictException("Cannot delete a role assigned to users");
     }
     await this.rolesRepo.delete(id);
   }
@@ -49,7 +55,8 @@ export class RolesService {
 
   async replacePermissions(id: string, dto: SetPermissionsDto) {
     const role = await this.findById(id);
-    if (role.isSystem) throw new ConflictException('System roles are read-only');
+    if (role.isSystem)
+      throw new ConflictException("System roles are read-only");
     await this.rolesRepo.replacePermissions(id, dto.permissions);
     return this.findById(id);
   }

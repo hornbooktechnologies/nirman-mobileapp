@@ -1,6 +1,6 @@
 # Project Progress Status
 
-> Last updated: 2026-09-02
+> Last updated: 2026-10-30
 >
 > State: implementation complete; physical-device and authenticated write acceptance pending.
 
@@ -30,3 +30,9 @@
 - Physical-device layout, date picker, share sheet, pull-to-refresh, one-handed use, and slow-network checks.
 - Screen reader, largest text, small-phone/landscape, dark-mode contrast, and fluent Hindi/Gujarati review.
 - Files/Media evidence and offline queued writes remain deferred until their foundations are approved.
+
+## 2026-10-30 — Mobile history layout correction
+
+Moved Update history copy, date filters and export actions into separate layout rows. The old shared horizontal row squeezed the heading and stretched the CSV button to the filter card's height. Date fields and export groups now wrap within the available width, CSV/PDF use the same standard button size, and stage/history titles expose heading semantics. Invalid date ranges are visibly marked and both export controls reflect the existing invalid-range guard. Clear dates, permissions, stage filtering, pagination, refresh, update actions and export requests are preserved. Only this Mobile module's UI source changed; no shared component, Web/API or data change.
+
+Verification: Mobile typecheck, locale parity and whitespace checks pass. Nine isolated React Native Web fixture previews (320/390/768 px, en/hi/gu) pass heading-width, overflow, export-height, invalid-range, clear and export-callback checks; CSV/PDF buttons measure 48 px in these previews. Fixtures use local callbacks and placeholder icons, so actual device layout, native date pickers and file sharing remain separate acceptance gates. The optional UI/UX companion skill was unavailable; existing components and theme tokens were used.

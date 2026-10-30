@@ -1,7 +1,7 @@
 import {
   ORGANIZATION_MEMBER_STATUSES,
   type OrganizationMemberStatus,
-} from '@nirman-app/shared';
+} from "@nirman-app/shared";
 import {
   IsBoolean,
   IsIn,
@@ -9,7 +9,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdateMemberDto {
   @IsOptional()

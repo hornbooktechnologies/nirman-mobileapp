@@ -71,7 +71,18 @@ export function Layer({ d, m }: { d: StaticImageData; m: StaticImageData }) {
   return (
     <picture>
       <source media="(min-aspect-ratio: 1/1)" srcSet={desktop.srcSet} sizes={SIZES.desktop.layer} />
-      <img {...mobile} className="object-cover" draggable={false} />
+      <img
+        src={mobile.src}
+        srcSet={mobile.srcSet}
+        sizes={mobile.sizes}
+        alt={mobile.alt}
+        style={mobile.style}
+        loading={mobile.loading}
+        fetchPriority={mobile.fetchPriority}
+        decoding={mobile.decoding}
+        className="object-cover"
+        draggable={false}
+      />
     </picture>
   )
 }

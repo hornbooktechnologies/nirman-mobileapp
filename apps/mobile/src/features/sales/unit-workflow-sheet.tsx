@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 
 import { RefreshButton } from "../../components/ui/refresh-button";
 import { mobileTheme } from '../../theme';
@@ -8,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { BottomSheet, Button, DateInput, FormError, FormField, Input, LoadingState, SearchField, TimeInput } from '../../components/ui';
 import { getLocalizedErrorMessage } from '../../i18n';
 import { ApiRequestError } from '../../lib/api';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { blockUnit, decideUnitHoldRequest, fetchLead, fetchLeads, fetchUnitInterests, fetchUnits, releaseUnitBlock, requestUnitHold, saveUnitInterest, updateUnit } from './services';
 import { canWriteLead, scheduleInstant, uncertainWrite } from './sales-rules';
@@ -20,8 +21,9 @@ export function UnitWorkflowSheet({ unit, action, interest, close, saved }: { un
   const { t } = useTranslation('sales');
   const { t: common } = useTranslation('common');
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const timezone = session?.activeOrganization?.workingTimezone || session?.activeOrganization?.timezone || 'Asia/Kolkata';
   const [draft, setDraft] = useState<UnitInput>({ unitNumber: unit.unitNumber, unitType: unit.unitType, wingTower: unit.wingTower ?? undefined, floor: unit.floor ?? undefined, facing: unit.facing ?? undefined, areaSqft: unit.areaSqft ?? undefined, priceBasis: unit.priceBasis, basePrice: unit.basePrice ?? undefined, ratePerSqft: unit.ratePerSqft ?? undefined, status: unit.status });
   const [priceUnit, setPriceUnit] = useState<UnitPriceInputUnit>('RUPEE');
@@ -119,7 +121,7 @@ export function UnitWorkflowSheet({ unit, action, interest, close, saved }: { un
   }
   function requestClose() { if (lock.current) return; Alert.alert(t('parity.discardTitle'), review ? t('parity.uncertain') : t('parity.discardDescription'), [{ text: common('actions.cancel'), style: 'cancel' }, { text: common('actions.close'), style: 'destructive', onPress: close }]); }
   const title = action === 'edit' ? t('units.editTitle') : action === 'interest' ? t('leadDetail.interestTitle') : action === 'request' ? t('leadDetail.requestHoldTitle') : action === 'block' ? t('parity.block') : action === 'release' ? t('units.releaseTitle') : t(action === 'APPROVED' ? 'unitQueue.approveTitle' : 'unitQueue.rejectTitle');
-  return <BottomSheet visible scroll title={title} showCloseButton={false} onClose={requestClose} footer={<><Button label={common('actions.cancel')} variant="secondary" disabled={working} onPress={requestClose} /><Button label={working ? t('saving') : t('save')} disabled={working || review} onPress={() => void submit()} /></>}>
+  return <BottomSheet visible scroll title={title} showCloseButton={false} onClose={requestClose} footer={<><Button label={common('actions.cancel')} variant="secondary" disabled={working} onPress={requestClose} /><Button validateForm label={working ? t('saving') : t('save')} disabled={working || review} onPress={() => void submit()} /></>}>
     <FormError message={error} />{review ? <RefreshButton busy={loading} label={t('refresh')} variant="secondary" disabled={working} onRefresh={() => refresh()} /> : null}
     <View style={{ gap: mobileTheme.spacing[4] }} pointerEvents={working ? 'none' : 'auto'}>
       {action === 'edit' ? <>

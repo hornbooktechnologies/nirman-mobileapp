@@ -33,8 +33,7 @@ export function buildEmailLayout(input: {
   accent: string;
   body: string;
 }) {
-  const origin =
-    publicWebOrigin();
+  const origin = publicWebOrigin();
   const logoUrl = new URL("/brand/horizontal-logo.png", origin).href;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeEmailHtml(input.title)}</title></head>

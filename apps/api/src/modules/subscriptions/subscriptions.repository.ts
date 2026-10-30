@@ -1,15 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import type { DatabaseConnection, QueryParam } from '../../database/database.types';
-import { DatabaseService } from '../../database/database.service';
-import type { AssignOrganizationSubscriptionDto } from './dto/assign-organization-subscription.dto';
-import type { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
-import type { UpdateSubscriptionPlanDto } from './dto/update-subscription-plan.dto';
+import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import type {
+  DatabaseConnection,
+  QueryParam,
+} from "../../database/database.types";
+import { DatabaseService } from "../../database/database.service";
+import type { AssignOrganizationSubscriptionDto } from "./dto/assign-organization-subscription.dto";
+import type { CreateSubscriptionPlanDto } from "./dto/create-subscription-plan.dto";
+import type { UpdateSubscriptionPlanDto } from "./dto/update-subscription-plan.dto";
 import type {
   CapacityCountRow,
   OrganizationSubscriptionRow,
   SubscriptionPlanRow,
-} from './types/subscriptions.types';
+} from "./types/subscriptions.types";
 
 function mapPlan(row: SubscriptionPlanRow) {
   return {
@@ -33,14 +36,14 @@ export class SubscriptionsRepository {
 
   async findPlans() {
     const rows = await this.database.query<SubscriptionPlanRow>(
-      'SELECT * FROM subscription_plans ORDER BY is_active DESC, name ASC',
+      "SELECT * FROM subscription_plans ORDER BY is_active DESC, name ASC",
     );
     return rows.map(mapPlan);
   }
 
   async findPlanById(planId: string) {
     const rows = await this.database.query<SubscriptionPlanRow>(
-      'SELECT * FROM subscription_plans WHERE id = ? LIMIT 1',
+      "SELECT * FROM subscription_plans WHERE id = ? LIMIT 1",
       [planId],
     );
     return rows[0] ? mapPlan(rows[0]) : null;
@@ -69,21 +72,28 @@ export class SubscriptionsRepository {
     return this.findPlanById(id);
   }
 
-  async updatePlan(planId: string, dto: UpdateSubscriptionPlanDto, actorId: string) {
+  async updatePlan(
+    planId: string,
+    dto: UpdateSubscriptionPlanDto,
+    actorId: string,
+  ) {
     const entries = (
       [
-        ['name', dto.name?.trim()],
-        ['description', dto.description],
-        ['max_active_projects', dto.maxActiveProjects],
-        ['max_active_members', dto.maxActiveMembers],
-        ['storage_limit_bytes', dto.storageLimitBytes],
-        ['is_active', dto.isActive === undefined ? undefined : dto.isActive ? 1 : 0],
+        ["name", dto.name?.trim()],
+        ["description", dto.description],
+        ["max_active_projects", dto.maxActiveProjects],
+        ["max_active_members", dto.maxActiveMembers],
+        ["storage_limit_bytes", dto.storageLimitBytes],
+        [
+          "is_active",
+          dto.isActive === undefined ? undefined : dto.isActive ? 1 : 0,
+        ],
       ] as Array<[string, QueryParam | undefined]>
     ).filter((entry): entry is [string, QueryParam] => entry[1] !== undefined);
     if (entries.length) {
       await this.database.execute(
         `UPDATE subscription_plans
-        SET ${entries.map(([column]) => `${column} = ?`).join(', ')},
+        SET ${entries.map(([column]) => `${column} = ?`).join(", ")},
           updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
         WHERE id = ?`,
         [...entries.map(([, value]) => value), actorId, planId],
@@ -108,7 +118,7 @@ export class SubscriptionsRepository {
       FROM organization_subscriptions os
       INNER JOIN subscription_plans sp ON sp.id = os.plan_id
       WHERE os.organization_id = ?
-      LIMIT 1${lock ? ' FOR UPDATE' : ''}`,
+      LIMIT 1${lock ? " FOR UPDATE" : ""}`,
       [organizationId],
       connection,
     );
@@ -171,4 +181,3 @@ export class SubscriptionsRepository {
     };
   }
 }
-

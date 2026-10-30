@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -82,7 +83,7 @@ function WorkerCreate({ organizationId }: { organizationId: string }) {
                 </Button>
               </div>
             ) : (
-              <label className="grid gap-1 text-base">
+              <ValidatedField className="grid gap-1 text-base">
                 Initial project
                 <Select
                   value={projectId}
@@ -103,7 +104,7 @@ function WorkerCreate({ organizationId }: { organizationId: string }) {
                     </option>
                   ))}
                 </Select>
-              </label>
+              </ValidatedField>
             )}
             {!validProject ? (
               <p role="alert">

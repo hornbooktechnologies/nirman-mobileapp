@@ -5,10 +5,12 @@ import { SourcePaymentsPanel } from "@/features/total-expenses/source-payments-p
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { projectsService } from "@/features/projects/services/projects.service";
 import { Button, Card, LoadingState } from "@/components/ui";
 import { safeFinancialReturn, totalExpensesReturn } from "@/features/financial-return";
 import { useMaterialDetail } from "../hooks/use-materials";
-import { label, materialActions } from "../material-rules";
+import { label, materialActions, materialKey } from "../material-rules";
 import type { MaterialAction } from "../types/materials.types";
 import { MaterialForm } from "./material-form";
 import {
@@ -34,6 +36,11 @@ export function MaterialDetailPage({
 }
 function Detail({ context, id }: { context: MaterialsContext; id: string }) {
   const query = useMaterialDetail(context.org, context.project, id);
+  const members = useQuery({
+    queryKey: [...materialKey(context.org, context.project), "members"],
+    queryFn: () => projectsService.members(context.org, context.project),
+    enabled: Boolean(query.data?.responsibleContractorMemberId) && context.permissions.includes("project-members:read"),
+  });
   const search = useSearchParams();
   const [action, setAction] = useState<MaterialAction | null>(null);
   const [notice, setNotice] = useState(
@@ -125,7 +132,11 @@ function Detail({ context, id }: { context: MaterialsContext; id: string }) {
               ["Workflow", label(d.workflowMode)],
               [
                 "Responsible member",
-                d.responsibleContractorMemberId ?? "Unassigned",
+                !d.responsibleContractorMemberId
+                  ? "Unassigned"
+                  : members.isSuccess
+                    ? members.data.find((member) => member.memberId === d.responsibleContractorMemberId)?.user.name ?? "Member unavailable"
+                    : members.isFetching ? "Loading member…" : "Member unavailable",
               ],
             ]}
           />

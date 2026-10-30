@@ -13,6 +13,7 @@ export function wageRateLabel(item: RateItem, confirmed: boolean) {
 }
 
 export function wageBalanceLabel(item: WageItem) {
+  if (Number(item.netAmount) - Number(item.paidAmount) <= 0 && Number(item.paidAmount) <= 0 && Number(item.kharchiDeduction) > 0) return "Adjusted by Kharchi";
   if (item.paymentStatus === "PAID") return "Paid in full";
   return item.paymentStatus === "PARTIALLY_PAID" ? "Partially paid" : "Unpaid";
 }

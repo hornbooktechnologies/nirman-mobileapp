@@ -25,7 +25,7 @@ import {
 import { formatDate, formatInr } from "../../i18n/formatters";
 
 import { getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from "../../lib/auth";
 import { useSession } from "../../providers";
 import { mobileTheme } from "../../theme";
 import { ProjectContextCard } from "../projects";
@@ -46,11 +46,12 @@ export function SalesBookingScreen() {
   const { t, i18n } = useTranslation("sales");
   const { t: tCommon } = useTranslation("common");
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
   const activeOrganizationId = session?.activeOrganization?.id;
   const activeProjectId = project?.id;
   const accessToken = session?.accessToken;
-  const permissions = getActiveProjectPermissions(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const language = (i18n.resolvedLanguage ?? "en") as "en" | "hi" | "gu";
   const [booking, setBooking] = useState<SalesBooking | null>(null);
   const [loading, setLoading] = useState(true);

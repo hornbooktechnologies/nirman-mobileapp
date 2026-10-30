@@ -1,5 +1,7 @@
 {
-  "screen": { "title": "साइट गैलरी" },
+  "screen": {
+    "title": "साइट गैलरी"
+  },
   "summary": {
     "title": "प्रोजेक्ट डायरी",
     "values": "{{total}} फोटो · आज {{today}}"
@@ -17,7 +19,8 @@
     "fromChip": "{{date}} से",
     "toChip": "{{date}} तक",
     "removeA11y": "{{value}} फ़िल्टर हटाएं",
-    "dateRangeError": "अंतिम तारीख शुरू होने की तारीख से पहले नहीं हो सकती।"
+    "dateRangeError": "अंतिम तारीख शुरू होने की तारीख से पहले नहीं हो सकती।",
+    "status": "स्थिति"
   },
   "diary": {
     "title": "फोटो डायरी",

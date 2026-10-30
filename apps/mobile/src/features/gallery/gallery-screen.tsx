@@ -3,6 +3,8 @@ import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import {
   GALLERY_CATEGORIES,
+  GALLERY_STATUSES,
+  type GalleryStatus,
   PROJECT_PROGRESS_STAGES,
   type GalleryCategory,
   type GalleryEntry,
@@ -10,7 +12,7 @@ import {
   type ProjectProgressStage,
 } from "@nirman-app/shared";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -53,7 +55,7 @@ import {
   getLocalizedErrorMessage,
   type SupportedLanguage,
 } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
@@ -78,8 +80,9 @@ export function GalleryScreen() {
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: requestedProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = getRouteProject(session, requestedProjectId);
+  const permissions = (project?.permissions ?? []);
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = project?.id ?? null;
   const token = session?.accessToken ?? null;
@@ -90,6 +93,10 @@ export function GalleryScreen() {
   const [summary, setSummary] = useState<GallerySummary | null>(null);
   const [queue, setQueue] = useState<QueuedGalleryUpload[]>([]);
   const [category, setCategory] = useState<GalleryCategory | undefined>();
+  const [statusFilter, setStatusFilter] = useState<GalleryStatus | undefined>();
+  const [stageFilter, setStageFilter] = useState<ProjectProgressStage | undefined>();
+  const [draftStatusFilter, setDraftStatusFilter] = useState<GalleryStatus | undefined>();
+  const [draftStageFilter, setDraftStageFilter] = useState<ProjectProgressStage | undefined>();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [draftCategory, setDraftCategory] = useState<
@@ -151,6 +158,8 @@ export function GalleryScreen() {
             page: nextPage,
             pageSize: 48,
             category,
+            status: statusFilter,
+            stage: stageFilter,
             dateFrom: dateFrom || undefined,
             dateTo: dateTo || undefined,
           }),
@@ -186,13 +195,13 @@ export function GalleryScreen() {
         }
       }
     },
-    [canRead, category, dateFrom, dateTo, organizationId, projectId, t, token],
+    [canRead, category, statusFilter, stageFilter, dateFrom, dateTo, organizationId, projectId, t, token],
   );
   const refreshScreen = useCallback(async () => {
     await Promise.allSettled([load(1), refreshQueue()]);
   }, [load, refreshQueue]);
   useRefreshOnFocus({
-    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${category ?? ""}:${dateFrom}:${dateTo}`,
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${category ?? ""}:${statusFilter ?? ""}:${stageFilter ?? ""}:${dateFrom}:${dateTo}`,
     refresh: refreshScreen,
     reset: () => setItems([]),
     cancel: () => {
@@ -274,7 +283,7 @@ export function GalleryScreen() {
     );
 
   const activeFilterCount =
-    Number(Boolean(category)) +
+    Number(Boolean(statusFilter)) + Number(Boolean(stageFilter)) + Number(Boolean(category)) +
     Number(Boolean(dateFrom)) +
     Number(Boolean(dateTo));
   const hasFilters = activeFilterCount > 0;
@@ -282,6 +291,7 @@ export function GalleryScreen() {
     draftDateFrom && draftDateTo && draftDateFrom > draftDateTo,
   );
   function openFilters() {
+    setDraftStatusFilter(statusFilter); setDraftStageFilter(stageFilter);
     setDraftCategory(category);
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
@@ -289,6 +299,7 @@ export function GalleryScreen() {
   }
 
   function clearFilters() {
+    setStatusFilter(undefined); setStageFilter(undefined); setDraftStatusFilter(undefined); setDraftStageFilter(undefined);
     setDraftCategory(undefined);
     setDraftDateFrom("");
     setDraftDateTo("");
@@ -523,12 +534,21 @@ export function GalleryScreen() {
           onClose={() => setFiltersOpen(false)}
           onApply={() => {
             if (dateRangeInvalid) return;
+            setStatusFilter(draftStatusFilter); setStageFilter(draftStageFilter);
             setCategory(draftCategory);
             setDateFrom(draftDateFrom);
             setDateTo(draftDateTo);
             setFiltersOpen(false);
           }}
         >
+          <FilterGroup label={t('filter.status')}>
+            <FilterOption label={t('filter.all')} selected={!draftStatusFilter} onPress={() => setDraftStatusFilter(undefined)} />
+            {GALLERY_STATUSES.map(value => <FilterOption key={value} label={t(`status.${value}`)} selected={draftStatusFilter === value} onPress={() => setDraftStatusFilter(value)} />)}
+          </FilterGroup>
+          <FilterGroup label={t('detail.stage')}>
+            <FilterOption label={t('filter.all')} selected={!draftStageFilter} onPress={() => setDraftStageFilter(undefined)} />
+            {PROJECT_PROGRESS_STAGES.map(value => <FilterOption key={value} label={t(`stage.${value}`)} selected={draftStageFilter === value} onPress={() => setDraftStageFilter(value)} />)}
+          </FilterGroup>
           <FilterGroup label={t("filter.category")}>
             <FilterOption
               label={t("filter.all")}
@@ -970,7 +990,7 @@ function CaptureSheet({
             variant="secondary"
             onPress={onClose}
           />
-          <Button
+          <Button validateForm
             label={working ? t("capture.saving") : t("capture.queue")}
             disabled={working}
             onPress={() => void save()}

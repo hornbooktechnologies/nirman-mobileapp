@@ -27,6 +27,9 @@ const memo = (factory, deps) => {
 
 vm.runInNewContext(ts.transpileModule(hooks, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
   exports: exportsObject,
+  refreshTogether: (reads) => Promise.all(reads),
+  useRef: (initial) => memo(() => ({ current: initial }), []),
+  useFocusEffect: (effect) => memo(() => { effects.push(effect); }, [effect]),
   useLocalSearchParams: () => ({ leadId: 'lead-1' }),
   useTranslation: () => ({ t }),
   useSession: () => ({ session }),

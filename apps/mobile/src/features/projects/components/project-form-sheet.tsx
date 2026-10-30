@@ -1,16 +1,18 @@
 import {
   PROJECT_STATUS_TRANSITIONS,
   PROJECT_TYPES,
+  projectValidationIssues,
+  type ProjectValidationField,
   type ProjectStatus,
   type ProjectType,
 } from '@nirman-app/shared';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, type ScrollViewInstance, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText, BottomSheet, Button, DateInput, FormError, FormField, Input, badgeToneTokens, getStatusTone } from '../../../components/ui';
 import { getLocalizedErrorMessage } from '../../../i18n';
-import { isValidDateOnly, parseDateOnly } from '../../../lib/validation';
+import { parseDateOnly } from '../../../lib/validation';
 import { mobileText, mobileTheme } from '../../../theme';
 import type { Project, ProjectInput } from '../types';
 
@@ -45,7 +47,7 @@ type ProjectForm = {
   description: string;
 };
 
-type ProjectFormErrors = Partial<Record<'name' | 'startDate' | 'expectedCompletionDate', string>>;
+type ProjectFormErrors = Partial<Record<ProjectValidationField, string>>;
 
 function initialForm(project?: Project): ProjectForm {
   return {
@@ -74,7 +76,19 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
   const { t: tCommon } = useTranslation('common');
   const [form, setForm] = useState(() => initialForm(project));
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<ProjectFormErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<ProjectValidationField, boolean>>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const fieldPositions = useRef<Partial<Record<ProjectValidationField, number>>>({});
+  const issues = projectValidationIssues(form);
+  const allErrors: ProjectFormErrors = Object.fromEntries(Object.entries(issues).map(([field, issue]) => [field,
+    issue.rule === 'required' ? t('form.errors.nameRequired')
+      : issue.rule === 'maxLength' ? tCommon('validation.maxLength', { count: issue.limit })
+      : issue.rule === 'date' ? tCommon('validation.date')
+      : t('form.errors.completionBeforeStart'),
+  ]));
+  const fieldErrors: ProjectFormErrors = Object.fromEntries(Object.entries(allErrors).filter(([field]) => submitted || touched[field as ProjectValidationField]));
+  const blur = (field: ProjectValidationField) => setTouched((current) => ({ ...current, [field]: true }));
   const allowedStatuses: readonly ProjectStatus[] = project
     ? [project.status, ...PROJECT_STATUS_TRANSITIONS[project.status]].filter((status) => status !== 'ARCHIVED')
     : ['DRAFT', 'ACTIVE'];
@@ -82,25 +96,10 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
   async function submit() {
     if (saving) return;
     setError('');
-    const nextFieldErrors: ProjectFormErrors = {};
-    if (!form.name.trim()) {
-      nextFieldErrors.name = t('form.errors.nameRequired');
-    }
-    if (form.startDate && !isValidDateOnly(form.startDate)) {
-      nextFieldErrors.startDate = tCommon('validation.date');
-    }
-    if (form.expectedCompletionDate && !isValidDateOnly(form.expectedCompletionDate)) {
-      nextFieldErrors.expectedCompletionDate = tCommon('validation.date');
-    } else if (
-      form.startDate
-      && isValidDateOnly(form.startDate)
-      && form.expectedCompletionDate
-      && form.expectedCompletionDate < form.startDate
-    ) {
-      nextFieldErrors.expectedCompletionDate = t('form.errors.completionBeforeStart');
-    }
-    setFieldErrors(nextFieldErrors);
-    if (Object.keys(nextFieldErrors).length) {
+    setSubmitted(true);
+    const firstInvalid = Object.keys(allErrors)[0] as ProjectValidationField | undefined;
+    if (firstInvalid) {
+      scrollRef.current?.scrollTo({ y: Math.max(0, (fieldPositions.current[firstInvalid] ?? 0) - 12), animated: true });
       return;
     }
     try {
@@ -129,6 +128,7 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
     <BottomSheet
       visible
       scroll
+      scrollRef={scrollRef}
       showCloseButton={false}
       title={project ? t('form.editTitle') : t('form.newTitle')}
       description={project ? project.name : t('form.newDescription')}
@@ -136,7 +136,7 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
       footer={(
         <>
           <Button label={t('form.actions.cancel')} disabled={saving} variant="secondary" style={styles.footerButton} onPress={onClose} />
-          <Button
+          <Button validateForm
             label={saving ? t('form.actions.saving') : project ? t('form.actions.saveChanges') : t('form.actions.create')}
             variant={project ? 'brand' : 'primary'}
             disabled={saving}
@@ -148,17 +148,17 @@ export function ProjectFormSheet({ project, saving, onClose, onSave }: {
     >
       <FormError message={error} />
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.basics')}</AppText>
-      <FormField label={t('form.fields.name')} required error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} maxLength={120} value={form.name} onChangeText={(name) => { setForm({ ...form, name }); if (fieldErrors.name) setFieldErrors((current) => ({ ...current, name: undefined })); }} /></FormField>
+      <FormField label={t('form.fields.name')} required onLayout={(event) => { fieldPositions.current.name = event.nativeEvent.layout.y; }} error={fieldErrors.name}><Input accessibilityLabel={t('form.fields.projectName')} invalid={Boolean(fieldErrors.name)} maxLength={120} value={form.name} onBlur={() => blur('name')} onChangeText={(name) => setForm({ ...form, name })} /></FormField>
       <FormField label={t('form.fields.code')}><Input accessibilityLabel={t('form.fields.projectCode')} maxLength={40} value={form.projectCode} onChangeText={(projectCode) => setForm({ ...form, projectCode })} /></FormField>
       <FormField label={t('form.fields.type')} required><ChoiceRow values={PROJECT_TYPES} selected={form.type} getLabel={(value) => t(projectTypeTranslationKeys[value])} onSelect={(type) => setForm({ ...form, type })} /></FormField>
-      <FormField label={t('form.fields.status')} required><ChoiceRow values={allowedStatuses} selected={form.status} getLabel={(value) => t(projectStatusTranslationKeys[value])} onSelect={(status) => setForm({ ...form, status })} /></FormField>
+      <FormField label={t('form.fields.status')}><ChoiceRow values={allowedStatuses} selected={form.status} getLabel={(value) => t(projectStatusTranslationKeys[value])} onSelect={(status) => setForm({ ...form, status })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.location')}</AppText>
       <FormField label={t('form.fields.addressLine')}><Input accessibilityLabel={t('form.fields.addressLine')} maxLength={180} value={form.line1} onChangeText={(line1) => setForm({ ...form, line1 })} /></FormField>
       <FormField label={t('form.fields.addressLine2')}><Input accessibilityLabel={t('form.fields.addressLine2')} maxLength={180} value={form.line2} onChangeText={(line2) => setForm({ ...form, line2 })} /></FormField>
       <View style={styles.row}><FormField label={t('form.fields.city')} style={styles.flex}><Input accessibilityLabel={t('form.fields.city')} maxLength={100} value={form.city} onChangeText={(city) => setForm({ ...form, city })} /></FormField><FormField label={t('form.fields.state')} style={styles.flex}><Input accessibilityLabel={t('form.fields.state')} maxLength={100} value={form.state} onChangeText={(state) => setForm({ ...form, state })} /></FormField></View>
       <FormField label={t('form.fields.postalCode')}><Input accessibilityLabel={t('form.fields.postalCode')} keyboardType="number-pad" maxLength={20} value={form.postalCode} onChangeText={(postalCode) => setForm({ ...form, postalCode })} /></FormField>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.timeline')}</AppText>
-      <View style={styles.row}><FormField label={t('form.fields.startDate')} error={fieldErrors.startDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.startDate')} invalid={Boolean(fieldErrors.startDate)} value={form.startDate} onChangeText={(startDate) => { setForm({ ...form, startDate }); setFieldErrors((current) => ({ ...current, startDate: undefined, expectedCompletionDate: undefined })); }} /></FormField><FormField label={t('form.fields.expectedCompletion')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} minimumDate={parseDateOnly(form.startDate) ?? undefined} value={form.expectedCompletionDate} onChangeText={(expectedCompletionDate) => { setForm({ ...form, expectedCompletionDate }); if (fieldErrors.expectedCompletionDate) setFieldErrors((current) => ({ ...current, expectedCompletionDate: undefined })); }} /></FormField></View>
+      <View style={styles.row} onLayout={(event) => { fieldPositions.current.startDate = event.nativeEvent.layout.y; fieldPositions.current.expectedCompletionDate = event.nativeEvent.layout.y; }}><FormField label={t('form.fields.startDate')} error={fieldErrors.startDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.startDate')} invalid={Boolean(fieldErrors.startDate)} value={form.startDate} onBlur={() => blur('startDate')} onChangeText={(startDate) => { setForm({ ...form, startDate }); blur('startDate'); }} /></FormField><FormField label={t('form.fields.expectedCompletion')} error={fieldErrors.expectedCompletionDate} style={styles.flex}><DateInput accessibilityLabel={t('form.fields.expectedCompletion')} invalid={Boolean(fieldErrors.expectedCompletionDate)} minimumDate={parseDateOnly(form.startDate) ?? undefined} value={form.expectedCompletionDate} onBlur={() => blur('expectedCompletionDate')} onChangeText={(expectedCompletionDate) => { setForm({ ...form, expectedCompletionDate }); blur('expectedCompletionDate'); }} /></FormField></View>
       <AppText style={styles.groupTitle} weight={700}>{t('form.groups.details')}</AppText>
       <FormField label={t('form.fields.description')}><Input accessibilityLabel={t('form.fields.description')} maxLength={2000} multiline numberOfLines={3} value={form.description} onChangeText={(description) => setForm({ ...form, description })} /></FormField>
     </BottomSheet>

@@ -1,5 +1,7 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { downloadPdf } from "@/lib/exports/pdf";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import { ExportProgress } from "@/components/common/export-progress";
 
 import Link from "next/link";
@@ -23,7 +25,7 @@ import {
 import { wagesService } from "@/features/wages/services/wages.service";
 import type { WageItem, WagePaymentMethod } from "@/features/wages/types/wages.types";
 import { WAGE_PAYMENT_METHODS } from "@nirman-app/shared";
-import { selectedWageItem, wageRateLabel } from "../wage-display";
+import { selectedWageItem, wageRateLabel, wageBalanceLabel } from "../wage-display";
 
 const DEFAULT_WORKING_TIMEZONE = "Asia/Kolkata";
 
@@ -164,6 +166,15 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
   );
   const previewReady = Boolean(preview.data?.items.length) && !preview.data?.items.some((item) => !item.isReady);
 
+  async function exportCsv() {
+    if (!canExport || !detail.data) return;
+    const csv = await wagesService.exportCsv(organizationId, projectId, detail.data.id);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = `wages-${detail.data.periodStart}-${detail.data.periodEnd}.csv`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function confirmBatch() {
     if (!canGenerate || !previewReady || periodError) return;
     if (formDirty && !window.confirm("Discard the current worker form and confirm this batch?")) return;
@@ -278,20 +289,20 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
           title="Wages"
           description="Choose a calculation period, review readiness, then inspect confirmed wages and payments."
           onBack={() => { if (!busy && !paymentAttempt && (!formDirty || window.confirm("Discard your unsaved wage form?"))) window.history.back(); }}
-          actions={<Link href={`/projects/${projectId}`}><Button variant="outline">Project</Button></Link>}
+          actions={<><RefreshButton variant="outline" busy={batches.isFetching || detail.isFetching} disabled={busy || Boolean(paymentAttempt)} onRefresh={() => Promise.all([batches.refetch(), ...(selectedBatchId ? [detail.refetch()] : [])])}>Refresh</RefreshButton><Link href={`/projects/${projectId}`}><Button variant="outline">Project</Button></Link></>}
         />
 
         <Card className="min-w-0 space-y-4" aria-label="Step 1: calculation period">
           <div><h2 className="font-semibold text-body">1. Calculation period</h2><p className="text-[13px] text-sub">These dates determine the wage calculation. They do not filter confirmed batches below.</p></div>
           <div className="grid gap-3 lg:grid-cols-[180px_180px_auto] md:items-end">
-            <label className="grid gap-1 text-sm font-semibold text-sub">
+            <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">
               Period start *
-              <Input disabled={busy} type="date" max={periodEnd < wageToday ? periodEnd : wageToday} value={periodStart} onChange={(event) => { setPeriodStart(event.target.value); setPreviewRequested(false); setFailure(""); }} />
-            </label>
-            <label className="grid gap-1 text-sm font-semibold text-sub">
+              <Input required disabled={busy} type="date" max={periodEnd < wageToday ? periodEnd : wageToday} value={periodStart} onChange={(event) => { setPeriodStart(event.target.value); setPreviewRequested(false); setFailure(""); }} />
+            </ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">
               Period end *
-              <Input disabled={busy} type="date" min={periodStart} max={wageToday} invalid={Boolean(periodError)} aria-describedby={periodError ? "wage-period-error" : undefined} value={periodEnd} onChange={(event) => { setPeriodEnd(event.target.value); setPreviewRequested(false); setFailure(""); }} />
-            </label>
+              <Input required disabled={busy} type="date" min={periodStart} max={wageToday} invalid={Boolean(periodError)} aria-describedby={periodError ? "wage-period-error" : undefined} value={periodEnd} onChange={(event) => { setPeriodEnd(event.target.value); setPreviewRequested(false); setFailure(""); }} />
+            </ValidatedField>
             <Button onClick={() => { setPreviewRequested(true); if (previewRequested) void preview.refetch(); }} disabled={!organizationId || !batches.isSuccess || Boolean(periodError) || preview.isFetching || busy}>
               <CalendarDays size={16} />
               {preview.isFetching ? "Generating" : "Generate preview"}
@@ -373,6 +384,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                   <div><p className="text-sub">Paid</p><p className="font-semibold">{currency(detail.data.totals.paidAmount)}</p></div>
                   <div><p className="text-sub">Remaining</p><p className="font-semibold">{currency(Math.max(0, Number(detail.data.totals.netAmount) - Number(detail.data.totals.paidAmount)).toFixed(2))}</p></div>
                   </div>
+                  {canExport ? <Button variant="outline" disabled={isExporting || busy} onClick={() => void perform(exportCsv)}><Download size={16} /> Export CSV</Button> : null}
                   {canExport ? <Button variant="outline" onClick={() => void perform(exportBatch)} disabled={isExporting || busy}><Download size={16} /> {isExporting ? "Preparing PDF…" : "Export PDF"}</Button> : null}
                 </div>
                 <div role="region" aria-label="Wage comparison table" tabIndex={0} className="overflow-x-auto">
@@ -386,7 +398,7 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
                           <td className="px-3 py-2"><span className="font-semibold">{item.workerName}</span><span className="block text-[12px] text-sub">{wageRateLabel(item, true)} · {item.presentDays} full / {item.halfDays} half</span></td>
                           <td>{currency(item.netAmount)}</td>
                           <td>{currency(item.paidAmount)}</td>
-                          <td><StatusBadge tone={item.paymentStatus === "PAID" ? "success" : item.paymentStatus === "PARTIALLY_PAID" ? "active" : "warning"}>{item.paymentStatus}</StatusBadge></td>
+                          <td><StatusBadge tone={!cancelled && wageBalanceLabel(item) === "Adjusted by Kharchi" ? "info" : item.paymentStatus === "PAID" ? "success" : item.paymentStatus === "PARTIALLY_PAID" ? "active" : "danger"}>{cancelled ? item.paymentStatus.replaceAll("_", " ") : wageBalanceLabel(item)}</StatusBadge></td>
                           <td><Button disabled={busy || Boolean(paymentAttempt)} size="sm" variant="outline" onClick={() => { chooseItem(item); setFailure(""); setWagePanel("details"); }}>Details</Button></td>
                         </tr>
                       ))}
@@ -427,26 +439,26 @@ function WagesContent({ projectId, permissions, archived, initialBatchId, initia
           {wagePanel === "payment" && canPay && !cancelled && detail.data ? <>
             {paymentAttempt && !busy ? <p role="alert" className="mb-4 text-danger">The last payment has an uncertain result. Retry the same payment to safely recover its result. Keep this popup open until resolved.</p> : null}
                   <div className="grid gap-3 sm:grid-cols-2 md:items-end">
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.filter((item) => item.paymentStatus !== "PAID" || item.id === selectedItemId).map((item) => <option key={item.id} value={item.id}>{item.workerName} - due {currency(remainingAmount(item))}</option>)}</Select></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Amount *<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(amount && paymentError)} aria-describedby={amount && paymentError ? "wage-payment-error" : undefined} type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Date *<Input disabled={busy || Boolean(paymentAttempt)} type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Method *<Select disabled={busy || Boolean(paymentAttempt)} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as WagePaymentMethod)}>{WAGE_PAYMENT_METHODS.map((method) => <option key={method} value={method}>{paymentMethods[method]}</option>)}</Select></label>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Worker<Select required disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.filter((item) => item.paymentStatus !== "PAID" || item.id === selectedItemId).map((item) => <option key={item.id} value={item.id}>{item.workerName} - due {currency(remainingAmount(item))}</option>)}</Select></ValidatedField>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Amount *<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(amount && paymentError)} aria-describedby={amount && paymentError ? "wage-payment-error" : undefined} required type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></ValidatedField>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Date *<Input disabled={busy || Boolean(paymentAttempt)} required type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></ValidatedField>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Method *<Select required disabled={busy || Boolean(paymentAttempt)} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as WagePaymentMethod)}>{WAGE_PAYMENT_METHODS.map((method) => <option key={method} value={method}>{paymentMethods[method]}</option>)}</Select></ValidatedField>
                     {amount && paymentError && !paymentAttempt ? <p id="wage-payment-error" role="alert" className="text-sm text-danger">{paymentError}</p> : null}
-                    <label className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Reference<Input maxLength={120} disabled={busy || Boolean(paymentAttempt)} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Transaction reference" /></label>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Reference<Input maxLength={120} disabled={busy || Boolean(paymentAttempt)} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Transaction reference" /></ValidatedField>
                   </div>
           </> : null}
           {wagePanel === "adjustment" && canUpdate && !cancelled && detail.data ? <>
                   <div className="grid gap-3 sm:grid-cols-2 md:items-end">
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Selected worker<Select disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.map((item) => <option key={item.id} value={item.id}>{item.workerName}</option>)}</Select></label>
-                    <label className="grid gap-1 text-sm font-semibold text-sub">Adjustment<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(adjustmentError)} aria-describedby={adjustmentError ? "wage-adjustment-error" : undefined} type="number" step="0.01" value={adjustmentAmount} onChange={(event) => setAdjustmentAmount(event.target.value)} /></label>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Selected worker<Select required disabled={busy || Boolean(paymentAttempt)} value={selectedItemId} onChange={(event) => { const item = detail.data?.items.find((candidate) => candidate.id === event.target.value); if (item) chooseItem(item); else setSelectedItemId(""); }}><option value="">Select worker</option>{detail.data.items.map((item) => <option key={item.id} value={item.id}>{item.workerName}</option>)}</Select></ValidatedField>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub">Adjustment<Input disabled={busy || Boolean(paymentAttempt)} invalid={Boolean(adjustmentError)} aria-describedby={adjustmentError ? "wage-adjustment-error" : undefined} type="number" step="0.01" value={adjustmentAmount} onChange={(event) => setAdjustmentAmount(event.target.value)} /></ValidatedField>
                     {adjustmentError ? <p role="alert" id="wage-adjustment-error" className="text-danger">{adjustmentError}</p> : null}
-                    <label className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Notes<Input maxLength={500} disabled={busy || Boolean(paymentAttempt)} value={itemNotes} onChange={(event) => setItemNotes(event.target.value)} placeholder="Adjustment note" /></label>
+                    <ValidatedField className="grid gap-1 text-sm font-semibold text-sub sm:col-span-2">Notes<Input maxLength={500} disabled={busy || Boolean(paymentAttempt)} value={itemNotes} onChange={(event) => setItemNotes(event.target.value)} placeholder="Adjustment note" /></ValidatedField>
                   </div>
           </> : null}
         </Dialog>
 
         <Dialog open={cancelOpen} onOpenChange={closeCancel} title="Cancel wage batch" description="This keeps the wage snapshot, reverses Kharchi deductions, and allows the period to be generated again. Any recorded payment prevents cancellation.">
-          <label className="grid gap-2 text-base">Reason *<Input autoFocus aria-describedby="wage-cancel-reason-help" minLength={2} maxLength={500} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} /></label>
+          <ValidatedField className="grid gap-2 text-base">Reason *<Input required autoFocus aria-describedby="wage-cancel-reason-help" minLength={2} maxLength={500} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} /></ValidatedField>
           <p id="wage-cancel-reason-help" className="mt-2 text-sm text-sub">Enter 2 to 500 characters explaining the cancellation.</p>
           {failure ? <p role="alert" className="text-danger">{failure}</p> : null}
           <Button className="mt-4" variant="danger" disabled={busy || reason.trim().length < 2 || hasPayments || cancelled} onClick={() => void perform(async () => { await cancelBatch.mutateAsync({ batchId: selectedBatchId!, reason: reason.trim() }); setCancelOpen(false); setSelectedItemId(""); setMessage("Wage batch cancelled. Kharchi deductions reversed."); })}>{busy ? "Cancelling" : "Confirm cancellation"}</Button>

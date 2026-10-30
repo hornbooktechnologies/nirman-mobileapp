@@ -96,8 +96,16 @@ export class WorkersController {
     @Param("workerId", new ParseUUIDPipe()) workerId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const data = await this.workersService.findPrimaryProjectPeriods(organizationId, workerId, user);
-    return { success: true, message: "Worker primary Project periods retrieved", data };
+    const data = await this.workersService.findPrimaryProjectPeriods(
+      organizationId,
+      workerId,
+      user,
+    );
+    return {
+      success: true,
+      message: "Worker primary Project periods retrieved",
+      data,
+    };
   }
 
   @Post("workers/:workerId/primary-project-periods")
@@ -107,8 +115,17 @@ export class WorkersController {
     @Body() dto: CreatePrimaryProjectPeriodDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const data = await this.workersService.createPrimaryProjectPeriod(organizationId, workerId, dto, user);
-    return { success: true, message: "Worker primary Project period created", data };
+    const data = await this.workersService.createPrimaryProjectPeriod(
+      organizationId,
+      workerId,
+      dto,
+      user,
+    );
+    return {
+      success: true,
+      message: "Worker primary Project period created",
+      data,
+    };
   }
 
   @Patch("workers/:workerId/primary-project-periods/:periodId")
@@ -119,8 +136,18 @@ export class WorkersController {
     @Body() dto: UpdatePrimaryProjectPeriodDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const data = await this.workersService.updatePrimaryProjectPeriod(organizationId, workerId, periodId, dto, user);
-    return { success: true, message: "Worker primary Project period updated", data };
+    const data = await this.workersService.updatePrimaryProjectPeriod(
+      organizationId,
+      workerId,
+      periodId,
+      dto,
+      user,
+    );
+    return {
+      success: true,
+      message: "Worker primary Project period updated",
+      data,
+    };
   }
 
   @Post("workers/:workerId/primary-project-periods/:periodId/end")
@@ -132,8 +159,18 @@ export class WorkersController {
     @Body() dto: EndPrimaryProjectPeriodDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const data = await this.workersService.endPrimaryProjectPeriod(organizationId, workerId, periodId, dto, user);
-    return { success: true, message: "Worker primary Project period ended", data };
+    const data = await this.workersService.endPrimaryProjectPeriod(
+      organizationId,
+      workerId,
+      periodId,
+      dto,
+      user,
+    );
+    return {
+      success: true,
+      message: "Worker primary Project period ended",
+      data,
+    };
   }
 
   @Patch("workers/:workerId")

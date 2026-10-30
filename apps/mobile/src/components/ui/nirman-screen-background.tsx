@@ -1,3 +1,4 @@
+import { FormScope } from './form-scope';
 import { memo, useState, type ReactNode, type Ref } from 'react';
 import {
   Image,
@@ -59,7 +60,7 @@ export function NirmanScreenBackground({
   const contentInset = {
     paddingBottom: footer ? mobileTheme.spacing[2] : mobileTheme.spacing[8],
   };
-  return (
+  return (<FormScope>
     <View style={styles.root} {...props}>
       <BackgroundImage />
       {variant === 'dashboard' ? (
@@ -98,6 +99,7 @@ export function NirmanScreenBackground({
         </View>
       ) : null}
     </View>
+    </FormScope>
   );
 }
 

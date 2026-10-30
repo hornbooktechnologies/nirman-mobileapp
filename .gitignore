@@ -162,3 +162,7 @@ dist
 .next
 
 .next-dev/
+
+# Isolated form-validation browser profile
+/.tmp/form-validation-browser/
+/.tmp/production-audit-*/

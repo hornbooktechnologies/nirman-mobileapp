@@ -4,7 +4,7 @@ import {
   IsString,
   MaxLength,
   ValidateIf,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdateGeneralDto {
   @IsOptional()
@@ -33,7 +33,7 @@ export class UpdateGeneralDto {
   favicon?: string;
 
   @IsOptional()
-  @ValidateIf((_object, value) => value !== '')
+  @ValidateIf((_object, value) => value !== "")
   @IsEmail()
   supportEmail?: string;
 
@@ -75,7 +75,7 @@ export class UpdateEmailSettingsDto {
   smtpEncryption?: string;
 
   @IsOptional()
-  @ValidateIf((_object, value) => value !== '')
+  @ValidateIf((_object, value) => value !== "")
   @IsEmail()
   mailFromAddress?: string;
 

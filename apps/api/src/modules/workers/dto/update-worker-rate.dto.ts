@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
 import {
   IsDateString,
   IsNumber,
@@ -6,7 +6,7 @@ import {
   IsString,
   MaxLength,
   Min,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdateWorkerRateDto {
   @Type(() => Number)

@@ -1,8 +1,8 @@
-import type { Pool, PoolConnection } from 'mysql2/promise';
+import type { Pool, PoolConnection } from "mysql2/promise";
 
-export type MigrationStatus = 'applied' | 'failed';
+export type MigrationStatus = "applied" | "failed";
 
-export type MigrationTargetSafety = 'local' | 'remote';
+export type MigrationTargetSafety = "local" | "remote";
 
 export interface MigrationTarget {
   protocol: string;
@@ -48,7 +48,7 @@ export interface MigrationStatusReport {
   }>;
   missingLocalMigrations: AppliedMigration[];
   failedMigrations: AppliedMigration[];
-  state: 'current' | 'pending' | 'drifted' | 'blocked';
+  state: "current" | "pending" | "drifted" | "blocked";
 }
 
 export interface MigrationRunnerOptions {

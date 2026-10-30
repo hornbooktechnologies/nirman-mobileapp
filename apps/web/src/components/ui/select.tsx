@@ -1,5 +1,7 @@
+"use client";
 import { forwardRef, type SelectHTMLAttributes } from "react";
 import { ChevronDown } from "lucide-react";
+import { useNativeFieldError } from "@/lib/forms/validation-context";
 import { cn } from "@/lib/utils";
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -7,17 +9,21 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, invalid = false, children, ...props }, ref) => (
+  ({ className, invalid = false, children, ...props }, ref) => {
+    const fieldError = useNativeFieldError(props.id);
+    const hasError = invalid || Boolean(fieldError);
+    return (
     <span className="relative block min-w-0">
       <select
         ref={ref}
-        aria-invalid={invalid}
-        className={cn(
+          className={cn(
           "min-h-11 sm:min-h-10 w-full min-w-0 cursor-pointer appearance-none rounded-inner border border-hairline bg-surface py-2 pl-3 pr-8 text-base sm:text-sm leading-6 text-body shadow-pill outline-none transition-colors duration-150 motion-reduce:transition-none focus:border-lime focus:ring-2 focus:ring-lime/30 disabled:cursor-not-allowed disabled:bg-sunken/60 disabled:opacity-60",
-          invalid && "border-danger text-danger focus:border-danger focus:ring-danger/30",
+          hasError && "border-danger text-danger focus:border-danger focus:ring-danger/30",
           className,
         )}
         {...props}
+      aria-invalid={hasError || props["aria-invalid"]}
+      aria-describedby={[props["aria-describedby"], fieldError?.errorId].filter(Boolean).join(" ") || undefined}
       >
         {children}
       </select>
@@ -28,7 +34,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         aria-hidden="true"
       />
     </span>
-  ),
+  );
+  },
 );
 
 Select.displayName = "Select";

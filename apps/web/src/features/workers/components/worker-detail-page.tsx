@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 
 import { workerRate, workerToday } from "../worker-utils";
 import { Ban, Trash2 } from "lucide-react";
@@ -260,6 +261,7 @@ function WorkerDetail({
                   key={`${organizationId}:${workerId}:${searchParams.get("projectId")}:${searchParams.get("startDate")}:${searchParams.get("endDate")}`}
                   organizationId={organizationId}
                   workerId={workerId}
+                  workerName={worker.data.name}
                   assignments={worker.data.assignments.filter((assignment) =>
                     access.data?.projects.some(
                       (project) =>
@@ -429,7 +431,7 @@ function WorkerDetail({
                     title="Assignments and rates"
                     description="Choose a project to use its existing assignment and effective-date rate workflow."
                   />
-                  <label className="grid gap-1 text-[13px] font-medium">
+                  <ValidatedField className="grid gap-1 text-[13px] font-medium">
                     Project
                     <Select
                       value={managementProject?.id ?? ""}
@@ -450,7 +452,7 @@ function WorkerDetail({
                         </option>
                       ))}
                     </Select>
-                  </label>
+                  </ValidatedField>
                 </Card>
                 {access.isPending ? (
                   <LoadingState label="Checking assignment access" />
@@ -665,7 +667,7 @@ function WorkerDetail({
           />
         }
       >
-        <label className="grid gap-1">
+        <ValidatedField className="grid gap-1">
           Reason
           <Input
             maxLength={500}
@@ -673,7 +675,7 @@ function WorkerDetail({
             value={deactivateReason}
             onChange={(event) => setDeactivateReason(event.target.value)}
           />
-        </label>
+        </ValidatedField>
       </Dialog>
 
       <Dialog

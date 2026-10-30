@@ -95,5 +95,11 @@
   },
   "success": {
     "saved": "Progress update saved and added to history."
+  },
+  "historyFilters": {
+    "from": "History from",
+    "to": "History to",
+    "invalid": "End date must be on or after start date.",
+    "clear": "Clear history dates"
   }
 }

@@ -1,3 +1,4 @@
+import { FormScope } from './form-scope';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Platform, ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
 
@@ -9,7 +10,7 @@ type ScreenProps = ViewProps & {
 };
 
 export function Screen({ scroll = false, padded = true, style, children, ...props }: ScreenProps) {
-  return (
+  return (<FormScope>
     <SafeAreaView style={styles.safeArea} {...props}>
       {scroll ? (
         <ScrollView
@@ -24,6 +25,7 @@ export function Screen({ scroll = false, padded = true, style, children, ...prop
         <View style={[styles.content, padded ? styles.padded : null, style]}>{children}</View>
       )}
     </SafeAreaView>
+    </FormScope>
   );
 }
 

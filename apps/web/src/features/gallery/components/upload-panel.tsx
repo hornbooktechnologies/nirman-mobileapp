@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 /* eslint-disable @next/next/no-img-element -- Local file previews use revocable Blob URLs. */
 import { useEffect, useRef, useState } from "react";
@@ -93,14 +94,14 @@ export function UploadPanel({ context: c, uploaded }: { context: GalleryContext;
     {error && !open && <div><p role="alert">{error}</p><RefreshButton variant="outline" onRefresh={() => { setError(""); return refresh().catch(e => setError(e.message)); }}>Reload queue</RefreshButton></div>}
     {queue.length > 0 && <Card><h2 className="text-lg font-semibold">Upload queue · {queue.length}</h2><p className="text-sm text-sub">Stored on this browser until uploaded or signed out. Queued photos are not yet published.</p><ul className="mt-3 space-y-3">{queue.map(row => <li key={row.entryId} className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3"><div className="min-w-0"><p className="break-all font-semibold">{row.fileName}</p><p className="text-sm">{busy === row.entryId ? "Uploading…" : label(row.state)} · {row.attempts} attempts</p>{row.lastError && <p className="text-sm" role="alert">{row.lastError}</p>}</div><Button variant="outline" disabled={!permitted || Boolean(busy)} onClick={() => void send(row)}>{busy === row.entryId ? "Uploading…" : "Retry upload"}</Button></li>)}</ul></Card>}
     <Dialog open={open} title="Add site photo" description="JPEG, PNG or WebP, up to 10 MiB. Photos publish directly after upload." onOpenChange={close}>
-      <form onSubmit={enqueue} className="space-y-4 text-base">
-        <label className="block">Photo *<Input required={!file} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const selected = e.target.files?.[0]; if (selected) { const invalid = fileError(selected); setError(invalid); if (!invalid) setFile(selected); else { setFile(null); e.target.value = ""; } } }} /></label>
+      <ValidatedForm onSubmit={enqueue} className="space-y-4 text-base">
+        <ValidatedField className="block">Photo *<Input required={!file} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const selected = e.target.files?.[0]; if (selected) { const invalid = fileError(selected); setError(invalid); if (!invalid) setFile(selected); else { setFile(null); e.target.value = ""; } } }} /></ValidatedField>
         {file && preview && <img src={preview} alt="Selected photo preview" className="max-h-64 w-full rounded-card object-contain" />}
-        <label className="block">Category *<Select value={category} onChange={e => setCategory(e.target.value as GalleryCategory)}>{GALLERY_CATEGORIES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></label>
-        <label className="block">Stage<Select value={stage} onChange={e => setStage(e.target.value)}><option value="">No stage</option>{PROJECT_PROGRESS_STAGES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></label>
-        <label className="block">Caption<textarea className="w-full rounded-card border border-hairline bg-surface p-3" maxLength={1000} value={caption} onChange={e => setCaption(e.target.value)} /></label>
+        <ValidatedField className="block">Category *<Select required value={category} onChange={e => setCategory(e.target.value as GalleryCategory)}>{GALLERY_CATEGORIES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></ValidatedField>
+        <ValidatedField className="block">Stage<Select value={stage} onChange={e => setStage(e.target.value)}><option value="">No stage</option>{PROJECT_PROGRESS_STAGES.map(v => <option key={v} value={v}>{label(v)}</option>)}</Select></ValidatedField>
+        <ValidatedField className="block">Caption<textarea className="w-full rounded-card border border-hairline bg-surface p-3" maxLength={1000} value={caption} onChange={e => setCaption(e.target.value)} /></ValidatedField>
         {error && <p role="alert">{error}</p>}<Button variant="primary" type="submit" disabled={!file || saving || Boolean(busy)}>{saving ? "Saving photo…" : "Save and upload"}</Button>
-      </form>
+      </ValidatedForm>
     </Dialog>
   </section>;
 }

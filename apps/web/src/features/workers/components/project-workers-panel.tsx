@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { SearchInput } from "@/components/ui/search-input";
 
 import Link from "next/link";
@@ -575,14 +576,14 @@ function ProjectWorkersContent({
             setRateWorker(null);
         }}
       >
-        <form className="space-y-4" onSubmit={submitRate}>
+        <ValidatedForm className="space-y-4" onSubmit={submitRate}>
           <fieldset className="space-y-4" disabled={updateRate.isPending}>
             <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-sm text-body">
               Current Project rate:{" "}
               {workerRate(rateWorker?.currentAssignment.dailyRate)}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
+              <ValidatedField className="space-y-1">
                 <span className="text-base font-medium text-body">
                   New daily rate *
                 </span>
@@ -597,8 +598,8 @@ function ProjectWorkersContent({
                   }
                   required
                 />
-              </label>
-              <label className="space-y-1">
+              </ValidatedField>
+              <ValidatedField className="space-y-1">
                 <span className="text-base font-medium text-body">
                   Effective date *
                 </span>
@@ -621,9 +622,9 @@ function ProjectWorkersContent({
                   }
                   required
                 />
-              </label>
+              </ValidatedField>
             </div>
-            <label className="space-y-1">
+            <ValidatedField className="space-y-1">
               <span className="text-base font-medium text-body">Reason</span>
               <Input
                 maxLength={500}
@@ -632,7 +633,7 @@ function ProjectWorkersContent({
                   setRateForm({ ...rateForm, reason: event.target.value })
                 }
               />
-            </label>
+            </ValidatedField>
             {actionError ? (
               <p className="text-sm text-red-600" role="alert">
                 {actionError}
@@ -655,7 +656,7 @@ function ProjectWorkersContent({
               </Button>
             </div>
           </fieldset>
-        </form>
+        </ValidatedForm>
       </Dialog>
 
       <Dialog
@@ -671,7 +672,7 @@ function ProjectWorkersContent({
             setAssigningWorker(null);
         }}
       >
-        <form className="space-y-4" onSubmit={submitAssignment}>
+        <ValidatedForm className="space-y-4" onSubmit={submitAssignment}>
           <fieldset className="space-y-4" disabled={assignWorker.isPending}>
             {actionError ? (
               <p role="alert" className="text-danger">
@@ -684,7 +685,7 @@ function ProjectWorkersContent({
                 Daily rate: {workerRate(assigningWorker?.baseDailyRate)}
               </span>
             </div>
-            <label className="space-y-1">
+            <ValidatedField className="space-y-1">
               <span className="text-base font-medium text-body">
                 Assignment start date *
               </span>
@@ -694,7 +695,7 @@ function ProjectWorkersContent({
                 onChange={(event) => setAssignStartsOn(event.target.value)}
                 required
               />
-            </label>
+            </ValidatedField>
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -709,7 +710,7 @@ function ProjectWorkersContent({
               </Button>
             </div>
           </fieldset>
-        </form>
+        </ValidatedForm>
       </Dialog>
 
       <Dialog
@@ -725,7 +726,7 @@ function ProjectWorkersContent({
             setEditingWorker(null);
         }}
       >
-        <form className="space-y-3" onSubmit={submitEdit}>
+        <ValidatedForm className="space-y-3" onSubmit={submitEdit}>
           <fieldset className="space-y-4" disabled={updateAssignment.isPending}>
             {actionError ? (
               <p role="alert" className="text-danger">
@@ -733,7 +734,7 @@ function ProjectWorkersContent({
               </p>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
+              <ValidatedField className="space-y-1">
                 <span className="text-base font-medium text-body">
                   Start date *
                 </span>
@@ -745,8 +746,8 @@ function ProjectWorkersContent({
                   }
                   required
                 />
-              </label>
-              <label className="space-y-1">
+              </ValidatedField>
+              <ValidatedField className="space-y-1">
                 <span className="text-base font-medium text-body">
                   End date
                 </span>
@@ -758,7 +759,7 @@ function ProjectWorkersContent({
                     setEditForm({ ...editForm, endsOn: event.target.value })
                   }
                 />
-              </label>
+              </ValidatedField>
             </div>
             <div className="flex justify-end gap-2">
               <Button
@@ -774,7 +775,7 @@ function ProjectWorkersContent({
               </Button>
             </div>
           </fieldset>
-        </form>
+        </ValidatedForm>
       </Dialog>
 
       <Dialog
@@ -848,7 +849,7 @@ function ProjectWorkersContent({
           disabled={endAssignment.isPending}
           className="grid gap-3 sm:grid-cols-2"
         >
-          <label className="grid gap-1">
+          <ValidatedField className="grid gap-1">
             End date *
             <Input
               type="date"
@@ -861,8 +862,8 @@ function ProjectWorkersContent({
               )}
               required
             />
-          </label>
-          <label className="grid gap-1">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1">
             Reason
             <Input
               maxLength={500}
@@ -872,7 +873,7 @@ function ProjectWorkersContent({
                 setEndForm({ ...endForm, reason: event.target.value })
               }
             />
-          </label>
+          </ValidatedField>
         </fieldset>
       </Dialog>
     </Card>

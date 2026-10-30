@@ -1,4 +1,4 @@
-import type { DbRow } from '../../database/database.types';
+import type { DbRow } from "../../database/database.types";
 
 export interface RoleEntity {
   id: string;

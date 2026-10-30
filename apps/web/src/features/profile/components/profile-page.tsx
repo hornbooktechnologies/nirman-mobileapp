@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { ProfilePhotoEditor } from "./profile-photo-editor";
 
 import { FormEvent, useState } from "react";
@@ -35,7 +36,7 @@ export function ProfilePage() {
         </Card>
       ) : profile.data ? (
         <ProfileEditor
-          key={`${profile.data.id}:${profile.data.name}:${profile.data.phone ?? ""}`}
+          key={profile.data.id}
           profile={profile.data}
         />
       ) : null}
@@ -57,7 +58,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
 
   function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    updateProfile.mutate({ name, phone: phone || null });
+    if (updateProfile.isPending) return;
+    updateProfile.mutate({ name: name.trim(), phone: phone.trim() || null });
   }
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,30 +84,36 @@ function ProfileEditor({ profile }: { profile: Profile }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Card className="h-full">
+      <Card className="flex flex-col">
         <ProfilePhotoEditor avatar={profile.avatar} />
-        <form className="flex h-full flex-col" onSubmit={handleProfileSubmit}>
+        <ValidatedForm className="flex flex-1 flex-col" onSubmit={handleProfileSubmit}>
           <SectionHeader
             title="Personal information"
             description="Update the name and phone number shown on your account."
           />
           <div className="mt-5 space-y-4">
-            <label className="space-y-1.5">
+            <ValidatedField className="block space-y-1.5">
               <span className="text-[12px] font-medium text-sub">Name</span>
               <Input
+                required
+                maxLength={100}
+                autoComplete="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
-            </label>
-            <label className="space-y-1.5">
+            </ValidatedField>
+            <ValidatedField className="block space-y-1.5">
               <span className="text-[12px] font-medium text-sub">Phone</span>
               <Input
+                type="tel"
+                maxLength={20}
+                autoComplete="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
               />
-            </label>
+            </ValidatedField>
           </div>
-          <div className="mt-6 flex justify-end border-t border-hairline/60 pt-4 lg:mt-auto">
+          <div className="mt-6 flex shrink-0 justify-end border-t border-hairline/60 pt-4">
             <Button
               className="w-full sm:w-auto sm:min-w-[148px]"
               type="submit"
@@ -126,7 +134,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 : "Unable to save profile."}
             </p>
           )}
-        </form>
+        </ValidatedForm>
       </Card>
 
       <Card className="h-full">
@@ -151,11 +159,11 @@ function ProfileEditor({ profile }: { profile: Profile }) {
             Changing your password signs you out. Sign in again with the new
             password.
           </p>
-          <form
+          <ValidatedForm
             className="mt-6 flex flex-1 flex-col"
             onSubmit={handlePasswordSubmit}
           >
-            <label className="mb-3 block space-y-1.5">
+            <ValidatedField className="mb-3 block space-y-1.5">
               <span className="text-[12px] font-medium text-sub">
                 Current password
               </span>
@@ -164,8 +172,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
               />
-            </label>
-            <label className="mb-3 block space-y-1.5">
+            </ValidatedField>
+            <ValidatedField className="mb-3 block space-y-1.5">
               <span className="text-[12px] font-medium text-sub">
                 New password
               </span>
@@ -175,8 +183,8 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 onChange={(event) => setNewPassword(event.target.value)}
                 minLength={8}
               />
-            </label>
-            <label className="mb-3 block space-y-1.5">
+            </ValidatedField>
+            <ValidatedField className="mb-3 block space-y-1.5">
               <span className="text-[12px] font-medium text-sub">
                 Confirm password
               </span>
@@ -186,7 +194,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 minLength={8}
               />
-            </label>
+            </ValidatedField>
             {passwordError ? (
               <p className="mb-3 text-[12px] text-danger" role="alert">
                 {passwordError}
@@ -201,7 +209,7 @@ function ProfileEditor({ profile }: { profile: Profile }) {
                 {changePassword.isPending ? "Updating" : "Change Password"}
               </Button>
             </div>
-          </form>
+          </ValidatedForm>
         </div>
       </Card>
     </div>

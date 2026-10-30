@@ -70,7 +70,7 @@ export function MaterialRequestSheet({ visible, organizationId, projectId, acces
     ...members.map((member) => ({ value: member.memberId, label: member.user.name, description: member.roleLabel ?? member.role.name, searchTerms: [member.user.email ?? '', member.user.phone ?? ''] })),
   ], [members, t]);
 
-  async function save() {
+  function validateFields() {
     const nextErrors: FieldErrors = {};
     const parsedQuantity = Number(quantity);
     const parsedCost = estimatedCost ? Number(estimatedCost) : null;
@@ -80,6 +80,12 @@ export function MaterialRequestSheet({ visible, organizationId, projectId, acces
     if (!requestedOn) nextErrors.requestedOn = tCommon('validation.required', { field: t('fields.requestedOn') });
     if (requiredByDate && requiredByDate < requestedOn) nextErrors.requiredByDate = t('validation.requiredDate');
     if (parsedCost !== null && (!Number.isFinite(parsedCost) || parsedCost < 0)) nextErrors.estimatedCost = t('validation.cost');
+    return nextErrors;
+  }
+  async function save() {
+    const nextErrors = validateFields();
+    const parsedQuantity = Number(quantity);
+    const parsedCost = estimatedCost ? Number(estimatedCost) : null;
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length) { setError(t('validation.form')); return; }
     setWorking(true); setError('');
@@ -98,16 +104,16 @@ export function MaterialRequestSheet({ visible, organizationId, projectId, acces
     } finally { setWorking(false); }
   }
 
-  return <BottomSheet visible={visible} title={detail ? t('form.editTitle') : t('form.createTitle')} description={t('form.description')} scroll showCloseButton={false} onClose={onClose} footer={<View style={styles.footer}><Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" disabled={working} onPress={onClose} /><Button style={styles.footerButton} label={working ? t('loading.saving') : t('form.save')} disabled={working} onPress={() => void save()} /></View>}>
+  return <BottomSheet visible={visible} title={detail ? t('form.editTitle') : t('form.createTitle')} description={t('form.description')} scroll showCloseButton={false} onClose={onClose} footer={<View style={styles.footer}><Button style={styles.footerButton} label={tCommon('actions.cancel')} variant="secondary" disabled={working} onPress={onClose} /><Button validateForm style={styles.footerButton} label={working ? t('loading.saving') : t('form.save')} disabled={working} onPress={() => void save()} /></View>}>
     <FormError message={error} />
-    <FormField label={t('fields.materialName')} required error={fieldErrors.materialName}><Input autoCapitalize="words" invalid={Boolean(fieldErrors.materialName)} maxLength={160} value={materialName} onChangeText={setMaterialName} /></FormField>
+    <FormField label={t('fields.materialName')} required error={fieldErrors.materialName} validate={() => validateFields().materialName}><Input autoCapitalize="words" invalid={Boolean(fieldErrors.materialName)} maxLength={160} value={materialName} onChangeText={setMaterialName} /></FormField>
     <FormField label={t('fields.category')}><Input maxLength={120} value={category} onChangeText={setCategory} /></FormField>
-    <FormField label={t('fields.quantity')} required error={fieldErrors.quantity}><Input invalid={Boolean(fieldErrors.quantity)} keyboardType="decimal-pad" value={quantity} onChangeText={(value) => setQuantity(value.replace(/[^0-9.]/g, ''))} /></FormField>
+    <FormField label={t('fields.quantity')} required error={fieldErrors.quantity} validate={() => validateFields().quantity}><Input invalid={Boolean(fieldErrors.quantity)} keyboardType="decimal-pad" value={quantity} onChangeText={(value) => setQuantity(value.replace(/[^0-9.]/g, ''))} /></FormField>
     <FormField label={t('fields.unit')} required><View style={styles.choices}>{MATERIAL_UNITS.map((value) => <FilterOption key={value} label={t(`unit.${value}`)} selected={unit === value} onPress={() => setUnit(value)} />)}</View></FormField>
-    {unit === 'OTHER' ? <FormField label={t('fields.customUnit')} required error={fieldErrors.customUnit}><Input invalid={Boolean(fieldErrors.customUnit)} maxLength={80} value={customUnit} onChangeText={setCustomUnit} /></FormField> : null}
-    <FormField label={t('fields.requestedOn')} required error={fieldErrors.requestedOn}><DateInput allowClear={false} accessibilityLabel={t('fields.requestedOn')} invalid={Boolean(fieldErrors.requestedOn)} value={requestedOn} onChangeText={setRequestedOn} /></FormField>
-    <FormField label={t('fields.requiredByDate')} error={fieldErrors.requiredByDate}><DateInput accessibilityLabel={t('fields.requiredByDate')} invalid={Boolean(fieldErrors.requiredByDate)} minimumDate={requestedOn ? new Date(`${requestedOn}T12:00:00`) : undefined} value={requiredByDate} onChangeText={setRequiredByDate} /></FormField>
-    <FormField label={t('fields.estimatedCost')} error={fieldErrors.estimatedCost}><Input invalid={Boolean(fieldErrors.estimatedCost)} keyboardType="decimal-pad" value={estimatedCost} onChangeText={(value) => setEstimatedCost(value.replace(/[^0-9.]/g, ''))} /></FormField>
+    {unit === 'OTHER' ? <FormField label={t('fields.customUnit')} required error={fieldErrors.customUnit} validate={() => validateFields().customUnit}><Input invalid={Boolean(fieldErrors.customUnit)} maxLength={80} value={customUnit} onChangeText={setCustomUnit} /></FormField> : null}
+    <FormField label={t('fields.requestedOn')} required error={fieldErrors.requestedOn} validate={() => validateFields().requestedOn}><DateInput allowClear={false} accessibilityLabel={t('fields.requestedOn')} invalid={Boolean(fieldErrors.requestedOn)} value={requestedOn} onChangeText={setRequestedOn} /></FormField>
+    <FormField label={t('fields.requiredByDate')} error={fieldErrors.requiredByDate} validate={() => validateFields().requiredByDate}><DateInput accessibilityLabel={t('fields.requiredByDate')} invalid={Boolean(fieldErrors.requiredByDate)} minimumDate={requestedOn ? new Date(`${requestedOn}T12:00:00`) : undefined} value={requiredByDate} onChangeText={setRequiredByDate} /></FormField>
+    <FormField label={t('fields.estimatedCost')} error={fieldErrors.estimatedCost} validate={() => validateFields().estimatedCost}><Input invalid={Boolean(fieldErrors.estimatedCost)} keyboardType="decimal-pad" value={estimatedCost} onChangeText={(value) => setEstimatedCost(value.replace(/[^0-9.]/g, ''))} /></FormField>
     {canReadProjectMembers ? <FormField label={t('fields.responsibleMember')}><SearchableSelect value={responsibleMemberId ?? ''} options={responsibleOptions} placeholder={t('form.noResponsible')} title={t('fields.responsibleMember')} searchPlaceholder={t('form.searchResponsible')} searchAccessibilityLabel={t('form.searchResponsible')} emptyTitle={t('form.noMatchingResponsible')} emptyDescription={t('form.noMatchingResponsibleDescription')} accessibilityLabel={t('fields.responsibleMember')} onChange={(value) => setResponsibleMemberId(value || null)} /></FormField> : null}
     <FormField label={t('fields.notes')}><Input maxLength={2000} multiline numberOfLines={4} style={styles.multiline} value={notes} onChangeText={setNotes} /></FormField>
   </BottomSheet>;

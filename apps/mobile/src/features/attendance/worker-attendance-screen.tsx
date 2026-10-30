@@ -1,3 +1,5 @@
+import { attendancePeriodIssue } from '@nirman-app/shared';
+import { AttendanceHistoryCorrection } from './attendance-history-correction';
 import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
 import type {
@@ -13,6 +15,7 @@ import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import {
   AppText,
   Badge,
+  Button,
   Card,
   CompactScreenHeader,
   DateInput,
@@ -31,15 +34,19 @@ import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import { AttendanceTotalsTable } from "./attendance-ui";
-import { monthRange, monthValue } from "./date-utils";
+import { monthRange, todayDateOnly } from "./date-utils";
 import { fetchWorkerAttendancePeriod } from "./services";
 
 const ExceptionCard = memo(function ExceptionCard({
   exception,
   locale,
+  onEdit,
+  onRestore,
 }: {
   exception: AttendanceException;
   locale: string;
+  onEdit?: () => void;
+  onRestore?: () => void;
 }) {
   const { t } = useTranslation("attendance");
   const date = new Intl.DateTimeFormat(locale, { dateStyle: "full" }).format(
@@ -48,7 +55,7 @@ const ExceptionCard = memo(function ExceptionCard({
 
   return (
     <Card
-      accessible
+      accessible={false}
       accessibilityLabel={t("history.exceptionA11y", {
         date,
         duration: t(`durations.${exception.duration}`),
@@ -88,6 +95,7 @@ const ExceptionCard = memo(function ExceptionCard({
           </AppText>
         </View>
       </View>
+      {onEdit && onRestore ? <View style={{ flexDirection: "row", flexWrap: "wrap", gap: mobileTheme.spacing[2] }}><Button label={t("actions.editAttendance")} fullWidth={false} variant="secondary" onPress={onEdit} /><Button label={t("actions.restorePresent")} fullWidth={false} variant="danger" onPress={onRestore} /></View> : null}
     </Card>
   );
 });
@@ -113,13 +121,15 @@ export function WorkerAttendanceScreen() {
   const projectId = activeProject?.id ?? null;
   const workerId = params.workerId ?? "";
   const canRead = permissions.includes("attendance:read");
-  const defaultRange = useMemo(() => monthRange(monthValue()), []);
+  const workingTimezone = session?.activeOrganization?.workingTimezone ?? session?.activeOrganization?.timezone;
+  const defaultRange = useMemo(() => monthRange(todayDateOnly(workingTimezone).slice(0, 7)), [workingTimezone]);
   const [startDate, setStartDate] = useState(
     params.startDate ?? defaultRange.startDate,
   );
   const [endDate, setEndDate] = useState(
     params.endDate ?? defaultRange.endDate,
   );
+  const [correction, setCorrection] = useState<{ exception: AttendanceException; mode: "edit" | "restore"; projectId: string | null } | null>(null);
   const [period, setPeriod] = useState<WorkerAttendancePeriodResponse | null>(
     null,
   );
@@ -138,7 +148,7 @@ export function WorkerAttendanceScreen() {
     setIsRefreshing(false);
   }, []);
   const deepLinkHandled = useRef<string | null>(null);
-  const invalidRange = startDate > endDate;
+  const invalidRange = Boolean(attendancePeriodIssue(startDate, endDate));
   const requiredParamsMissing = !params.workerId || !params.projectId;
   const requestedProjectAccessible = Boolean(
     params.projectId &&
@@ -323,7 +333,7 @@ export function WorkerAttendanceScreen() {
           <FormField
             label={t("period.endDate")}
             required
-            error={invalidRange ? t("period.invalidRange") : undefined}
+            error={invalidRange ? t("period.invalidPeriod") : undefined}
             style={styles.dateField}
           >
             <DateInput
@@ -391,7 +401,7 @@ export function WorkerAttendanceScreen() {
         data={exceptions}
         keyExtractor={(exception) => exception.id}
         renderItem={({ item }) => (
-          <ExceptionCard exception={item} locale={locale} />
+          <ExceptionCard exception={item} locale={locale} onEdit={permissions.includes("attendance:update") ? () => setCorrection({ exception: item, mode: "edit", projectId }) : undefined} onRestore={permissions.includes("attendance:update") ? () => setCorrection({ exception: item, mode: "restore", projectId }) : undefined} />
         )}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -413,6 +423,7 @@ export function WorkerAttendanceScreen() {
         showsVerticalScrollIndicator={false}
         onRefresh={() => load(true)}
       />
+      {correction && correction.projectId === projectId && session?.activeOrganization?.id === correction.exception.organizationId && canRead ? <AttendanceHistoryCorrection key={`${projectId}:${correction.exception.id}:${correction.mode}`} exception={correction.exception} mode={correction.mode} worker={{ id: workerId, name: params.workerName ?? t("history.workerFallback"), workerCode: params.workerCode ?? "", trade: params.workerTrade ?? "" }} onClose={() => setCorrection(null)} onSaved={() => load(true)} /> : null}
     </NirmanScreenBackground>
   );
 }

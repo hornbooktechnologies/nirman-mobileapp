@@ -63,7 +63,7 @@ import {
   isValidNonNegativeNumber,
   isValidPhone,
 } from "../../lib/validation";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getActiveProjectPermissions, getRouteProject } from "../../lib/auth";
 import { useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { ProjectContextCard } from "../projects";
@@ -129,15 +129,15 @@ function makeBookingIdempotencyKey(leadId: string) {
 }
 
 export function SalesLeadScreen() {
-  const { leadId } = useLocalSearchParams<{ leadId?: string }>();
+  const { leadId, projectId: requestedProjectId } = useLocalSearchParams<{ leadId?: string; projectId?: string }>();
   const { t, i18n } = useTranslation("sales");
   const { t: tCommon } = useTranslation("common");
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const project = requestedProjectId ? getRouteProject(session, requestedProjectId) : getActiveProject(session);
   const activeOrganizationId = session?.activeOrganization?.id;
   const activeProjectId = project?.id;
   const accessToken = session?.accessToken;
-  const permissions = getActiveProjectPermissions(session);
+  const permissions = requestedProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const language = (i18n.resolvedLanguage ?? "en") as "en" | "hi" | "gu";
   const timezone =
     session?.activeOrganization?.workingTimezone ||
@@ -1989,7 +1989,7 @@ function SheetFooter({
         variant="secondary"
         onPress={onCancel}
       />
-      <Button
+      <Button validateForm
         style={styles.footerButton}
         disabled={working}
         label={save}

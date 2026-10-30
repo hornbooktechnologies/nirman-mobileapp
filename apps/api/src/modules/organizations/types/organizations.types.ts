@@ -3,8 +3,8 @@ import type {
   OrganizationMemberStatus,
   OrganizationStatus,
   OrganizationType,
-} from '@nirman-app/shared';
-import type { DbRow } from '../../../database/database.types';
+} from "@nirman-app/shared";
+import type { DbRow } from "../../../database/database.types";
 
 export interface OrganizationEntity {
   id: string;

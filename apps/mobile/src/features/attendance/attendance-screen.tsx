@@ -1,3 +1,5 @@
+import { CsvExportButton } from "../../components/ui/csv-export-button";
+import { attendancePeriodIssue } from '@nirman-app/shared';
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import { AttendanceReadRequest } from "./attendance-read-request";
 import { RefreshFlatList } from "../../components/ui/refresh-control";
@@ -35,8 +37,8 @@ import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import { AttendanceTotalsTable, formatAttendanceNumber } from "./attendance-ui";
-import { monthRange, monthValue, todayDateOnly } from "./date-utils";
-import { exportAttendancePdf, fetchAttendanceSummary } from "./services";
+import { monthRange, todayDateOnly } from "./date-utils";
+import { exportAttendanceCsv, exportAttendancePdf, fetchAttendanceSummary } from "./services";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
 
 const PAGE_SIZE = 20;
@@ -96,14 +98,14 @@ export function AttendanceScreen() {
     permissions.includes("attendance:mark") ||
     permissions.includes("attendance:update");
   const canViewCalendar = permissions.includes("work-calendar:read");
+  const workingTimezone = session?.activeOrganization?.workingTimezone ?? session?.activeOrganization?.timezone;
   const initialRange = useMemo(
     () => ({
-      ...monthRange(monthValue()),
-      endDate: todayDateOnly(),
+      ...monthRange(todayDateOnly(workingTimezone).slice(0, 7)),
+      endDate: todayDateOnly(workingTimezone),
     }),
-    [],
+    [workingTimezone],
   );
-  const latestAttendanceDate = new Date(`${todayDateOnly()}T12:00:00`);
   const [startDate, setStartDate] = useState(initialRange.startDate);
   const [endDate, setEndDate] = useState(initialRange.endDate);
   const [search, setSearch] = useState("");
@@ -128,7 +130,7 @@ export function AttendanceScreen() {
     setIsLoadingMore(false);
   }, []);
   const contextKey = `${organizationId ?? ""}:${projectId ?? ""}`;
-  const invalidRange = startDate > endDate;
+  const invalidRange = Boolean(attendancePeriodIssue(startDate, endDate));
   const pdfExport = usePdfExport(`${organizationId}:${projectId}`);
 
   async function exportPeriod() {
@@ -341,14 +343,7 @@ export function AttendanceScreen() {
             <DateInput
               allowClear={false}
               accessibilityLabel={t("period.selectStartDate")}
-              maximumDate={
-                new Date(
-                  Math.min(
-                    new Date(`${endDate}T12:00:00`).getTime(),
-                    latestAttendanceDate.getTime(),
-                  ),
-                )
-              }
+              maximumDate={new Date(`${endDate}T12:00:00`)}
               value={startDate}
               onChangeText={(value) => value && setStartDate(value)}
             />
@@ -356,15 +351,14 @@ export function AttendanceScreen() {
           <FormField
             label={t("period.endDate")}
             required
-            error={invalidRange ? t("period.invalidRange") : undefined}
+            error={invalidRange ? t("period.invalidPeriod") : undefined}
             style={styles.dateField}
           >
             <DateInput
               allowClear={false}
               accessibilityLabel={t("period.selectEndDate")}
               minimumDate={new Date(`${startDate}T12:00:00`)}
-              maximumDate={latestAttendanceDate}
-              value={endDate}
+                value={endDate}
               onChangeText={(value) => value && setEndDate(value)}
             />
           </FormField>
@@ -386,6 +380,7 @@ export function AttendanceScreen() {
           onValueChange={setExceptionsOnly}
         />
       </ListControls>
+      {permissions.includes('attendance:export') && organizationId && projectId && session?.accessToken ? <CsvExportButton scope={`${organizationId}:${projectId}:${startDate}:${endDate}`} filename="attendance.csv" disabled={invalidRange || pdfExport.busy} load={signal => exportAttendanceCsv(organizationId, projectId, startDate, endDate, session.accessToken, signal)} /> : null}
       {permissions.includes("attendance:export") &&
       organizationId &&
       projectId ? (

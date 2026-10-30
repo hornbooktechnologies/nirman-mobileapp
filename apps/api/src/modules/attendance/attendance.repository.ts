@@ -35,6 +35,30 @@ interface AssignmentRatePeriodDbRow extends DbRow {
   effective_from: Date | string;
 }
 
+interface AttendanceExceptionDbRow extends DbRow {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  worker_assignment_id: string;
+  work_date: Date | string;
+  exception_type: AttendanceException["exceptionType"];
+  duration: AttendanceException["duration"];
+  reason_code: AttendanceException["reasonCode"];
+  notes: string | null;
+  recorded_by: string;
+  recorded_at: Date | string;
+  updated_by: string;
+  updated_at: Date | string;
+}
+
+interface PrimaryAssignmentDbRow extends DbRow {
+  id: string;
+  worker_id: string;
+  project_id: string;
+  worker_status: string;
+  deactivated_at: Date | string | null;
+}
+
 interface AttendanceRosterPeriodDbRow extends DbRow {
   worker_id: string;
   worker_code: string;
@@ -156,7 +180,7 @@ export class AttendanceRepository {
     endDate: string,
     workerId?: string,
   ): Promise<AttendanceException[]> {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<AttendanceExceptionDbRow>(
       `SELECT * FROM attendance_exceptions
        WHERE organization_id = ? AND project_id = ?
          AND work_date BETWEEN ? AND ? AND deleted_at IS NULL
@@ -170,7 +194,7 @@ export class AttendanceRepository {
         ...(workerId ? [organizationId, projectId, workerId] : []),
       ],
     );
-    return rows.map((row: any) => this.mapException(row));
+    return rows.map((row) => this.mapException(row));
   }
 
   async findExceptionById(
@@ -179,7 +203,7 @@ export class AttendanceRepository {
     exceptionId: string,
     includeDeleted = false,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<AttendanceExceptionDbRow>(
       `SELECT * FROM attendance_exceptions
        WHERE id = ? AND organization_id = ? AND project_id = ?
          ${includeDeleted ? "" : "AND deleted_at IS NULL"}
@@ -196,7 +220,7 @@ export class AttendanceRepository {
     workDate: string,
     connection?: DatabaseConnection,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<AttendanceExceptionDbRow>(
       `SELECT * FROM attendance_exceptions
        WHERE organization_id = ? AND project_id = ?
          AND worker_assignment_id = ? AND work_date = ?
@@ -213,7 +237,7 @@ export class AttendanceRepository {
     workerAssignmentId: string,
     workDate: string,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<PrimaryAssignmentDbRow>(
       `SELECT wpa.id, wpa.worker_id, wpa.project_id,
               w.status AS worker_status, w.deactivated_at
        FROM worker_project_assignments wpa
@@ -251,7 +275,7 @@ export class AttendanceRepository {
     let unchanged: AttendanceException | null = null;
     const id = randomUUID();
     await this.database.transaction(async (connection) => {
-      await this.database.query<any>(
+      await this.database.query<{ id: string } & DbRow>(
         `SELECT id FROM worker_project_assignments
          WHERE id = ? AND organization_id = ? FOR UPDATE`,
         [input.workerAssignmentId, organizationId],
@@ -382,7 +406,7 @@ export class AttendanceRepository {
     return result.affectedRows > 0;
   }
 
-  private mapException(row: any): AttendanceException {
+  private mapException(row: AttendanceExceptionDbRow): AttendanceException {
     return {
       id: row.id,
       organizationId: row.organization_id,

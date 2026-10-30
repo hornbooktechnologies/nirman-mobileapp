@@ -1,6 +1,6 @@
-import { PROJECT_STATUSES, PROJECT_TYPES } from '@nirman-app/shared';
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { PROJECT_STATUSES, PROJECT_TYPES } from "@nirman-app/shared";
+import { Type } from "class-transformer";
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
 
 export class QueryProjectDto {
   @IsOptional()

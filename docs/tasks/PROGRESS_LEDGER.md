@@ -1,3 +1,15 @@
+## 2026-10-28 - Profile save visibility and Mobile personal-information editor
+
+Web Profile used a full-height form beneath its photo editor inside an overflow-clipped card, pushing Save Profile below the visible card. Changed the card/form to a flex column with a normal-flow, nonshrinking save row and block field labels. Kept the editor keyed by user identity so a successful name/phone refetch does not discard its save feedback. Added API-aligned field limits, required name semantics, trimmed input and a pending-submit guard.
+
+Mobile menu previously exposed photo editing and Account Security only. Added localized Edit profile action and a sheet that loads /users/me, edits name/optional phone, and provides an explicit Save Profile footer. Uses existing authenticated PATCH /users/me and refreshSession, retains failed input, separates a saved profile from a failed session refresh, and blocks duplicate saves/closing during save. English/Hindi/Gujarati parity and Web/Mobile typechecks passed; Web Profile lint passed. Authenticated persistence/browser layout and physical-device acceptance remain unrun. No API, DB or deployment changes. Existing validation-rollout changes preserved.
+
+## 2026-10-28 - Consistent Web and Mobile form validation
+
+Implemented reusable Web validated forms/labels, red required indicators and accessible inline errors, including separate-label control associations; fixed FieldError danger color. Projects create/edit share pure API-aligned text/date validation across clients. Mobile shared fields/scopes supply blur validation, explicit save-button gating, nested-sheet isolation, invalid-field reveal and en/hi/gu messages. Retained module business validators, access checks, PATCH clearing and financial retry semantics. Brochure and source-payment action panels now use validated forms. See docs/tasks/form-validation-rollout.md and generated form-validation-inventory.md (408 controls / 89 files) for module coverage and acceptance limits.
+
+Verification: Web production build and Mobile release:check passed; 45 focused rule tests and 19 isolated Web/mocked-native browser checks passed. Changed Web source lint has one reproduced pre-existing Sales field-map react-hooks/refs finding; full lint is not claimed. Authenticated module browser flows, exhaustive dynamic-field/DTO parity, responsive/accessibility review and physical-device acceptance remain pending. No API/DB/deployment changes. Existing documentation conflict markers were preserved.
+
 ## 2026-10-27 - Total Expenses Mobile layout parity
 
 Added the standard glass back IconButton with localized accessibility label to the compact header and a dashboard fallback when opened without navigation history. Header now identifies the report Project, active-Project reports reuse the compact switchable ProjectContextCard, and explicitly routed reports retain their target Project instead of showing the active Project's identity. Uses the shared footer spacing and theme gap tokens. No API, financial calculation or report-filter behavior changes. Physical-device visual/back navigation acceptance remains pending.
@@ -1159,3 +1171,41 @@ User-authorized lifecycle change supersedes the prior archive-before-delete cont
 Mobile Brochure image cards now download protected media with Authorization into unique temporary local cache files before rendering. Cleanup discards stale downloads and deletes temporary files; failed downloads/decoding show localized error and Retry preview instead of a blank card. PDF/video cards retain their existing type representation. en/hi/gu delete and preview labels synchronized.
 
 Verification: API/Web/Mobile typechecks, Web scoped lint, locale parity and 13 Brochure API tests pass, including direct ACTIVE/ARCHIVED deletion and storage-failure behavior. Actual storage deletion, Mobile image preview, share-link expiry after deletion and physical-device acceptance remain pending. Restart/redeploy API and reload the Mobile/Web bundles together to use the new direct-delete behavior.
+## 2026-10-28 — Members invitation Close icon
+
+Web Members now displays an X beside Close instead of the invite/add icon. Scoped ESLint passes; browser visual acceptance remains pending.
+
+## 2026-10-28 — Attendance search icon spacing
+
+Corrected daily attendance search padding at responsive breakpoints to prevent the search icon overlapping placeholder and entered text. Visual browser acceptance remains pending.
+
+
+## 2026-10-29 - Wages Web/Mobile parity
+
+Audited both clients against the Wages contract and existing API. Added native read-only worker details, saved calculation/rate/non-working-day breakdown, notes/payment history, Attendance navigation, paginated assignment Kharchi and allocation/reversal views, missing batch totals and cancellation metadata. Added CSV action on both clients, native same-key payment recovery/duplicate guard and stale-adjustment checks, consistent settlement/status presentation, explicit refresh and archived/route-scope controls. Preserved existing actions, PDF export and financial behavior. New native copy has en/hi/gu parity.
+
+Verification: Web/Mobile typechecks, focused Web Wages lint, 11 Web Wages tests, actual native screen-handler regression harness, locale validation and Android Hermes export (2,045 modules) passed. See docs/tasks/wages-platform-parity.md for matrix and acceptance limits. Authenticated browser/physical-device flows, concurrency, lost-response recovery and native export/share acceptance remain pending. No API/DB/deployment changes.
+
+## 2026-10-29 - Customer Web/Mobile additive parity pass
+
+Owner confirmed existing customer modules first; platform-only administration excluded. Reviewed actual shared contracts and Web/Mobile service/screen surfaces sequentially; see docs/tasks/customer-platform-parity.md for 22-module matrix and limits. Added Mobile project directory/overview, worker organization-only browsing and optional create assignment/profile/lifecycle actions, actual Calendar timezone editing, Progress date filters, Gallery status/stage filters, Materials responsible member, explicit-project routing/guards, and Brochure share history. Added CSV controls alongside existing PDFs across Attendance, Kharchi, Materials, Expenses and Progress. Existing forms/actions and financial APIs remain; no backend/schema/data changes.
+
+Owner explicitly approved retaining assignments when deactivating Workers while excluding inactive workers from active rosters. Recorded ADR 007 and reconciled Workers contract/status. Permanent deletion remains organization-authorized and guarded by the full irreversible warning; no real deletion/deactivation executed.
+
+Verification: 131 Web customer tests, 36 Mobile tests and 54 Workers API tests passed, plus typechecks, targeted Web lint, native creation/queue/Attendance/Wages/customer-handler checks and en/hi/gu parity. Web production build passed after a network-enabled Google Fonts fetch; auto-generated config/cache-path edits were restored. Android Hermes export passed (2,052 modules). Four older Sales orchestration harnesses have missing hook mocks; lead-loading failure reproduced against staged pre-pass source, not claimed passing. Authenticated cross-client/role, live concurrency and physical-device/browser export/media/accessibility acceptance remain pending. No migration, DB mutation or deployment.
+
+## 2026-10-30 - Production readiness verification and security remediation
+
+Audited API/shared, Web customer and administration routes, Mobile and public website. Fixed the website hero build/type mismatch, unsafe DB row typing, malformed optional Wage rate metadata, Web Sales dirty-state lint, public share-token state reset, stale client/native harnesses and full Web lint's generated-cache scope. Preserved staged parity work, SQL/financial rules, permissions and actions. API formatting was normalized to satisfy the existing full lint gate.
+
+Updated Next/eslint-config-next to 16.4.1, Axios/Zod/Multer/Nodemailer and scoped compatible transitive security fixes. Production dependency audit improved from 106 findings (7 critical) to two (Zod 3 in Expo CLI: high; deepmerge in Expo config: low); both remain explicitly open. Neither package appears in either final native export source map.
+
+Verified: 454 API tests, 53 mocked HTTP tests, 211 shared/client tests, 25 isolated browser form checks, ten native harnesses, en/hi/gu parity, all app typechecks, API/Web full lint, API/Web/website builds, Android/iOS Hermes exports and in-memory email serialization. No migrations, seeds, real data mutations, email delivery or deployment. Full report: docs/tasks/production-readiness-audit-2026-10-30.md.
+
+Production acceptance remains pending. Automatic approval review rejected the external-DB/test-token runtime helper because target and credential handling were not explicitly approved; that helper was discarded. Need confirmed non-production environment and normal signed-in session before authenticated checks, separate authorization for dedicated test-data mutations, and device/container acceptance. Docker is unavailable locally. Do not mark all screens or production accepted from these automated results.
+
+## 2026-10-30 - Mobile Project Progress history UI
+
+Fixed the module-local row that combined the history heading, date-filter card and CSV/PDF buttons. The heading now uses full width; filters and exports have separate responsive rows; both export buttons use the standard size. Added heading semantics and visible invalid-date styling, with PDF disabled consistently with its existing invalid-range guard. All existing actions, permissions, filters, pagination, refresh and request payloads remain. No shared UI, Web/API or database changes.
+
+Verified Mobile typecheck, locale parity, whitespace and nine isolated React Native Web fixture cases across 320/390/768 px in English/Hindi/Gujarati. Export controls measure 48 px; no horizontal overflow; clear dates and export callbacks pass. Native device/date-picker/share acceptance remains pending. Details: docs/modules/construction/progress/STATUS.md.

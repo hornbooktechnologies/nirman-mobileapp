@@ -126,6 +126,7 @@ export function WorkCalendarScreen() {
   const [success, setSuccess] = useState("");
   const [preset, setPreset] = useState<WeekPreset>(null);
   const [week, setWeek] = useState<Record<Weekday, boolean | null>>(emptyWeek);
+  const [timezone, setTimezone] = useState(INDIA_TIMEZONE);
   const [weekError, setWeekError] = useState("");
   const [weekApiError, setWeekApiError] = useState("");
   const [isSavingWeek, setIsSavingWeek] = useState(false);
@@ -154,6 +155,7 @@ export function WorkCalendarScreen() {
   const applyOrganizationCalendar = useCallback(
     (calendar: OrganizationWorkCalendar) => {
       setOrganizationCalendar(calendar);
+      setTimezone(calendar.timezone || INDIA_TIMEZONE);
       setWeek(
         calendar.workingWeek ? { ...calendar.workingWeek } : { ...emptyWeek },
       );
@@ -268,6 +270,8 @@ export function WorkCalendarScreen() {
 
   async function saveWorkingWeek() {
     if (!organizationId || !session?.accessToken || isSavingWeek) return;
+    try { new Intl.DateTimeFormat('en', { timeZone: timezone.trim() }).format(); }
+    catch { setWeekApiError(t('weekly.invalidTimezone')); return; }
     const missingDays = WEEKDAYS.filter(
       (day) => typeof week[day] !== "boolean",
     );
@@ -279,7 +283,7 @@ export function WorkCalendarScreen() {
       const response = await updateOrganizationCalendar(
         organizationId,
         {
-          timezone: INDIA_TIMEZONE,
+          timezone: timezone.trim(),
           workingWeek: week as WorkingWeek,
         },
         session.accessToken,
@@ -288,6 +292,7 @@ export function WorkCalendarScreen() {
       setSuccess(t("success.weekSaved"));
       AccessibilityInfo.announceForAccessibility(t("success.weekSaved"));
       await load(true);
+      await refreshSession().catch(() => setWeekApiError(t('weekly.refreshAccessFailed')));
     } catch (saveError) {
       if (saveError instanceof ApiRequestError && saveError.status === 401)
         await signOut();
@@ -769,15 +774,16 @@ export function WorkCalendarScreen() {
                       {t("weekly.timezone")}
                     </AppText>
                     <AppText style={styles.timezoneName} weight={700}>
-                      {t("weekly.timezoneName")}
+                      {organizationCalendar?.timezone ?? timezone}
                     </AppText>
                     <AppText style={styles.muted} weight={500}>
-                      {t("weekly.timezoneDescription")}
+                      {t("weekly.timezoneHelp")}
                     </AppText>
                   </View>
                 </View>
                 {canUpdateOrganization ? (
                   <>
+                    <FormField label={t('weekly.timezone')} required helperText={t('weekly.timezoneHelp')}><Input value={timezone} editable={!isSavingWeek} autoCapitalize="none" autoCorrect={false} onChangeText={setTimezone} /></FormField>
                     <FormError message={weekApiError} />
                     <View style={styles.choiceSection}>
                       <AppText style={styles.fieldLabel} weight={700}>
@@ -953,7 +959,7 @@ export function WorkCalendarScreen() {
                         </View>
                       </View>
                     ) : null}
-                    <Button
+                    <Button validateForm
                       disabled={isSavingWeek}
                       label={
                         isSavingWeek ? t("weekly.saving") : t("weekly.save")
@@ -1051,7 +1057,7 @@ export function WorkCalendarScreen() {
                   onPress={confirmRemoveOverride}
                 />
               ) : null}
-              <Button
+              <Button validateForm
                 disabled={
                   isMutatingOverride ||
                   (overrideSheet.scope === "PROJECT"

@@ -10,7 +10,12 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "important-updates"
+        }
+      ],
       [
         "expo-splash-screen",
         {

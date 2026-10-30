@@ -61,7 +61,7 @@ describe("UsersService platform role boundary", () => {
       expect.objectContaining({
         email: dto.email,
         roleId: dto.roleId,
-        password: expect.not.stringMatching(/^Password123!$/),
+        password: expect.not.stringMatching(/^Password123!$/) as unknown,
       }),
     );
   });

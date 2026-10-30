@@ -4,7 +4,7 @@
 >
 > Module path: `docs/modules/construction/workers`
 >
-> Implementation status: partial; independent MVP source is implemented and automated static/API checks pass, but active-assignment handling during worker deactivation requires an owner decision.
+> Implementation status: source implemented; deactivation retains assignments by owner decision 2026-10-29 (ADR 007). Authenticated cross-client/device acceptance remains pending.
 >
 > Contract standard: `docs/modules/MODULE_CONTRACT_STANDARD.md`
 
@@ -398,14 +398,15 @@ Validation:
 
 - Worker belongs to same organization.
 - Historical records must not be deleted.
-- Open active assignments should be ended or blocked by explicit confirmation.
+- Active assignment and primary-project rows are retained; confirmation must explain that deactivation does not end them automatically.
 - Downstream financial modules may later add restrictions for unsettled balances.
 
-Owner decision gate:
+Approved owner decision — 2026-10-29:
 
-- The approved contract does not yet select whether deactivation blocks, atomically ends active assignments after confirmation, or leaves them active while the inactive worker is excluded from active rosters.
-- Current source preserves active assignment rows and filters inactive workers from the default active roster. This is documented behavior, not an approved lifecycle decision.
-- Do not mark Workers verified until one rule is approved and implemented consistently in API and web.
+- Deactivation preserves all active assignment rows and historical records. Inactive workers are excluded from default active rosters and cannot receive new assignments.
+- Deactivation does not implicitly end assignments or primary-project periods. End-assignment remains a separate explicit action.
+- Web and Mobile consume the existing API behavior; no lifecycle/database mutation is part of this documentation update.
+- Authenticated role and device acceptance remain required before declaring the module accepted.
 
 Result:
 

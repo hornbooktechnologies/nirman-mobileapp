@@ -1,6 +1,12 @@
-import { IsArray, IsIn, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PERMISSION_ACTIONS, PERMISSION_RESOURCES } from '@nirman-app/shared';
+import {
+  IsArray,
+  IsIn,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { PERMISSION_ACTIONS, PERMISSION_RESOURCES } from "@nirman-app/shared";
 
 export class PermissionItemDto {
   @IsString()

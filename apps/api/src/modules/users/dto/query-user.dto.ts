@@ -1,5 +1,13 @@
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class QueryUserDto {
   @IsOptional()
@@ -24,10 +32,10 @@ export class QueryUserDto {
   pageSize?: number = 10;
 
   @IsOptional()
-  @IsIn(['name', 'email', 'createdAt'])
-  sortBy?: string = 'createdAt';
+  @IsIn(["name", "email", "createdAt"])
+  sortBy?: string = "createdAt";
 
   @IsOptional()
-  @IsIn(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  @IsIn(["asc", "desc"])
+  sortOrder?: "asc" | "desc" = "desc";
 }

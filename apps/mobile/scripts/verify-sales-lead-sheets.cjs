@@ -8,7 +8,7 @@ const source = fs.readFileSync(path.join(__dirname, '../src/features/sales/sales
 const start = source.indexOf('export function SalesLeadScreen()');
 const end = source.indexOf('  if (!leadId || !project || !session?.activeOrganization)', start);
 assert.ok(start >= 0 && end > start);
-const hooks = source.slice(start, end) + `return { sheet, sheetLoading, sheetError, members, units, interests,
+const hooks = source.slice(start, end) + `return { sheet, sheetLoading, sheetError, assignees, units, interests,
   working, bookingIdempotencyKey, setSheet, setSheetRetry, openAssignees, openUnits, openHoldRequests }; }`;
 
 function harness(inventory = true) {
@@ -17,6 +17,7 @@ function harness(inventory = true) {
   let effects = [];
   let dirty = false;
   const requests = [];
+  let initialInterestsRead = true;
   const t = (key) => key;
   const same = (a, b) => a && a.length === b.length && a.every((value, i) => Object.is(value, b[i]));
   function memo(factory, deps) {
@@ -30,6 +31,12 @@ function harness(inventory = true) {
   const exportsObject = {};
   vm.runInNewContext(ts.transpileModule(hooks, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports: exportsObject,
+    refreshTogether: (reads) => Promise.all(reads),
+    useRef: (initial) => memo(() => ({ current: initial }), []),
+    useFocusEffect: (effect) => memo(() => { effects.push(effect); }, [effect]),
+    useSalesAssignees: () => ({ options: [{ value: 'member-1', label: 'Member' }], error: false }),
+    validCallableNumber: (value) => value,
+    eligibleBookingUnit: (unit, leadId) => unit.status === 'AVAILABLE' || (unit.status === 'BLOCKED' && unit.blockedForLeadId === leadId),
     useLocalSearchParams: () => ({ leadId: 'lead-1' }),
     useTranslation: () => ({ t, i18n: { resolvedLanguage: 'en' } }),
     useSession: () => ({ session: { activeOrganization: { id: 'org-1' }, accessToken: 'token' } }),
@@ -60,7 +67,10 @@ function harness(inventory = true) {
     fetchActivities: async () => [],
     fetchProjectMembers: () => request('members'),
     fetchUnits: () => request('units'),
-    fetchLeadUnitInterests: () => request('interests'),
+    fetchLeadUnitInterests: () => {
+      if (initialInterestsRead) { initialInterestsRead = false; return Promise.resolve([]); }
+      return request('interests');
+    },
   });
   function render() {
     cursor = 0;
@@ -83,11 +93,10 @@ function harness(inventory = true) {
 }
 
 (async () => {
-  for (const sheet of ['assign', 'interest', 'holdRequest', 'booking']) {
+  for (const sheet of ['interest', 'holdRequest', 'booking']) {
     const h = harness();
     let state = await h.settle();
-    if (sheet === 'assign') state.openAssignees();
-    else if (sheet === 'holdRequest') state.openHoldRequests();
+    if (sheet === 'holdRequest') state.openHoldRequests();
     else state.openUnits(sheet);
     state = h.render();
     assert.equal(state.sheet, sheet, `${sheet} must open before the read resolves`);
@@ -106,25 +115,30 @@ function harness(inventory = true) {
   let state = await h.settle();
   state.openAssignees();
   state = await h.settle();
+  assert.equal(state.sheet, 'assign');
+  assert.equal(state.sheetLoading, false, 'assignee choices are supplied by the shared hook');
+  assert.equal(state.assignees.options[0].value, 'member-1');
+  state.openUnits('interest');
+  state = await h.settle();
   state.setSheet(null);
   state = await h.settle();
-  state.openAssignees();
+  state.openUnits('interest');
   state = await h.settle();
-  h.requests[0].resolve([{ status: 'ACTIVE', user: { id: 'stale' } }]);
+  h.requests[0].resolve([{ id: 'stale', status: 'AVAILABLE' }]);
   state = await h.settle();
-  assert.equal(state.members.length, 0);
+  assert.equal(state.units.length, 0);
   assert.equal(state.sheetLoading, true, 'old completion must not clear new loading state');
   h.requests[1].reject(Error('offline'));
   state = await h.settle();
-  assert.equal(state.sheet, 'assign');
+  assert.equal(state.sheet, 'interest');
   assert.equal(state.sheetError, 'errors.load');
   assert.equal(state.sheetLoading, false);
   state.setSheetRetry((value) => value + 1);
   state = await h.settle();
-  h.requests[2].resolve([{ status: 'ACTIVE', user: { id: 'current' } }, { status: 'INACTIVE', user: { id: 'inactive' } }]);
+  h.requests[2].resolve([{ id: 'current', status: 'AVAILABLE' }, { id: 'booked', status: 'BOOKED' }]);
   state = await h.settle();
-  assert.equal(state.members.length, 1);
-  assert.equal(state.members[0].user.id, 'current');
+  assert.equal(state.units.length, 1);
+  assert.equal(state.units[0].id, 'current');
   assert.equal(state.sheetError, null);
 
   state.openUnits('booking');

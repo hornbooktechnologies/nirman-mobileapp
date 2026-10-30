@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 
 import {
   PROJECT_PERMISSION_GROUPS,
@@ -82,7 +83,7 @@ export function ProjectPermissionEditor({
 
   return (
     <div className="space-y-3 rounded-inner border border-hairline bg-sunken/30 p-3">
-      <label className="space-y-1">
+      <ValidatedField className="space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
           Project permissions
         </span>
@@ -109,7 +110,7 @@ export function ProjectPermissionEditor({
           <option value="ROLE_DEFAULT">All access allowed by organization role</option>
           <option value="CUSTOM">Custom for this project</option>
         </Select>
-      </label>
+      </ValidatedField>
 
       {mode === "CUSTOM" ? (
         <>
@@ -140,7 +141,7 @@ export function ProjectPermissionEditor({
                     {group.label}
                   </p>
                   {groupPermissions.map((permission) => (
-                    <label key={permission} className="flex items-center gap-2 text-[12px] text-body">
+                    <ValidatedField key={permission} className="flex items-center gap-2 text-[12px] text-body">
                       <Checkbox
                         checked={permissions.includes(permission)}
                         disabled={disabled}
@@ -154,7 +155,7 @@ export function ProjectPermissionEditor({
                         }
                       />
                       <span>{PROJECT_PERMISSION_LABELS[permission] ?? permission}</span>
-                    </label>
+                    </ValidatedField>
                   ))}
                 </div>
               );

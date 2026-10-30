@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { SearchInput } from "@/components/ui/search-input";
 
 import { useMemo, useState } from "react";
@@ -301,7 +302,7 @@ export function ProjectMembersPanel({
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="space-y-1">
+              <ValidatedField className="space-y-1">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                   Find organization member
                 </span>
@@ -310,7 +311,7 @@ export function ProjectMembersPanel({
                   value={memberSearch}
                   onValueChange={(event) => setMemberSearch(event)}
                 />
-              </label>
+              </ValidatedField>
               <p className="text-[11px] text-sub">
                 {availableOrganizationMembers.length} available · {projectMembers.length} already assigned
               </p>
@@ -465,11 +466,11 @@ function AssignmentDetails({
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <label className="space-y-1">
+      <ValidatedField className="space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Project responsibility</span>
         <Input placeholder="e.g. Site operations" value={form.roleLabel} onChange={(event) => setForm({ ...form, roleLabel: event.target.value })} />
-      </label>
-      <label className="space-y-1">
+      </ValidatedField>
+      <ValidatedField className="space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">Assignment status</span>
         <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as ProjectMemberStatus })}>
           {PROJECT_MEMBER_STATUSES.filter((status) => status !== "ENDED").map((status) => (
@@ -478,19 +479,19 @@ function AssignmentDetails({
             </option>
           ))}
         </Select>
-      </label>
-      <label className="space-y-1">
+      </ValidatedField>
+      <ValidatedField className="space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
           Start date
         </span>
         <Input type="date" value={form.startsOn} onChange={(event) => setForm({ ...form, startsOn: event.target.value })} />
-      </label>
-      <label className="space-y-1">
+      </ValidatedField>
+      <ValidatedField className="space-y-1">
         <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
           End date
         </span>
         <Input type="date" min={form.startsOn || undefined} value={form.endsOn} onChange={(event) => setForm({ ...form, endsOn: event.target.value })} />
-      </label>
+      </ValidatedField>
       {projectStatus === "DRAFT" && form.status === "ACTIVE" ? (
         <p className="rounded-inner border border-amber-300 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900 md:col-span-2">
           This Project is still Draft. An Active assignment gives the member access as soon

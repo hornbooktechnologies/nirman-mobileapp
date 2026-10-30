@@ -1,4 +1,5 @@
 "use client";
+import { CsvExportButton } from "@/components/ui/csv-export-button";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { downloadPdf } from "@/lib/exports/pdf";
@@ -251,6 +252,7 @@ function List({ context }: { context: ExpensesContext }) {
         {invalidRange && <p role="alert" className="text-danger">Choose valid dates with the end on or after the start.</p>}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => { setSearchReset(n => n + 1); setSearch(""); setMemberSearch(""); setQuery(defaultQuery); }}>Clear all</Button>
+          {can("export") && <CsvExportButton key={`${context.org}:${context.project}:${JSON.stringify(query)}`} filename="expenses.csv" disabled={exporting.isPending} load={() => expensesService.export(context.org, context.project, query)} />}
           {can("export") && <Button variant="outline" disabled={exporting.isPending || invalidRange} onClick={() => exporting.mutate()}>{exporting.isPending ? "Preparing PDF…" : "Export filtered PDF"}</Button>}
         </div>
         {exporting.isError && <p role="alert" className="text-danger">{exporting.error.message} Use Export filtered PDF to retry.</p>}

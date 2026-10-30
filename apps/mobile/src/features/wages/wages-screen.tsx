@@ -1,4 +1,4 @@
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -18,12 +18,14 @@ import {
   OperationalEntityCard,
 } from "../../components/ui";
 import { formatDate, formatInr, getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getRouteProject } from "../../lib/auth";
 import { ApiRequestError } from "../../lib/api";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
+import { wageBatchTone } from "./wage-rules";
+import { WageCalculation } from "./wage-calculation";
 import type { WageBatch, WagePreview } from "./types";
 import {
   createWageBatch,
@@ -55,16 +57,26 @@ const isDate = (value: string) =>
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 
 export function WagesScreen() {
+  const { session } = useSession();
+  const { projectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = getRouteProject(session, projectId);
+  return <WagesContent key={`${session?.activeOrganization?.id}:${project?.id}`} />;
+}
+
+function WagesContent() {
   const { t } = useTranslation("wages");
   const { t: tCommon } = useTranslation("common");
   const { t: tErrors } = useTranslation("errors");
   const { language } = useLocalization();
   const { session } = useSession();
-  const activeProject = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: requestedProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const activeProject = getRouteProject(session, requestedProjectId);
+  const permissions = activeProject?.permissions ?? [];
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
-  const canGenerate = permissions.includes("wages:generate");
+  const archived = activeProject?.status === "ARCHIVED";
+  const canRead = permissions.includes("wages:read");
+  const canGenerate = !archived && permissions.includes("wages:generate");
   const wageToday = todayInTimezone(
     session?.activeOrganization?.workingTimezone ??
       session?.activeOrganization?.timezone ??
@@ -81,26 +93,31 @@ export function WagesScreen() {
   );
   const confirmingRef = useRef(false);
   const previewRequestRef = useRef(0);
+  const batchesRequestRef = useRef(0);
+  const [batchError, setBatchError] = useState('');
 
   const loadBatches = useCallback(async () => {
-    if (!organizationId || !projectId || !session?.accessToken) {
+    if (!canRead || !organizationId || !projectId || !session?.accessToken) {
       setIsLoading(false);
       return;
     }
+    const generation = ++batchesRequestRef.current;
     setIsLoading(true);
+    setBatchError('');
     try {
-      setBatches(
-        await fetchWageBatches(organizationId, projectId, session.accessToken),
-      );
+      const result = await fetchWageBatches(organizationId, projectId, session.accessToken);
+      if (generation === batchesRequestRef.current) setBatches(result);
     } catch (error) {
+      if (generation !== batchesRequestRef.current) return;
+      setBatchError(getLocalizedErrorMessage(error, t('errors.tryAgain')));
       Alert.alert(
         t("errors.unavailableTitle"),
         error instanceof Error ? error.message : t("errors.tryAgain"),
       );
     } finally {
-      setIsLoading(false);
+      if (generation === batchesRequestRef.current) setIsLoading(false);
     }
-  }, [organizationId, projectId, session?.accessToken, t]);
+  }, [organizationId, projectId, session?.accessToken, canRead, t]);
 
   useRefreshOnFocus({
     scopeKey: `${organizationId ?? ""}:${projectId ?? ""}`,
@@ -108,9 +125,11 @@ export function WagesScreen() {
     reset: () => {
       previewRequestRef.current += 1;
       setPreview(null);
+      setBatches([]);
       setConfirmationError(null);
     },
     cancel: () => {
+      batchesRequestRef.current += 1;
       previewRequestRef.current += 1;
     },
   });
@@ -182,13 +201,14 @@ export function WagesScreen() {
     if (
       !organizationId ||
       !projectId ||
-      !session?.accessToken ||
+      !session?.accessToken || !canGenerate ||
       !previewReady
     ) {
       setConfirmationError(t("errors.confirmMessage"));
       return;
     }
     confirmingRef.current = true;
+    const request = ++previewRequestRef.current;
     setConfirmationError(null);
     setIsBusy(true);
     try {
@@ -199,11 +219,13 @@ export function WagesScreen() {
         periodEnd,
         session.accessToken,
       );
+      if (request !== previewRequestRef.current) return;
       setPreview(null);
       await loadBatches();
+      if (request !== previewRequestRef.current) return;
       router.push({
         pathname: "/(app)/wage-batch",
-        params: { batchId: created.id },
+        params: { batchId: created.id, projectId },
       } as Href);
     } catch (error) {
       if (
@@ -223,7 +245,7 @@ export function WagesScreen() {
   }
 
   function openBatch(batchId: string) {
-    router.push({ pathname: "/(app)/wage-batch", params: { batchId } } as Href);
+    router.push({ pathname: "/(app)/wage-batch", params: { batchId, projectId } } as Href);
   }
 
   return (
@@ -240,15 +262,16 @@ export function WagesScreen() {
         title={t("screen.title")}
         subtitle={activeProject?.name ?? t("screen.chooseProject")}
       />
-      <ProjectContextCard compact showSwitchAction />
+      {requestedProjectId && getActiveProject(session)?.id !== projectId ? <AppText style={styles.sectionDescription}>{activeProject?.name}</AppText> : <ProjectContextCard compact showSwitchAction />}
 
-      {!activeProject || !projectId ? (
+      {!activeProject || !projectId || !canRead ? (
         <EmptyState
           title={t("empty.noProjectTitle")}
           description={t("empty.noProjectDescription")}
         />
       ) : (
         <>
+          {archived ? <AppText style={styles.sectionDescription}>{t('history.archived')}</AppText> : null}
           <Card style={styles.section}>
             <View style={styles.sectionHeading}>
               <AppText style={styles.sectionTitle} weight={700}>
@@ -364,6 +387,7 @@ export function WagesScreen() {
                   <OperationalEntityCard
                     key={item.workerAssignmentId}
                     compact
+                    details={<WageCalculation item={item} />}
                     contextLeading={item.workerCode}
                     contextTrailing={item.trade}
                     title={item.workerName}
@@ -416,7 +440,9 @@ export function WagesScreen() {
             {isLoading && !batches.length ? (
               <LoadingState label={t("batches.loading")} />
             ) : null}
-            {!isLoading && !batches.length ? (
+            {batchError ? <AppText accessibilityRole="alert" style={styles.confirmationError}>{batchError}</AppText> : null}
+            <Button label={t('history.refresh')} variant="outline" disabled={isLoading || isBusy} onPress={() => void loadBatches()} />
+            {!isLoading && !batchError && !batches.length ? (
               <EmptyState
                 title={t("batches.emptyTitle")}
                 description={t("batches.emptyDescription")}
@@ -448,13 +474,7 @@ export function WagesScreen() {
                   value={formatInr(due, language)}
                   valueLabel={t("batches.due")}
                   footerLeading={t("batches.open")}
-                  tone={
-                    batch.status === "PAID"
-                      ? "success"
-                      : batch.status === "PARTIALLY_PAID"
-                        ? "info"
-                        : "warning"
-                  }
+                  tone={wageBatchTone[batch.status]}
                   onPress={() => openBatch(batch.id)}
                 />
               );

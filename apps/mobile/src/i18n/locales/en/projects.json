@@ -87,5 +87,31 @@
   "organizationType": {
     "BUILDER": "Builder",
     "CONTRACTOR": "Contractor"
+  },
+  "lifecycle": {
+    "title": "Project lifecycle",
+    "help": "Archived projects retain their history and become read-only. Restoring is subject to project capacity.",
+    "archive": "Archive project",
+    "restore": "Restore project",
+    "archived": "Archived projects",
+    "archiveConfirm": "Archive {{name}}? Its history will be retained, and it will become read-only.",
+    "restoreConfirm": "Restore {{name}} to Active? Your subscription must have available project capacity.",
+    "failed": "Unable to update project",
+    "saved": "Project status updated",
+    "refreshFailed": "The project status was updated, but access could not be refreshed. Refresh your session before trying again.",
+    "refresh": "Refresh access"
+  },
+  "overview": {
+    "title": "Project overview",
+    "address": "Address"
+  },
+  "directory": {
+    "title": "Browse projects",
+    "search": "Search projects",
+    "all": "All",
+    "empty": "No projects match these filters.",
+    "page": "Page {{page}} of {{pages}}",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

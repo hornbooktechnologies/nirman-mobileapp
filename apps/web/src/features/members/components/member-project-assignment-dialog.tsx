@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { SearchInput } from "@/components/ui/search-input";
 
 import { useMemo, useState } from "react";
@@ -254,19 +255,19 @@ export function MemberProjectAssignmentDialog({
                 {selectedProjectIds.length} selected
               </p>
             </div>
-            <label className="grid gap-1 text-sm font-medium">Search available projects<SearchInput
+            <ValidatedField className="grid gap-1 text-sm font-medium">Search available projects<SearchInput
               className="max-w-[280px]"
               placeholder="Search projects"
               value={search}
               onValueChange={(event) => setSearch(event)}
-            /></label>
+            /></ValidatedField>
           </div>
           <div className="grid max-h-52 gap-2 overflow-y-auto rounded-inner border border-hairline bg-sunken/30 p-3 sm:grid-cols-2">
             {visibleProjects.map((project) => {
               const writable = isWritableProject(project.status);
               const assigned = initialAssignmentByProject.has(project.id);
               return (
-                <label
+                <ValidatedField
                   key={project.id}
                   className="flex items-start gap-3 rounded-sub border border-hairline/70 bg-surface p-3"
                 >
@@ -290,7 +291,7 @@ export function MemberProjectAssignmentDialog({
                       {assigned ? <Badge variant="info">Assigned</Badge> : null}
                     </span>
                   </span>
-                </label>
+                </ValidatedField>
               );
             })}
             {visibleProjects.length === 0 ? (
@@ -326,7 +327,7 @@ export function MemberProjectAssignmentDialog({
                     {!writable ? <Badge variant="warning">Read only</Badge> : null}
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <label className="space-y-1">
+                    <ValidatedField className="space-y-1">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                         Role on this project
                       </span>
@@ -340,8 +341,8 @@ export function MemberProjectAssignmentDialog({
                           })
                         }
                       />
-                    </label>
-                    <label className="space-y-1">
+                    </ValidatedField>
+                    <ValidatedField className="space-y-1">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                         Project permissions
                       </span>
@@ -368,8 +369,8 @@ export function MemberProjectAssignmentDialog({
                         <option value="ROLE_DEFAULT">Use organization role defaults</option>
                         <option value="CUSTOM">Custom for this project</option>
                       </Select>
-                    </label>
-                    <label className="space-y-1">
+                    </ValidatedField>
+                    <ValidatedField className="space-y-1">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                         Assignment status
                       </span>
@@ -390,8 +391,8 @@ export function MemberProjectAssignmentDialog({
                           </option>
                         ))}
                       </Select>
-                    </label>
-                    <label className="space-y-1">
+                    </ValidatedField>
+                    <ValidatedField className="space-y-1">
                       <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                         <CalendarDays size={12} /> Start date
                       </span>
@@ -405,8 +406,8 @@ export function MemberProjectAssignmentDialog({
                           })
                         }
                       />
-                    </label>
-                    <label className="space-y-1">
+                    </ValidatedField>
+                    <ValidatedField className="space-y-1">
                       <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                         <CalendarDays size={12} /> End date
                       </span>
@@ -421,7 +422,7 @@ export function MemberProjectAssignmentDialog({
                           })
                         }
                       />
-                    </label>
+                    </ValidatedField>
                   </div>
                   {fields.permissionMode === "CUSTOM" ? (
                     <div className="mt-4 rounded-inner border border-hairline bg-sunken/30 p-3">
@@ -473,7 +474,7 @@ export function MemberProjectAssignmentDialog({
                                 {group.label}
                               </p>
                               {permissions.map((permission) => (
-                                <label key={permission} className="flex items-center gap-2 text-[12px] text-body">
+                                <ValidatedField key={permission} className="flex items-center gap-2 text-[12px] text-body">
                                   <Checkbox
                                     checked={fields.permissions.includes(permission)}
                                     onChange={(event) =>
@@ -485,7 +486,7 @@ export function MemberProjectAssignmentDialog({
                                     }
                                   />
                                   <span>{permission.split(":")[1].replaceAll("-", " ")}</span>
-                                </label>
+                                </ValidatedField>
                               ))}
                             </div>
                           );

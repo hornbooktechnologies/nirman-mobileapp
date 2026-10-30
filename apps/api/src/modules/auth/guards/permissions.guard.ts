@@ -3,10 +3,10 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
-import { AuthenticatedUser } from '../types/auth.types';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PERMISSIONS_KEY } from "../decorators/require-permissions.decorator";
+import { AuthenticatedUser } from "../types/auth.types";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -26,7 +26,7 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     const hasAll = required.every((permission) => {
-      const [resource, action] = permission.split(':');
+      const [resource, action] = permission.split(":");
       return user.permissions.some(
         (item) => item.resource === resource && item.action === action,
       );
@@ -34,7 +34,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasAll) {
       throw new ForbiddenException(
-        'You do not have permission to perform this action',
+        "You do not have permission to perform this action",
       );
     }
 

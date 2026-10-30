@@ -1,5 +1,14 @@
-import { SUBSCRIPTION_STATUSES, type SubscriptionStatus } from '@nirman-app/shared';
-import { IsDateString, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  SUBSCRIPTION_STATUSES,
+  type SubscriptionStatus,
+} from "@nirman-app/shared";
+import {
+  IsDateString,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from "class-validator";
 
 export class AssignOrganizationSubscriptionDto {
   @IsUUID()
@@ -19,4 +28,3 @@ export class AssignOrganizationSubscriptionDto {
   @IsString()
   internalNote?: string | null;
 }
-
