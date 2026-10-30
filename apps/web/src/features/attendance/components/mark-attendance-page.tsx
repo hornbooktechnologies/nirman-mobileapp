@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { SearchInput } from "@/components/ui/search-input";
@@ -12,6 +13,7 @@ import type {
   AttendanceDuration,
   AttendanceSummaryRow,
 } from "@nirman-app/shared";
+import { attendanceRowActions } from "@nirman-app/shared";
 import {
   Button,
   Card,
@@ -433,7 +435,7 @@ function DailyAttendance() {
         <>
           <Card padding="compact">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_190px_minmax(0,1fr)] md:items-end">
-              <label className="grid gap-1.5 font-semibold">
+              <ValidatedField className="grid gap-1.5 font-semibold">
                 Project
                 <Select
                   value={projectId}
@@ -451,8 +453,8 @@ function DailyAttendance() {
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label className="grid gap-1.5 font-semibold">
+              </ValidatedField>
+              <ValidatedField className="grid gap-1.5 font-semibold">
                 Attendance date *
                 <Input
                   required
@@ -462,8 +464,8 @@ function DailyAttendance() {
                     replaceQuery({ date: event.target.value })
                   }
                 />
-              </label>
-              <label className="grid gap-1.5 font-semibold">
+              </ValidatedField>
+              <ValidatedField className="grid gap-1.5 font-semibold">
                 Search workers
                 <span className="relative">
                   <Search
@@ -472,14 +474,14 @@ function DailyAttendance() {
                     aria-hidden="true"
                   />
                   <SearchInput debounceMs={0}
-                    className="pl-9"
+                    className="pl-9 sm:pl-9"
                     maxLength={160}
                     value={search}
                     onValueChange={(event) => setSearch(event)}
                     placeholder="Name, code or trade"
                   />
                 </span>
-              </label>
+              </ValidatedField>
             </div>
           </Card>
 
@@ -638,7 +640,7 @@ function DailyAttendance() {
           </>
         }
       >
-        <form
+        <ValidatedForm
           id="attendance-exception"
           className="grid gap-4 text-base"
           onSubmit={(event) => {
@@ -654,7 +656,10 @@ function DailyAttendance() {
               {formError}
             </p>
           ) : null}
-          <label className="grid gap-1.5 font-semibold">
+          <ValidatedField className="grid gap-1.5 font-semibold">Worker<Input readOnly value={editingRow ? `${editingRow.worker.name} · ${editingRow.worker.workerCode} · ${editingRow.worker.trade}` : ""} /></ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">Project<Input readOnly value={selectedProject?.name ?? ""} /></ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">Attendance date<Input readOnly type="date" value={date} /></ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">
             Absence duration *
             <Select
               className="text-base"
@@ -671,8 +676,8 @@ function DailyAttendance() {
               <option value="FULL_DAY">Full day</option>
               <option value="HALF_DAY">Half day</option>
             </Select>
-          </label>
-          <label className="grid gap-1.5 font-semibold">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">
             Reason
             <Input
               className="text-base"
@@ -687,8 +692,8 @@ function DailyAttendance() {
               }
               placeholder="For example: Sick leave"
             />
-          </label>
-          <label className="grid gap-1.5 font-semibold">
+          </ValidatedField>
+          <ValidatedField className="grid gap-1.5 font-semibold">
             Notes
             <Textarea
               className="text-base"
@@ -703,8 +708,8 @@ function DailyAttendance() {
               }
               placeholder="Additional details"
             />
-          </label>
-        </form>
+          </ValidatedField>
+        </ValidatedForm>
       </Dialog>
 
       <Dialog
@@ -725,7 +730,7 @@ function DailyAttendance() {
               disabled={removeException.isPending || !canUpdate}
               onClick={() => void confirmRestore()}
             >
-              {removeException.isPending ? "Removing" : "Remove absence"}
+              {removeException.isPending ? "Restoring" : "Restore Present"}
             </Button>
           </>
         }
@@ -845,22 +850,21 @@ function RowActions({
 }) {
   if (!row.selectedDate)
     return <span className="text-sub">Date unavailable</span>;
-  if (row.selectedDate.state === "NON_WORKING")
-    return <span className="text-sub">No action</span>;
-  if (row.selectedDate?.exception) {
-    if (!canUpdate) return <span className="text-sub">Read only</span>;
+  const actions = attendanceRowActions(row.selectedDate, ["attendance:read", ...(canMark ? ["attendance:mark"] : []), ...(canUpdate ? ["attendance:update"] : [])]);
+  if (actions.edit || actions.restore) {
     return (
       <>
-        <Button variant="outline" onClick={() => onEdit(row)}>
+        {actions.edit ? <Button variant="outline" onClick={() => onEdit(row)}>
           Edit
-        </Button>
+        </Button> : null}
         <Button variant="outline" onClick={() => onRestore(row)}>
           Restore Present
         </Button>
       </>
     );
   }
-  return canMark ? (
+  if (row.selectedDate.state === "NON_WORKING") return <span className="text-sub">No action</span>;
+  return actions.mark ? (
     <Button variant="outline" onClick={() => onEdit(row)}>
       Mark absent
     </Button>

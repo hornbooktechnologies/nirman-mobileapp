@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import Link from "next/link";
 import { Building2, KeyRound, Plus } from "lucide-react";
@@ -286,8 +287,8 @@ function OrganizationList() {
         {isCreating ? (
           <PermissionGuard permission="platform-organizations:create">
             <Card>
-              <form className="grid gap-3 md:grid-cols-2" onSubmit={submit}>
-                <label className="grid gap-1 text-sm font-medium">
+              <ValidatedForm className="grid gap-3 md:grid-cols-2" onSubmit={submit}>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Organization name
                   <Input
                     placeholder="Organization name"
@@ -297,8 +298,8 @@ function OrganizationList() {
                     }
                     required
                   />
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Organization type
                   <Select
                     value={form.type}
@@ -319,8 +320,8 @@ function OrganizationList() {
                       </option>
                     ))}
                   </Select>
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Operating profile
                   <Select
                     value={form.operatingProfile}
@@ -340,8 +341,8 @@ function OrganizationList() {
                       ),
                     )}
                   </Select>
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Working timezone
                   <Input
                     placeholder="Timezone"
@@ -350,7 +351,7 @@ function OrganizationList() {
                       setForm({ ...form, timezone: event.target.value })
                     }
                   />
-                </label>
+                </ValidatedField>
                 <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
                   <span className="text-sub">Default currency:</span>
                   <strong className="ml-1.5 font-semibold">INR</strong>
@@ -364,7 +365,7 @@ function OrganizationList() {
                     password.
                   </p>
                 </div>
-                <label className="grid gap-1 text-sm font-medium">
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Owner name
                   <Input
                     placeholder="Owner name"
@@ -377,8 +378,8 @@ function OrganizationList() {
                     }
                     required
                   />
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Owner email
                   <Input
                     type="email"
@@ -392,8 +393,8 @@ function OrganizationList() {
                     }
                     required
                   />
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Owner mobile number
                   <Input
                     placeholder="Owner mobile number"
@@ -406,8 +407,8 @@ function OrganizationList() {
                     }
                     required
                   />
-                </label>
-                <label className="grid gap-1 text-sm font-medium">
+                </ValidatedField>
+                <ValidatedField className="grid gap-1 text-sm font-medium">
                   Owner designation (optional)
                   <Input
                     placeholder="Owner designation (optional)"
@@ -422,7 +423,7 @@ function OrganizationList() {
                       })
                     }
                   />
-                </label>
+                </ValidatedField>
                 {formError ? (
                   <p className="md:col-span-2 text-[12px] text-red-600">
                     {formError}
@@ -435,7 +436,7 @@ function OrganizationList() {
                       : "Create Organization"}
                   </Button>
                 </div>
-              </form>
+              </ValidatedForm>
             </Card>
           </PermissionGuard>
         ) : null}

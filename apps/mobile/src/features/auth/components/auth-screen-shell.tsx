@@ -1,3 +1,4 @@
+import { FormScope } from '../../../components/ui/form-scope';
 import type { PropsWithChildren } from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +14,7 @@ type AuthScreenShellProps = PropsWithChildren<{
 export function AuthScreenShell({ title, description, children }: AuthScreenShellProps) {
   const useAutomaticKeyboardInsets = Platform.OS === 'ios' && Platform.isPad;
 
-  return (
+  return (<FormScope>
     <View style={styles.root}>
       <Image accessible={false} source={require('../../../../assets/brand/background.png')} resizeMode="cover" style={styles.background} />
       <SafeAreaView style={styles.flex}>
@@ -34,6 +35,7 @@ export function AuthScreenShell({ title, description, children }: AuthScreenShel
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
+    </FormScope>
   );
 }
 

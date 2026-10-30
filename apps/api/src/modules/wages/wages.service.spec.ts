@@ -77,7 +77,9 @@ describe("WagesService", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-09-15T18:45:00.000Z"));
-    projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
+    projectAccess.resolveProjectAccess.mockResolvedValue(
+      {} as Awaited<ReturnType<ProjectAccessService["resolveProjectAccess"]>>,
+    );
     attendanceService.calculateWagePeriod.mockResolvedValue([]);
     wagesRepo.findKharchiOutstandingByWorkers.mockResolvedValue(new Map());
     calendarRepo.findOrganizationWorkingTimezone.mockResolvedValue(
@@ -159,7 +161,7 @@ describe("WagesService", () => {
             isReady: true,
           }),
         ],
-        totals: expect.objectContaining({ grossAmount: "2000.00" }),
+        totals: expect.objectContaining({ grossAmount: "2000.00" }) as unknown,
       }),
     );
     expect(attendanceService.calculateWagePeriod).toHaveBeenCalledWith(
@@ -265,7 +267,8 @@ describe("WagesService", () => {
       },
     ]);
     wagesRepo.findActiveBatchForPeriod.mockResolvedValue(null);
-    wagesRepo.createBatch.mockResolvedValue({ id: "batch-id" } as any);
+    const createdDetail = { ...cancelledDetail, status: "CONFIRMED" as const };
+    wagesRepo.createBatch.mockResolvedValue(createdDetail);
 
     await expect(
       service.createBatch(
@@ -274,7 +277,7 @@ describe("WagesService", () => {
         { periodStart: "2026-08-01", periodEnd: "2026-08-05" },
         actor,
       ),
-    ).resolves.toEqual({ id: "batch-id" });
+    ).resolves.toEqual(createdDetail);
     expect(wagesRepo.createBatch).toHaveBeenCalledWith(
       organizationId,
       projectId,
@@ -328,7 +331,10 @@ describe("WagesService", () => {
   });
 
   it("records a wage payment through the repository", async () => {
-    wagesRepo.recordPayment.mockResolvedValue({ id: "batch-id" } as any);
+    wagesRepo.recordPayment.mockResolvedValue({
+      ...cancelledDetail,
+      status: "PARTIALLY_PAID",
+    });
 
     await service.recordPayment(
       organizationId,
@@ -396,7 +402,10 @@ describe("WagesService", () => {
   });
 
   it("updates a wage item adjustment through the repository", async () => {
-    wagesRepo.updateWageItem.mockResolvedValue({ id: "batch-id" } as any);
+    wagesRepo.updateWageItem.mockResolvedValue({
+      ...cancelledDetail,
+      status: "CONFIRMED",
+    });
 
     await service.updateWageItem(
       organizationId,
@@ -418,12 +427,16 @@ describe("WagesService", () => {
 
   it("exports wage item rows and payment history as csv", async () => {
     wagesRepo.findBatchDetail.mockResolvedValue({
+      ...cancelledDetail,
       id: "batch-id",
       periodStart: "2026-08-01",
       periodEnd: "2026-08-20",
       items: [
         {
           id: "item-id",
+          wageBatchId: "batch-id",
+          workerAssignmentId: "assignment-id",
+          workerId: "worker-id",
           workerCode: "WRK-001",
           workerName: "Rajesh Patel",
           trade: "Helper",
@@ -453,7 +466,7 @@ describe("WagesService", () => {
           recordedAt: "2026-08-20T10:00:00.000Z",
         },
       ],
-    } as any);
+    });
 
     const result = await service.exportBatch(
       organizationId,

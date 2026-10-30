@@ -170,7 +170,7 @@ export function KharchiFormSheet({ visible, organizationId, projectId, accessTok
         title={t('create.title')}
         description={t('create.warning')}
         onClose={resetAndClose}
-        footer={<><Button label={t('actions.cancel')} variant="secondary" style={styles.footerButton} disabled={isSaving} onPress={resetAndClose} /><Button label={isSaving ? t('create.saving') : t('create.action')} style={styles.footerButton} disabled={isSaving || isLoadingWorkers} onPress={() => void submit()} /></>}
+        footer={<><Button label={t('actions.cancel')} variant="secondary" style={styles.footerButton} disabled={isSaving} onPress={resetAndClose} /><Button validateForm label={isSaving ? t('create.saving') : t('create.action')} style={styles.footerButton} disabled={isSaving || isLoadingWorkers} onPress={() => void submit()} /></>}
       >
         <FormError message={error} />
         <FormField label={t('create.requestDate')} required error={fieldErrors.requestDate}>

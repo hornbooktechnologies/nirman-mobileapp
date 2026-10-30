@@ -18,7 +18,7 @@ export class AttendanceEntryDto {
   @IsUUID()
   workerAssignmentId!: string;
 
-  @IsEnum(ATTENDANCE_STATUSES as readonly AttendanceStatus[])
+  @IsEnum(ATTENDANCE_STATUSES)
   status!: AttendanceStatus;
 
   @IsOptional()

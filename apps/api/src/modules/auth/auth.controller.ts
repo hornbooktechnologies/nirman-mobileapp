@@ -11,27 +11,27 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
-} from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { AuthGuard } from '@nestjs/passport';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { ChangeOwnPasswordDto } from './dto/change-own-password.dto';
-import { Public } from './decorators/public.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
-import type { AuthenticatedUser } from './types/auth.types';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+} from "@nestjs/common";
+import type { Request, Response } from "express";
+import { AuthGuard } from "@nestjs/passport";
+import { AuthService } from "./auth.service";
+import { LoginDto } from "./dto/login.dto";
+import { ChangeOwnPasswordDto } from "./dto/change-own-password.dto";
+import { Public } from "./decorators/public.decorator";
+import { CurrentUser } from "./decorators/current-user.decorator";
+import type { AuthenticatedUser } from "./types/auth.types";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 
-const COOKIE_NAME = 'refresh_token';
+const COOKIE_NAME = "refresh_token";
 const COOKIE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Post('login')
+  @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
@@ -42,77 +42,77 @@ export class AuthController {
     this.setRefreshCookie(res, refreshToken);
     return {
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: { accessToken, expiresInSeconds, user, ...session },
     };
   }
 
   @Public()
-  @Post('forgot-password')
+  @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
     await this.authService.requestPasswordReset(dto, req.ip);
     return {
       success: true,
-      message: 'If an account exists, password reset instructions have been sent',
+      message:
+        "If an account exists, password reset instructions have been sent",
       data: null,
     };
   }
 
   @Public()
-  @Post('reset-password')
+  @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
     return {
       success: true,
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
       data: null,
     };
   }
 
   @Public()
-  @UseGuards(AuthGuard('jwt-refresh'))
-  @Post('refresh')
+  @UseGuards(AuthGuard("jwt-refresh"))
+  @Post("refresh")
   @HttpCode(HttpStatus.OK)
   async refresh(
     @CurrentUser() payload: { rawToken?: string },
     @Res({ passthrough: true }) res: Response,
   ) {
     if (!payload.rawToken) throw new UnauthorizedException();
-    const { accessToken, refreshToken, expiresInSeconds } = await this.authService.refresh(
-      payload.rawToken,
-    );
+    const { accessToken, refreshToken, expiresInSeconds } =
+      await this.authService.refresh(payload.rawToken);
     this.setRefreshCookie(res, refreshToken);
     return {
       success: true,
-      message: 'Token refreshed',
+      message: "Token refreshed",
       data: { accessToken, expiresInSeconds },
     };
   }
 
-  @Post('logout')
+  @Post("logout")
   @HttpCode(HttpStatus.OK)
   async logout(@Res({ passthrough: true }) res: Response) {
     const req = res.req as Request;
     const cookie = req.cookies[COOKIE_NAME] as string | undefined;
     if (cookie) await this.authService.logout(cookie);
     res.clearCookie(COOKIE_NAME);
-    return { success: true, message: 'Logged out successfully', data: null };
+    return { success: true, message: "Logged out successfully", data: null };
   }
 
-  @Get('me')
+  @Get("me")
   me(@CurrentUser() user: AuthenticatedUser) {
     return {
       success: true,
-      message: 'Current user retrieved',
+      message: "Current user retrieved",
       data: {
         id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
         avatar: user.avatar,
-        status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+        status: user.isActive ? "ACTIVE" : "INACTIVE",
         role: { id: user.roleId, name: user.roleName },
         permissions: user.permissions.map(
           (permission) => `${permission.resource}:${permission.action}`,
@@ -121,20 +121,20 @@ export class AuthController {
     };
   }
 
-  @Get('session')
+  @Get("session")
   async session(
     @CurrentUser() user: AuthenticatedUser,
-    @Query('organizationId') organizationId?: string,
+    @Query("organizationId") organizationId?: string,
   ) {
     const data = await this.authService.session(user, organizationId);
     return {
       success: true,
-      message: 'Session retrieved',
+      message: "Session retrieved",
       data,
     };
   }
 
-  @Patch('change-password')
+  @Patch("change-password")
   @HttpCode(HttpStatus.OK)
   async changePassword(
     @Body() dto: ChangeOwnPasswordDto,
@@ -145,7 +145,7 @@ export class AuthController {
     this.clearRefreshCookie(res);
     return {
       success: true,
-      message: 'Password changed successfully',
+      message: "Password changed successfully",
       data: null,
     };
   }
@@ -153,8 +153,8 @@ export class AuthController {
   private setRefreshCookie(res: Response, token: string) {
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
       maxAge: COOKIE_TTL_MS,
     });
   }
@@ -162,8 +162,8 @@ export class AuthController {
   private clearRefreshCookie(res: Response) {
     res.clearCookie(COOKIE_NAME, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
     });
   }
 }

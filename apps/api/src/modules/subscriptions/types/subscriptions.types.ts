@@ -1,5 +1,5 @@
-import type { SubscriptionStatus } from '@nirman-app/shared';
-import type { DbRow } from '../../../database/database.types';
+import type { SubscriptionStatus } from "@nirman-app/shared";
+import type { DbRow } from "../../../database/database.types";
 
 export interface SubscriptionPlanRow extends DbRow {
   id: string;
@@ -31,4 +31,3 @@ export interface CapacityCountRow extends DbRow {
   active_projects: number;
   active_members: number;
 }
-

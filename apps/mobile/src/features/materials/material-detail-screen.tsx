@@ -1,3 +1,4 @@
+import { ProjectMemberName } from "../members/project-member-name";
 import { SourcePaymentsPanel } from "../total-expenses/source-payments-panel";
 import type { MaterialRequestDetail } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
@@ -230,6 +231,7 @@ export function MaterialDetailScreen() {
           </Card>
           <Card style={styles.sectionCard}>
             <SectionTitle title={t("detail.request")} />
+            {organizationId && projectId ? <ProjectMemberName key={`${organizationId}:${projectId}:${detail.responsibleContractorMemberId}`} organizationId={organizationId} projectId={projectId} memberId={detail.responsibleContractorMemberId} canRead={Boolean(project?.permissions.includes('project-members:read'))} /> : null}
             <MaterialDetailRows
               rows={[
                 { label: t("fields.requestedBy"), value: detail.requestedBy },
@@ -959,7 +961,7 @@ function SheetFooter({
         disabled={working}
         onPress={onCancel}
       />
-      <Button
+      <Button validateForm
         style={styles.footerButton}
         label={save}
         variant={danger ? "danger" : "primary"}

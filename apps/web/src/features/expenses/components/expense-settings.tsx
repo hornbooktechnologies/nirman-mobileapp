@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -134,7 +135,7 @@ export function ExpenseSettingsDialog({
         >
           <legend className="mb-2 font-semibold">Workflow *</legend>
           {EXPENSE_WORKFLOW_MODES.map((value) => (
-            <label
+            <ValidatedField
               key={value}
               className="flex cursor-pointer items-start gap-3 rounded-inner border border-hairline p-4"
             >
@@ -157,7 +158,7 @@ export function ExpenseSettingsDialog({
                     : "Submitted expenses require approval. Eligible owners can approve their own expenses."}
                 </span>
               </span>
-            </label>
+            </ValidatedField>
           ))}
         </fieldset>
       </div>

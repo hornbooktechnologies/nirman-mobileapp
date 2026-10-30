@@ -72,7 +72,7 @@ export const FieldError = forwardRef<
   <p
     ref={ref}
     className={cn(
-      "min-w-0 break-words text-[12.5px] font-medium leading-5 text-ink",
+      "min-w-0 break-words text-[12.5px] font-medium leading-5 text-danger",
       className,
     )}
     {...props}

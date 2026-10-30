@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { LoadingState } from "@/components/ui";
 import {
@@ -127,7 +128,7 @@ function RolePermissionEditor({ role, onBack }: { role: Role; onBack: () => void
 
       {!role.isSystem ? (
         <Card>
-          <form className="space-y-4" onSubmit={saveRoleDetails}>
+          <ValidatedForm className="space-y-4" onSubmit={saveRoleDetails}>
             <div>
               <h2 className="text-[15px] font-semibold text-body">
                 Role details
@@ -136,27 +137,27 @@ function RolePermissionEditor({ role, onBack }: { role: Role; onBack: () => void
                 Update the custom role name and description.
               </p>
             </div>
-            <label className="grid gap-1 text-sm font-medium">Role name<Input
+            <ValidatedField className="grid gap-1 text-sm font-medium">Role name<Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Role name"
               maxLength={50}
               required
               disabled={!canUpdate}
-            /></label>
-            <label className="grid gap-1 text-sm font-medium">Description<Textarea
+            /></ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">Description<Textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Description"
               maxLength={200}
               disabled={!canUpdate}
-            /></label>
+            /></ValidatedField>
             {canUpdate ? (
               <Button type="submit" disabled={updateRole.isPending}>
                 {updateRole.isPending ? "Saving" : "Save Role Details"}
               </Button>
             ) : null}
-          </form>
+          </ValidatedForm>
         </Card>
       ) : null}
 

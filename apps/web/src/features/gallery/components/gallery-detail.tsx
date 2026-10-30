@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { useEffect, useRef, useState } from "react";
 import type { GalleryEntry } from "@nirman-app/shared";
 import { Button, Dialog, StatusBadge } from "@/components/ui";
@@ -33,7 +34,7 @@ export function GalleryDetail({ entry, context: c, close, changed }: { entry: Ga
       {error && <p role="alert">{error}</p>}
       {stale ? <div><p>This photo changed. Reload the gallery and open it again before reviewing.</p><Button onClick={() => { changed(); close(); }}>Reload gallery</Button></div> : <div className="space-y-3">
         {canReview(c.permissions, c.user, entry, "approve") && <Button disabled={busy} onClick={() => void review("approve")}>{busy ? "Submitting…" : "Approve photo"}</Button>}
-        {canReview(c.permissions, c.user, entry, "reject") && <form onSubmit={e => { e.preventDefault(); void review("reject"); }} className="space-y-2"><label>Rejection reason *<textarea required minLength={8} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} className="block w-full rounded-card border border-hairline bg-surface p-3" /></label><p className="text-sm text-sub">8–500 characters.</p><Button variant="outline" type="submit" disabled={busy || reason.trim().length < 8}>{busy ? "Submitting…" : "Reject photo"}</Button></form>}
+        {canReview(c.permissions, c.user, entry, "reject") && <ValidatedForm onSubmit={e => { e.preventDefault(); void review("reject"); }} className="space-y-2"><ValidatedField>Rejection reason *<textarea required minLength={8} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} className="block w-full rounded-card border border-hairline bg-surface p-3" /></ValidatedField><p className="text-sm text-sub">8–500 characters.</p><Button variant="outline" type="submit" disabled={busy || reason.trim().length < 8}>{busy ? "Submitting…" : "Reject photo"}</Button></ValidatedForm>}
       </div>}
     </div>
   </Dialog>;

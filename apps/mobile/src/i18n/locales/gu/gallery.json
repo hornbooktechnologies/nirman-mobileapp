@@ -1,5 +1,7 @@
 {
-  "screen": { "title": "સાઇટ ગેલેરી" },
+  "screen": {
+    "title": "સાઇટ ગેલેરી"
+  },
   "summary": {
     "title": "પ્રોજેક્ટ ડાયરી",
     "values": "{{total}} ફોટા · આજે {{today}}"
@@ -17,7 +19,8 @@
     "fromChip": "{{date}} થી",
     "toChip": "{{date}} સુધી",
     "removeA11y": "{{value}} ફિલ્ટર દૂર કરો",
-    "dateRangeError": "અંતિમ તારીખ શરૂઆતની તારીખ પહેલાં હોઈ શકતી નથી."
+    "dateRangeError": "અંતિમ તારીખ શરૂઆતની તારીખ પહેલાં હોઈ શકતી નથી.",
+    "status": "સ્થિતિ"
   },
   "diary": {
     "title": "ફોટો ડાયરી",
@@ -43,7 +46,11 @@
     "ISSUE": "સમस्या",
     "OTHER": "અન્ય"
   },
-  "status": { "PENDING": "બાકી", "APPROVED": "પ્રકાશિત", "REJECTED": "નકારેલ" },
+  "status": {
+    "PENDING": "બાકી",
+    "APPROVED": "પ્રકાશિત",
+    "REJECTED": "નકારેલ"
+  },
   "stage": {
     "FOUNDATION": "પાયો",
     "PLINTH": "પ્લિન્થ",

@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import Link from "next/link";
 import { MobileAccountLink } from "@/features/auth/components/mobile-account-link";
@@ -52,19 +53,19 @@ function ResetPasswordContent() {
               <Link className="block min-h-10 rounded-inner-lg bg-lime px-5 py-2.5 text-center text-[13px] font-semibold leading-5 text-lime-ink shadow-copper hover:bg-lime-sub" href="/login">Go to Login</Link>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={submit}>
-              <label className="block space-y-2">
+            <ValidatedForm className="space-y-4" onSubmit={submit}>
+              <ValidatedField className="block space-y-2">
                 <span className="text-[12px] font-semibold text-body">New password</span>
                 <PasswordInput required minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
-              </label>
-              <label className="block space-y-2">
+              </ValidatedField>
+              <ValidatedField className="block space-y-2">
                 <span className="text-[12px] font-semibold text-body">Confirm password</span>
                 <PasswordInput required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-              </label>
+              </ValidatedField>
               {error ? <p className="text-[12px] text-danger" role="alert">{error}</p> : null}
               <Button className="w-full" size="lg" type="submit" disabled={working || !token}>{working ? "Resetting password" : "Reset password"}</Button>
               {!token ? <Link className="block text-center text-[13px] font-semibold text-lime hover:text-lime-sub" href="/forgot-password">Request a new link</Link> : null}
-            </form>
+            </ValidatedForm>
           )}
           {token && !completed ? <MobileAccountLink screen="reset-password" token={token} /> : null}
         </CardContent>

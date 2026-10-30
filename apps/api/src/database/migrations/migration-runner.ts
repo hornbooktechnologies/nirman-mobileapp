@@ -1,6 +1,11 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { createPool, type Pool, type PoolConnection, type RowDataPacket } from 'mysql2/promise';
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import {
+  createPool,
+  type Pool,
+  type PoolConnection,
+  type RowDataPacket,
+} from "mysql2/promise";
 import {
   AppliedMigration,
   MigrationFile,
@@ -8,22 +13,29 @@ import {
   MigrationRunnerContext,
   MigrationRunnerOptions,
   MigrationStatusReport,
-} from './migration-types';
+} from "./migration-types";
 import {
   formatMigrationTarget,
   parseMigrationDatabaseUrl,
   parseMigrationTarget,
   validateMigrationMutationSafety,
-} from './migration-safety';
-import { acquireMigrationLock, releaseMigrationLock } from './migration-lock';
+} from "./migration-safety";
+import { acquireMigrationLock, releaseMigrationLock } from "./migration-lock";
 import {
   calculateMigrationChecksum,
   matchesMigrationChecksum,
-} from './migration-checksum';
+} from "./migration-checksum";
 
 const DEFAULT_CONNECTION_LIMIT = 5;
 const DEFAULT_LOCK_TIMEOUT_SECONDS = 30;
-const DEFAULT_SQL_DIR = path.join('apps', 'api', 'src', 'database', 'sql', 'migrations');
+const DEFAULT_SQL_DIR = path.join(
+  "apps",
+  "api",
+  "src",
+  "database",
+  "sql",
+  "migrations",
+);
 const MIGRATION_FILENAME_PATTERN = /^(\d{3})_([a-z0-9_]+)\.sql$/;
 
 interface SchemaTableRow extends RowDataPacket {
@@ -33,7 +45,7 @@ interface SchemaTableRow extends RowDataPacket {
 interface AppliedMigrationRow extends RowDataPacket {
   filename: string;
   checksum_sha256: string;
-  status: 'applied' | 'failed';
+  status: "applied" | "failed";
   started_at: Date;
   applied_at: Date | null;
   duration_ms: number | null;
@@ -47,12 +59,17 @@ function resolveSqlDir(options: MigrationRunnerOptions) {
 function getDatabaseUrl(env: NodeJS.ProcessEnv) {
   const databaseUrl = env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not set. Copy .env.example to .env and choose a safe target first.');
+    throw new Error(
+      "DATABASE_URL is not set. Copy .env.example to .env and choose a safe target first.",
+    );
   }
   return databaseUrl;
 }
 
-function createMigrationPool(databaseUrl: string, env: NodeJS.ProcessEnv): Pool {
+function createMigrationPool(
+  databaseUrl: string,
+  env: NodeJS.ProcessEnv,
+): Pool {
   const parsed = parseMigrationDatabaseUrl(databaseUrl);
   return createPool({
     host: parsed.host,
@@ -61,14 +78,18 @@ function createMigrationPool(databaseUrl: string, env: NodeJS.ProcessEnv): Pool 
     password: parsed.password,
     database: parsed.database,
     waitForConnections: true,
-    connectionLimit: Number(env.DB_CONNECTION_LIMIT ?? DEFAULT_CONNECTION_LIMIT),
+    connectionLimit: Number(
+      env.DB_CONNECTION_LIMIT ?? DEFAULT_CONNECTION_LIMIT,
+    ),
     multipleStatements: true,
     decimalNumbers: false,
     dateStrings: false,
   });
 }
 
-async function createContext(options: MigrationRunnerOptions): Promise<MigrationRunnerContext> {
+async function createContext(
+  options: MigrationRunnerOptions,
+): Promise<MigrationRunnerContext> {
   const env = options.env ?? process.env;
   const databaseUrl = getDatabaseUrl(env);
   const target = parseMigrationTarget(databaseUrl, env);
@@ -77,9 +98,10 @@ async function createContext(options: MigrationRunnerOptions): Promise<Migration
   return { pool, connection, target };
 }
 
-function readTargetBeforeConnection(
-  env: NodeJS.ProcessEnv,
-): { databaseUrl: string; target: MigrationTarget } {
+function readTargetBeforeConnection(env: NodeJS.ProcessEnv): {
+  databaseUrl: string;
+  target: MigrationTarget;
+} {
   const databaseUrl = getDatabaseUrl(env);
   return {
     databaseUrl,
@@ -103,7 +125,9 @@ async function closeContext(context: MigrationRunnerContext) {
   await context.pool.end();
 }
 
-async function schemaMigrationsExists(connection: PoolConnection): Promise<boolean> {
+async function schemaMigrationsExists(
+  connection: PoolConnection,
+): Promise<boolean> {
   const [rows] = await connection.query<SchemaTableRow[]>(
     `SELECT TABLE_NAME AS table_exists
      FROM information_schema.TABLES
@@ -133,11 +157,13 @@ async function ensureSchemaMigrations(connection: PoolConnection) {
   `);
 }
 
-export async function discoverMigrationFiles(options: MigrationRunnerOptions): Promise<MigrationFile[]> {
+export async function discoverMigrationFiles(
+  options: MigrationRunnerOptions,
+): Promise<MigrationFile[]> {
   const sqlDir = resolveSqlDir(options);
   const entries = await fs.readdir(sqlDir, { withFileTypes: true });
   const sqlFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
     .map((entry) => entry.name);
 
   const orderCounts = new Map<number, string[]>();
@@ -153,7 +179,7 @@ export async function discoverMigrationFiles(options: MigrationRunnerOptions): P
 
     const order = Number(match[1]);
     const absolutePath = path.join(sqlDir, filename);
-    const sql = await fs.readFile(absolutePath, 'utf8');
+    const sql = await fs.readFile(absolutePath, "utf8");
     const checksumSha256 = calculateMigrationChecksum(sql);
 
     orderCounts.set(order, [...(orderCounts.get(order) ?? []), filename]);
@@ -164,22 +190,27 @@ export async function discoverMigrationFiles(options: MigrationRunnerOptions): P
       absolutePath,
       checksumSha256,
       sql,
-      isDraft: filename.endsWith('_draft.sql'),
+      isDraft: filename.endsWith("_draft.sql"),
     });
   }
 
   for (const [order, filenames] of orderCounts.entries()) {
     if (filenames.length > 1) {
       throw new Error(
-        `Duplicate migration order ${String(order).padStart(3, '0')}: ${filenames.join(', ')}`,
+        `Duplicate migration order ${String(order).padStart(3, "0")}: ${filenames.join(", ")}`,
       );
     }
   }
 
-  return migrations.sort((left, right) => left.order - right.order || left.filename.localeCompare(right.filename));
+  return migrations.sort(
+    (left, right) =>
+      left.order - right.order || left.filename.localeCompare(right.filename),
+  );
 }
 
-async function readAppliedMigrations(connection: PoolConnection): Promise<AppliedMigration[]> {
+async function readAppliedMigrations(
+  connection: PoolConnection,
+): Promise<AppliedMigration[]> {
   const [rows] = await connection.query<AppliedMigrationRow[]>(
     `SELECT filename, checksum_sha256, status, started_at, applied_at, duration_ms, error_message
      FROM schema_migrations
@@ -198,21 +229,28 @@ async function readAppliedMigrations(connection: PoolConnection): Promise<Applie
 }
 
 function buildReport(
-  target: MigrationStatusReport['target'],
+  target: MigrationStatusReport["target"],
   schemaExists: boolean,
   localMigrations: MigrationFile[],
   appliedMigrations: AppliedMigration[],
 ): MigrationStatusReport {
-  const localByName = new Map(localMigrations.map((migration) => [migration.filename, migration]));
-  const appliedByName = new Map(appliedMigrations.map((migration) => [migration.filename, migration]));
+  const localByName = new Map(
+    localMigrations.map((migration) => [migration.filename, migration]),
+  );
+  const appliedByName = new Map(
+    appliedMigrations.map((migration) => [migration.filename, migration]),
+  );
 
   const pendingMigrations = localMigrations.filter(
     (migration) => !migration.isDraft && !appliedByName.has(migration.filename),
   );
-  const draftMigrations = localMigrations.filter((migration) => migration.isDraft);
+  const draftMigrations = localMigrations.filter(
+    (migration) => migration.isDraft,
+  );
   const checksumMismatches = appliedMigrations.flatMap((applied) => {
     const local = localByName.get(applied.filename);
-    if (!local || matchesMigrationChecksum(local.sql, applied.checksumSha256)) return [];
+    if (!local || matchesMigrationChecksum(local.sql, applied.checksumSha256))
+      return [];
     return [
       {
         filename: applied.filename,
@@ -224,19 +262,21 @@ function buildReport(
   const missingLocalMigrations = appliedMigrations.filter(
     (migration) => !localByName.has(migration.filename),
   );
-  const failedMigrations = appliedMigrations.filter((migration) => migration.status === 'failed');
+  const failedMigrations = appliedMigrations.filter(
+    (migration) => migration.status === "failed",
+  );
 
   const state =
     checksumMismatches.length > 0 ||
     missingLocalMigrations.length > 0 ||
     failedMigrations.length > 0 ||
     draftMigrations.length > 0
-      ? 'blocked'
+      ? "blocked"
       : pendingMigrations.length > 0
-        ? 'pending'
+        ? "pending"
         : schemaExists
-          ? 'current'
-          : 'drifted';
+          ? "current"
+          : "drifted";
 
   return {
     target,
@@ -265,7 +305,11 @@ export async function getMigrationStatus(
   }
 
   const context = targetInfo
-    ? await createContextForTarget(options, targetInfo.databaseUrl, targetInfo.target)
+    ? await createContextForTarget(
+        options,
+        targetInfo.databaseUrl,
+        targetInfo.target,
+      )
     : await createContext(options);
   try {
     const localMigrations = await discoverMigrationFiles(options);
@@ -280,7 +324,12 @@ export async function getMigrationStatus(
       ? await readAppliedMigrations(context.connection)
       : [];
 
-    return buildReport(context.target, schemaExists, localMigrations, appliedMigrations);
+    return buildReport(
+      context.target,
+      schemaExists,
+      localMigrations,
+      appliedMigrations,
+    );
   } finally {
     await closeContext(context);
   }
@@ -291,24 +340,33 @@ function assertNoBlockingStatus(report: MigrationStatusReport) {
     throw new Error(
       `Draft migrations are present and will not be executed: ${report.draftMigrations
         .map((migration) => migration.filename)
-        .join(', ')}. Rename only after review and approval.`,
+        .join(", ")}. Rename only after review and approval.`,
     );
   }
 
   if (report.checksumMismatches.length > 0) {
-    throw new Error('Applied migration checksum drift detected. Refusing to apply pending migrations.');
+    throw new Error(
+      "Applied migration checksum drift detected. Refusing to apply pending migrations.",
+    );
   }
 
   if (report.missingLocalMigrations.length > 0) {
-    throw new Error('Applied migrations are missing locally. Refusing to apply pending migrations.');
+    throw new Error(
+      "Applied migrations are missing locally. Refusing to apply pending migrations.",
+    );
   }
 
   if (report.failedMigrations.length > 0) {
-    throw new Error('Failed migration records exist. Resolve them manually before continuing.');
+    throw new Error(
+      "Failed migration records exist. Resolve them manually before continuing.",
+    );
   }
 }
 
-async function applyMigration(connection: PoolConnection, migration: MigrationFile) {
+async function applyMigration(
+  connection: PoolConnection,
+  migration: MigrationFile,
+) {
   const startedAt = new Date();
   const start = Date.now();
 
@@ -319,7 +377,12 @@ async function applyMigration(connection: PoolConnection, migration: MigrationFi
       `INSERT INTO schema_migrations
         (filename, checksum_sha256, status, started_at, applied_at, duration_ms)
        VALUES (?, ?, 'applied', ?, CURRENT_TIMESTAMP(3), ?)`,
-      [migration.filename, migration.checksumSha256, startedAt, Date.now() - start],
+      [
+        migration.filename,
+        migration.checksumSha256,
+        startedAt,
+        Date.now() - start,
+      ],
     );
     await connection.commit();
   } catch (error) {
@@ -328,13 +391,17 @@ async function applyMigration(connection: PoolConnection, migration: MigrationFi
   }
 }
 
-export async function migrate(options: MigrationRunnerOptions): Promise<MigrationStatusReport> {
+export async function migrate(
+  options: MigrationRunnerOptions,
+): Promise<MigrationStatusReport> {
   const env = options.env ?? process.env;
   const { databaseUrl, target } = readTargetBeforeConnection(env);
   validateMigrationMutationSafety(target, env);
 
   const context = await createContextForTarget(options, databaseUrl, target);
-  const lockTimeout = Number(env.DB_MIGRATION_LOCK_TIMEOUT_SECONDS ?? DEFAULT_LOCK_TIMEOUT_SECONDS);
+  const lockTimeout = Number(
+    env.DB_MIGRATION_LOCK_TIMEOUT_SECONDS ?? DEFAULT_LOCK_TIMEOUT_SECONDS,
+  );
 
   try {
     await ensureSchemaMigrations(context.connection);
@@ -342,15 +409,27 @@ export async function migrate(options: MigrationRunnerOptions): Promise<Migratio
 
     const localMigrations = await discoverMigrationFiles(options);
     const appliedMigrations = await readAppliedMigrations(context.connection);
-    const report = buildReport(context.target, true, localMigrations, appliedMigrations);
+    const report = buildReport(
+      context.target,
+      true,
+      localMigrations,
+      appliedMigrations,
+    );
     assertNoBlockingStatus(report);
 
     for (const migration of report.pendingMigrations) {
       await applyMigration(context.connection, migration);
     }
 
-    const finalAppliedMigrations = await readAppliedMigrations(context.connection);
-    return buildReport(context.target, true, localMigrations, finalAppliedMigrations);
+    const finalAppliedMigrations = await readAppliedMigrations(
+      context.connection,
+    );
+    return buildReport(
+      context.target,
+      true,
+      localMigrations,
+      finalAppliedMigrations,
+    );
   } finally {
     try {
       await releaseMigrationLock(context.connection);
@@ -363,7 +442,9 @@ export async function migrate(options: MigrationRunnerOptions): Promise<Migratio
 
 export function printMigrationStatus(report: MigrationStatusReport) {
   console.log(`Target: ${formatMigrationTarget(report.target)}`);
-  console.log(`schema_migrations: ${report.schemaMigrationsExists ? 'present' : 'missing'}`);
+  console.log(
+    `schema_migrations: ${report.schemaMigrationsExists ? "present" : "missing"}`,
+  );
   console.log(`Local migrations: ${report.localMigrations.length}`);
   console.log(`Applied migrations: ${report.appliedMigrations.length}`);
   console.log(`Pending migrations: ${report.pendingMigrations.length}`);
@@ -371,27 +452,32 @@ export function printMigrationStatus(report: MigrationStatusReport) {
   console.log(`State: ${report.state}`);
 
   if (report.pendingMigrations.length > 0) {
-    console.log('\nPending:');
-    for (const migration of report.pendingMigrations) console.log(`- ${migration.filename}`);
+    console.log("\nPending:");
+    for (const migration of report.pendingMigrations)
+      console.log(`- ${migration.filename}`);
   }
 
   if (report.draftMigrations.length > 0) {
-    console.log('\nDraft migrations blocked from execution:');
-    for (const migration of report.draftMigrations) console.log(`- ${migration.filename}`);
+    console.log("\nDraft migrations blocked from execution:");
+    for (const migration of report.draftMigrations)
+      console.log(`- ${migration.filename}`);
   }
 
   if (report.checksumMismatches.length > 0) {
-    console.log('\nChecksum mismatches:');
-    for (const mismatch of report.checksumMismatches) console.log(`- ${mismatch.filename}`);
+    console.log("\nChecksum mismatches:");
+    for (const mismatch of report.checksumMismatches)
+      console.log(`- ${mismatch.filename}`);
   }
 
   if (report.missingLocalMigrations.length > 0) {
-    console.log('\nApplied records missing local files:');
-    for (const migration of report.missingLocalMigrations) console.log(`- ${migration.filename}`);
+    console.log("\nApplied records missing local files:");
+    for (const migration of report.missingLocalMigrations)
+      console.log(`- ${migration.filename}`);
   }
 
   if (report.failedMigrations.length > 0) {
-    console.log('\nFailed migration records:');
-    for (const migration of report.failedMigrations) console.log(`- ${migration.filename}`);
+    console.log("\nFailed migration records:");
+    for (const migration of report.failedMigrations)
+      console.log(`- ${migration.filename}`);
   }
 }

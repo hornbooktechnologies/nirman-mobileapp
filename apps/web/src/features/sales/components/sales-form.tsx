@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { SearchInput } from "@/components/ui/search-input";
@@ -60,7 +61,7 @@ export function SalesForm({
   const [pending, setPending] = useState(false);
   const [review, setReview] = useState(false);
   const [searches, setSearches] = useState<Record<string, string>>({});
-  const dirty = useRef(false);
+  const [dirty, setDirty] = useState(false);
   const locked = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const visibleFields = fields
@@ -68,7 +69,7 @@ export function SalesForm({
     .map((f) => ({ ...f, required: f.required || Boolean(f.requiredWhen && values[f.requiredWhen.field] === f.requiredWhen.value) }));
   useEffect(() => {
     const unload = (e: BeforeUnloadEvent) => {
-      if (dirty.current || locked.current) {
+      if (dirty || locked.current) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -84,7 +85,7 @@ export function SalesForm({
         return;
       if (
         locked.current ||
-        (dirty.current && !window.confirm("Discard unsaved changes?"))
+        (dirty && !window.confirm("Discard unsaved changes?"))
       ) {
         e.preventDefault();
         e.stopPropagation();
@@ -96,11 +97,11 @@ export function SalesForm({
       window.removeEventListener("beforeunload", unload);
       document.removeEventListener("click", navigate, true);
     };
-  }, []);
+  }, [dirty]);
   function dismiss() {
     if (
       !locked.current &&
-      (!dirty.current || window.confirm("Discard unsaved changes?"))
+      (!dirty || window.confirm("Discard unsaved changes?"))
     )
       close();
   }
@@ -111,6 +112,15 @@ export function SalesForm({
         (source[field.name] ?? field.initial ?? "").trim(),
       ]),
     );
+  }
+  function changeValue(field: Field, value: string) {
+    setDirty(true);
+    const nextValues = { ...values, [field.name]: value };
+    setValues(nextValues);
+    if (errors[field.name]) {
+      const message = inlineFieldError(field, nextValues);
+      setErrors(current => ({ ...current, [field.name]: message ?? "" }));
+    }
   }
   function inlineFieldError(field: Field, source: Record<string, string>) {
     const submitted = submittedValues(source);
@@ -123,7 +133,7 @@ export function SalesForm({
   }
   return (
     <Dialog open title={title} className="max-w-2xl" onOpenChange={dismiss}>
-      <form
+      <ValidatedForm
         ref={form}
         className="space-y-4 text-base"
         noValidate
@@ -174,7 +184,7 @@ export function SalesForm({
           setError("");
           try {
             await save(submitted);
-            dirty.current = false;
+            setDirty(false);
           } catch (cause) {
             setError(failureMessage(cause));
             setReview(true);
@@ -202,17 +212,7 @@ export function SalesForm({
                   HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
                 >,
               ) => {
-                dirty.current = true;
-                const nextValue = e.target.value;
-                const nextValues = { ...values, [f.name]: nextValue };
-                setValues(nextValues);
-                if (f.numeric && errors[f.name]) {
-                  const message = inlineFieldError(f, nextValues);
-                  setErrors((currentErrors) => ({
-                    ...currentErrors,
-                    [f.name]: message ?? "",
-                  }));
-                }
+                changeValue(f, e.target.value);
               },
             };
             return (
@@ -220,7 +220,7 @@ export function SalesForm({
                 key={f.name}
                 className={f.type === "textarea" ? "sm:col-span-2" : ""}
               >
-                {f.type !== "checkbox" && <label htmlFor={props.id} className="mb-1 block">{f.label}{f.required ? " *" : ""}</label>}
+                {f.type !== "checkbox" && <ValidatedField htmlFor={props.id} validate={(value) => inlineFieldError(f, { ...values, [f.name]: f.searchable ? values[f.name] : value })} className="mb-1 block">{f.label}{f.required ? " *" : ""}</ValidatedField>}
                 {f.options && f.options.length > 10 && !f.searchable && (
                   <SearchInput
                     aria-label={`Search ${f.label.toLowerCase()} choices`}
@@ -239,9 +239,7 @@ export function SalesForm({
                     searchValue={f.searchable.searchValue}
                     onSearchChange={f.searchable.onSearchChange}
                     onValueChange={(value) => {
-                      dirty.current = true;
-                      setValues((current) => ({ ...current, [f.name]: value }));
-                      setErrors((current) => ({ ...current, [f.name]: "" }));
+                      changeValue(f, value);
                     }}
                     disabled={pending}
                     invalid={Boolean(errors[f.name])}
@@ -272,9 +270,9 @@ export function SalesForm({
                       )}
                   </Select>
                 ) : f.type === "checkbox" ? (
-                  <Checkbox id={props.id} name={f.name} checked={props.value === "true"} disabled={pending} label={f.label} onChange={(event) => { dirty.current = true; setValues((current) => ({ ...current, [f.name]: event.target.checked ? "true" : "" })); }} />
+                  <Checkbox id={props.id} name={f.name} checked={props.value === "true"} disabled={pending} label={f.label} onChange={(event) => changeValue(f, event.target.checked ? "true" : "")} />
                 ) : f.type === "multi-checkbox" ? (
-                  <fieldset className="space-y-2 rounded-inner border border-hairline p-3"><legend className="px-1 text-sm text-sub">Choose one or more files</legend>{f.options?.filter((option): option is { value: string; label: string } => typeof option !== "string").map((option) => { const checked = props.value.split(",").filter(Boolean).includes(option.value); return <Checkbox key={option.value} checked={checked} label={option.label} onChange={() => { dirty.current = true; const current = props.value.split(",").filter(Boolean); setValues((values) => ({ ...values, [f.name]: (checked ? current.filter((value) => value !== option.value) : [...current, option.value]).join(",") })); }} />; })}</fieldset>
+                  <fieldset className="space-y-2 rounded-inner border border-hairline p-3"><legend className="px-1 text-sm text-sub">Choose one or more files</legend>{f.options?.filter((option): option is { value: string; label: string } => typeof option !== "string").map((option) => { const checked = props.value.split(",").filter(Boolean).includes(option.value); return <Checkbox key={option.value} checked={checked} label={option.label} onChange={() => { const current = props.value.split(",").filter(Boolean); changeValue(f, (checked ? current.filter((value) => value !== option.value) : [...current, option.value]).join(",")); }} />; })}</fieldset>
                 ) : f.type === "textarea" ? (
                   <Textarea {...props} maxLength={f.maxLength} />
                 ) : (
@@ -300,17 +298,7 @@ export function SalesForm({
                     min={f.numeric ? undefined : f.min}
                     minLength={f.minLength}
                     maxLength={f.maxLength}
-                    onBlur={
-                      f.numeric
-                        ? () => {
-                            const message = inlineFieldError(f, values);
-                            setErrors((current) => ({
-                              ...current,
-                              [f.name]: message ?? "",
-                            }));
-                          }
-                        : undefined
-                    }
+
                   />
                 )}
                 {f.help && <p className="text-sm text-sub">{f.help}</p>}
@@ -367,7 +355,7 @@ export function SalesForm({
             {pending ? "Saving…" : "Save"}
           </Button>
         </div>
-      </form>
+      </ValidatedForm>
     </Dialog>
   );
 }

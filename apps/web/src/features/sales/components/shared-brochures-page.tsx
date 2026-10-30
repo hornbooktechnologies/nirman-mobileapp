@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { PublicBrochureShareResponse } from "@nirman-app/shared";
 import { Card, LoadingState } from "@/components/ui";
 
@@ -77,9 +78,12 @@ export function SharedBrochuresPage({ token }: { token: string }) {
             >
               <div className="flex h-36 items-center justify-center bg-sunken">
                 {asset.mimeType.startsWith("image/") ? (
-                  <img
+                  <Image
                     src={media}
                     alt=""
+                    width={640}
+                    height={288}
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 ) : (

@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import Link from "next/link";
@@ -189,7 +190,7 @@ function Report({
       </header>
       <Card>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="grid gap-1">
+          <ValidatedField className="grid gap-1">
             Period
             <select
               className="rounded-lg border border-hairline bg-surface p-2"
@@ -208,9 +209,9 @@ function Report({
                 </option>
               ))}
             </select>
-          </label>
+          </ValidatedField>
           {period === "YEAR" && (
-            <label className="grid gap-1">
+            <ValidatedField className="grid gap-1">
               Year
               <input
                 type="number"
@@ -227,11 +228,11 @@ function Report({
                   }
                 }}
               />
-            </label>
+            </ValidatedField>
           )}
           {period === "CUSTOM" && (
             <>
-              <label className="grid gap-1">
+              <ValidatedField className="grid gap-1">
                 From
                 <input
                   type="date"
@@ -239,8 +240,8 @@ function Report({
                   onChange={(e) => setStart(e.target.value)}
                   className="rounded-lg border border-hairline p-2"
                 />
-              </label>
-              <label className="grid gap-1">
+              </ValidatedField>
+              <ValidatedField className="grid gap-1">
                 To
                 <input
                   type="date"
@@ -248,7 +249,7 @@ function Report({
                   onChange={(e) => setEnd(e.target.value)}
                   className="rounded-lg border border-hairline p-2"
                 />
-              </label>
+              </ValidatedField>
               <Button onClick={apply}>Apply dates</Button>
             </>
           )}

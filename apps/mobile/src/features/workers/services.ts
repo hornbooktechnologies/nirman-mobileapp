@@ -1,5 +1,6 @@
 import { readSearchPages } from '../../lib/read-search-pages';
 import { apiRequest } from '../../lib/api';
+import type { UpdateWorkerInput, WorkerDeletionResult } from '@nirman-app/shared';
 import type {
   AssignWorkerToProjectInput,
   CreateWorkerInput,
@@ -22,6 +23,18 @@ type ApiEnvelope<TData> = {
   data: TData;
 };
 
+export async function updateWorker(organizationId: string, workerId: string, token: string, input: UpdateWorkerInput) {
+  return (await apiRequest<ApiEnvelope<WorkerDetail>>(`/organizations/${organizationId}/workers/${workerId}`, { method: 'PATCH', body: JSON.stringify(input) }, { accessToken: token })).data;
+}
+
+export async function deactivateWorker(organizationId: string, workerId: string, token: string, reason: string | null) {
+  return (await apiRequest<ApiEnvelope<WorkerDetail>>(`/organizations/${organizationId}/workers/${workerId}/deactivate`, { method: 'POST', body: JSON.stringify({ reason }) }, { accessToken: token })).data;
+}
+
+export async function deleteWorker(organizationId: string, workerId: string, token: string) {
+  return (await apiRequest<ApiEnvelope<WorkerDeletionResult>>(`/organizations/${organizationId}/workers/${workerId}`, { method: 'DELETE' }, { accessToken: token })).data;
+}
+
 export async function fetchProjectWorkers(organizationId: string, projectId: string, accessToken: string) {
   return readSearchPages<ProjectWorkerRosterResponse['data'][number], ProjectWorkerRosterResponse>(async page => {
     const response = await apiRequest<ApiEnvelope<ProjectWorkerRosterResponse>>(
@@ -32,9 +45,10 @@ export async function fetchProjectWorkers(organizationId: string, projectId: str
   });
 }
 
-export async function fetchOrganizationWorkers(organizationId: string, accessToken: string, search = '') {
+export async function fetchOrganizationWorkers(organizationId: string, accessToken: string, search = '', status: 'ACTIVE' | 'INACTIVE' | null = 'ACTIVE') {
   return readSearchPages<WorkerListResponse['data'][number], WorkerListResponse>(async page => {
-    const params = new URLSearchParams({ status: 'ACTIVE', pageSize: '100', sortBy: 'name', sortOrder: 'asc', page: String(page) });
+    const params = new URLSearchParams({ pageSize: '100', sortBy: 'name', sortOrder: 'asc', page: String(page) });
+    if (status) params.set('status', status);
     if (search.trim()) params.set('search', search.trim());
     const response = await apiRequest<ApiEnvelope<WorkerListResponse>>(
       `/organizations/${organizationId}/workers?${params}`, {}, { accessToken },

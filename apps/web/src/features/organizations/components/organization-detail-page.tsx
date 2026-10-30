@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingState } from "@/components/ui";
@@ -166,14 +167,14 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                 </p>
               </section>
               {canUpdateDetails ? (
-                <form
+                <ValidatedForm
                   className="grid gap-4 border-t border-hairline pt-4"
                   onSubmit={submit}
                 >
                   <h2 className="text-lg font-semibold">
                     Edit organization setup
                   </h2>
-                  <label className="grid gap-1 text-sm font-medium">
+                  <ValidatedField className="grid gap-1 text-sm font-medium">
                     Organization name
                     <Input
                       value={form.name}
@@ -182,9 +183,9 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                       }
                       required
                     />
-                  </label>
+                  </ValidatedField>
                   {canChangeOperatingProfile ? (
-                    <label className="grid gap-1 text-sm font-medium">
+                    <ValidatedField className="grid gap-1 text-sm font-medium">
                       Operating profile
                       <Select
                         value={form.operatingProfile}
@@ -208,7 +209,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                           </option>
                         ))}
                       </Select>
-                    </label>
+                    </ValidatedField>
                   ) : (
                     <div className="grid gap-1 text-sm">
                       <span className="font-medium">Operating profile</span>
@@ -227,7 +228,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                     </div>
                   )}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="grid gap-1 text-sm font-medium">
+                    <ValidatedField className="grid gap-1 text-sm font-medium">
                       Working timezone
                       <Input
                         value={form.timezone}
@@ -235,7 +236,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                           setForm({ ...form, timezone: event.target.value })
                         }
                       />
-                    </label>
+                    </ValidatedField>
                     <div className="flex min-h-10 items-center rounded-sub border border-hairline bg-sunken px-3 text-[13px] text-body">
                       <span className="text-sub">Default currency:</span>
                       <strong className="ml-1.5 font-semibold">
@@ -253,7 +254,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                         Changing status can affect access for the whole
                         organization. Review the selected status before saving.
                       </p>
-                      <label className="grid gap-1 text-sm font-medium">
+                      <ValidatedField className="grid gap-1 text-sm font-medium">
                         Organization status
                         <Select
                           value={form.status}
@@ -270,7 +271,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                             </option>
                           ))}
                         </Select>
-                      </label>
+                      </ValidatedField>
                     </section>
                   )}
                   <Button type="submit" disabled={updateOrganization.isPending}>
@@ -291,7 +292,7 @@ function OrganizationDetail({ organizationId }: { organizationId: string }) {
                       Organization saved.
                     </p>
                   )}
-                </form>
+                </ValidatedForm>
               ) : (
                 <p className="border-t border-hairline pt-4 text-sm text-sub">
                   This organization is read-only for your role. An authorized

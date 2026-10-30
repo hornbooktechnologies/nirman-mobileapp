@@ -1,5 +1,5 @@
-import { TotalExpensesModule } from './modules/total-expenses/total-expenses.module';
-import { SourcePaymentsModule } from './modules/source-payments/source-payments.module';
+import { TotalExpensesModule } from "./modules/total-expenses/total-expenses.module";
+import { SourcePaymentsModule } from "./modules/source-payments/source-payments.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { DatabaseModule } from "./database/database.module";

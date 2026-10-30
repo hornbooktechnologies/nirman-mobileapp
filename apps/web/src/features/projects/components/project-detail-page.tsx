@@ -26,6 +26,8 @@ import {
 } from "@/features/projects/hooks/use-projects";
 import type { ProjectInput } from "@/features/projects/types/projects.types";
 import { projectListReturnHref } from "../project-list-query";
+import { useFieldValidation } from "@/lib/forms/use-field-validation";
+import { validateProjectForm } from "../project-validation";
 
 const statusTone = {
   ACTIVE: "active",
@@ -171,7 +173,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
                     <Button
                       variant="outline"
                       disabled={archiveProject.isPending}
-                      onClick={() => archiveProject.mutate()}
+                      onClick={() => { if (window.confirm(`Archive ${project.data?.name}? Its history will be retained and the project will become read-only.`)) archiveProject.mutate(); }}
                     >
                       <Archive size={16} />
                       {archiveProject.isPending
@@ -185,7 +187,7 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
                     <Button
                       variant="outline"
                       disabled={restoreProject.isPending}
-                      onClick={() => restoreProject.mutate()}
+                      onClick={() => { if (window.confirm(`Restore ${project.data?.name} to Active? Available project capacity is required.`)) restoreProject.mutate(); }}
                     >
                       <RotateCcw size={16} />
                       {restoreProject.isPending
@@ -236,9 +238,10 @@ function ProjectEditor({
     expectedCompletionDate: project.expectedCompletionDate?.slice(0, 10) ?? "",
     description: project.description ?? "",
   }));
+  const validation = useFieldValidation(form, validateProjectForm);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending) return;
+    if (pending || !validation.check(event.currentTarget)) return;
     setError("");
     try {
       await save(normalizeProjectInput(form));
@@ -250,12 +253,14 @@ function ProjectEditor({
   }
   return (
     <Card>
-      <form className="space-y-4" onSubmit={submit}>
+      <form noValidate className="space-y-4" onSubmit={submit}>
         <SectionHeader title="Edit project" />
         <fieldset disabled={pending}>
           <ProjectFormFields
             form={form}
             setForm={setForm}
+            errors={validation.errors}
+            onBlur={validation.blur}
             allowArchivedStatus={project.status === "ARCHIVED"}
           />
         </fieldset>

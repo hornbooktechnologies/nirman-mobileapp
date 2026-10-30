@@ -9,9 +9,10 @@ import type {
   WagePaymentMethod,
   WagePaymentStatus,
   WagePreviewItem,
+  WageRateBreakdownItem,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type { DatabaseConnection } from "../../database/database.types";
+import type { DatabaseConnection, DbRow } from "../../database/database.types";
 import { AuditService } from "../audit/audit.service";
 import { KharchiRepository } from "../kharchi/kharchi.repository";
 
@@ -126,7 +127,7 @@ export class WagesRepository {
     organizationId: string,
     projectId: string,
   ): Promise<WageBatch[]> {
-    const rows = await this.database.query<BatchRow & any>(
+    const rows = await this.database.query<BatchRow & DbRow>(
       `${this.batchSelectSql()}
        WHERE wb.organization_id = ? AND wb.project_id = ?
        GROUP BY wb.id
@@ -141,7 +142,7 @@ export class WagesRepository {
     projectId: string,
     batchId: string,
   ): Promise<WageBatchDetail | null> {
-    const batchRows = await this.database.query<BatchRow & any>(
+    const batchRows = await this.database.query<BatchRow & DbRow>(
       `${this.batchSelectSql()}
        WHERE wb.organization_id = ? AND wb.project_id = ? AND wb.id = ?
        GROUP BY wb.id
@@ -150,13 +151,13 @@ export class WagesRepository {
     );
     if (!batchRows[0]) return null;
     const [itemRows, paymentRows] = await Promise.all([
-      this.database.query<ItemRow & any>(
+      this.database.query<ItemRow & DbRow>(
         `${this.itemSelectSql()}
          WHERE wi.wage_batch_id = ?
          ORDER BY w.name ASC, w.worker_code ASC`,
         [batchId],
       ),
-      this.database.query<PaymentRow & any>(
+      this.database.query<PaymentRow & DbRow>(
         `SELECT id, wage_item_id, amount, payment_date, payment_method, reference, recorded_by, recorded_at
          FROM wage_payments
          WHERE wage_batch_id = ?
@@ -176,8 +177,8 @@ export class WagesRepository {
     projectId: string,
     periodStart: string,
     periodEnd: string,
-  ) {
-    const rows = await this.database.query<{ id: string } & any>(
+  ): Promise<string | null> {
+    const rows = await this.database.query<{ id: string } & DbRow>(
       `SELECT id
        FROM wage_batches
        WHERE organization_id = ?
@@ -282,7 +283,7 @@ export class WagesRepository {
     await this.database.transaction(async (connection) => {
       if (input.idempotencyKey) {
         const existing = await this.database.query<
-          { id: string; wage_batch_id: string } & any
+          { id: string; wage_batch_id: string } & DbRow
         >(
           `SELECT id, wage_batch_id FROM wage_payments
            WHERE organization_id = ? AND idempotency_key = ?
@@ -303,7 +304,7 @@ export class WagesRepository {
           net_amount: string;
           paid_amount: string;
           batch_status: WageBatchStatus;
-        } & any
+        } & DbRow
       >(
         `SELECT wi.id, wi.wage_batch_id, wi.net_amount, wi.paid_amount, wb.status AS batch_status
          FROM wage_items wi
@@ -360,7 +361,7 @@ export class WagesRepository {
   ) {
     let found = false;
     await this.database.transaction(async (connection) => {
-      await this.database.query<{ id: string } & any>(
+      await this.database.query<{ id: string } & DbRow>(
         `SELECT id FROM wage_items
          WHERE wage_batch_id = ? AND organization_id = ? AND project_id = ?
          ORDER BY id
@@ -369,7 +370,7 @@ export class WagesRepository {
         connection,
       );
       const batches = await this.database.query<
-        { id: string; status: WageBatchStatus } & any
+        { id: string; status: WageBatchStatus } & DbRow
       >(
         `SELECT id, status FROM wage_batches
          WHERE id = ? AND organization_id = ? AND project_id = ?
@@ -382,7 +383,7 @@ export class WagesRepository {
       found = true;
       if (batch.status === "CANCELLED") return;
 
-      const payments = await this.database.query<{ id: string } & any>(
+      const payments = await this.database.query<{ id: string } & DbRow>(
         `SELECT id FROM wage_payments
          WHERE wage_batch_id = ? AND organization_id = ? AND project_id = ?
          LIMIT 1 FOR UPDATE`,
@@ -441,7 +442,7 @@ export class WagesRepository {
           adjustment_amount: string;
           paid_amount: string;
           batch_status: WageBatchStatus;
-        } & any
+        } & DbRow
       >(
         `SELECT
            wi.id, wi.wage_batch_id, wi.gross_amount, wi.kharchi_deduction,
@@ -522,7 +523,7 @@ export class WagesRepository {
     connection: DatabaseConnection,
   ) {
     const rows = await this.database.query<
-      { total: number; paid: number; partial: number } & any
+      { total: number; paid: number; partial: number } & DbRow
     >(
       `SELECT
          COUNT(*) AS total,
@@ -624,15 +625,38 @@ export class WagesRepository {
     };
   }
 
-  private parseRateBreakdown(value: unknown) {
-    if (Array.isArray(value)) return value;
-    if (typeof value !== "string" || !value) return undefined;
-    try {
-      const parsed: unknown = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : undefined;
-    } catch {
-      return undefined;
+  private parseRateBreakdown(
+    value: unknown,
+  ): WageRateBreakdownItem[] | undefined {
+    let parsed: unknown = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return undefined;
+      }
     }
+    if (!Array.isArray(parsed)) return undefined;
+    const entries: unknown[] = parsed;
+    const valid = (entry: unknown): entry is WageRateBreakdownItem => {
+      if (typeof entry !== "object" || entry === null) return false;
+      return (
+        "dailyRate" in entry &&
+        (entry.dailyRate === null || typeof entry.dailyRate === "string") &&
+        "presentDays" in entry &&
+        typeof entry.presentDays === "number" &&
+        Number.isFinite(entry.presentDays) &&
+        "halfDays" in entry &&
+        typeof entry.halfDays === "number" &&
+        Number.isFinite(entry.halfDays) &&
+        "absentDays" in entry &&
+        typeof entry.absentDays === "number" &&
+        Number.isFinite(entry.absentDays) &&
+        "grossAmount" in entry &&
+        typeof entry.grossAmount === "string"
+      );
+    };
+    return entries.every(valid) ? entries : undefined;
   }
 
   private mapPayment(row: PaymentRow): WagePayment {

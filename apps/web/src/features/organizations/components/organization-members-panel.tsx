@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useState, type FormEvent } from "react";
 import { LoadingState, LottieLoader } from "@/components/ui";
@@ -10,6 +11,7 @@ import {
   UserPlus,
   UserRoundCheck,
   UserRoundX,
+  X,
 } from "lucide-react";
 import {
   Button,
@@ -269,7 +271,7 @@ export function OrganizationMembersPanel({
               size="sm"
               onClick={() => setIsInvitingMember((current) => !current)}
             >
-              <UserPlus size={15} />
+              {isInvitingMember ? <X size={15} aria-hidden="true" /> : <UserPlus size={15} aria-hidden="true" />}
               {isInvitingMember ? "Close" : "Invite Member"}
             </Button>
           ) : null}
@@ -300,11 +302,11 @@ export function OrganizationMembersPanel({
         ) : null}
 
         {isInvitingMember && canInviteMembers ? (
-          <form
+          <ValidatedForm
             className="mb-4 grid gap-3 rounded-inner border border-hairline bg-canvas p-3 md:grid-cols-2"
             onSubmit={submitMemberInvitation}
           >
-            <label className="grid gap-1 text-sm font-medium">
+            <ValidatedField className="grid gap-1 text-sm font-medium">
               Member name
               <Input
                 placeholder="Member name"
@@ -314,8 +316,8 @@ export function OrganizationMembersPanel({
                 }
                 required
               />
-            </label>
-            <label className="grid gap-1 text-sm font-medium">
+            </ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">
               Login email
               <Input
                 type="email"
@@ -326,8 +328,8 @@ export function OrganizationMembersPanel({
                 }
                 required
               />
-            </label>
-            <label className="grid gap-1 text-sm font-medium">
+            </ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">
               Mobile number (optional)
               <Input
                 placeholder="Mobile number (optional)"
@@ -336,8 +338,8 @@ export function OrganizationMembersPanel({
                   setInviteForm({ ...inviteForm, phone: event.target.value })
                 }
               />
-            </label>
-            <label className="grid gap-1 text-sm font-medium">
+            </ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">
               Organization role
               <Select
                 value={inviteForm.roleId}
@@ -353,8 +355,8 @@ export function OrganizationMembersPanel({
                   </option>
                 ))}
               </Select>
-            </label>
-            <label className="grid gap-1 text-sm font-medium">
+            </ValidatedField>
+            <ValidatedField className="grid gap-1 text-sm font-medium">
               Designation (optional)
               <Input
                 placeholder="Designation (optional)"
@@ -366,7 +368,7 @@ export function OrganizationMembersPanel({
                   })
                 }
               />
-            </label>
+            </ValidatedField>
             <Checkbox
               label="Access all organization projects"
               checked={inviteForm.organizationWideProjectAccess}
@@ -387,7 +389,7 @@ export function OrganizationMembersPanel({
                 {inviteMember.isPending ? "Inviting" : "Send Invitation"}
               </Button>
             </div>
-          </form>
+          </ValidatedForm>
         ) : null}
 
         {actionError ? (
@@ -646,7 +648,7 @@ export function OrganizationMembersPanel({
           }
         >
           <div className="space-y-4">
-            <label className="block space-y-1">
+            <ValidatedField className="block space-y-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                 Organization role
               </span>
@@ -669,8 +671,8 @@ export function OrganizationMembersPanel({
                   ? " You cannot change your own role."
                   : ""}
               </p>
-            </label>
-            <label className="block space-y-1">
+            </ValidatedField>
+            <ValidatedField className="block space-y-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-sub">
                 Designation
               </span>
@@ -684,7 +686,7 @@ export function OrganizationMembersPanel({
                   })
                 }
               />
-            </label>
+            </ValidatedField>
             <div className="rounded-inner border border-hairline bg-sunken/40 p-3">
               <Checkbox
                 label="Access all organization projects"

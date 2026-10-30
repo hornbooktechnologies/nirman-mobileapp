@@ -72,8 +72,7 @@ describe("OrganizationOnboardingService", () => {
   it("uses the activation website independently of other auth email URLs", () => {
     const previous = process.env.PUBLIC_ACTIVATION_WEB_URL;
     try {
-      process.env.PUBLIC_ACTIVATION_WEB_URL =
-        "https://app.nirmansite.com/";
+      process.env.PUBLIC_ACTIVATION_WEB_URL = "https://app.nirmansite.com/";
       expect(service["webActivationUrl"]("test/token")).toBe(
         "https://app.nirmansite.com/activate?token=test%2Ftoken",
       );

@@ -37,6 +37,7 @@ async function verify(file, component, boundary, dataName) {
   const t = key => key;
   const context = {
     exports, AttendanceReadRequest, AbortController, console, setTimeout, clearTimeout,
+    attendancePeriodIssue: require("../../../packages/shared/dist/attendance-actions.js").attendancePeriodIssue,
     useRef, useMemo, useEffect, useCallback: (fn, deps) => useMemo(() => fn, deps), useState,
     useTranslation: () => ({ t }), useLocalization: () => ({ locale: 'en' }),
     useLocalSearchParams: () => ({ workerId: 'worker', projectId: 'project', startDate: '2026-10-01', endDate: '2026-10-26' }),

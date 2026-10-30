@@ -35,11 +35,11 @@ AI agents must read this file before starting new module work.
 
 | Priority | Module | Path | Status | Dependency | Next Step |
 | --- | --- | --- | --- | --- | --- |
-| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation and assignment-rate history implemented; migration 025 applied 2026-09-15 | Verify owner/supervisor authenticated rate-change role matrix; deactivation policy remains separately blocked |
+| 8 | Workers | `docs/modules/construction/workers/CONTRACT.md` | in_progress | Effective-dated primary-project allocation and assignment-rate history implemented; migration 025 applied 2026-09-15 | Deactivation policy approved 2026-10-29 (ADR 007); Mobile profile/lifecycle parity implemented. Run authenticated role/device acceptance |
 | 8A | Work Calendar | `docs/modules/calendar/CONTRACT.md` | in_progress | Project Access | Web W1 parity additions implemented in source; verification explicitly unrun, not accepted. See `docs/tasks/web-w1-calendar-attendance-parity.md` |
 | 9 | Attendance | `docs/modules/attendance/CONTRACT.md` | in_progress | Workers primary periods + Work Calendar + Project Access | Web W1 parity additions implemented in source; verification explicitly unrun, not accepted. Locked correction remains reserved. See `docs/tasks/web-w1-calendar-attendance-parity.md` |
 | 10 | Kharchi | `docs/modules/construction/kharchi/CONTRACTS.md`, `docs/modules/construction/kharchi/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/kharchi/STATUS.md` | implementation_complete_acceptance_pending | Workers + Wages + reusable Audit Foundation | API/Mobile source and Web W2 implemented; see `docs/tasks/web-w2-kharchi-parity.md` for static-check limitations and pending authenticated/cross-client acceptance |
-| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi + Audit | Migrations 025/026 applied and schema/grants verified; run authenticated rate/cancellation and device acceptance |
+| 11 | Wages | `docs/modules/construction/wages/CONTRACTS.md` | in_progress | Workers + Attendance + Kharchi + Audit | Migrations 025/026 applied; Web/Mobile additive parity verified 2026-10-29 (see `docs/tasks/wages-platform-parity.md`); authenticated rate/payment/cancellation and device acceptance pending |
 | 12 | Materials | `docs/modules/construction/materials/CONTRACTS.md` | Two-mode API/Mobile/Web approval implemented; migration 027 and runtime acceptance pending | Project Access + Audit + Notifications | [Approval policy and verification](../tasks/materials-two-mode-approval-plan.md) |
 | 13 | Expenses | `docs/modules/construction/expenses/CONTRACTS.md`, `docs/modules/construction/expenses/MOBILE_INTEGRATION_CONTRACT.md`, `docs/modules/construction/expenses/STATUS.md`, `docs/tasks/web-w4-expenses-parity.md` | implementation_complete_authenticated_acceptance_pending | Project Access + Audit + Notifications | Cross-client payment/forms/filters audit verified: 354 API tests plus authenticated local Web form checks; production API/Web publishing and Mobile/device acceptance pending |
 | 13A | Total Expenses | `docs/modules/construction/total-expenses/CONTRACTS.md`, `docs/modules/construction/total-expenses/STATUS.md`, `docs/tasks/total-expenses-implementation-plan.md` | implementation_complete_schema_verified_runtime_acceptance_partial | Wages + Materials + Expenses + Project Access + Calendar + Audit | Materials all-time commitment/delivery tab implemented and SQL-fixture verified 2026-10-09; Migration 028 and local Owner paid report verified; API/client rollout and new-tab authenticated/browser/device acceptance remain |
@@ -75,7 +75,7 @@ docs/tasks/calendar-attendance-exception-model-implementation-plan.md
 
 Migration `003_organization_owner_invitations.sql` is applied. Owner invitation delivery, existing-identity reuse, and Login email prefill are source-complete; live acceptance remains write-gated. RBAC Slices A-C are active in the shared database; Slice D/E/F source corrections remain separately runtime-gated.
 
-Workers now has a reconciled vertical slice and passing automated static/API checks. It remains blocked from `verified` because the approved contract does not choose how worker deactivation handles active project assignments. Effective-dated rate history migration `025` is applied and schema-verified, but authenticated runtime acceptance remains pending; Audit and persisted offline behavior remain downstream foundation dependencies.
+Workers now has a reconciled vertical slice and passing automated static/API checks. The owner resolved deactivation on 2026-10-29: retain assignments and exclude inactive workers from active rosters (ADR 007). Mobile lifecycle/profile parity is source-implemented; authenticated acceptance remains pending. Effective-dated rate history migration `025` is applied and schema-verified, but authenticated runtime acceptance remains pending; Audit and persisted offline behavior remain downstream foundation dependencies.
 
 The mobile customer shell no longer exposes mock workflows, design-system screens, fake project/team data, or dead tabs. The approved mobile plan now makes organization switching, member invitations, project assignment, and Workers completion the next foundation sequence for Builder, Contractor, Supervisor, Project Manager, and Sales identities.
 
@@ -83,3 +83,11 @@ The mobile customer shell no longer exposes mock workflows, design-system screen
 ### 2026-09-18 Web Progress update
 
 Progress W5 is implemented in Web; see [parity and verification](../tasks/web-w5-progress-parity.md). Authenticated/browser/cross-client acceptance remains pending. Existing API/Mobile evidence is unchanged.
+
+## 2026-10-29 customer platform parity
+
+Existing customer modules were compared against actual Web/Mobile services and screens. Additive Projects/Workers/Calendar/export/filter/history/routing improvements and exclusions are tracked in [customer platform parity](../tasks/customer-platform-parity.md). Platform-only administration was explicitly excluded by the owner. Source/static verification does not mark modules accepted.
+
+## 2026-10-30 production readiness audit
+
+Cross-project fixes, supported dependency security updates and local API/Web/Mobile/website verification are recorded in [production readiness audit](../tasks/production-readiness-audit-2026-10-30.md). Authenticated target/schema testing, physical-device and container acceptance, and two upstream Expo-tooling advisories remain open. No module is promoted to accepted and no database rollout or deployment was executed.

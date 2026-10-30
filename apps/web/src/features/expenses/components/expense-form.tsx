@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { useRef, useState, type FormEvent } from "react";
@@ -106,7 +107,7 @@ export function ExpenseForm({
     maxLength = 160,
   ) {
     return (
-      <label className="block space-y-1">
+      <ValidatedField className="block space-y-1">
         {title}
         {required ? " *" : ""}
         <Input
@@ -122,7 +123,7 @@ export function ExpenseForm({
           onChange={(e) => change(name, e.target.value)}
         />
         {errorText(name)}
-      </label>
+      </ValidatedField>
     );
   }
   async function submit(event: FormEvent) {
@@ -288,7 +289,7 @@ export function ExpenseForm({
         </>
       }
     >
-      <form
+      <ValidatedForm
         id="expense-form"
         ref={form}
         noValidate
@@ -357,9 +358,9 @@ export function ExpenseForm({
           {request && (
             <>
               {field("expenseDate", "Expense date", "date", true)}
-              <label>
+              <ValidatedField>
                 Category *
-                <Select
+                <Select required
                   name="category"
                   value={values.category}
                   onChange={(e) => change("category", e.target.value)}
@@ -370,10 +371,10 @@ export function ExpenseForm({
                     </option>
                   ))}
                 </Select>
-              </label>
-              <label className="sm:col-span-2">
+              </ValidatedField>
+              <ValidatedField className="sm:col-span-2">
                 Description *
-                <Textarea
+                <Textarea required
                   id="description"
                   name="description"
                   maxLength={1000}
@@ -382,7 +383,7 @@ export function ExpenseForm({
                   onChange={(e) => change("description", e.target.value)}
                 />
                 {errorText("description")}
-              </label>
+              </ValidatedField>
             </>
           )}
           {adjustment && (
@@ -390,7 +391,7 @@ export function ExpenseForm({
               <legend className="mb-2">Adjustment direction *</legend>
               <div className="flex flex-wrap gap-4">
                 {["INCREASE", "DECREASE"].map((v) => (
-                  <label key={v} className="flex min-h-11 items-center gap-2">
+                  <ValidatedField key={v} className="flex min-h-11 items-center gap-2">
                     <input
                       type="radio"
                       name="direction"
@@ -399,7 +400,7 @@ export function ExpenseForm({
                       onChange={() => change("direction", v)}
                     />
                     {label(v)}
-                  </label>
+                  </ValidatedField>
                 ))}
               </div>
               <p className="text-sm text-sub">
@@ -419,7 +420,7 @@ export function ExpenseForm({
             )}
           {request && (
             <>
-              <label>
+              <ValidatedField>
                 Payment method
                 <Select
                   value={values.paymentMethod}
@@ -432,19 +433,19 @@ export function ExpenseForm({
                     </option>
                   ))}
                 </Select>
-              </label>
+              </ValidatedField>
               {field("vendorPayee", "Vendor / payee")}
               {action === "CREATE" && (
-                <label>
+                <ValidatedField>
                   Record as *
-                  <Select
+                  <Select required
                     value={values.recordAs}
                     onChange={(e) => change("recordAs", e.target.value)}
                   >
                     <option value="SUBMIT">Submit now</option>
                     <option value="DRAFT">Save draft</option>
                   </Select>
-                </label>
+                </ValidatedField>
               )}
               {action === "EDIT" && (
                 <p className="text-sm sm:col-span-2">
@@ -455,7 +456,7 @@ export function ExpenseForm({
             </>
           )}
           {!request && (
-            <label className="sm:col-span-2">
+            <ValidatedField className="sm:col-span-2">
               Reason{reasonRequired ? " *" : ""}
               <Textarea
                 id="reason"
@@ -466,10 +467,10 @@ export function ExpenseForm({
                 onChange={(e) => change("reason", e.target.value)}
               />
               {errorText("reason")}
-            </label>
+            </ValidatedField>
           )}
         </fieldset>
-      </form>
+      </ValidatedForm>
     </Dialog>
   );
 }

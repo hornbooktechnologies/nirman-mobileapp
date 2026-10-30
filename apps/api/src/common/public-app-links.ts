@@ -12,7 +12,8 @@ export function publicWebOrigin(activation = false) {
     if (
       url.hostname === "nirman-mobileapp-web.vercel.app" ||
       url.hostname === "nirman-website.vercel.app"
-    ) return productionOrigin;
+    )
+      return productionOrigin;
     return url.origin;
   } catch {
     return productionOrigin;

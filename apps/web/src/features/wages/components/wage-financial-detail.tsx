@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -38,7 +39,7 @@ function Allocations({ organizationId, projectId, item }: { organizationId: stri
     <h3 className="font-semibold">Kharchi allocation history</h3>
     <p className="text-sm text-sub">Choose a worker advance to inspect its allocations to this wage item, including reversals.</p>
     {advances.isPending ? <LoadingState label="Loading worker advances" /> : advances.isError ? <p role="alert">{advances.error.message} <Button onClick={() => void advances.refetch()}>Retry</Button></p> : <>
-      <label className="grid gap-1">Worker advance<Select value={advanceId} onChange={event => setAdvanceId(event.target.value)}><option value="">Select advance</option>{advances.data.items.map(row => <option key={row.id} value={row.id}>{row.requestDate} · {money(row.amount)} · {row.status}</option>)}</Select></label>
+      <ValidatedField className="grid gap-1">Worker advance<Select value={advanceId} onChange={event => setAdvanceId(event.target.value)}><option value="">Select advance</option>{advances.data.items.map(row => <option key={row.id} value={row.id}>{row.requestDate} · {money(row.amount)} · {row.status}</option>)}</Select></ValidatedField>
       {!advances.data.items.length ? <p>No advances found.</p> : null}
       <div className="flex flex-wrap items-center gap-3"><Button variant="outline" disabled={page === 1} onClick={() => { setPage(page - 1); setAdvanceId(""); }}>Previous</Button><span>Page {page} of {Math.max(1, advances.data.pagination.totalPages)}</span><Button variant="outline" disabled={page >= advances.data.pagination.totalPages} onClick={() => { setPage(page + 1); setAdvanceId(""); }}>Next</Button></div>
     </>}
@@ -64,7 +65,7 @@ export function WageFinancialDetail({ item, detail, organizationId, projectId, c
       {canReadKharchi ? <Link className="underline" href={`/projects/${projectId}/kharchi?workerAssignmentId=${item.workerAssignmentId}`}>Assignment Kharchi ledger</Link> : null}
     </nav>
     <p className="text-sm">Notes: {item.notes || "No notes"}</p>
-    <p className="text-sm">Payment state: {wageBalanceLabel(item)} · Paid: {money(item.paidAmount)} · Remaining: {money(Math.max(0, Number(item.netAmount) - Number(item.paidAmount)).toFixed(2))}</p>
+    <p className="text-sm">Payment state: {detail.status === "CANCELLED" ? item.paymentStatus.replaceAll("_", " ") : wageBalanceLabel(item)} · Paid: {money(item.paidAmount)} · Remaining: {money(Math.max(0, Number(item.netAmount) - Number(item.paidAmount)).toFixed(2))}</p>
     {detail.status !== "CANCELLED" && Number(item.netAmount) === 0 && Number(item.kharchiDeduction) > 0 ? <p>Settled by Kharchi deduction. No wage payment is due.</p> : null}
     <h3 className="font-semibold">Payment history</h3>
     {!payments.length ? <p className="text-sm">No payments recorded.</p> : payments.map(payment => <div key={payment.id} className="space-y-1 rounded-inner bg-sunken p-3 text-sm break-words"><p>{money(payment.amount)} · {payment.paymentMethod.replaceAll("_", " ")} · Paid {payment.paymentDate}</p><p>Reference: {payment.reference || "None"}</p><p>Recorded {payment.recordedAt} · Actor {payment.recordedBy}</p></div>)}

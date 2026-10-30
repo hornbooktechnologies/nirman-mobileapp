@@ -28,6 +28,8 @@ const memo = (factory, deps) => {
 const exportsObject = {};
 vm.runInNewContext(ts.transpileModule(hooks, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
   exports: exportsObject,
+  refreshTogether: (reads) => Promise.all(reads),
+  useSalesAssignees: () => ({ options: [], error: false }),
   useLocalSearchParams: () => ({ leadId }),
   useTranslation: () => ({ t, i18n: { resolvedLanguage: 'en' } }),
   useSession: () => ({ session }),
@@ -40,10 +42,13 @@ vm.runInNewContext(ts.transpileModule(hooks, { compilerOptions: { module: ts.Mod
     const index = cursor++;
     if (!(index in slots)) slots[index] = initial;
     return [slots[index], (value) => {
-      if (!Object.is(slots[index], value)) { slots[index] = value; dirty = true; }
+      const next = typeof value === 'function' ? value(slots[index]) : value;
+      if (!Object.is(slots[index], next)) { slots[index] = next; dirty = true; }
     }];
   },
   useCallback: (callback, deps) => memo(() => callback, deps),
+  useRef: (initial) => memo(() => ({ current: initial }), []),
+  useFocusEffect: (effect) => memo(() => { pending.push(effect); }, [effect]),
   useEffect: (effect, deps) => memo(() => { pending.push(effect); }, deps),
   fetchLead: async (...args) => { calls.push(['lead', ...args]); if (fail) throw Error('offline'); return { id: leadId }; },
   fetchActivities: async (...args) => { calls.push(['activities', ...args]); return []; },

@@ -1,5 +1,8 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { test } from "node:test";
 import axios from "axios";
 import ts from "typescript";
@@ -86,7 +89,7 @@ test("Web requests use the same-origin proxy even with a remote base path", () =
 test("proxy upstream supports remote origins and legacy full API URLs", async () => {
   const source = readFileSync(new URL("../../../next.config.ts", import.meta.url), "utf8");
   const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   });
   for (const env of [
     { NEXT_PUBLIC_API_URL: "https://example.com", NEXT_PUBLIC_API_BASE_PATH: "/api/v1" },
@@ -94,7 +97,10 @@ test("proxy upstream supports remote origins and legacy full API URLs", async ()
     { NEXT_PUBLIC_API_BASE_PATH: "https://example.com/api/v1", NEXT_PUBLIC_API_URL: "http://localhost:4000" },
   ]) {
     const exports = {};
-    new Function("exports", "process", outputText)(exports, { env });
+    new Function("require", "exports", "process", "__dirname", outputText)(
+      createRequire(import.meta.url), exports, { env },
+      path.dirname(fileURLToPath(new URL("../../../next.config.ts", import.meta.url))),
+    );
     assert.deepEqual(await exports.default.rewrites(), [{
       source: "/api/v1/:path*",
       destination: "https://example.com/api/v1/:path*",

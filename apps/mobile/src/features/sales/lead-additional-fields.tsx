@@ -1,8 +1,9 @@
+import { useLocalSearchParams } from "expo-router";
 import { LEAD_PRIORITIES, LEAD_SOURCES } from '@nirman-app/shared';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, Input } from '../../components/ui';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { useSalesAssignees } from './sales-assignees';
 import { fetchUnits } from './services';
@@ -12,8 +13,9 @@ import type { LeadInput, SalesUnit } from './types';
 export function LeadAdditionalFields({ value, onChange, editing = false }: { value: Partial<LeadInput>; onChange: (value: Partial<LeadInput>) => void; editing?: boolean }) {
   const { t } = useTranslation('sales');
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const { options } = useSalesAssignees();
   const [units, setUnits] = useState<SalesUnit[]>([]);
   const o = session?.activeOrganization?.id, p = project?.id, token = session?.accessToken;

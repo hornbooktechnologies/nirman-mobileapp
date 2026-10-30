@@ -1,13 +1,15 @@
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from 'react';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { fetchOrganizationMembers, fetchProjectMembers } from '../members/services';
 import { localTime } from './sales-rules';
 
 export function useSalesAssignees() {
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const org = session?.activeOrganization?.id;
   const token = session?.accessToken;
   const projectId = project?.id;

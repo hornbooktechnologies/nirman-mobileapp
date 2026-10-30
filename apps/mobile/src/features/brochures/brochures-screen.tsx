@@ -1,3 +1,4 @@
+import { BrochureShareHistory } from "./brochure-share-history";
 import { uuid } from "expo";
 import { uploadErrorMessage } from "../../lib/upload-errors";
 import * as DocumentPicker from "expo-document-picker";
@@ -284,6 +285,7 @@ export function BrochuresScreen() {
             />
           }
         />
+        {loadOrganizationId && loadProjectId && loadAccessToken ? <BrochureShareHistory key={`${loadOrganizationId}:${loadProjectId}`} organizationId={loadOrganizationId} projectId={loadProjectId} token={loadAccessToken} /> : null}
         {canUpload ? (
           <Button
             label={t("brochures.upload")}
@@ -443,7 +445,7 @@ export function BrochuresScreen() {
         scroll
         onClose={() => setShowUpload(false)}
         footer={
-          <Button
+          <Button validateForm
             label={t("brochures.upload")}
             loading={working}
             disabled={!picked || title.trim().length < 2}
@@ -501,7 +503,7 @@ export function BrochuresScreen() {
         description={t("brochures.emailDescription")}
         onClose={() => setShowEmail(false)}
         footer={
-          <Button
+          <Button validateForm
             label={t("brochures.send")}
             loading={working}
             disabled={!isValidEmail(email)}

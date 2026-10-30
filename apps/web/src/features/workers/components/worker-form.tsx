@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { useRef, useState, type FormEvent } from "react";
 import { AlertTriangle } from "lucide-react";
@@ -127,7 +128,7 @@ export function WorkerForm({
   }
 
   return (
-    <form className="space-y-4 text-base" onSubmit={submit}>
+    <ValidatedForm className="space-y-4 text-base" onSubmit={submit}>
       {error ? <p ref={errorRef} tabIndex={-1} role="alert" className="text-danger">{error}</p> : null}
       {success ? <p role="status" className="text-success">{success}</p> : null}
       <fieldset disabled={isSaving || checking} className="space-y-4">
@@ -146,7 +147,7 @@ export function WorkerForm({
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-1">Worker name *<Input
+        <ValidatedField className="grid gap-1">Worker name *<Input
           maxLength={160}
           placeholder="Worker name"
           value={form.name}
@@ -159,8 +160,8 @@ export function WorkerForm({
           }
           required
         />
-        </label>
-        <label className="grid gap-1">Trade or worker type *<Input
+        </ValidatedField>
+        <ValidatedField className="grid gap-1">Trade or worker type *<Input
           maxLength={80}
           placeholder="Trade or worker type"
           list="worker-trade-suggestions"
@@ -168,13 +169,13 @@ export function WorkerForm({
           onChange={(event) => setForm({ ...form, trade: event.target.value })}
           required
         />
-        </label>
+        </ValidatedField>
         <datalist id="worker-trade-suggestions">
           {TRADE_SUGGESTIONS.map((trade) => (
             <option key={trade} value={trade} />
           ))}
         </datalist>
-        <label className="grid gap-1">Mobile number<Input
+        <ValidatedField className="grid gap-1">Mobile number<Input
           type="tel" maxLength={20}
           placeholder="Mobile number"
           value={form.mobileNumber ?? ""}
@@ -186,8 +187,8 @@ export function WorkerForm({
             })
           }
         />
-        </label>
-        <label className="space-y-1">
+        </ValidatedField>
+        <ValidatedField className="space-y-1">
           <span className="text-base font-medium text-body">
             Daily rate{!initialWorker ? " *" : ""}
           </span>
@@ -205,10 +206,10 @@ export function WorkerForm({
             Used automatically as the default when assigning this worker to a
             Project.
           </span>
-        </label>
+        </ValidatedField>
         {!initialWorker && hasInitialProject ? (
           <>
-            <label className="space-y-1">
+            <ValidatedField className="space-y-1">
               <span className="text-base font-medium text-body">
                 Actual project start date *
               </span>
@@ -219,19 +220,19 @@ export function WorkerForm({
                   setForm({ ...form, startsOn: event.target.value })
                 }
               />
-            </label>
+            </ValidatedField>
           </>
         ) : null}
       </div>
 
-      <label className="grid gap-1">Notes<Textarea
+      <ValidatedField className="grid gap-1">Notes<Textarea
         maxLength={2000}
         placeholder="Notes"
         value={form.notes ?? ""}
         onChange={(event) => setForm({ ...form, notes: event.target.value })}
       />
 
-      </label>
+      </ValidatedField>
       {duplicates.length > 0 ? (
         <Card
           variant="surface"
@@ -277,6 +278,6 @@ export function WorkerForm({
         </Button>
       </div>
       </fieldset>
-    </form>
+    </ValidatedForm>
   );
 }

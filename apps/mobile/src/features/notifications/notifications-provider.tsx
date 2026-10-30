@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import { useLocalization } from '../../providers/localization-provider';
 import { useSession } from '../../providers/session-provider';
 import { deactivatePushDevice, fetchNotificationSummary, markNotificationRead, registerPushDevice } from './services';
-import { notificationHref } from './notification-routing';
+import { notificationHref, notificationProjectAccess } from './notification-routing';
 
 type NotificationsContextValue = { unreadCount: number; refreshUnreadCount: () => Promise<void>; setUnreadCount: (count: number) => void };
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
@@ -21,6 +21,8 @@ if (Notifications) {
 export function NotificationsProvider({ children }: PropsWithChildren) {
   const { language } = useLocalization();
   const { session, switchActiveProject } = useSession();
+  const latestSession = useRef(session);
+  latestSession.current = session;
   const [unreadCount, setUnreadCount] = useState(0);
   const handledResponseId = useRef<string | null>(null);
   const organizationId = session?.activeOrganization?.id;
@@ -55,24 +57,30 @@ export function NotificationsProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!session || !canRead || !Notifications) return;
+    let active = true;
     const handleResponse = (response: NotificationResponse) => {
+      if (!active) return;
       if (handledResponseId.current === response.notification.request.identifier) return;
       handledResponseId.current = response.notification.request.identifier;
       const data = response.notification.request.content.data as Record<string, unknown>;
       const projectId = typeof data.projectId === 'string' ? data.projectId : null;
       const notificationId = typeof data.notificationId === 'string' ? data.notificationId : null;
       const responseOrganizationId = typeof data.organizationId === 'string' ? data.organizationId : null;
-      const href = notificationHref({ referenceType: typeof data.referenceType === 'string' ? data.referenceType : null, referenceId: typeof data.referenceId === 'string' ? data.referenceId : null, deepLink: typeof data.deepLink === 'string' ? data.deepLink : null });
+      const referenceType = typeof data.referenceType === 'string' ? data.referenceType : null;
+      if (!organizationId || !notificationProjectAccess({ organizationId: responseOrganizationId ?? '', projectId, referenceType }, organizationId, session.projectAccess.projects)) return;
+      const href = notificationHref({ projectId, referenceType: typeof data.referenceType === 'string' ? data.referenceType : null, referenceId: typeof data.referenceId === 'string' ? data.referenceId : null, deepLink: typeof data.deepLink === 'string' ? data.deepLink : null });
       void (async () => {
         if (notificationId && responseOrganizationId === organizationId) await markNotificationRead(organizationId, notificationId, session.accessToken).catch(() => undefined);
-        if (projectId && session.projectAccess.projects.some((project) => project.id === projectId)) await switchActiveProject(projectId);
+        if (latestSession.current?.user.id !== session.user.id || latestSession.current?.activeOrganization?.id !== organizationId) return;
+        if (projectId && session.projectAccess.projects.some((project) => project.id === projectId && project.status !== 'ARCHIVED')) await switchActiveProject(projectId);
+        if (latestSession.current?.user.id !== session.user.id || latestSession.current?.activeOrganization?.id !== organizationId) return;
         if (href) router.push(href);
         await refreshUnreadCount();
-      })();
+      })().catch(() => undefined);
     };
     void Notifications.getLastNotificationResponseAsync().then((response) => { if (response) handleResponse(response); }).catch(() => undefined);
     const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
-    return () => subscription.remove();
+    return () => { active = false; subscription.remove(); };
   }, [canRead, organizationId, refreshUnreadCount, session, switchActiveProject]);
 
   const value = useMemo(() => ({ unreadCount, refreshUnreadCount, setUnreadCount }), [refreshUnreadCount, unreadCount]);

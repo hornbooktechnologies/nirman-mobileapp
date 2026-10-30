@@ -3,8 +3,8 @@ import {
   PROJECT_TYPES,
   type ProjectStatus,
   type ProjectType,
-} from '@nirman-app/shared';
-import { Type } from 'class-transformer';
+} from "@nirman-app/shared";
+import { Type } from "class-transformer";
 import {
   IsDateString,
   IsIn,
@@ -12,8 +12,8 @@ import {
   IsString,
   MaxLength,
   ValidateNested,
-} from 'class-validator';
-import { ProjectAddressDto } from './project-address.dto';
+} from "class-validator";
+import { ProjectAddressDto } from "./project-address.dto";
 
 export class UpdateProjectDto {
   @IsOptional()

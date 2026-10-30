@@ -16,7 +16,7 @@ import {
   NirmanScreenBackground,
 } from "../../components/ui";
 import { getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject } from "../../lib/auth";
+import { getActiveProject, getRouteProject } from "../../lib/auth";
 import { useSession } from "../../providers";
 import { mobileTheme } from "../../theme";
 import { fetchActivities, fetchLead } from "./services";
@@ -28,7 +28,8 @@ export function SalesActivityScreen() {
   const { t } = useTranslation("sales");
   const { t: tCommon } = useTranslation("common");
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
   const activeOrganizationId = session?.activeOrganization?.id;
   const activeProjectId = project?.id;
   const accessToken = session?.accessToken;

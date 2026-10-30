@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { type ReactNode, useRef, useState } from "react";
@@ -256,26 +257,29 @@ export function SourcePaymentsPanel({
         </ol>
       )}
       {form && (
-        <div className="space-y-3 rounded-lg border border-hairline p-3">
+        <ValidatedForm key={form} className="space-y-3 rounded-lg border border-hairline p-3" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
           <h4 className="font-semibold">
             {form === "record" ? "Record payment" : "Void mistaken payment"}
           </h4>
           {form === "record" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label>
+              <ValidatedField validate={(value) => !value || moneyPaise(value) <= BigInt(0) ? "Enter an amount greater than zero." : ledger.remainingAmount !== null && moneyPaise(value) > moneyPaise(ledger.remainingAmount) ? "Amount exceeds the remaining balance." : undefined}>
                 Amount
                 <input
+                  required
                   aria-label="Payment amount"
+                  pattern="[0-9]{1,12}([.][0-9]{1,2})?"
                   inputMode="decimal"
                   value={amount}
                   disabled={locked}
                   onChange={(e) => setAmount(e.target.value)}
                   className="block w-full rounded-lg border p-2"
                 />
-              </label>
-              <label>
+              </ValidatedField>
+              <ValidatedField>
                 Payment date
                 <input
+                  required
                   type="date"
                   value={date}
                   max={calendarToday(timezone)}
@@ -283,10 +287,10 @@ export function SourcePaymentsPanel({
                   onChange={(e) => setDate(e.target.value)}
                   className="block w-full rounded-lg border p-2"
                 />
-              </label>
-              <label>
+              </ValidatedField>
+              <ValidatedField>
                 Method
-                <select
+                <select required
                   value={method}
                   disabled={locked}
                   onChange={(e) =>
@@ -307,8 +311,8 @@ export function SourcePaymentsPanel({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label>
+              </ValidatedField>
+              <ValidatedField>
                 Reference
                 <input
                   value={reference}
@@ -317,19 +321,19 @@ export function SourcePaymentsPanel({
                   onChange={(e) => setReference(e.target.value)}
                   className="block w-full rounded-lg border p-2"
                 />
-              </label>
+              </ValidatedField>
             </div>
           ) : (
-            <label>
+            <ValidatedField>
               Reason
-              <textarea
+              <textarea required minLength={2}
                 value={reason}
                 maxLength={2000}
                 disabled={locked}
                 onChange={(e) => setReason(e.target.value)}
                 className="block w-full rounded-lg border p-2"
               />
-            </label>
+            </ValidatedField>
           )}
           {error && (
             <p role="alert" className="text-danger">
@@ -376,7 +380,7 @@ export function SourcePaymentsPanel({
           <div className="flex gap-2">
             <Button
               disabled={busy || failure === "stale" || failure === "denied"}
-              onClick={() => void submit()}
+              type="submit"
             >
               {busy ? "Saving…" : uncertain ? "Retry same command" : "Confirm"}
             </Button>
@@ -392,7 +396,7 @@ export function SourcePaymentsPanel({
               Cancel
             </Button>
           </div>
-        </div>
+        </ValidatedForm>
       )}
     </section>
   );

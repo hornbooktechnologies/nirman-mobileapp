@@ -1,23 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service';
-import { DbRow } from '../../database/database.types';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../../database/database.service";
+import { DbRow } from "../../database/database.types";
 
 export const SETTING_KEYS = {
-  APP_NAME: 'general.appName',
-  COMPANY_NAME: 'general.companyName',
-  LIGHT_LOGO: 'general.lightLogo',
-  DARK_LOGO: 'general.darkLogo',
-  FAVICON: 'general.favicon',
-  SUPPORT_EMAIL: 'general.supportEmail',
-  SUPPORT_PHONE: 'general.supportPhone',
-  COMPANY_ADDRESS: 'general.companyAddress',
-  SMTP_HOST: 'email.smtpHost',
-  SMTP_PORT: 'email.smtpPort',
-  SMTP_USERNAME: 'email.smtpUsername',
-  SMTP_PASSWORD: 'email.smtpPassword',
-  SMTP_ENCRYPTION: 'email.smtpEncryption',
-  MAIL_FROM_ADDRESS: 'email.mailFromAddress',
-  MAIL_FROM_NAME: 'email.mailFromName',
+  APP_NAME: "general.appName",
+  COMPANY_NAME: "general.companyName",
+  LIGHT_LOGO: "general.lightLogo",
+  DARK_LOGO: "general.darkLogo",
+  FAVICON: "general.favicon",
+  SUPPORT_EMAIL: "general.supportEmail",
+  SUPPORT_PHONE: "general.supportPhone",
+  COMPANY_ADDRESS: "general.companyAddress",
+  SMTP_HOST: "email.smtpHost",
+  SMTP_PORT: "email.smtpPort",
+  SMTP_USERNAME: "email.smtpUsername",
+  SMTP_PASSWORD: "email.smtpPassword",
+  SMTP_ENCRYPTION: "email.smtpEncryption",
+  MAIL_FROM_ADDRESS: "email.mailFromAddress",
+  MAIL_FROM_NAME: "email.mailFromName",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
@@ -33,7 +33,7 @@ export class SettingsRepository {
 
   async getAll() {
     const rows = await this.database.query<SettingRow>(
-      'SELECT `key`, value FROM systemsetting',
+      "SELECT `key`, value FROM systemsetting",
     );
     const map = new Map(rows.map((row) => [row.key, row.value]));
 
@@ -60,7 +60,10 @@ export class SettingsRepository {
     };
   }
 
-  async upsertMany(entries: { key: SettingKey; value: string }[], updatedBy: string) {
+  async upsertMany(
+    entries: { key: SettingKey; value: string }[],
+    updatedBy: string,
+  ) {
     await this.database.transaction(async (connection) => {
       for (const { key, value } of entries) {
         await this.database.execute(

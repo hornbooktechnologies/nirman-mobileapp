@@ -1,12 +1,14 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { WagesScreen } from '../../src/features/wages/wages-screen';
-import { getActiveProjectPermissions } from '../../src/lib/auth';
+import { getRouteProject } from '../../src/lib/auth';
 import { useSession } from '../../src/providers';
 
 export default function WagesRoute() {
   const { session } = useSession();
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = getRouteProject(session, projectId);
+  const permissions = (project?.permissions ?? []);
 
   if (!permissions.includes('wages:read')) {
     return <Redirect href="/(app)/dashboard" />;

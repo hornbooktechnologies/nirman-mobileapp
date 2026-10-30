@@ -266,17 +266,21 @@ describe("SalesRepository dynamic scheduled searches", () => {
     expect(sql).not.toContain("' OR 1=1 --");
     expect(params).toContain("%' OR 1=1 --%");
   });
-
 });
-
 
 describe("Lead email updates", () => {
   const connection = {} as DatabaseTransaction;
-  const database = { query: jest.fn(), execute: jest.fn(), transaction: jest.fn() } as unknown as jest.Mocked<DatabaseService>;
-  const repository = new SalesRepository(database, { record: jest.fn() } as unknown as AuditService);
+  const database = {
+    query: jest.fn(),
+    execute: jest.fn(),
+    transaction: jest.fn(),
+  } as unknown as jest.Mocked<DatabaseService>;
+  const repository = new SalesRepository(database, {
+    record: jest.fn(),
+  } as unknown as AuditService);
   beforeEach(() => {
     jest.clearAllMocks();
-    database.transaction.mockImplementation(callback => callback(connection));
+    database.transaction.mockImplementation((callback) => callback(connection));
   });
   it("persists a cleared email and returns it cleared on reopening", async () => {
     let email: string | null = "old@example.test";

@@ -1,3 +1,7 @@
+import { ProfileEditorAction } from '../auth/components/profile-editor';
+import { ProjectDirectory } from '../projects/components/project-directory';
+import { ProjectOverview } from '../projects/components/project-overview';
+import { ProjectLifecycle } from '../projects/components/project-lifecycle';
 import { ProfilePhotoButton } from "./components/profile-photo-button";
 import { RefreshButton } from "../../components/ui/refresh-button";
 import type {
@@ -36,7 +40,7 @@ import {
   QuickActionGrid,
   getStatusTone,
 } from "../../components/ui";
-import { getActiveProject, type MobileSession } from "../../lib/auth";
+import { getActiveProject, getRouteProject, type MobileSession } from "../../lib/auth";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import {
   formatDate,
@@ -836,13 +840,10 @@ export function ProjectDetailScreen() {
     session.permissions.includes("projects:create"),
   );
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectOverviewVersion, setProjectOverviewVersion] = useState(0);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingProject, setSavingProject] = useState(false);
-  const activeProject = getActiveProject(session);
-  const selectedProject =
-    session?.projectAccess.projects.find(
-      (project) => project.id === params.projectId,
-    ) ?? activeProject;
+  const selectedProject = getRouteProject(session, params.projectId);
   const selectedStatusLabel = selectedProject
     ? t(projectDetailStatusTranslationKeys[selectedProject.status])
     : "";
@@ -906,6 +907,9 @@ export function ProjectDetailScreen() {
         <CreateProjectSheet onClose={() => setShowCreateProject(false)} />
       ) : null}
 
+      <ProjectDirectory key={`directory:${session?.activeOrganization?.id}`} />
+      {selectedProject?.permissions.includes('projects:read') ? <ProjectOverview key={`${session?.activeOrganization?.id}:${selectedProject.id}:${selectedProject.status}:${projectOverviewVersion}`} projectId={selectedProject.id} /> : null}
+      <ProjectLifecycle key={session?.activeOrganization?.id} project={selectedProject} />
       {selectedProject ? (
         <>
           <OperationalEntityCard
@@ -921,7 +925,7 @@ export function ProjectDetailScreen() {
               session?.activeOrganization?.name ?? t("detail.workspace")
             }
             footerTrailing={
-              selectedProject.permissions.includes("projects:update") ? (
+              selectedProject.status !== "ARCHIVED" && selectedProject.permissions.includes("projects:update") ? (
                 <Button
                   accessibilityLabel={t("detail.editProject")}
                   disabled={loadingEdit}
@@ -1022,6 +1026,7 @@ export function ProjectDetailScreen() {
                     input,
                   );
                   setEditingProject(null);
+                  setProjectOverviewVersion(value => value + 1);
                   await refreshSession();
                 } finally {
                   setSavingProject(false);
@@ -1203,6 +1208,7 @@ export function MenuScreen() {
           ) : null}
         </View>
       </GlassCard>
+      <ProfileEditorAction />
       <ActionListItem
         accessibilityLabel={t("menu.accountSecurity")}
         icon="shield-account-outline"

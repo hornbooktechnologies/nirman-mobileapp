@@ -1,7 +1,7 @@
-import { MigrationTarget } from './migration-types';
+import { MigrationTarget } from "./migration-types";
 
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
-const MUTATION_CONFIRMATION = 'I_UNDERSTAND_THIS_MUTATES_THE_DATABASE';
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const MUTATION_CONFIRMATION = "I_UNDERSTAND_THIS_MUTATES_THE_DATABASE";
 
 export interface ParsedMigrationDatabaseUrl {
   protocol: string;
@@ -17,36 +17,44 @@ export function parseMigrationDatabaseUrl(
 ): ParsedMigrationDatabaseUrl {
   const protocolMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\//.exec(databaseUrl);
   if (!protocolMatch) {
-    throw new Error('DATABASE_URL must start with mysql:// or mariadb:// for migrations.');
+    throw new Error(
+      "DATABASE_URL must start with mysql:// or mariadb:// for migrations.",
+    );
   }
 
   const protocol = protocolMatch[1];
   const withoutProtocol = databaseUrl.slice(protocolMatch[0].length);
-  const pathStart = withoutProtocol.indexOf('/');
+  const pathStart = withoutProtocol.indexOf("/");
   if (pathStart === -1) {
-    throw new Error('DATABASE_URL must include a database name.');
+    throw new Error("DATABASE_URL must include a database name.");
   }
 
   const authority = withoutProtocol.slice(0, pathStart);
   const pathAndQuery = withoutProtocol.slice(pathStart + 1);
-  const queryStart = pathAndQuery.indexOf('?');
-  const database = (queryStart === -1 ? pathAndQuery : pathAndQuery.slice(0, queryStart)).trim();
-  const atIndex = authority.lastIndexOf('@');
-  const authPart = atIndex === -1 ? '' : authority.slice(0, atIndex);
+  const queryStart = pathAndQuery.indexOf("?");
+  const database = (
+    queryStart === -1 ? pathAndQuery : pathAndQuery.slice(0, queryStart)
+  ).trim();
+  const atIndex = authority.lastIndexOf("@");
+  const authPart = atIndex === -1 ? "" : authority.slice(0, atIndex);
   const hostPort = atIndex === -1 ? authority : authority.slice(atIndex + 1);
-  const credentialSeparator = authPart.indexOf(':');
-  const username = credentialSeparator === -1 ? authPart : authPart.slice(0, credentialSeparator);
-  const password = credentialSeparator === -1 ? '' : authPart.slice(credentialSeparator + 1);
+  const credentialSeparator = authPart.indexOf(":");
+  const username =
+    credentialSeparator === -1
+      ? authPart
+      : authPart.slice(0, credentialSeparator);
+  const password =
+    credentialSeparator === -1 ? "" : authPart.slice(credentialSeparator + 1);
 
   let host = hostPort;
-  let port = '3306';
-  if (hostPort.startsWith('[')) {
-    const closingBracket = hostPort.indexOf(']');
+  let port = "3306";
+  if (hostPort.startsWith("[")) {
+    const closingBracket = hostPort.indexOf("]");
     host = hostPort.slice(1, closingBracket);
     const remaining = hostPort.slice(closingBracket + 1);
-    if (remaining.startsWith(':')) port = remaining.slice(1);
+    if (remaining.startsWith(":")) port = remaining.slice(1);
   } else {
-    const colonIndex = hostPort.lastIndexOf(':');
+    const colonIndex = hostPort.lastIndexOf(":");
     if (colonIndex > -1) {
       host = hostPort.slice(0, colonIndex);
       port = hostPort.slice(colonIndex + 1);
@@ -70,15 +78,19 @@ export function parseMigrationTarget(
   const parsed = parseMigrationDatabaseUrl(databaseUrl);
   const protocol = parsed.protocol;
 
-  if (protocol !== 'mysql' && protocol !== 'mariadb') {
-    throw new Error('DATABASE_URL must use mysql:// or mariadb:// for migrations.');
+  if (protocol !== "mysql" && protocol !== "mariadb") {
+    throw new Error(
+      "DATABASE_URL must use mysql:// or mariadb:// for migrations.",
+    );
   }
 
   if (!parsed.host || !parsed.database) {
-    throw new Error('DATABASE_URL must include a host and database name.');
+    throw new Error("DATABASE_URL must include a host and database name.");
   }
 
-  const safety = LOCAL_HOSTS.has(parsed.host.toLowerCase()) ? 'local' : 'remote';
+  const safety = LOCAL_HOSTS.has(parsed.host.toLowerCase())
+    ? "local"
+    : "remote";
   const productionPattern = /prod|production/i;
 
   return {
@@ -91,7 +103,7 @@ export function parseMigrationTarget(
     isProductionLike:
       productionPattern.test(parsed.host) ||
       productionPattern.test(parsed.database) ||
-      env.NODE_ENV === 'production',
+      env.NODE_ENV === "production",
   };
 }
 
@@ -105,20 +117,20 @@ export function validateMigrationMutationSafety(
     );
   }
 
-  if (target.safety === 'remote' && env.DB_MIGRATION_ALLOW_REMOTE !== 'true') {
+  if (target.safety === "remote" && env.DB_MIGRATION_ALLOW_REMOTE !== "true") {
     throw new Error(
-      'Refusing to mutate a non-local database. Set DB_MIGRATION_ALLOW_REMOTE=true only for an approved safe target.',
+      "Refusing to mutate a non-local database. Set DB_MIGRATION_ALLOW_REMOTE=true only for an approved safe target.",
     );
   }
 
-  if (target.isProductionLike && env.DB_MIGRATION_ALLOW_PRODUCTION !== 'true') {
+  if (target.isProductionLike && env.DB_MIGRATION_ALLOW_PRODUCTION !== "true") {
     throw new Error(
-      'Refusing to mutate a production-like database target without DB_MIGRATION_ALLOW_PRODUCTION=true and a separately approved process.',
+      "Refusing to mutate a production-like database target without DB_MIGRATION_ALLOW_PRODUCTION=true and a separately approved process.",
     );
   }
 }
 
 export function formatMigrationTarget(target: MigrationTarget): string {
-  const user = target.username ? `${target.username}@` : '';
+  const user = target.username ? `${target.username}@` : "";
   return `${target.protocol}://${user}${target.host}:${target.port}/${target.database} (${target.safety})`;
 }

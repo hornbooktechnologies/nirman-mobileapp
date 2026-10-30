@@ -1,3 +1,4 @@
+import { CsvExportButton } from "../../components/ui/csv-export-button";
 import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
@@ -24,6 +25,8 @@ import {
   Card,
   CompactScreenHeader,
   EmptyState,
+  DateInput,
+  FormField,
   IconButton,
   LoadingState,
   NirmanScreenBackground,
@@ -45,6 +48,7 @@ import { ProjectContextCard } from "../projects";
 import { ProgressUpdateSheet } from "./progress-update-sheet";
 import {
   exportProgressPdf,
+  exportProgressCsv,
   fetchProgressHistory,
   fetchProgressSummary,
 } from "./services";
@@ -69,6 +73,9 @@ export function ProgressScreen() {
   const canExport = permissions.includes("progress:export");
   const [summary, setSummary] = useState<ProjectProgressSummary | null>(null);
   const [items, setItems] = useState<ProjectProgressUpdate[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const invalidDates = Boolean(dateFrom && dateTo && dateFrom > dateTo);
   const [stage, setStage] = useState<ProjectProgressStage | undefined>();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -84,7 +91,7 @@ export function ProgressScreen() {
 
   const load = useCallback(
     async (nextPage = 1, append = false) => {
-      if (!organizationId || !projectId || !token || !canRead) {
+      if (!organizationId || !projectId || !token || !canRead || invalidDates) {
         setLoading(false);
         return;
       }
@@ -97,6 +104,8 @@ export function ProgressScreen() {
             page: nextPage,
             pageSize: 20,
             stage,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
           }),
           append
             ? Promise.resolve(null)
@@ -127,11 +136,11 @@ export function ProgressScreen() {
         }
       }
     },
-    [canRead, organizationId, projectId, stage, t, token],
+    [canRead, organizationId, projectId, stage, dateFrom, dateTo, invalidDates, t, token],
   );
 
   useRefreshOnFocus({
-    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${stage ?? ""}`,
+    scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${stage ?? ""}:${dateFrom}:${dateTo}`,
     refresh: load,
     reset: () => {
       setItems([]);
@@ -143,11 +152,11 @@ export function ProgressScreen() {
   });
 
   async function exportPdf() {
-    if (!organizationId || !projectId || !token || exporting || !canExport)
+    if (!organizationId || !projectId || !token || exporting || !canExport || invalidDates)
       return;
     await pdfExport.run(
       (signal) =>
-        exportProgressPdf(organizationId, projectId, token, { stage }, signal),
+        exportProgressPdf(organizationId, projectId, token, { stage, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }, signal),
       `${t("export.title")} · ${project?.name ?? projectId}`,
     );
   }
@@ -255,7 +264,7 @@ export function ProgressScreen() {
       ) : null}
       {summary ? (
         <View style={styles.section}>
-          <AppText style={styles.sectionTitle} weight={700}>
+          <AppText accessibilityRole="header" style={styles.sectionTitle} weight={700}>
             {t("stages.title")}
           </AppText>
           <ScrollView
@@ -276,9 +285,9 @@ export function ProgressScreen() {
           </ScrollView>
         </View>
       ) : null}
-      <View style={styles.historyHeading}>
-        <View style={styles.historyCopy}>
-          <AppText style={styles.sectionTitle} weight={700}>
+      <View style={styles.section}>
+        <View style={styles.historyHeading}>
+          <AppText accessibilityRole="header" style={styles.sectionTitle} weight={700}>
             {t("history.title")}
           </AppText>
           <AppText style={styles.sectionCaption}>
@@ -287,16 +296,78 @@ export function ProgressScreen() {
               : t("history.all")}
           </AppText>
         </View>
-        {canExport ? (
+        <Card padding="sm" style={styles.historyControls}>
+          <View style={styles.dateFilters}>
+            <View style={styles.dateField}>
+              <FormField label={t("historyFilters.from")}>
+                <DateInput
+                  accessibilityLabel={t("historyFilters.from")}
+                  value={dateFrom}
+                  onChangeText={setDateFrom}
+                />
+              </FormField>
+            </View>
+            <View style={styles.dateField}>
+              <FormField label={t("historyFilters.to")}>
+                <DateInput
+                  accessibilityLabel={t("historyFilters.to")}
+                  value={dateTo}
+                  onChangeText={setDateTo}
+                  invalid={invalidDates}
+                />
+              </FormField>
+            </View>
+          </View>
+          {invalidDates ? (
+            <AppText accessibilityRole="alert" style={styles.dateError}>
+              {t("historyFilters.invalid")}
+            </AppText>
+          ) : null}
           <Button
-            label={exporting ? t("export.preparing") : t("export.action")}
+            label={t("historyFilters.clear")}
             size="sm"
             fullWidth={false}
-            variant="secondary"
-            leadingIcon="file-pdf-box"
-            disabled={exporting}
-            onPress={() => void exportPdf()}
+            variant="ghost"
+            onPress={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
           />
+        </Card>
+        {canExport ? (
+          <View style={styles.exportActions}>
+            {organizationId && projectId && token ? (
+              <View style={styles.exportAction}>
+                <CsvExportButton
+                  scope={`${organizationId}:${projectId}:${JSON.stringify({ stage, dateFrom, dateTo })}`}
+                  filename="progress.csv"
+                  disabled={exporting || invalidDates}
+                  load={(signal) =>
+                    exportProgressCsv(
+                      organizationId,
+                      projectId,
+                      token,
+                      {
+                        stage,
+                        dateFrom: dateFrom || undefined,
+                        dateTo: dateTo || undefined,
+                      },
+                      signal,
+                    )
+                  }
+                />
+              </View>
+            ) : null}
+            <View style={styles.exportAction}>
+              <Button
+                label={exporting ? t("export.preparing") : t("export.action")}
+                variant="secondary"
+                leadingIcon="file-pdf-box"
+                disabled={exporting || invalidDates}
+                onPress={() => void exportPdf()}
+              />
+            </View>
+          </View>
         ) : null}
       </View>
     </View>
@@ -615,10 +686,24 @@ const styles = StyleSheet.create({
   fillSelected: { backgroundColor: mobileTheme.color.text.inverse },
   pressed: { opacity: 0.78 },
   historyHeading: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    gap: mobileTheme.spacing[3],
-    justifyContent: "space-between",
+    gap: mobileTheme.spacing[1],
   },
-  historyCopy: { flex: 1, gap: mobileTheme.spacing[1] },
+  historyControls: { gap: mobileTheme.spacing[3] },
+  dateFilters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: mobileTheme.spacing[3],
+  },
+  dateField: { flexBasis: 160, flexGrow: 1, minWidth: 0 },
+  dateError: {
+    ...mobileText.caption,
+    color: mobileTheme.color.status.danger.foreground,
+  },
+  exportActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: mobileTheme.spacing[3],
+  },
+  exportAction: { flexBasis: 180, flexGrow: 1, minWidth: 0 },
 });

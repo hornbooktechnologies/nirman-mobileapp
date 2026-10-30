@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { DatabaseService } from '../../database/database.service';
-import { DbRow } from '../../database/database.types';
-import { UserRow } from '../users/users.types';
-import { mapUserRow } from '../users/users.repository';
-import { UserWithRolePermissions, RefreshTokenWithUser } from './types/auth-db.types';
+import { Injectable } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import { DatabaseService } from "../../database/database.service";
+import { DbRow } from "../../database/database.types";
+import { UserRow } from "../users/users.types";
+import { mapUserRow } from "../users/users.repository";
+import {
+  UserWithRolePermissions,
+  RefreshTokenWithUser,
+} from "./types/auth-db.types";
 
 interface CountRow extends DbRow {
   total: number;
@@ -40,7 +43,7 @@ export class AuthRepository {
   constructor(private readonly database: DatabaseService) {}
 
   async findUserByEmail(email: string) {
-    return this.findUserWithPermissions('u.email = ?', [email]);
+    return this.findUserWithPermissions("u.email = ?", [email]);
   }
 
   async findUserById(id: string) {
@@ -66,7 +69,7 @@ export class AuthRepository {
   }
 
   async findUserWithPermissionsById(id: string) {
-    return this.findUserWithPermissions('u.id = ?', [id]);
+    return this.findUserWithPermissions("u.id = ?", [id]);
   }
 
   async findRefreshToken(token: string): Promise<RefreshTokenWithUser | null> {
@@ -109,13 +112,15 @@ export class AuthRepository {
 
   async storeRefreshToken(userId: string, token: string, expiresAt: Date) {
     await this.database.execute(
-      'INSERT INTO refreshtoken (id, userId, token, expiresAt, createdAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))',
+      "INSERT INTO refreshtoken (id, userId, token, expiresAt, createdAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(3))",
       [randomUUID(), userId, token, expiresAt],
     );
   }
 
   async deleteRefreshToken(token: string) {
-    await this.database.execute('DELETE FROM refreshtoken WHERE token = ?', [token]);
+    await this.database.execute("DELETE FROM refreshtoken WHERE token = ?", [
+      token,
+    ]);
   }
 
   async countRecentPasswordResetRequests(
@@ -226,14 +231,14 @@ export class AuthRepository {
         connection,
       );
       await this.database.execute(
-        'DELETE FROM refreshtoken WHERE userId = ?',
+        "DELETE FROM refreshtoken WHERE userId = ?",
         [request.user_id],
         connection,
       );
       return {
         userId: request.user_id,
-        name: request.user_name ?? 'NirmanSite user',
-        email: request.user_email ?? '',
+        name: request.user_name ?? "NirmanSite user",
+        email: request.user_email ?? "",
       };
     });
   }
@@ -241,12 +246,12 @@ export class AuthRepository {
   async updatePasswordAndRevokeSessions(userId: string, password: string) {
     await this.database.transaction(async (connection) => {
       await this.database.execute(
-        'UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?',
+        "UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",
         [password, userId],
         connection,
       );
       await this.database.execute(
-        'DELETE FROM refreshtoken WHERE userId = ?',
+        "DELETE FROM refreshtoken WHERE userId = ?",
         [userId],
         connection,
       );
@@ -255,7 +260,7 @@ export class AuthRepository {
 
   async updatePassword(userId: string, password: string) {
     await this.database.execute(
-      'UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?',
+      "UPDATE `user` SET password = ?, updatedAt = CURRENT_TIMESTAMP(3) WHERE id = ?",
       [password, userId],
     );
   }

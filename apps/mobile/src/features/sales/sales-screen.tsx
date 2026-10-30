@@ -17,7 +17,7 @@ import {
   type SiteVisitStatus,
   type UnitPriceInputUnit,
 } from "@nirman-app/shared";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -44,7 +44,7 @@ import {
 } from "../../components/ui";
 import { formatDate, formatInr, formatNumber } from "../../i18n/formatters";
 import { getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from "../../lib/auth";
 import {
   isValidEmail,
   isValidNonNegativeNumber,
@@ -159,8 +159,9 @@ export function SalesScreen() {
   const { t: tCommon } = useTranslation("common");
   const { t: tErrors } = useTranslation("errors");
   const { session } = useSession();
-  const project = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const organizationId = session?.activeOrganization?.id;
   const projectId = project?.id;
   const accessToken = session?.accessToken;
@@ -194,7 +195,8 @@ export function SalesScreen() {
   };
   const toScheduleIso = (date: string, time: string) =>
     scheduleInstant(`${date}T${time}`, timezone);
-  const [view, setView] = useState<ViewKey>("leads");
+  const { view: requestedView } = useLocalSearchParams<{ view?: ViewKey }>();
+  const [view, setView] = useState<ViewKey>(() => requestedView && ['leads', 'followUps', 'visits', 'units', 'bookings'].includes(requestedView) ? requestedView : 'leads');
   const [items, setItems] = useState<ListItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1380,7 +1382,7 @@ export function SalesScreen() {
                 variant="secondary"
                 onPress={closeLeadForm}
               />
-              <Button
+              <Button validateForm
                 style={styles.footerButton}
                 disabled={working || commandReview}
                 label={working ? t("saving") : t("leads.save")}
@@ -1604,7 +1606,7 @@ export function SalesScreen() {
                 variant="secondary"
                 onPress={closeUnitForm}
               />
-              <Button
+              <Button validateForm
                 style={styles.footerButton}
                 disabled={working || commandReview}
                 label={working ? t("saving") : t("units.save")}
@@ -1883,7 +1885,7 @@ export function SalesScreen() {
                 variant="secondary"
                 onPress={() => confirmClose(() => setSelectedVisit(null))}
               />
-              <Button
+              <Button validateForm
                 style={styles.footerButton}
                 disabled={
                   working ||

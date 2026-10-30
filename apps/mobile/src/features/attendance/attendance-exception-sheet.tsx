@@ -57,7 +57,7 @@ export function AttendanceExceptionSheet({
       footer={(
         <View style={styles.footer}>
           <Button disabled={saving} label={tCommon('actions.cancel')} variant="secondary" style={styles.footerButton} onPress={onClose} />
-          <Button
+          <Button validateForm
             disabled={saving || !canSave}
             label={saving ? t('actions.saving') : t(isEditing ? 'actions.updateAttendance' : 'actions.saveAbsence')}
             style={styles.footerButton}

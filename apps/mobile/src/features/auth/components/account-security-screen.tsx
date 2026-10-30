@@ -47,13 +47,13 @@ export function AccountSecurityScreen() {
         <FormField label={t('security.currentPassword')} required error={fieldError}>
           <PasswordInput autoCapitalize="none" autoComplete="current-password" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={currentPassword} onChangeText={(value) => { setCurrentPassword(value); setFieldError(''); }} />
         </FormField>
-        <FormField label={t('recovery.newPassword')} required>
+        <FormField validate={() => newPassword.length < 8 ? t('validation.passwordMinimum') : undefined} label={t('recovery.newPassword')} required>
           <PasswordInput autoCapitalize="none" autoComplete="new-password" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={newPassword} onChangeText={(value) => { setNewPassword(value); setFieldError(''); }} />
         </FormField>
-        <FormField label={t('activation.confirmPassword')} required>
+        <FormField validate={() => newPassword !== confirmPassword ? t('validation.passwordMismatch') : undefined} label={t('activation.confirmPassword')} required>
           <PasswordInput autoCapitalize="none" autoComplete="new-password" returnKeyType="go" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
         </FormField>
-        <Button label={working ? t('security.changing') : t('security.change')} loading={working} disabled={working} onPress={() => void submit()} />
+        <Button validateForm label={working ? t('security.changing') : t('security.change')} loading={working} disabled={working} onPress={() => void submit()} />
       </Card>
     </NirmanScreenBackground>
   );

@@ -195,8 +195,8 @@ export function ProjectAssignmentEditor({
           style={[styles.modeCard, value.permissionMode === 'ROLE_DEFAULT' && styles.modeCardSelected]}
           onPress={() => update({ permissionMode: 'ROLE_DEFAULT', permissions: [] })}
         >
-          <AppText style={styles.modeTitle} weight={600}>{t('assignment.useRoleDefaults')}</AppText>
-          <AppText style={styles.helpText} weight={500}>{t('assignment.useRoleDefaultsHelp')}</AppText>
+          <AppText style={[styles.modeTitle, value.permissionMode === 'ROLE_DEFAULT' && styles.modeTextSelected]} weight={600}>{t('assignment.useRoleDefaults')}</AppText>
+          <AppText style={[styles.helpText, value.permissionMode === 'ROLE_DEFAULT' && styles.modeTextSelected]} weight={500}>{t('assignment.useRoleDefaultsHelp')}</AppText>
         </Pressable>
         <Pressable
           accessibilityRole="radio"
@@ -211,8 +211,8 @@ export function ProjectAssignmentEditor({
             update({ permissionMode: 'CUSTOM', permissions });
           }}
         >
-          <AppText style={styles.modeTitle} weight={600}>{t('assignment.customForProject')}</AppText>
-          <AppText style={styles.helpText} weight={500}>{t('assignment.customForProjectHelp')}</AppText>
+          <AppText style={[styles.modeTitle, value.permissionMode === 'CUSTOM' && styles.modeTextSelected]} weight={600}>{t('assignment.customForProject')}</AppText>
+          <AppText style={[styles.helpText, value.permissionMode === 'CUSTOM' && styles.modeTextSelected]} weight={500}>{t('assignment.customForProjectHelp')}</AppText>
         </Pressable>
 
         {value.permissionMode === 'CUSTOM' ? (
@@ -331,6 +331,9 @@ const styles = StyleSheet.create({
   modeTitle: {
     ...mobileText.label,
     color: mobileTheme.color.text.primary,
+  },
+  modeTextSelected: {
+    color: mobileTheme.color.text.inverse,
   },
   matrix: {
     gap: mobileTheme.spacing[4],

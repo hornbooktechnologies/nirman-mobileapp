@@ -1,3 +1,4 @@
+import { FormScope } from '../../../components/ui/form-scope';
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -48,17 +49,7 @@ export function LoginScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionPending = useRef(false);
 
-  async function openContactForm() {
-    try {
-      await Linking.openURL("https://nirmansite.com/contact");
-    } catch {
-      Alert.alert(t("login.newUserTitle"), t("login.contactLinkError"));
-    }
-  }
-
-  async function handleSignIn() {
-    if (submissionPending.current) return;
-    setError(null);
+  function validationErrors() {
     const nextFieldErrors: Partial<Record<"email" | "password", string>> = {};
     if (!email.trim()) {
       nextFieldErrors.email = tCommon("validation.required", {
@@ -72,6 +63,21 @@ export function LoginScreen() {
         field: t("login.password"),
       });
     }
+    return nextFieldErrors;
+  }
+
+  async function openContactForm() {
+    try {
+      await Linking.openURL("https://nirmansite.com/contact");
+    } catch {
+      Alert.alert(t("login.newUserTitle"), t("login.contactLinkError"));
+    }
+  }
+
+  async function handleSignIn() {
+    if (submissionPending.current) return;
+    setError(null);
+    const nextFieldErrors = validationErrors();
     setFieldErrors(nextFieldErrors);
     if (Object.keys(nextFieldErrors).length) return;
 
@@ -88,7 +94,7 @@ export function LoginScreen() {
     }
   }
 
-  return (
+  return (<FormScope>
     <View style={styles.root}>
       <Image
         accessible={false}
@@ -149,7 +155,7 @@ export function LoginScreen() {
                 <FormField
                   label={t("login.email")}
                   required
-                  error={fieldErrors.email}
+                  error={fieldErrors.email} validate={() => validationErrors().email}
                 >
                   <Input
                     accessibilityLabel={t("login.email")}
@@ -175,7 +181,7 @@ export function LoginScreen() {
                 <FormField
                   label={t("login.password")}
                   required
-                  error={fieldErrors.password}
+                  error={fieldErrors.password} validate={() => validationErrors().password}
                 >
                   <PasswordInput
                     accessibilityLabel={t("login.password")}
@@ -214,7 +220,7 @@ export function LoginScreen() {
                     })
                   }
                 />
-                <Button
+                <Button validateForm
                   disabled={isSubmitting}
                   loading={isSubmitting}
                   label={
@@ -250,6 +256,7 @@ export function LoginScreen() {
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
+    </FormScope>
   );
 }
 

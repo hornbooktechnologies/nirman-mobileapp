@@ -3,8 +3,8 @@ import {
   ORGANIZATION_STATUSES,
   type OperatingProfile,
   type OrganizationStatus,
-} from '@nirman-app/shared';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+} from "@nirman-app/shared";
+import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class UpdateOrganizationDto {
   @IsOptional()
@@ -26,6 +26,6 @@ export class UpdateOrganizationDto {
   timezone?: string;
 
   @IsOptional()
-  @IsIn(['INR'])
+  @IsIn(["INR"])
   currency?: string;
 }

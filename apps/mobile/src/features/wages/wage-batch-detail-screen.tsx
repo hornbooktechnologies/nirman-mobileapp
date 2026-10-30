@@ -5,7 +5,8 @@ import {
   type WagePaymentMethod,
 } from "@nirman-app/shared";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { uuid } from "expo";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
@@ -27,11 +28,14 @@ import {
   NirmanScreenBackground,
   OperationalEntityCard,
   StatusBadge,
-  getStatusTone,
 } from "../../components/ui";
 import { formatDate, formatInr } from "../../i18n";
 import { getLocalizedErrorMessage } from "../../i18n/errors";
-import { getRouteProject } from "../../lib/auth";
+import { ApiRequestError } from "../../lib/api";
+import { WageCalculation } from "./wage-calculation";
+import { WageFinancialHistory } from "./wage-financial-history";
+import { wageBatchTone, retainPaymentAttempt, isUncertainPaymentFailure, wageItemChanged, wageToday, type WagePaymentAttempt } from "./wage-rules";
+import { getActiveProject, getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { mobileText, mobileTheme } from "../../theme";
 import { CustomerTabBar } from "../home/components";
@@ -39,19 +43,15 @@ import { ProjectContextCard } from "../projects";
 import {
   cancelWageBatch,
   exportWageBatchPdf,
+  exportWageBatchCsv,
   fetchWageBatchDetail,
   recordWagePayment,
   updateWageItem,
 } from "./services";
+import { shareWageCsv } from "./export-csv";
 import type { WageBatchDetail, WageItem } from "./types";
 
 type AdjustmentMode = "ADD" | "DEDUCT";
-
-const today = () => {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-};
 
 const dateValue = (value: string) => new Date(`${value}T12:00:00`);
 const remainingValue = (item: WageItem) =>
@@ -62,26 +62,37 @@ const isSettledByKharchi = (item: WageItem) =>
   Number(item.kharchiDeduction) > 0;
 
 export function WageBatchDetailScreen() {
+  const { session } = useSession();
+  const { projectId, batchId, wageItemId } = useLocalSearchParams<{ projectId?: string; batchId?: string; wageItemId?: string }>();
+  const project = getRouteProject(session, projectId);
+  return <WageBatchDetailContent key={`${session?.activeOrganization?.id}:${project?.id}:${batchId}:${wageItemId}`} />;
+}
+
+function WageBatchDetailContent() {
   const { t } = useTranslation("wages");
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
-  const { batchId, projectId: requestedProjectId } = useLocalSearchParams<{
+  const { batchId, projectId: requestedProjectId, wageItemId: requestedWageItemId } = useLocalSearchParams<{
     batchId?: string;
     projectId?: string;
+    wageItemId?: string;
   }>();
   const { session } = useSession();
   const activeProject = getRouteProject(session, requestedProjectId);
   const permissions = activeProject?.permissions ?? [];
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
-  const canPay = permissions.includes("wages:mark-paid");
-  const canUpdate = permissions.includes("wages:update");
+  const archived = activeProject?.status === "ARCHIVED";
+  const canRead = permissions.includes("wages:read");
+  const today = wageToday(session?.activeOrganization?.workingTimezone ?? session?.activeOrganization?.timezone);
+  const canPay = !archived && permissions.includes("wages:mark-paid");
+  const canUpdate = !archived && permissions.includes("wages:update");
   const canExport = permissions.includes("wages:export");
-  const canCancel = permissions.includes("wages:cancel");
+  const canCancel = !archived && permissions.includes("wages:cancel");
   const [detail, setDetail] = useState<WageBatchDetail | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
-  const [paymentDate, setPaymentDate] = useState(today());
+  const [paymentDate, setPaymentDate] = useState(today);
   const [paymentMethod, setPaymentMethod] = useState<WagePaymentMethod>("CASH");
   const [reference, setReference] = useState("");
   const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>("ADD");
@@ -93,37 +104,46 @@ export function WageBatchDetailScreen() {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
   const [error, setError] = useState("");
+  const actionLock = useRef(false);
+  const readGeneration = useRef(0);
+  const [paymentAttempt, setPaymentAttempt] = useState<WagePaymentAttempt | null>(null);
+  const [itemSnapshot, setItemSnapshot] = useState<WageItem | null>(null);
 
   const loadDetail = useCallback(async () => {
-    if (!organizationId || !projectId || !session?.accessToken || !batchId) {
+    if (!canRead || !organizationId || !projectId || !session?.accessToken || !batchId) {
+      setDetail(null);
+      setError(t('errors.batchMessage'));
       setIsLoading(false);
       return;
     }
+    if (actionLock.current) return;
+    const generation = ++readGeneration.current;
     setIsLoading(true);
     setError("");
     try {
-      setDetail(
-        await fetchWageBatchDetail(
+      const result = await fetchWageBatchDetail(
           organizationId,
           projectId,
           batchId,
           session.accessToken,
-        ),
-      );
+        );
+      if (generation === readGeneration.current) setDetail(result);
     } catch (loadError) {
+      if (generation !== readGeneration.current) return;
       setError(
         loadError instanceof Error
           ? loadError.message
           : t("errors.batchMessage"),
       );
     } finally {
-      setIsLoading(false);
+      if (generation === readGeneration.current) setIsLoading(false);
     }
-  }, [batchId, organizationId, projectId, session?.accessToken, t]);
+  }, [batchId, organizationId, projectId, session?.accessToken, canRead, t]);
 
   useRefreshOnFocus({
     scopeKey: `${organizationId ?? ""}:${projectId ?? ""}:${batchId ?? ""}`,
     refresh: loadDetail,
+    cancel: () => { readGeneration.current += 1; },
   });
 
   const selectedItem = useMemo(
@@ -131,15 +151,16 @@ export function WageBatchDetailScreen() {
     [detail?.items, selectedItemId],
   );
   const selectedRemaining = selectedItem ? remainingValue(selectedItem) : 0;
-  const selectedSettledByKharchi = selectedItem
+  const selectedRecordChanged = Boolean(itemSnapshot && wageItemChanged(itemSnapshot, selectedItem ?? undefined));
+  const selectedSettledByKharchi = selectedItem && detail?.status !== 'CANCELLED'
     ? isSettledByKharchi(selectedItem)
     : false;
   const paymentValue = Number(amount);
   const paymentError = !amount
     ? ""
-    : !Number.isFinite(paymentValue) || paymentValue <= 0
+    : !/^\d+(\.\d{1,2})?$/.test(amount) || !Number.isFinite(paymentValue) || paymentValue <= 0
       ? t("payment.invalidAmount")
-      : paymentValue > selectedRemaining
+      : Math.round(paymentValue * 100) > Math.round(selectedRemaining * 100)
         ? t("payment.exceedsDue", {
             amount: formatInr(selectedRemaining, language),
           })
@@ -147,24 +168,38 @@ export function WageBatchDetailScreen() {
   const adjustmentValue = Number(adjustmentAmount);
   const adjustmentError = !adjustmentAmount
     ? ""
-    : !Number.isFinite(adjustmentValue) || adjustmentValue < 0
+    : !/^\d+(\.\d{1,2})?$/.test(adjustmentAmount) || !Number.isFinite(adjustmentValue) || adjustmentValue < 0
       ? t("adjustment.invalidAmount")
       : "";
 
-  function openWorker(item: WageItem) {
+  const openWorker = useCallback((item: WageItem) => {
+    if (actionLock.current || paymentAttempt) return;
+    setItemSnapshot(item);
     const existingAdjustment = Number(item.adjustmentAmount);
     setSelectedItemId(item.id);
     setAmount(remainingValue(item).toFixed(2));
-    setPaymentDate(today());
+    setPaymentDate(today);
     setPaymentMethod("CASH");
     setReference("");
     setAdjustmentMode(existingAdjustment < 0 ? "DEDUCT" : "ADD");
     setAdjustmentAmount(Math.abs(existingAdjustment).toFixed(2));
     setItemNotes(item.notes ?? "");
-  }
+  }, [paymentAttempt, today]);
+
+  const directSelectionApplied = useRef(false);
+  useEffect(() => {
+    const item = detail?.items.find(candidate => candidate.id === requestedWageItemId && candidate.wageBatchId === batchId);
+    if (!item || directSelectionApplied.current) return;
+    const frame = requestAnimationFrame(() => { directSelectionApplied.current = true; openWorker(item); });
+    return () => cancelAnimationFrame(frame);
+  }, [batchId, detail, requestedWageItemId, openWorker]);
 
   function closeWorker() {
-    if (!isBusy) setSelectedItemId(null);
+    if (actionLock.current || paymentAttempt) return;
+    const saved = itemSnapshot;
+    const dirty = saved && (amount !== remainingValue(saved).toFixed(2) || reference || paymentDate !== today || paymentMethod !== 'CASH' || itemNotes !== (saved.notes ?? '') || adjustmentAmount !== Math.abs(Number(saved.adjustmentAmount)).toFixed(2) || adjustmentMode !== (Number(saved.adjustmentAmount) < 0 ? 'DEDUCT' : 'ADD'));
+    if (dirty) Alert.alert(t('history.discard'), t('history.discardHelp'), [{ text: tCommon('actions.cancel'), style: 'cancel' }, { text: tCommon('actions.close'), onPress: () => setSelectedItemId(null) }]);
+    else setSelectedItemId(null);
   }
 
   async function pay() {
@@ -172,30 +207,30 @@ export function WageBatchDetailScreen() {
       !organizationId ||
       !projectId ||
       !session?.accessToken ||
-      !selectedItem ||
-      !amount ||
-      paymentError
+      !selectedItem || !canPay || detail?.status === 'CANCELLED' || actionLock.current || error ||
+      (!paymentAttempt && (!amount || paymentError || !paymentDate || selectedRecordChanged))
     )
       return;
+    actionLock.current = true;
+    readGeneration.current += 1;
+    setIsLoading(false);
     setIsBusy(true);
+    const attempt = retainPaymentAttempt(paymentAttempt, { wageItemId: selectedItem.id, amount: paymentValue, paymentDate, paymentMethod, reference: reference.trim() || null }, () => uuid.v4());
+    setPaymentAttempt(attempt);
     try {
       const updated = await recordWagePayment(
         organizationId,
         projectId,
-        selectedItem.id,
-        {
-          amount: paymentValue,
-          paymentDate,
-          paymentMethod,
-          reference: reference.trim() || null,
-          idempotencyKey: `${selectedItem.id}-${paymentDate}-${amount}-${Date.now()}`,
-        },
+        attempt.wageItemId,
+        { amount: attempt.amount, paymentDate: attempt.paymentDate, paymentMethod: attempt.paymentMethod, reference: attempt.reference, idempotencyKey: attempt.idempotencyKey },
         session.accessToken,
       );
       setDetail(updated);
+      setPaymentAttempt(null);
       setSelectedItemId(null);
       Alert.alert(t("payment.successTitle"), t("payment.successMessage"));
     } catch (paymentFailure) {
+      if (paymentFailure instanceof ApiRequestError && !isUncertainPaymentFailure(paymentFailure.status)) setPaymentAttempt(null);
       Alert.alert(
         t("payment.failedTitle"),
         paymentFailure instanceof Error
@@ -203,6 +238,7 @@ export function WageBatchDetailScreen() {
           : t("payment.failedMessage"),
       );
     } finally {
+      actionLock.current = false;
       setIsBusy(false);
     }
   }
@@ -212,13 +248,19 @@ export function WageBatchDetailScreen() {
       !organizationId ||
       !projectId ||
       !session?.accessToken ||
-      !selectedItem ||
+      !selectedItem || !canUpdate || detail?.status === 'CANCELLED' || actionLock.current || paymentAttempt || error ||
       !adjustmentAmount ||
       adjustmentError
     )
       return;
+    actionLock.current = true;
+    readGeneration.current += 1;
+    setIsLoading(false);
     setIsBusy(true);
     try {
+      const latest = await fetchWageBatchDetail(organizationId, projectId, detail!.id, session.accessToken);
+      setDetail(latest);
+      if (latest.status === 'CANCELLED' || !itemSnapshot || wageItemChanged(itemSnapshot, latest.items.find(item => item.id === selectedItem.id))) throw new Error(t('history.changed'));
       const signedAmount =
         adjustmentMode === "DEDUCT" ? -adjustmentValue : adjustmentValue;
       const updated = await updateWageItem(
@@ -239,6 +281,7 @@ export function WageBatchDetailScreen() {
           : t("adjustment.failedMessage"),
       );
     } finally {
+      actionLock.current = false;
       setIsBusy(false);
     }
   }
@@ -249,11 +292,13 @@ export function WageBatchDetailScreen() {
       !projectId ||
       !session?.accessToken ||
       !detail ||
-      !canExport ||
+      !canExport || actionLock.current ||
       isBusy
     )
       return;
-    await pdfExport.run(
+    actionLock.current = true;
+    setIsBusy(true);
+    try { await pdfExport.run(
       (signal) =>
         exportWageBatchPdf(
           organizationId,
@@ -263,7 +308,17 @@ export function WageBatchDetailScreen() {
           signal,
         ),
       `${t("export.title")} · ${activeProject?.name ?? ""} · ${detail.periodStart} – ${detail.periodEnd}`,
-    );
+    ); } finally { actionLock.current = false; setIsBusy(false); }
+  }
+
+  async function exportCsv() {
+    if (actionLock.current || pdfExport.busy || !canExport || !detail || !organizationId || !projectId || !session) return;
+    actionLock.current = true; setIsBusy(true);
+    try {
+      const csv = await exportWageBatchCsv(organizationId, projectId, detail.id, session.accessToken);
+      await shareWageCsv(csv, `wages-${detail.periodStart}-${detail.periodEnd}.csv`, t('export.title'));
+    } catch (failure) { Alert.alert(t('export.failedTitle'), getLocalizedErrorMessage(failure, t('export.failedMessage'))); }
+    finally { actionLock.current = false; setIsBusy(false); }
   }
 
   async function cancelBatch() {
@@ -271,10 +326,13 @@ export function WageBatchDetailScreen() {
       !organizationId ||
       !projectId ||
       !session?.accessToken ||
-      !detail ||
-      cancellationReason.trim().length < 2
+      !detail || !canCancel || detail.status === 'CANCELLED' || detail.payments.length > 0 || Number(detail.totals.paidAmount) > 0 || actionLock.current || paymentAttempt || error ||
+      cancellationReason.trim().length > 500 || cancellationReason.trim().length < 2
     )
       return;
+    actionLock.current = true;
+    readGeneration.current += 1;
+    setIsLoading(false);
     setIsBusy(true);
     try {
       const updated = await cancelWageBatch(
@@ -301,6 +359,7 @@ export function WageBatchDetailScreen() {
         ),
       );
     } finally {
+      actionLock.current = false;
       setIsBusy(false);
     }
   }
@@ -316,7 +375,7 @@ export function WageBatchDetailScreen() {
     detail &&
     (detail.payments.length > 0 || Number(detail.totals.paidAmount) > 0),
   );
-  const canManageItems = !isCancelled && (canPay || canUpdate);
+  const canManageItems = !isCancelled && !error && (canPay || canUpdate);
   const header = (
     <View style={styles.headerContent}>
       <CompactScreenHeader
@@ -325,14 +384,15 @@ export function WageBatchDetailScreen() {
             accessibilityLabel={tCommon("actions.back")}
             icon="arrow-left"
             variant="glass"
-            onPress={() => router.back()}
+            onPress={() => { if (!actionLock.current && !paymentAttempt) router.back(); }}
           />
         }
         title={t("detail.title")}
         subtitle={activeProject?.name ?? t("screen.chooseProject")}
       />
-      <ProjectContextCard compact showSwitchAction />
-      {detail ? (
+      {requestedProjectId && getActiveProject(session)?.id !== projectId ? <AppText style={styles.muted}>{activeProject?.name}</AppText> : <ProjectContextCard compact showSwitchAction />}
+      {archived ? <AppText style={styles.infoMessage}>{t('history.archived')}</AppText> : null}
+      {detail && !error ? (
         <Card style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
             <View style={styles.sectionHeading}>
@@ -346,10 +406,13 @@ export function WageBatchDetailScreen() {
             </View>
             <StatusBadge
               label={t(`batchStatus.${detail.status}`)}
-              tone={getStatusTone(detail.status)}
+              tone={wageBatchTone[detail.status]}
             />
           </View>
           <View style={styles.totalsRow}>
+            <Total label={t('worker.grossWage')} value={formatInr(Number(detail.totals.grossAmount), language)} />
+            <Total label={t('worker.kharchiDeduction')} value={formatInr(Number(detail.totals.kharchiDeduction), language)} />
+            <Total label={t('worker.adjustment')} value={formatInr(Number(detail.totals.adjustmentAmount), language)} />
             <Total
               label={t("detail.net")}
               value={formatInr(Number(detail.totals.netAmount), language)}
@@ -375,6 +438,8 @@ export function WageBatchDetailScreen() {
               onPress={() => void exportBatch()}
             />
           ) : null}
+          {canExport ? <Button label={t('history.csv')} variant="outline" disabled={isBusy || pdfExport.busy} onPress={() => void exportCsv()} /> : null}
+          {isCancelled ? <AppText style={styles.muted}>{t('history.recorded', { date: detail.cancelledAt ?? '', actor: detail.cancelledBy ?? t('history.nameUnavailable') })}</AppText> : null}
           {isCancelled ? (
             <AppText style={styles.infoMessage} weight={600}>
               {t("cancellation.cancelledReason", {
@@ -389,7 +454,7 @@ export function WageBatchDetailScreen() {
                 label={t("cancellation.action")}
                 leadingIcon="close-circle-outline"
                 variant="danger"
-                disabled={isBusy || batchHasPayments}
+                disabled={isBusy || batchHasPayments || Boolean(paymentAttempt)}
                 onPress={() => setIsCancelOpen(true)}
               />
               {batchHasPayments ? (
@@ -448,7 +513,7 @@ export function WageBatchDetailScreen() {
             ) : undefined
           }
           renderItem={({ item }) => {
-            const settledByKharchi = isSettledByKharchi(item);
+            const settledByKharchi = !isCancelled && isSettledByKharchi(item);
             const statusLabel = settledByKharchi
               ? t("paymentStatus.KHARCHI_SETTLED")
               : t(`paymentStatus.${item.paymentStatus}`);
@@ -457,7 +522,7 @@ export function WageBatchDetailScreen() {
               : item.paymentStatus === "PAID"
                 ? "success"
                 : item.paymentStatus === "PARTIALLY_PAID"
-                  ? "warning"
+                  ? "active"
                   : "danger";
 
             return (
@@ -485,7 +550,7 @@ export function WageBatchDetailScreen() {
                     <AppText style={styles.manage} weight={700}>
                       {t("worker.manage")}
                     </AppText>
-                  ) : undefined
+                  ) : <AppText style={styles.manage}>{t('history.details')}</AppText>
                 }
                 tone={
                   settledByKharchi
@@ -493,10 +558,10 @@ export function WageBatchDetailScreen() {
                     : item.paymentStatus === "PAID"
                       ? "success"
                       : item.paymentStatus === "PARTIALLY_PAID"
-                        ? "info"
+                        ? "active"
                         : "warning"
                 }
-                onPress={canManageItems ? () => openWorker(item) : undefined}
+                onPress={() => openWorker(item)}
               />
             );
           }}
@@ -537,7 +602,7 @@ export function WageBatchDetailScreen() {
                     : selectedItem.paymentStatus === "PAID"
                       ? "success"
                       : selectedItem.paymentStatus === "PARTIALLY_PAID"
-                        ? "warning"
+                        ? "active"
                         : "danger"
                 }
               />
@@ -545,7 +610,7 @@ export function WageBatchDetailScreen() {
             details={
               <View style={styles.calculationDetails}>
                 <CalculationLine
-                  label={t("worker.dailyRate")}
+                  label={t(selectedItem.rateBreakdown && selectedItem.rateBreakdown.length > 1 ? 'history.multipleRateLabel' : 'worker.dailyRate')}
                   value={t("worker.perDayAmount", {
                     amount: formatInr(Number(selectedItem.dailyRate), language),
                   })}
@@ -578,7 +643,11 @@ export function WageBatchDetailScreen() {
             tone="neutral"
           />
 
-          {canPay ? (
+          <WageCalculation item={selectedItem} confirmed />
+          {detail && session && organizationId && projectId ? <WageFinancialHistory key={selectedItem.id} detail={detail} item={selectedItem} organizationId={organizationId} projectId={projectId} token={session.accessToken} permissions={permissions} /> : null}
+          {selectedRecordChanged && !paymentAttempt && selectedItem ? <View style={styles.sheetSection}><AppText accessibilityRole="alert" style={styles.infoMessage}>{t('history.changed')}</AppText><Button label={t('history.reloadWorker')} variant="outline" disabled={isBusy} onPress={() => openWorker(selectedItem)} /></View> : null}
+          {paymentAttempt ? <AppText accessibilityRole="alert" style={styles.infoMessage}>{t('history.uncertain')}</AppText> : null}
+          {canPay && !isCancelled && !error ? (
             <View style={styles.sheetSection}>
               <View style={styles.sectionHeading}>
                 <AppText style={styles.sectionTitle} weight={700}>
@@ -588,9 +657,9 @@ export function WageBatchDetailScreen() {
                   {t("payment.description")}
                 </AppText>
               </View>
-              {selectedRemaining > 0 ? (
+              {selectedRemaining > 0 || paymentAttempt ? (
                 <>
-                  <View style={styles.formRow}>
+                  <View pointerEvents={isBusy || paymentAttempt ? 'none' : 'auto'} style={styles.formRow}>
                     <FormField
                       label={t("payment.amount")}
                       required
@@ -598,6 +667,7 @@ export function WageBatchDetailScreen() {
                       style={styles.formField}
                     >
                       <Input
+                        editable={!isBusy && !paymentAttempt}
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType="decimal-pad"
@@ -622,6 +692,7 @@ export function WageBatchDetailScreen() {
                       {WAGE_PAYMENT_METHODS.map((method) => (
                         <Pressable
                           key={method}
+                          disabled={isBusy || Boolean(paymentAttempt)}
                           accessibilityRole="button"
                           accessibilityState={{
                             selected: paymentMethod === method,
@@ -642,6 +713,8 @@ export function WageBatchDetailScreen() {
                   </FormField>
                   <FormField label={t("payment.reference")}>
                     <Input
+                      editable={!isBusy && !paymentAttempt}
+                      maxLength={120}
                       value={reference}
                       onChangeText={setReference}
                       placeholder={t("payment.referencePlaceholder")}
@@ -649,10 +722,10 @@ export function WageBatchDetailScreen() {
                   </FormField>
                   <Button
                     label={
-                      isBusy ? t("payment.recording") : t("payment.action")
+                      isBusy ? t("payment.recording") : paymentAttempt ? t('history.retryPayment') : t("payment.action")
                     }
                     leadingIcon="credit-card-outline"
-                    disabled={!amount || Boolean(paymentError) || isBusy}
+                    disabled={(!paymentAttempt && (!amount || Boolean(paymentError) || !paymentDate || selectedRecordChanged)) || isBusy}
                     onPress={() => void pay()}
                   />
                 </>
@@ -677,7 +750,7 @@ export function WageBatchDetailScreen() {
             </View>
           ) : null}
 
-          {canUpdate ? (
+          {canUpdate && !isCancelled && !error && !paymentAttempt ? (
             <View style={styles.sheetSection}>
               <View style={styles.sectionHeading}>
                 <AppText style={styles.sectionTitle} weight={700}>
@@ -691,6 +764,7 @@ export function WageBatchDetailScreen() {
                 {(["ADD", "DEDUCT"] as const).map((mode) => (
                   <Pressable
                     key={mode}
+                    disabled={isBusy}
                     accessibilityRole="button"
                     accessibilityState={{ selected: adjustmentMode === mode }}
                     style={({ pressed }) => [
@@ -717,6 +791,7 @@ export function WageBatchDetailScreen() {
                 )}
               >
                 <Input
+                  editable={!isBusy}
                   value={adjustmentAmount}
                   onChangeText={setAdjustmentAmount}
                   keyboardType="decimal-pad"
@@ -725,6 +800,8 @@ export function WageBatchDetailScreen() {
               </FormField>
               <FormField label={t("adjustment.notes")}>
                 <Input
+                  maxLength={500}
+                  editable={!isBusy}
                   value={itemNotes}
                   onChangeText={setItemNotes}
                   placeholder={t("adjustment.notesPlaceholder")}
@@ -738,12 +815,12 @@ export function WageBatchDetailScreen() {
                     : undefined
                 }
               />
-              <Button
+              <Button validateForm
                 label={isBusy ? t("adjustment.saving") : t("adjustment.action")}
                 leadingIcon="content-save-outline"
                 variant="brand"
                 disabled={
-                  !adjustmentAmount || Boolean(adjustmentError) || isBusy
+                  !adjustmentAmount || Boolean(adjustmentError) || selectedRecordChanged || isBusy
                 }
                 onPress={() => void saveAdjustment()}
               />
@@ -765,6 +842,7 @@ export function WageBatchDetailScreen() {
         >
           <Input
             accessibilityLabel={t("cancellation.reason")}
+            maxLength={500}
             value={cancellationReason}
             onChangeText={setCancellationReason}
             placeholder={t("cancellation.reasonPlaceholder")}

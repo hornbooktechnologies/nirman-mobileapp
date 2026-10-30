@@ -211,5 +211,24 @@
     "dateFormat": "Use the date format YYYY-MM-DD.",
     "dateOrder": "End date cannot be before start date.",
     "generic": "Something went wrong. Please try again."
+  },
+  "profile": {
+    "edit": "Edit worker profile",
+    "notes": "Notes",
+    "invalid": "Enter a name, trade, valid phone and non-negative rate with up to two decimals.",
+    "duplicate": "I have reviewed the possible duplicate workers.",
+    "rateHelp": "The base rate does not rewrite saved assignment rate history. Use Change rate for a project rate.",
+    "failed": "Unable to update worker",
+    "delete": "Delete permanently",
+    "deleteTitle": "Permanently delete {{name}}?",
+    "deleteWarning": "This cannot be undone. The worker, project assignments, primary-project periods, attendance records and exceptions, wage items and wage payments will be permanently deleted. Shared wage batches remain only if other worker items remain. This history cannot be restored.",
+    "deactivate": "Deactivate worker",
+    "deactivateWarning": "The worker becomes inactive and leaves active rosters. Assignments and attendance/financial history are retained; assignments are not ended automatically.",
+    "reason": "Reason (optional)",
+    "status": "Worker status",
+    "active": "Active workers",
+    "inactive": "Inactive workers",
+    "all": "All statuses",
+    "assignNow": "Assign to this project now"
   }
 }

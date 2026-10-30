@@ -1,6 +1,11 @@
 import { formatDateOnly, parseDateOnly } from '../../lib/validation';
 
-export function todayDateOnly() {
+export function todayDateOnly(timezone?: string) {
+  if (timezone) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const value = (name: string) => parts.find((part) => part.type === name)!.value;
+    return `${value('year')}-${value('month')}-${value('day')}`;
+  }
   return formatDateOnly(new Date());
 }
 

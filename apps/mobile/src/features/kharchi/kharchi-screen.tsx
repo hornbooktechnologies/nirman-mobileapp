@@ -1,3 +1,4 @@
+import { CsvExportButton } from "../../components/ui/csv-export-button";
 import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 import { usePdfExport } from "../../lib/exports/use-pdf-export";
@@ -5,7 +6,7 @@ import {
   KHARCHI_BALANCE_STATUSES,
   KHARCHI_PAYMENT_METHODS,
 } from "@nirman-app/shared";
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -32,7 +33,7 @@ import {
   StatusBadge,
 } from "../../components/ui";
 import { formatDate, formatInr, getLocalizedErrorMessage } from "../../i18n";
-import { getActiveProject, getActiveProjectPermissions } from "../../lib/auth";
+import { getActiveProject, getRouteProject } from "../../lib/auth";
 import { useLocalization, useSession } from "../../providers";
 import { useRefreshOnFocus } from "../../lib/use-refresh-on-focus";
 import { mobileText, mobileTheme } from "../../theme";
@@ -40,6 +41,7 @@ import { CustomerTabBar } from "../home/components";
 import { ProjectContextCard } from "../projects";
 import {
   exportKharchiPdf,
+  exportKharchiCsv,
   fetchKharchiList,
   fetchKharchiSummary,
 } from "./services";
@@ -64,8 +66,9 @@ export function KharchiScreen() {
   const { t: tCommon } = useTranslation("common");
   const { language } = useLocalization();
   const { session } = useSession();
-  const activeProject = getActiveProject(session);
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId: routeProjectId, workerAssignmentId } = useLocalSearchParams<{ projectId?: string; workerAssignmentId?: string }>();
+  const activeProject = getRouteProject(session, routeProjectId);
+  const permissions = activeProject?.permissions ?? [];
   const organizationId = session?.activeOrganization?.id ?? null;
   const projectId = activeProject?.id ?? null;
   const accessToken = session?.accessToken ?? null;
@@ -101,13 +104,14 @@ export function KharchiScreen() {
   const query = useMemo(
     () => ({
       pageSize: 20,
+      workerAssignmentId,
       search: search.trim() || undefined,
       status,
       paymentMethod: method,
       sortBy: "requestDate" as const,
       sortOrder: "desc" as const,
     }),
-    [method, search, status],
+    [method, search, status, workerAssignmentId],
   );
 
   async function exportPdf() {
@@ -232,7 +236,7 @@ export function KharchiScreen() {
           ) : undefined
         }
       />
-      <ProjectContextCard compact showSwitchAction />
+      {routeProjectId && getActiveProject(session)?.id !== projectId ? <AppText style={mobileText.caption}>{activeProject?.name}</AppText> : <ProjectContextCard compact showSwitchAction />}
       {activeProject && activeProject.status !== "ACTIVE" ? (
         <Card style={styles.notice}>
           <AppText style={styles.noticeText}>{t("screen.readOnly")}</AppText>
@@ -303,6 +307,7 @@ export function KharchiScreen() {
           </AppliedFilters>
         ) : null}
       </ListControls>
+      {canExport && organizationId && projectId && accessToken ? <CsvExportButton scope={`${organizationId}:${projectId}:${JSON.stringify(query)}`} filename="kharchi.csv" disabled={exporting} load={signal => exportKharchiCsv(organizationId, projectId, accessToken, query, signal)} /> : null}
       {canExport ? (
         <Button
           label={exporting ? t("export.preparing") : t("export.action")}

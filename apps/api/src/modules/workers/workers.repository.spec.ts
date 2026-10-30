@@ -138,7 +138,7 @@ describe("WorkersRepository", () => {
           currentAssignment: expect.objectContaining({
             id: "assignment-id",
             projectId: "project-id",
-          }),
+          }) as unknown,
         }),
       );
     },

@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 import { SearchInput } from "@/components/ui/search-input";
 
 import { CollectionToolbar } from "@/components/ui/collection-toolbar";
@@ -22,7 +23,7 @@ export function AdministrationFilters({ name, scope, search, fields, value, onAp
 }) {
   if (!fields.length) return <div className="space-y-2">
     {scope && <p className="text-sm text-sub">{scope}</p>}
-    {search && <label className="grid max-w-md gap-1 text-sm font-medium">Search {name}<SearchInput value={search.value} placeholder={search.placeholder} maxLength={160} onValueChange={(event) => search.onChange(event)} disabled={disabled} /></label>}
+    {search && <ValidatedField className="grid max-w-md gap-1 text-sm font-medium">Search {name}<SearchInput value={search.value} placeholder={search.placeholder} maxLength={160} onValueChange={(event) => search.onChange(event)} disabled={disabled} /></ValidatedField>}
   </div>;
   const defaults = Object.fromEntries(fields.map((field) => [field.key, ""]));
   return <CollectionToolbar
@@ -36,14 +37,14 @@ export function AdministrationFilters({ name, scope, search, fields, value, onAp
       count: fields.filter((field) => Boolean(value[field.key])).length,
       onApply,
       fields: (draft, setDraft, id) => <div className="grid gap-4">
-        {fields.map((field) => <label key={field.key} htmlFor={`${id}-${field.key}`} className="grid gap-1 text-sm font-medium">
+        {fields.map((field) => <ValidatedField key={field.key} htmlFor={`${id}-${field.key}`} className="grid gap-1 text-sm font-medium">
           {field.label}
           <Select id={`${id}-${field.key}`} value={draft[field.key] ?? ""} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })}>
             <option value="">{field.allLabel ?? `All ${field.label.toLowerCase()}`}</option>
             {draft[field.key] && !field.options.some((option) => option.value === draft[field.key]) && <option value={draft[field.key]}>{draft[field.key]}</option>}
             {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </Select>
-        </label>)}
+        </ValidatedField>)}
       </div>,
     }}
   />;

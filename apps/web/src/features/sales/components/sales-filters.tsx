@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedField } from "@/components/ui/validated-form";
 
 import { CollectionToolbar } from "@/components/ui/collection-toolbar";
 import { Input, Select } from "@/components/ui";
@@ -60,7 +61,7 @@ export function SalesFilters({
           <div className="grid gap-4">
             {issue && <p role="alert" className="text-sm text-danger">{issue}</p>}
             {fields.map((field) => (
-              <label key={field.key} htmlFor={`${id}-${field.key}`} className="grid gap-1 text-sm font-medium">
+              <ValidatedField key={field.key} htmlFor={`${id}-${field.key}`} className="grid gap-1 text-sm font-medium">
                 {field.name}
                 {field.options ? (
                   <Select
@@ -87,7 +88,7 @@ export function SalesFilters({
                 )}
                 {field.loading && <span role="status" className="text-sm text-sub">Loading {field.name.toLowerCase()} options…</span>}
                 {field.optionsMessage && <span role="status" className="text-sm text-sub">{field.optionsMessage}</span>}
-              </label>
+              </ValidatedField>
             ))}
           </div>
           );

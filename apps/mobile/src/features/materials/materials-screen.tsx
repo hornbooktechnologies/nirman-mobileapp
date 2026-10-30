@@ -1,3 +1,4 @@
+import { CsvExportButton } from "../../components/ui/csv-export-button";
 import { refreshTogether } from "@nirman-app/shared";
 import { GuardedRefreshControl } from "../../components/ui/refresh-control";
 
@@ -58,6 +59,7 @@ import { materialTone } from "./materials-ui";
 import {
   configureMaterialSettings,
   exportMaterialsPdf,
+  exportMaterialsCsv,
   fetchMaterialSettings,
   fetchMaterials,
   fetchMaterialsSummary,
@@ -343,6 +345,7 @@ export function MaterialsScreen() {
           </AppliedFilters>
         ) : null}
       </ListControls>
+      {canExport && organizationId && projectId && token ? <CsvExportButton scope={`${organizationId}:${projectId}:${JSON.stringify(query)}`} filename="materials.csv" disabled={exporting} load={signal => exportMaterialsCsv(organizationId, projectId, token, query, signal)} /> : null}
       {canExport ? (
         <Button
           label={exporting ? t("export.preparing") : t("export.action")}
@@ -673,7 +676,7 @@ function SettingsSheet({
             disabled={working}
             onPress={onClose}
           />
-          <Button
+          <Button validateForm
             style={styles.footerButton}
             label={working ? t("loading.saving") : t("settings.save")}
             disabled={working}

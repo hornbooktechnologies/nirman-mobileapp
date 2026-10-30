@@ -1,4 +1,6 @@
 "use client";
+import { BrochureShareHistory } from "./brochure-share-history";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -106,6 +108,7 @@ function Brochures({ c }: { c: SalesContext }) {
     );
   return (
     <div className="space-y-5">
+      <BrochureShareHistory key={`${c.org}:${c.project}`} organizationId={c.org} projectId={c.project} />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-lime-sub">
@@ -125,7 +128,22 @@ function Brochures({ c }: { c: SalesContext }) {
         </RefreshButton>
       </header>
       {c.active && c.permissions.includes("brochures:upload") && (
-        <Card className="space-y-4">
+        <Card className="space-y-4"><ValidatedForm className="space-y-4" onSubmit={(event) => { event.preventDefault(); (() =>
+              void run(async () => {
+                if (!file) throw new Error("Select a file.");
+                await brochuresService.upload(c.org, c.project, {
+                  file,
+                  title: title.trim(),
+                  description: description.trim() || undefined,
+                  category,
+                  assetId: crypto.randomUUID(),
+                  idempotencyKey: crypto.randomUUID(),
+                });
+                setFile(null);
+                setTitle("");
+                setDescription("");
+                return "Brochure uploaded.";
+              }))(); }}>
           <div>
             <h2 className="text-lg font-semibold">Add marketing material</h2>
             <p className="text-sm text-sub">
@@ -134,11 +152,11 @@ function Brochures({ c }: { c: SalesContext }) {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block" htmlFor="brochure-file">
+              <ValidatedField className="mb-1 block" htmlFor="brochure-file">
                 File *
-              </label>
+              </ValidatedField>
               <Input
-                id="brochure-file"
+                required id="brochure-file"
                 type="file"
                 accept=".pdf,image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
                 onChange={(e) => {
@@ -155,20 +173,20 @@ function Brochures({ c }: { c: SalesContext }) {
               )}
             </div>
             <div>
-              <label className="mb-1 block" htmlFor="brochure-title">
+              <ValidatedField className="mb-1 block" htmlFor="brochure-title">
                 Title *
-              </label>
+              </ValidatedField>
               <Input
-                id="brochure-title"
+                required minLength={2} id="brochure-title"
                 value={title}
                 maxLength={160}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
             <div>
-              <label className="mb-1 block" htmlFor="brochure-category">
+              <ValidatedField className="mb-1 block" htmlFor="brochure-category">
                 Category
-              </label>
+              </ValidatedField>
               <Select
                 id="brochure-category"
                 value={category}
@@ -182,9 +200,9 @@ function Brochures({ c }: { c: SalesContext }) {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block" htmlFor="brochure-description">
+              <ValidatedField className="mb-1 block" htmlFor="brochure-description">
                 Description
-              </label>
+              </ValidatedField>
               <Textarea
                 id="brochure-description"
                 value={description}
@@ -193,33 +211,11 @@ function Brochures({ c }: { c: SalesContext }) {
               />
             </div>
           </div>
-          <Button
-            disabled={
-              busy ||
-              !file ||
-              title.trim().length < 2
-            }
-            onClick={() =>
-              void run(async () => {
-                if (!file) throw new Error("Select a file.");
-                await brochuresService.upload(c.org, c.project, {
-                  file,
-                  title: title.trim(),
-                  description: description.trim() || undefined,
-                  category,
-                  assetId: crypto.randomUUID(),
-                  idempotencyKey: crypto.randomUUID(),
-                });
-                setFile(null);
-                setTitle("");
-                setDescription("");
-                return "Brochure uploaded.";
-              })
-            }
+          <Button disabled={busy} type="submit"
           >
             {busy ? "Uploading…" : "Upload brochure"}
           </Button>
-        </Card>
+        </ValidatedForm></Card>
       )}
       {notice && (
         <p
@@ -279,7 +275,20 @@ function Brochures({ c }: { c: SalesContext }) {
         )}
       </section>
       {selected.length > 0 && c.permissions.includes("brochures:share") && (
-        <Card className="sticky bottom-4 z-10 space-y-3 border-lime/30 shadow-floating">
+        <Card className="sticky bottom-4 z-10 space-y-3 border-lime/30 shadow-floating"><ValidatedForm className="space-y-4" onSubmit={(event) => { event.preventDefault(); (() =>
+                void run(async () => {
+                  const result = await brochuresService.email(
+                    c.org,
+                    c.project,
+                    {
+                      assetIds: selected,
+                      recipientEmail: email.trim(),
+                      recipientName: name.trim() || undefined,
+                      idempotencyKey: crypto.randomUUID(),
+                    },
+                  );
+                  return result.message;
+                }))(); }}>
           <div>
             <h2 className="font-semibold">
               Share {selected.length} selected{" "}
@@ -303,23 +312,7 @@ function Brochures({ c }: { c: SalesContext }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Button
-              disabled={busy || !email.includes("@")}
-              onClick={() =>
-                void run(async () => {
-                  const result = await brochuresService.email(
-                    c.org,
-                    c.project,
-                    {
-                      assetIds: selected,
-                      recipientEmail: email.trim(),
-                      recipientName: name.trim() || undefined,
-                      idempotencyKey: crypto.randomUUID(),
-                    },
-                  );
-                  return result.message;
-                })
-              }
+            <Button disabled={busy} type="submit"
             >
               Email
             </Button>
@@ -331,7 +324,7 @@ function Brochures({ c }: { c: SalesContext }) {
               Other…
             </Button>
           </div>
-        </Card>
+        </ValidatedForm></Card>
       )}
     </div>
   );

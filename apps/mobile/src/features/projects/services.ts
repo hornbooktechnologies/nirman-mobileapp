@@ -12,6 +12,10 @@ export function fetchProject(organizationId: string, projectId: string, accessTo
   return requestData<Project>(`/organizations/${organizationId}/projects/${projectId}`, accessToken);
 }
 
+export function changeProjectLifecycle(organizationId: string, projectId: string, accessToken: string, action: 'archive' | 'restore') {
+  return requestData<Project>(`/organizations/${organizationId}/projects/${projectId}/${action}`, accessToken, { method: 'POST' });
+}
+
 export function createProject(organizationId: string, accessToken: string, input: ProjectInput) {
   return requestData<Project>(`/organizations/${organizationId}/projects`, accessToken, {
     method: 'POST',

@@ -1,36 +1,42 @@
-import { NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
-import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { validateRequiredEnv } from './config/env';
-import { contactWebsiteOrigin } from './common/public-website-origin';
+import { NestFactory, Reflector } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
+import cookieParser from "cookie-parser";
+import { AppModule } from "./app.module";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
+import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
+import { validateRequiredEnv } from "./config/env";
+import { contactWebsiteOrigin } from "./common/public-website-origin";
 
 const DEFAULT_ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:8081',
-  'http://127.0.0.1:8081',
-  'http://192.168.1.34:8081',
-  'http://192.168.1.34:8082',
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:8081",
+  "http://127.0.0.1:8081",
+  "http://192.168.1.34:8081",
+  "http://192.168.1.34:8082",
 ];
 
 type CorsOriginCallback = (error: Error | null, allow?: boolean) => void;
 
 function getAllowedOrigins() {
-  const configured = process.env.FRONTEND_URL?.split(',')
+  const configured = process.env.FRONTEND_URL?.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, contactWebsiteOrigin(), ...(configured ?? [])]));
+  return Array.from(
+    new Set([
+      ...DEFAULT_ALLOWED_ORIGINS,
+      contactWebsiteOrigin(),
+      ...(configured ?? []),
+    ]),
+  );
 }
 
 async function bootstrap() {
   validateRequiredEnv();
 
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix("api/v1");
   app.use(cookieParser());
 
   app.enableCors({
@@ -43,9 +49,15 @@ async function bootstrap() {
       callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
     },
     credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'Origin', 'X-Requested-With'],
-    exposedHeaders: ['Content-Disposition'],
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Authorization",
+      "Content-Type",
+      "Accept",
+      "Origin",
+      "X-Requested-With",
+    ],
+    exposedHeaders: ["Content-Disposition"],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });

@@ -92,7 +92,9 @@ describe("GlobalExceptionFilter", () => {
     expect(response.status).toHaveBeenCalledWith(401);
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: expect.objectContaining({ code: "AUTH_SESSION_REQUIRED" }),
+        error: expect.objectContaining({
+          code: "AUTH_SESSION_REQUIRED",
+        }) as unknown,
       }),
     );
   });

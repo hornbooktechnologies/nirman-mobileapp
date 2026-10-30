@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, type PressableProps, type Sty
 import { mobileShadows, mobileTheme } from '../../theme';
 import { AppIcon, type AppIconName } from './app-icon';
 import { AppText } from './app-text';
+import { useValidateForm } from './form-scope';
 
 export type ButtonProps = PressableProps & {
   label: string;
@@ -12,9 +13,11 @@ export type ButtonProps = PressableProps & {
   leadingIcon?: AppIconName;
   contentStyle?: StyleProp<ViewStyle>;
   loading?: boolean;
+  validateForm?: boolean;
 };
 
-export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, leadingIcon, hitSlop, style, contentStyle, loading = false, disabled, accessibilityState, ...props }: ButtonProps) {
+export function Button({ label, size = 'md', variant = 'primary', fullWidth = true, leadingIcon, hitSlop, style, contentStyle, loading = false, disabled, accessibilityState, validateForm = false, onPress, ...props }: ButtonProps) {
+  const validate = useValidateForm();
   const usesInverseContent = variant === 'primary' || variant === 'brand' || variant === 'info' || variant === 'success' || variant === 'danger' || variant === 'dark';
   const isDisabled = disabled || loading;
 
@@ -36,6 +39,7 @@ export function Button({ label, size = 'md', variant = 'primary', fullWidth = tr
         loading && styles.loading,
       ]}
       {...props}
+      onPress={(event) => { if (!validateForm || validate()) onPress?.(event); }}
     >
       {loading ? <ActivityIndicator accessible={false} size="small" color={usesInverseContent ? mobileTheme.color.text.inverse : mobileTheme.color.text.link} /> : leadingIcon ? (
         <AppIcon

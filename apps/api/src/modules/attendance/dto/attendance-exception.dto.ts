@@ -29,10 +29,17 @@ export class AttendanceSummaryQueryDto {
   @IsBoolean()
   exceptionsOnly?: boolean;
 
-  @IsOptional() @Transform(({ value }) => Number(value)) @IsInt() @Min(1)
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
   page?: number;
 
-  @IsOptional() @Transform(({ value }) => Number(value)) @IsInt() @Min(1) @Max(100)
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  @Max(100)
   pageSize?: number;
 }
 

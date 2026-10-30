@@ -5,7 +5,7 @@ import {
   type PermissionKey,
   type ProjectMemberStatus,
   type ProjectPermissionMode,
-} from '@nirman-app/shared';
+} from "@nirman-app/shared";
 import {
   ArrayUnique,
   IsArray,
@@ -14,7 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpsertProjectMemberDto {
   @IsOptional()
@@ -24,7 +24,7 @@ export class UpsertProjectMemberDto {
 
   @IsOptional()
   @IsIn(PROJECT_PERMISSION_MODES)
-  permissionMode?: ProjectPermissionMode = 'ROLE_DEFAULT';
+  permissionMode?: ProjectPermissionMode = "ROLE_DEFAULT";
 
   @IsOptional()
   @IsArray()
@@ -34,7 +34,7 @@ export class UpsertProjectMemberDto {
 
   @IsOptional()
   @IsIn(PROJECT_MEMBER_STATUSES)
-  status?: ProjectMemberStatus = 'ACTIVE';
+  status?: ProjectMemberStatus = "ACTIVE";
 
   @IsOptional()
   @IsDateString()

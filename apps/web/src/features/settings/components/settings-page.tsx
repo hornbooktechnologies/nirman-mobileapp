@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import { FormEvent, useState } from "react";
 import { LoadingState } from "@/components/ui";
@@ -113,12 +114,12 @@ export function SettingsPage() {
           <p role="alert" className="text-sm text-danger">Unable to load settings. <Button variant="outline" onClick={() => void settings.refetch()}>Retry</Button></p>
         ) : (
           <div className="space-y-6">
-            <form className="space-y-3" onSubmit={(event) => void handleSubmit(event, "general")}>
+            <ValidatedForm className="space-y-3" onSubmit={(event) => void handleSubmit(event, "general")}>
               <h2 className="text-lg font-semibold">General settings</h2>
               <p className="text-sm text-sub">Application identity and support details.</p>
               <div className="grid gap-3 md:grid-cols-2">
                 {generalFields.map((field) => (
-                  <label key={field.key} className="space-y-1.5">
+                  <ValidatedField key={field.key} className="space-y-1.5">
                     <span className="text-[12px] font-medium text-sub">{field.label}</span>
                     <Input
                       type={field.type ?? "text"}
@@ -131,20 +132,20 @@ export function SettingsPage() {
                         }))
                       }
                     />
-                  </label>
+                  </ValidatedField>
                 ))}
               </div>
               {canUpdate && <Button type="submit" disabled={updateSettings.isPending}>{updateSettings.isPending ? "Saving" : "Save general settings"}</Button>}
               {savedGroup === "general" && <p role="status" className="text-sm text-success">General settings saved.</p>}
               {errorGroup === "general" && updateSettings.isError && <p role="alert" className="text-sm text-danger">{updateSettings.error instanceof Error ? updateSettings.error.message : "Unable to save general settings."}</p>}
-            </form>
+            </ValidatedForm>
 
-            <form className="space-y-3 border-t border-hairline pt-6" onSubmit={(event) => void handleSubmit(event, "email")}>
+            <ValidatedForm className="space-y-3 border-t border-hairline pt-6" onSubmit={(event) => void handleSubmit(event, "email")}>
               <h2 className="text-lg font-semibold">Outbound email</h2>
               <p className="text-sm text-sub">Sender configuration for invitations and account messages. Saving this section does not change general settings.</p>
               <div className="grid gap-3 md:grid-cols-2">
                 {emailFields.map((field) => (
-                  <label key={field.key} className="space-y-1.5">
+                  <ValidatedField key={field.key} className="space-y-1.5">
                     <span className="text-[12px] font-medium text-sub">{field.label}</span>
                     <Input
                       type={field.type ?? "text"}
@@ -160,7 +161,7 @@ export function SettingsPage() {
                         }))
                       }
                     />
-                  </label>
+                  </ValidatedField>
                 ))}
               </div>
               <p className="text-[12px] leading-5 text-sub">
@@ -172,7 +173,7 @@ export function SettingsPage() {
               {canUpdate && <Button type="submit" disabled={updateSettings.isPending}>{updateSettings.isPending ? "Saving" : "Save email settings"}</Button>}
               {savedGroup === "email" && <p role="status" className="text-sm text-success">Email settings saved.</p>}
               {errorGroup === "email" && updateSettings.isError && <p role="alert" className="text-sm text-danger">{updateSettings.error instanceof Error ? updateSettings.error.message : "Unable to save email settings."}</p>}
-            </form>
+            </ValidatedForm>
           </div>
         )}
       </Card>

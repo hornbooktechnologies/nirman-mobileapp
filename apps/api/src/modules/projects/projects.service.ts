@@ -344,9 +344,8 @@ export class ProjectsService {
     dto.assignments.forEach((assignment) =>
       this.validateAssignmentDates(assignment.startsOn, assignment.endsOn),
     );
-    const targetRolePermissions = await this.projectAccess.getRolePermissionKeys(
-      member.roleId,
-    );
+    const targetRolePermissions =
+      await this.projectAccess.getRolePermissionKeys(member.roleId);
     dto.assignments.forEach((assignment) =>
       this.validateProjectPermissions(
         assignment.permissionMode,
@@ -431,7 +430,11 @@ export class ProjectsService {
       throw new BadRequestException("Each member can only be selected once");
     }
     const unassignMemberIds = [...new Set(dto.unassignMemberIds)];
-    if (assignmentMemberIds.some((memberId) => unassignMemberIds.includes(memberId))) {
+    if (
+      assignmentMemberIds.some((memberId) =>
+        unassignMemberIds.includes(memberId),
+      )
+    ) {
       throw new BadRequestException(
         "A member cannot be assigned and unassigned in the same request",
       );
@@ -468,7 +471,9 @@ export class ProjectsService {
         memberId,
       );
       if (member?.userId === actor.id) {
-        throw new ForbiddenException("You cannot remove your own Project access");
+        throw new ForbiddenException(
+          "You cannot remove your own Project access",
+        );
       }
     }
 
@@ -490,11 +495,11 @@ export class ProjectsService {
   ) {
     const { access, member: organizationMember } =
       await this.assertCanMutateProjectMember(
-      organizationId,
-      projectId,
-      memberId,
-      actor,
-      "project-members:update",
+        organizationId,
+        projectId,
+        memberId,
+        actor,
+        "project-members:update",
       );
     this.validateAssignmentDates(dto.startsOn, dto.endsOn);
     await this.validateProjectPermissionsForMember(
@@ -574,9 +579,8 @@ export class ProjectsService {
     dto: UpsertProjectMemberDto,
     actorPermissions: PermissionKey[],
   ) {
-    const targetRolePermissions = await this.projectAccess.getRolePermissionKeys(
-      roleId,
-    );
+    const targetRolePermissions =
+      await this.projectAccess.getRolePermissionKeys(roleId);
     this.validateProjectPermissions(
       dto.permissionMode,
       dto.permissions,
@@ -605,17 +609,18 @@ export class ProjectsService {
           !actorPermissions.includes(permission),
       );
       if (outsideActorAuthority) {
-        throw new ForbiddenException(
-          {
-            code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
-            message: `Role-default access would delegate ${outsideActorAuthority}; use Custom Project permissions instead`,
-          },
-        );
+        throw new ForbiddenException({
+          code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
+          message: `Role-default access would delegate ${outsideActorAuthority}; use Custom Project permissions instead`,
+        });
       }
       return;
     }
     const requested = [...new Set(permissions ?? [])];
-    if ((status ?? "ACTIVE") === "ACTIVE" && !requested.includes("projects:read")) {
+    if (
+      (status ?? "ACTIVE") === "ACTIVE" &&
+      !requested.includes("projects:read")
+    ) {
       throw new BadRequestException(
         "Active custom Project access must include projects:read",
       );
@@ -624,23 +629,19 @@ export class ProjectsService {
       (permission) => !targetRolePermissions.includes(permission),
     );
     if (outsideRoleCeiling) {
-      throw new ForbiddenException(
-        {
-          code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
-          message: `${outsideRoleCeiling} exceeds the member's Organization Role ceiling`,
-        },
-      );
+      throw new ForbiddenException({
+        code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
+        message: `${outsideRoleCeiling} exceeds the member's Organization Role ceiling`,
+      });
     }
     const outsideActorAuthority = requested.find(
       (permission) => !actorPermissions.includes(permission),
     );
     if (outsideActorAuthority) {
-      throw new ForbiddenException(
-        {
-          code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
-          message: `You cannot delegate ${outsideActorAuthority} on this Project`,
-        },
-      );
+      throw new ForbiddenException({
+        code: "PROJECT_PERMISSION_CEILING_EXCEEDED",
+        message: `You cannot delegate ${outsideActorAuthority} on this Project`,
+      });
     }
   }
 

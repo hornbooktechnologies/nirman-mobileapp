@@ -1,12 +1,14 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { SalesUnitScreen } from '../../src/features/sales/sales-unit-screen';
-import { getActiveProjectPermissions } from '../../src/lib/auth';
+import { getRouteProject } from '../../src/lib/auth';
 import { useSession } from '../../src/providers';
 
 export default function SalesUnitRoute() {
   const { session } = useSession();
-  const permissions = getActiveProjectPermissions(session);
+  const { projectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = getRouteProject(session, projectId);
+  const permissions = (project?.permissions ?? []);
   if (!permissions.includes('inventory:read')) return <Redirect href="/(app)/dashboard" />;
-  return <SalesUnitScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${session?.activeProjectId ?? session?.projectAccess.activeProjectId}:${permissions.join(",")}:${session?.projectAccess.projects.find(p => p.id === (session.activeProjectId ?? session.projectAccess.activeProjectId))?.status}`} />;
+  return <SalesUnitScreen key={`${session?.user.id}:${session?.activeOrganization?.id}:${project?.id}:${permissions.join(",")}:${project?.status}`} />;
 }

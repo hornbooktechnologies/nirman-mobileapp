@@ -1,4 +1,5 @@
 "use client";
+import { CsvExportButton } from "@/components/ui/csv-export-button";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 import { downloadPdf } from "@/lib/exports/pdf";
@@ -259,6 +260,7 @@ function AttendanceWorkspace() {
         description="Review worker attendance totals for a selected period."
         actions={
           <div className="flex flex-wrap gap-2">
+            {canExport && activeOrganizationId && projectId ? <CsvExportButton key={`${activeOrganizationId}:${projectId}:${startDate}:${endDate}`} filename="attendance.csv" disabled={isExporting || Boolean(invalidPeriod)} load={() => attendanceService.exportCsv(activeOrganizationId, projectId, startDate, endDate)} /> : null}
             {canExport ? (
               <Button
                 variant="outline"

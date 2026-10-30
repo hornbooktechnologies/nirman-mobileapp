@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 
@@ -75,18 +76,18 @@ export function WorkerPrimaryPeriods({ organizationId, worker }: { organizationI
       <RefreshButton busy={periods.isFetching} variant="outline" disabled={periods.isFetching} onRefresh={() => periods.refetch()}>{periods.isFetching ? "Refreshing…" : "Refresh history"}</RefreshButton>
     </>}
     <Dialog open={Boolean(editor)} title={editor?.kind === "end" ? "End primary-project period" : editor?.kind === "correct" ? "Correct primary-project period" : editor?.kind === "transfer" ? "Change primary project" : "Add primary-project period"} description="Dates must fit the assignment. Changing primary project closes the previous period on the day before the effective date and preserves later scheduled periods." onOpenChange={open => { if (!open) close(); }}>
-      <form onSubmit={submit} className="space-y-4 text-base">
+      <ValidatedForm onSubmit={submit} className="space-y-4 text-base">
         {error ? <p ref={errorRef} tabIndex={-1} role="alert" className="text-danger">{error}</p> : null}
         <fieldset disabled={save.isPending} className="space-y-4">
           {editor?.kind !== "end" ? <>
-            <label className="grid gap-1">Project assignment *<Select required value={form.workerAssignmentId} onChange={event => setForm({ ...form, workerAssignmentId: event.target.value })}><option value="">Choose an assignment</option>{assignments.map(assignment => <option key={assignment.id} value={assignment.id}>{assignment.projectName ?? assignment.projectId} · {assignment.startsOn.slice(0, 10)} – {assignment.endsOn?.slice(0, 10) ?? "open"}</option>)}</Select></label>
-            <label className="grid gap-1">Start date *<Input type="date" required min={selected?.startsOn.slice(0, 10)} max={editor?.kind === "transfer" ? selected?.endsOn?.slice(0, 10) : form.endsOn || selected?.endsOn?.slice(0, 10)} value={form.startsOn} onChange={event => setForm({ ...form, startsOn: event.target.value })} /></label>
+            <ValidatedField className="grid gap-1">Project assignment *<Select required value={form.workerAssignmentId} onChange={event => setForm({ ...form, workerAssignmentId: event.target.value })}><option value="">Choose an assignment</option>{assignments.map(assignment => <option key={assignment.id} value={assignment.id}>{assignment.projectName ?? assignment.projectId} · {assignment.startsOn.slice(0, 10)} – {assignment.endsOn?.slice(0, 10) ?? "open"}</option>)}</Select></ValidatedField>
+            <ValidatedField className="grid gap-1">Start date *<Input type="date" required min={selected?.startsOn.slice(0, 10)} max={editor?.kind === "transfer" ? selected?.endsOn?.slice(0, 10) : form.endsOn || selected?.endsOn?.slice(0, 10)} value={form.startsOn} onChange={event => setForm({ ...form, startsOn: event.target.value })} /></ValidatedField>
           </> : null}
-          {editor?.kind !== "transfer" ? <label className="grid gap-1">End date {editor?.kind === "end" || selected?.endsOn ? "*" : ""}<Input type="date" required={editor?.kind === "end" || Boolean(selected?.endsOn)} min={form.startsOn} max={selected?.endsOn?.slice(0, 10)} value={form.endsOn} onChange={event => setForm({ ...form, endsOn: event.target.value })} /></label> : null}
+          {editor?.kind !== "transfer" ? <ValidatedField className="grid gap-1">End date {editor?.kind === "end" || selected?.endsOn ? "*" : ""}<Input type="date" required={editor?.kind === "end" || Boolean(selected?.endsOn)} min={form.startsOn} max={selected?.endsOn?.slice(0, 10)} value={form.endsOn} onChange={event => setForm({ ...form, endsOn: event.target.value })} /></ValidatedField> : null}
           <p className="text-sm text-sub">Both dates are inclusive. Saving historical dates can affect attendance and unconfirmed wages. The server validates the final allocation.</p>
           <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={close}>Cancel</Button><Button type="submit">{save.isPending ? "Saving…" : "Save period"}</Button></div>
         </fieldset>
-      </form>
+      </ValidatedForm>
     </Dialog>
   </Card>;
 }

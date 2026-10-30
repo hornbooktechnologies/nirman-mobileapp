@@ -1,5 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { ApiRequestError } from '../../lib/api';
 import { uncertainWrite } from './sales-rules';
-import { getActiveProject, getActiveProjectPermissions } from '../../lib/auth';
+import { getActiveProject, getRouteProject, getActiveProjectPermissions } from '../../lib/auth';
 import { useSession } from '../../providers';
 import { mobileText, mobileTheme } from '../../theme';
 import { importUnits, previewUnitImport } from './services';
@@ -33,9 +33,10 @@ export function SalesUnitImportScreen() {
   const { t, i18n } = useTranslation('sales');
   const { t: tCommon } = useTranslation('common');
   const { session } = useSession();
-  const project = getActiveProject(session);
+  const { projectId: routeProjectId } = useLocalSearchParams<{ projectId?: string }>();
+  const project = routeProjectId ? getRouteProject(session, routeProjectId) : getActiveProject(session);
   const language = (i18n.resolvedLanguage ?? 'en') as 'en' | 'hi' | 'gu';
-  const permissions = getActiveProjectPermissions(session);
+  const permissions = routeProjectId ? (project?.permissions ?? []) : getActiveProjectPermissions(session);
   const active = project?.status === 'ACTIVE' && permissions.includes('inventory:manage');
   const lock = useRef(false), alive = useRef(true);
   const [review, setReview] = useState(false);

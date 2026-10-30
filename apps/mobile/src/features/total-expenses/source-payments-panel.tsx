@@ -287,7 +287,7 @@ export function SourcePaymentsPanel({
         }}
         footer={
           <View style={{ flex: 1, gap: 8 }}>
-            <Button
+            <Button validateForm
               label={
                 busy ? t("saving") : uncertain ? t("retrySame") : t("confirm")
               }

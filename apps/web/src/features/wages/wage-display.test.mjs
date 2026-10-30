@@ -25,3 +25,9 @@ test("deep links select only a valid item in the requested batch", () => {
   assert.equal(selectedWageItem([{ id: itemId, wageBatchId: batchId }], batchId, "", batchId, itemId)?.id, itemId);
   assert.equal(selectedWageItem([{ id: itemId, wageBatchId: "other" }], batchId, "", batchId, itemId), null);
 });
+
+ test("Kharchi settlement is distinct from a cash payment and needs no wage payment", () => {
+  assert.equal(wageBalanceLabel({ netAmount: "0.00", paidAmount: "0.00", kharchiDeduction: "100.00", paymentStatus: "PAID" }), "Adjusted by Kharchi");
+  assert.equal(wageBalanceLabel({ netAmount: "100.00", paidAmount: "0.00", kharchiDeduction: "100.00", paymentStatus: "UNPAID" }), "Unpaid");
+  assert.equal(wageBalanceLabel({ netAmount: "100.00", paidAmount: "100.00", kharchiDeduction: "100.00", paymentStatus: "PAID" }), "Paid in full");
+});

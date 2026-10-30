@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import { useEffect, useRef, useState } from "react";
 import { PROJECT_PROGRESS_STAGES, type ProjectProgressStage, type ProjectProgressSummary } from "@nirman-app/shared";
@@ -72,23 +73,23 @@ export function ProgressForm({ context, summary, close, saved, reload }: {
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Refresh failed. Retry."); }
     finally { locked.current = false; if (mounted.current) setBusy(false); }
   }
-  return <Dialog open title="Record progress" description="Updates are retained in history. A correction creates a new entry." onOpenChange={requestClose} footer={<><Button variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button>{mode === "stale" ? <RefreshButton disabled={busy} onRefresh={() => review()}>Reload latest values</RefreshButton> : <Button disabled={busy || mode === "denied"} onClick={() => void submit()}>{busy ? "Saving…" : mode === "uncertain" ? "Retry original update" : "Save update"}</Button>}</>}>
-    <form className="space-y-4 text-base [&_input]:text-base [&_input]:min-h-11 [&_select]:text-base [&_select]:min-h-11 [&_textarea]:text-base" onSubmit={e => { e.preventDefault(); void submit(); }}>
+  return <Dialog open title="Record progress" description="Updates are retained in history. A correction creates a new entry." onOpenChange={requestClose} footer={<><Button variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button>{mode === "stale" ? <RefreshButton disabled={busy} onRefresh={() => review()}>Reload latest values</RefreshButton> : <Button disabled={busy || mode === "denied"} type="submit" form="progress-update-form">{busy ? "Saving…" : mode === "uncertain" ? "Retry original update" : "Save update"}</Button>}</>}>
+    <ValidatedForm id="progress-update-form" className="space-y-4 text-base [&_input]:text-base [&_input]:min-h-11 [&_select]:text-base [&_select]:min-h-11 [&_textarea]:text-base" onSubmit={e => { e.preventDefault(); void submit(); }}>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {mode === "uncertain" && <p role="alert">The outcome is unknown. Retry sends the exact original update and key.</p>}
       {mode === "stale" && <p role="alert">The stage or retry key changed. Reload current values before saving again.</p>}
       {mode === "denied" && <p role="alert">Your access changed. Close this form and refresh access.</p>}
       <fieldset disabled={busy || mode !== "edit"} className="space-y-4">
-        <label className="block">Stage *<Select value={stage} onChange={e => { const next = e.target.value as ProjectProgressStage; setStage(next); setPercentage(String(baseline.stages.find(s => s.stage === next)?.percentage ?? 0)); setDirty(true); }}>{PROJECT_PROGRESS_STAGES.map(s => <option key={s} value={s}>{stageLabel(s)}</option>)}</Select></label>
+        <ValidatedField className="block">Stage *<Select required value={stage} onChange={e => { const next = e.target.value as ProjectProgressStage; setStage(next); setPercentage(String(baseline.stages.find(s => s.stage === next)?.percentage ?? 0)); setDirty(true); }}>{PROJECT_PROGRESS_STAGES.map(s => <option key={s} value={s}>{stageLabel(s)}</option>)}</Select></ValidatedField>
         <p>Current: <strong>{current.percentage}%</strong> · {current.lastUpdate ? "Previously recorded" : "No update yet"}</p>
-        <label className="block" htmlFor="progress-percentage">Percentage *</label>
+        <ValidatedField className="block" htmlFor="progress-percentage" validate={(value) => updateErrors(value, date, notes, previous, todayInIndia()).percentage || undefined}>Percentage *</ValidatedField>
         <div className="flex flex-wrap gap-2">{[0, 25, 50, 75, 100].map(n => <Button key={n} type="button" variant="outline" aria-pressed={percentage === String(n)} onClick={() => { setPercentage(String(n)); setDirty(true); }}>{n}%</Button>)}</div>
-        <Input id="progress-percentage" inputMode="decimal" value={percentage} invalid={Boolean(errors.percentage)} aria-describedby="progress-percentage-error" onChange={e => { setPercentage(e.target.value); setDirty(true); }} />
+        <Input required id="progress-percentage" inputMode="decimal" value={percentage} invalid={Boolean(errors.percentage)} aria-describedby="progress-percentage-error" onChange={e => { setPercentage(e.target.value); setDirty(true); }} />
         <p id="progress-percentage-error" className="text-danger">{errors.percentage}</p>
-        <label className="block" htmlFor="progress-date">Update date *</label><Input id="progress-date" type="date" max={todayInIndia()} value={date} invalid={Boolean(errors.date)} aria-describedby="progress-date-error" onChange={e => { setDate(e.target.value); setDirty(true); }} /><p id="progress-date-error" className="text-danger">{errors.date}</p>
+        <ValidatedField className="block" htmlFor="progress-date" validate={(value) => updateErrors(percentage, value, notes, previous, todayInIndia()).date || undefined}>Update date *</ValidatedField><Input required id="progress-date" type="date" max={todayInIndia()} value={date} invalid={Boolean(errors.date)} aria-describedby="progress-date-error" onChange={e => { setDate(e.target.value); setDirty(true); }} /><p id="progress-date-error" className="text-danger">{errors.date}</p>
         <p className="text-sm text-sub">Dates follow India time. A backdated entry may not replace the latest stage value.</p>
-        <label className="block" htmlFor="progress-notes">Notes {Number(percentage) < current.percentage ? "*" : ""}</label><Textarea id="progress-notes" maxLength={2000} value={notes} invalid={Boolean(errors.notes)} aria-describedby="progress-notes-error" onChange={e => { setNotes(e.target.value); setDirty(true); }} /><p id="progress-notes-error" className="text-danger">{errors.notes}</p>
+        <ValidatedField className="block" htmlFor="progress-notes" validate={(value) => updateErrors(percentage, date, value, previous, todayInIndia()).notes || undefined}>Notes {Number(percentage) < current.percentage ? "*" : ""}</ValidatedField><Textarea required={Number(percentage) < current.percentage} id="progress-notes" maxLength={2000} value={notes} invalid={Boolean(errors.notes)} aria-describedby="progress-notes-error" onChange={e => { setNotes(e.target.value); setDirty(true); }} /><p id="progress-notes-error" className="text-danger">{errors.notes}</p>
       </fieldset>
-    </form>
+    </ValidatedForm>
   </Dialog>;
 }

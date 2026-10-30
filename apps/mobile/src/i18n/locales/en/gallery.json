@@ -1,5 +1,7 @@
 {
-  "screen": { "title": "Site Gallery" },
+  "screen": {
+    "title": "Site Gallery"
+  },
   "summary": {
     "title": "Project diary",
     "values": "{{total}} photos · {{today}} today"
@@ -17,7 +19,8 @@
     "fromChip": "From {{date}}",
     "toChip": "To {{date}}",
     "removeA11y": "Remove {{value}} filter",
-    "dateRangeError": "End date cannot be before start date."
+    "dateRangeError": "End date cannot be before start date.",
+    "status": "Status"
   },
   "diary": {
     "title": "Photo diary",

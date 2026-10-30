@@ -25,6 +25,7 @@
     "required": "required"
   },
   "validation": {
+    "maxLength": "Use no more than {{count}} characters.",
     "required": "{{field}} is required.",
     "email": "Enter a valid email address.",
     "phone": "Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.",
@@ -77,5 +78,11 @@
     "saved": "Your report was saved to the selected folder.",
     "tooLarge": "This report is too large. Choose a shorter period or narrower filters.",
     "serverBusy": "Reports are being prepared. Please try again shortly."
+  },
+  "csvExport": {
+    "action": "Export CSV",
+    "preparing": "Preparing CSV…",
+    "failed": "CSV export failed",
+    "retry": "Try again when connected."
   }
 }

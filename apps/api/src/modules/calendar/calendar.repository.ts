@@ -8,12 +8,32 @@ import type {
   WorkCalendarOverride,
 } from "@nirman-app/shared";
 import { DatabaseService } from "../../database/database.service";
-import type {
-  DatabaseConnection,
-  DbRow,
-} from "../../database/database.types";
+import type { DatabaseConnection, DbRow } from "../../database/database.types";
 
-type CalendarRow = Record<string, any>;
+interface OrganizationCalendarRow extends DbRow {
+  timezone: string;
+  monday_working: number | boolean;
+  tuesday_working: number | boolean;
+  wednesday_working: number | boolean;
+  thursday_working: number | boolean;
+  friday_working: number | boolean;
+  saturday_working: number | boolean;
+  sunday_working: number | boolean;
+  updated_at: Date | string | null;
+}
+
+interface CalendarOverrideRow extends DbRow {
+  id: string;
+  organization_id: string;
+  project_id: string | null;
+  start_date: Date | string;
+  end_date: Date | string;
+  day_type: WorkCalendarOverride["dayType"];
+  name: string;
+  reason: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+}
 
 interface WorkingTimezoneRow extends DbRow {
   timezone: string;
@@ -29,7 +49,7 @@ export class CalendarRepository {
   constructor(private readonly database: DatabaseService) {}
 
   async findOrganizationTimezone(organizationId: string) {
-    const rows = await this.database.query<CalendarRow & any>(
+    const rows = await this.database.query<WorkingTimezoneRow>(
       "SELECT timezone FROM organizations WHERE id = ? LIMIT 1",
       [organizationId],
     );
@@ -55,7 +75,7 @@ export class CalendarRepository {
     organizationId: string,
   ): Promise<OrganizationWorkCalendar> {
     const [rows, overrides, timezone] = await Promise.all([
-      this.database.query<CalendarRow & any>(
+      this.database.query<OrganizationCalendarRow>(
         "SELECT * FROM organization_work_calendars WHERE organization_id = ? LIMIT 1",
         [organizationId],
       ),
@@ -79,7 +99,9 @@ export class CalendarRepository {
           }
         : null,
       overrides,
-      updatedAt: row?.updated_at ? new Date(row.updated_at).toISOString() : null,
+      updatedAt: row?.updated_at
+        ? new Date(row.updated_at).toISOString()
+        : null,
     };
   }
 
@@ -107,11 +129,18 @@ export class CalendarRepository {
         updated_by = VALUES(updated_by),
         updated_at = CURRENT_TIMESTAMP(3)`,
       [
-        randomUUID(), organizationId, input.timezone,
-        input.workingWeek.MONDAY, input.workingWeek.TUESDAY,
-        input.workingWeek.WEDNESDAY, input.workingWeek.THURSDAY,
-        input.workingWeek.FRIDAY, input.workingWeek.SATURDAY,
-        input.workingWeek.SUNDAY, actorId, actorId,
+        randomUUID(),
+        organizationId,
+        input.timezone,
+        input.workingWeek.MONDAY,
+        input.workingWeek.TUESDAY,
+        input.workingWeek.WEDNESDAY,
+        input.workingWeek.THURSDAY,
+        input.workingWeek.FRIDAY,
+        input.workingWeek.SATURDAY,
+        input.workingWeek.SUNDAY,
+        actorId,
+        actorId,
       ],
     );
     return this.findOrganizationCalendar(organizationId);
@@ -123,17 +152,20 @@ export class CalendarRepository {
     startDate?: string,
     endDate?: string,
   ): Promise<WorkCalendarOverride[]> {
-    const rangeSql = startDate && endDate
-      ? "AND start_date <= ? AND end_date >= ?"
-      : "";
-    const rows = await this.database.query<CalendarRow & any>(
+    const rangeSql =
+      startDate && endDate ? "AND start_date <= ? AND end_date >= ?" : "";
+    const rows = await this.database.query<CalendarOverrideRow>(
       `SELECT * FROM work_calendar_overrides
        WHERE organization_id = ?
          AND ${projectId === null ? "project_id IS NULL" : "project_id = ?"}
          AND deleted_at IS NULL
          ${rangeSql}
        ORDER BY start_date ASC, created_at ASC`,
-      [organizationId, ...(projectId === null ? [] : [projectId]), ...(rangeSql ? [endDate!, startDate!] : [])],
+      [
+        organizationId,
+        ...(projectId === null ? [] : [projectId]),
+        ...(rangeSql ? [endDate!, startDate!] : []),
+      ],
     );
     return rows.map((row) => this.mapOverride(row));
   }
@@ -145,7 +177,7 @@ export class CalendarRepository {
     connection?: DatabaseConnection,
     includeDeleted = false,
   ) {
-    const rows = await this.database.query<CalendarRow & any>(
+    const rows = await this.database.query<CalendarOverrideRow>(
       `SELECT * FROM work_calendar_overrides
        WHERE id = ? AND organization_id = ?
          AND ${projectId === null ? "project_id IS NULL" : "project_id = ?"}
@@ -166,14 +198,34 @@ export class CalendarRepository {
     const id = randomUUID();
     await this.database.transaction(async (connection) => {
       await this.lockOrganization(organizationId, connection);
-      if (await this.hasOverrideConflict(organizationId, projectId, input.startDate, input.endDate, null, connection)) {
+      if (
+        await this.hasOverrideConflict(
+          organizationId,
+          projectId,
+          input.startDate,
+          input.endDate,
+          null,
+          connection,
+        )
+      ) {
         throw new Error("WORK_CALENDAR_OVERRIDE_CONFLICT");
       }
       await this.database.execute(
         `INSERT INTO work_calendar_overrides
           (id, organization_id, project_id, start_date, end_date, day_type, name, reason, source, created_by, updated_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'MANUAL', ?, ?)`,
-        [id, organizationId, projectId, input.startDate, input.endDate, input.dayType, input.name.trim(), input.reason?.trim() || null, actorId, actorId],
+        [
+          id,
+          organizationId,
+          projectId,
+          input.startDate,
+          input.endDate,
+          input.dayType,
+          input.name.trim(),
+          input.reason?.trim() || null,
+          actorId,
+          actorId,
+        ],
         connection,
       );
     });
@@ -189,18 +241,31 @@ export class CalendarRepository {
   ) {
     await this.database.transaction(async (connection) => {
       await this.lockOrganization(organizationId, connection);
-      const rows = await this.database.query<CalendarRow & any>(
+      const rows = await this.database.query<CalendarOverrideRow>(
         `SELECT * FROM work_calendar_overrides WHERE id = ? AND organization_id = ?
          AND ${projectId === null ? "project_id IS NULL" : "project_id = ?"}
          AND deleted_at IS NULL FOR UPDATE`,
-        [overrideId, organizationId, ...(projectId === null ? [] : [projectId])],
+        [
+          overrideId,
+          organizationId,
+          ...(projectId === null ? [] : [projectId]),
+        ],
         connection,
       );
       const current = rows[0];
       if (!current) throw new Error("WORK_CALENDAR_OVERRIDE_NOT_FOUND");
       const startDate = input.startDate ?? dateOnly(current.start_date);
       const endDate = input.endDate ?? dateOnly(current.end_date);
-      if (await this.hasOverrideConflict(organizationId, projectId, startDate, endDate, overrideId, connection)) {
+      if (
+        await this.hasOverrideConflict(
+          organizationId,
+          projectId,
+          startDate,
+          endDate,
+          overrideId,
+          connection,
+        )
+      ) {
         throw new Error("WORK_CALENDAR_OVERRIDE_CONFLICT");
       }
       await this.database.execute(
@@ -208,7 +273,17 @@ export class CalendarRepository {
           start_date = ?, end_date = ?, day_type = ?, name = ?, reason = ?,
           updated_by = ?, updated_at = CURRENT_TIMESTAMP(3)
          WHERE id = ?`,
-        [startDate, endDate, input.dayType ?? current.day_type, (input.name ?? current.name).trim(), input.reason === undefined ? current.reason : input.reason?.trim() || null, actorId, overrideId],
+        [
+          startDate,
+          endDate,
+          input.dayType ?? current.day_type,
+          (input.name ?? current.name).trim(),
+          input.reason === undefined
+            ? current.reason
+            : input.reason?.trim() || null,
+          actorId,
+          overrideId,
+        ],
         connection,
       );
     });
@@ -227,10 +302,22 @@ export class CalendarRepository {
        WHERE id = ? AND organization_id = ?
          AND ${projectId === null ? "project_id IS NULL" : "project_id = ?"}
          AND deleted_at IS NULL`,
-      [actorId, actorId, overrideId, organizationId, ...(projectId === null ? [] : [projectId])],
+      [
+        actorId,
+        actorId,
+        overrideId,
+        organizationId,
+        ...(projectId === null ? [] : [projectId]),
+      ],
     );
     if (result.affectedRows === 0) {
-      const existing = await this.findOverride(organizationId, projectId, overrideId, undefined, true);
+      const existing = await this.findOverride(
+        organizationId,
+        projectId,
+        overrideId,
+        undefined,
+        true,
+      );
       if (!existing) return false;
     }
     return true;
@@ -244,7 +331,7 @@ export class CalendarRepository {
     excludeId: string | null,
     connection: DatabaseConnection,
   ) {
-    const rows = await this.database.query<CalendarRow & any>(
+    const rows = await this.database.query<{ id: string } & DbRow>(
       `SELECT id FROM work_calendar_overrides
        WHERE organization_id = ?
          AND ${projectId === null ? "project_id IS NULL" : "project_id = ?"}
@@ -252,21 +339,30 @@ export class CalendarRepository {
          AND start_date <= ? AND end_date >= ?
          ${excludeId ? "AND id <> ?" : ""}
        LIMIT 1`,
-      [organizationId, ...(projectId === null ? [] : [projectId]), endDate, startDate, ...(excludeId ? [excludeId] : [])],
+      [
+        organizationId,
+        ...(projectId === null ? [] : [projectId]),
+        endDate,
+        startDate,
+        ...(excludeId ? [excludeId] : []),
+      ],
       connection,
     );
     return Boolean(rows[0]);
   }
 
-  private async lockOrganization(organizationId: string, connection: DatabaseConnection) {
-    await this.database.query<CalendarRow & any>(
+  private async lockOrganization(
+    organizationId: string,
+    connection: DatabaseConnection,
+  ) {
+    await this.database.query<{ id: string } & DbRow>(
       "SELECT id FROM organizations WHERE id = ? FOR UPDATE",
       [organizationId],
       connection,
     );
   }
 
-  private mapOverride(row: CalendarRow): WorkCalendarOverride {
+  private mapOverride(row: CalendarOverrideRow): WorkCalendarOverride {
     return {
       id: row.id,
       organizationId: row.organization_id,

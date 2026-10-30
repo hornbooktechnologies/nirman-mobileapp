@@ -8,7 +8,10 @@ import {
   Min,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { WAGE_PAYMENT_METHODS, type WagePaymentMethod } from "@nirman-app/shared";
+import {
+  WAGE_PAYMENT_METHODS,
+  type WagePaymentMethod,
+} from "@nirman-app/shared";
 
 export class RecordWagePaymentDto {
   @Type(() => Number)

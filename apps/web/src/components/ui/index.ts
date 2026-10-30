@@ -22,6 +22,7 @@ export * from "./table";
 export * from "./tabs";
 export * from "./textarea";
 export * from "./typography";
+export * from "./form-field";
 
 export * from "./search-input";
 

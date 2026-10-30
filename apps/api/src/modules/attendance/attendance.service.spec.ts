@@ -59,7 +59,7 @@ describe("Attendance exception derivation", () => {
         expectedWorkingDays: 3,
         presentDays: 3,
         absentDays: 0,
-        selectedDate: expect.objectContaining({ state: "PRESENT" }),
+        selectedDate: expect.objectContaining({ state: "PRESENT" }) as unknown,
       }),
     );
 
@@ -138,13 +138,19 @@ describe("AttendanceService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    projectAccess.resolveProjectAccess.mockResolvedValue({} as any);
+    projectAccess.resolveProjectAccess.mockResolvedValue(
+      {} as Awaited<ReturnType<ProjectAccessService["resolveProjectAccess"]>>,
+    );
     attendanceRepo.findAssignmentRatePeriods.mockResolvedValue([]);
     attendanceRepo.findPrimaryAssignmentForDate.mockResolvedValue({
       id: "assignment-id",
+      worker_id: "worker-id",
+      project_id: "project-id",
       worker_status: "ACTIVE",
       deactivated_at: null,
-    });
+    } as unknown as NonNullable<
+      Awaited<ReturnType<AttendanceRepository["findPrimaryAssignmentForDate"]>>
+    >);
     calendarService.resolveDaysForAttendance.mockResolvedValue([
       day("2026-08-12", true),
     ]);

@@ -1,4 +1,5 @@
 "use client";
+import { ValidatedForm, ValidatedField } from "@/components/ui/validated-form";
 
 import Link from "next/link";
 import { MobileAccountLink } from "@/features/auth/components/mobile-account-link";
@@ -146,11 +147,11 @@ function ActivateInvitationContent() {
               ) : null}
             </div>
           ) : invitation ? (
-            <form className="space-y-4" onSubmit={submit}>
+            <ValidatedForm className="space-y-4" onSubmit={submit}>
               <div className="rounded-inner border border-hairline bg-sunken/40 p-3 text-[12px] text-sub">
                 Login email: <span className="font-semibold text-body">{invitation.owner.email}</span>
               </div>
-              <label className="block space-y-2 text-[13px] font-medium text-body">
+              <ValidatedField className="block space-y-2 text-[13px] font-medium text-body">
                 <span>
                   Create password
                 </span>
@@ -161,8 +162,8 @@ function ActivateInvitationContent() {
                   onChange={(event) => setPassword(event.target.value)}
                   required
                 />
-              </label>
-              <label className="block space-y-2 text-[13px] font-medium text-body">
+              </ValidatedField>
+              <ValidatedField className="block space-y-2 text-[13px] font-medium text-body">
                 <span>
                   Confirm password
                 </span>
@@ -173,12 +174,12 @@ function ActivateInvitationContent() {
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
                 />
-              </label>
+              </ValidatedField>
               {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
               <Button className="w-full" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Activating" : "Activate Account"}
               </Button>
-            </form>
+            </ValidatedForm>
           ) : error ? (
             <div className="space-y-4">
               <p className="text-[13px] text-red-600">{error}</p>

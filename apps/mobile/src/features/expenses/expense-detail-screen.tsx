@@ -735,7 +735,7 @@ function SheetFooter({
         disabled={working || cancelDisabled}
         onPress={onCancel}
       />
-      <Button
+      <Button validateForm
         style={styles.footerButton}
         label={save}
         variant={danger ? "danger" : "primary"}

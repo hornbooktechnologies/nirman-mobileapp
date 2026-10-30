@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/unbound-method */
 import type { KharchiListResponse } from "@nirman-app/shared";
 import type { AuthenticatedUser } from "../auth/types/auth.types";
 import { ProjectAccessService } from "../project-access/project-access.service";
@@ -37,12 +37,16 @@ describe("KharchiService", () => {
     jest.clearAllMocks();
     projectAccess.resolveProjectAccess.mockResolvedValue({
       project: { status: "ACTIVE" },
-    } as any);
+    } as unknown as Awaited<
+      ReturnType<ProjectAccessService["resolveProjectAccess"]>
+    >);
     repository.fingerprint.mockReturnValue("fingerprint");
   });
 
   it("records a direct paid advance with normalized payment evidence", async () => {
-    repository.create.mockResolvedValue({ id: kharchiId } as any);
+    repository.create.mockResolvedValue({ id: kharchiId } as unknown as Awaited<
+      ReturnType<KharchiRepository["create"]>
+    >);
 
     await service.create(
       organizationId,
@@ -82,7 +86,9 @@ describe("KharchiService", () => {
   it("rejects a financial write for a non-active Project", async () => {
     projectAccess.resolveProjectAccess.mockResolvedValue({
       project: { status: "COMPLETED" },
-    } as any);
+    } as unknown as Awaited<
+      ReturnType<ProjectAccessService["resolveProjectAccess"]>
+    >);
 
     await expect(
       service.create(
@@ -102,7 +108,9 @@ describe("KharchiService", () => {
   });
 
   it("records an immutable signed adjustment", async () => {
-    repository.adjust.mockResolvedValue({ id: kharchiId } as any);
+    repository.adjust.mockResolvedValue({ id: kharchiId } as unknown as Awaited<
+      ReturnType<KharchiRepository["adjust"]>
+    >);
 
     await service.adjust(
       organizationId,
@@ -179,7 +187,7 @@ describe("KharchiService", () => {
         },
       ],
       pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 },
-    } as any);
+    } as unknown as KharchiListResponse);
 
     const result = await service.export(organizationId, projectId, {}, actor);
 

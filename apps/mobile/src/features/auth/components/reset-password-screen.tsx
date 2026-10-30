@@ -47,13 +47,13 @@ export function ResetPasswordScreen() {
         <>
           <FormError message={error ? getLocalizedErrorMessage(error, t('failure.resetPassword')) : null} />
           {!token ? <FormError message={t('recovery.invalidLink')} /> : null}
-          <FormField label={t('recovery.newPassword')} required error={fieldError}>
+          <FormField validate={() => password.length < 8 ? t('validation.passwordMinimum') : undefined} label={t('recovery.newPassword')} required error={fieldError}>
             <PasswordInput accessibilityLabel={t('recovery.newPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={password} onChangeText={(value) => { setPassword(value); setFieldError(''); }} />
           </FormField>
-          <FormField label={t('activation.confirmPassword')} required>
+          <FormField validate={() => password !== confirmPassword ? t('validation.passwordMismatch') : undefined} label={t('activation.confirmPassword')} required>
             <PasswordInput accessibilityLabel={t('activation.confirmPassword')} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" returnKeyType="go" showPasswordLabel={t('passwordVisibility.show')} hidePasswordLabel={t('passwordVisibility.hide')} value={confirmPassword} onChangeText={(value) => { setConfirmPassword(value); setFieldError(''); }} onSubmitEditing={() => void submit()} />
           </FormField>
-          <Button label={working ? t('recovery.resetting') : t('recovery.reset')} loading={working} disabled={working || !token} onPress={() => void submit()} />
+          <Button validateForm label={working ? t('recovery.resetting') : t('recovery.reset')} loading={working} disabled={working || !token} onPress={() => void submit()} />
         </>
       )}
       <Button label={t('activation.backToLogin')} variant="ghost" onPress={() => router.replace('/(auth)/login')} />

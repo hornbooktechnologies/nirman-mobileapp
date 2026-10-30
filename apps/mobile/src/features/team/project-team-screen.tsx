@@ -568,7 +568,7 @@ function ProjectMemberEditorSheet({
               style={styles.footerButton}
               onPress={onClose}
             />
-            <Button
+            <Button validateForm
               label={
                 saving
                   ? t("editor.saving")

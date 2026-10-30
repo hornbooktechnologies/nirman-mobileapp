@@ -71,6 +71,23 @@ interface PrimaryPeriodWindowRow extends DbRow {
   ends_on: Date | string | null;
 }
 
+interface PrimaryPeriodRow extends PrimaryPeriodWindowRow {
+  organization_id: string;
+  worker_id: string;
+  worker_assignment_id: string;
+  created_by: string;
+  updated_by: string;
+  created_at: Date | string;
+  updated_at: Date | string;
+  ended_by: string | null;
+  ended_at: Date | string | null;
+}
+
+interface PrimaryPeriodDetailRow extends PrimaryPeriodRow {
+  project_id: string;
+  project_name: string | null;
+}
+
 function normalizeMobile(mobile?: string | null) {
   const digits = mobile?.replace(/\D/g, "") ?? "";
   if (!digits) return null;
@@ -440,7 +457,7 @@ export class WorkersRepository {
     workerId: string,
     memberId?: string,
   ): Promise<WorkerPrimaryProjectPeriod[]> {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<PrimaryPeriodDetailRow>(
       `SELECT wpp.*, wpa.project_id, p.name AS project_name
        FROM worker_primary_project_periods wpp
        INNER JOIN worker_project_assignments wpa
@@ -462,7 +479,7 @@ export class WorkersRepository {
        ORDER BY wpp.starts_on DESC`,
       [...(memberId ? [memberId] : []), organizationId, workerId],
     );
-    return rows.map((row: any) => this.mapPrimaryPeriod(row));
+    return rows.map((row) => this.mapPrimaryPeriod(row));
   }
 
   async findPrimaryProjectPeriodById(
@@ -470,7 +487,7 @@ export class WorkersRepository {
     workerId: string,
     periodId: string,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<PrimaryPeriodDetailRow>(
       `SELECT wpp.*, wpa.project_id, p.name AS project_name
        FROM worker_primary_project_periods wpp
        INNER JOIN worker_project_assignments wpa ON wpa.id = wpp.worker_assignment_id
@@ -544,7 +561,7 @@ export class WorkersRepository {
   ) {
     await this.database.transaction(async (connection) => {
       await this.lockWorker(organizationId, workerId, connection);
-      const rows = await this.database.query<any>(
+      const rows = await this.database.query<PrimaryPeriodRow>(
         `SELECT * FROM worker_primary_project_periods
          WHERE organization_id = ? AND worker_id = ? AND id = ? FOR UPDATE`,
         [organizationId, workerId, periodId],
@@ -599,7 +616,7 @@ export class WorkersRepository {
   ) {
     await this.database.transaction(async (connection) => {
       await this.lockWorker(organizationId, workerId, connection);
-      const rows = await this.database.query<any>(
+      const rows = await this.database.query<PrimaryPeriodRow>(
         `SELECT * FROM worker_primary_project_periods
          WHERE organization_id = ? AND worker_id = ? AND id = ? FOR UPDATE`,
         [organizationId, workerId, periodId],
@@ -1306,7 +1323,7 @@ export class WorkersRepository {
     workerId: string,
     connection: DatabaseConnection,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<{ id: string } & DbRow>(
       "SELECT id FROM workers WHERE organization_id = ? AND id = ? FOR UPDATE",
       [organizationId, workerId],
       connection,
@@ -1322,7 +1339,7 @@ export class WorkersRepository {
     endsOn: string | null,
     connection: DatabaseConnection,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<AssignmentWindowRow>(
       `SELECT id, starts_on, ends_on FROM worker_project_assignments
        WHERE id = ? AND organization_id = ? AND worker_id = ?
        LIMIT 1 FOR UPDATE`,
@@ -1389,7 +1406,9 @@ export class WorkersRepository {
     const periodsToEnd = periods.filter((period) => {
       const periodStart = dateOnlyValue(period.starts_on);
       const periodEnd = nullableDateOnly(period.ends_on);
-      return periodStart <= endsOn && (periodEnd === null || periodEnd > endsOn);
+      return (
+        periodStart <= endsOn && (periodEnd === null || periodEnd > endsOn)
+      );
     });
     if (futurePeriodExists) {
       throw new Error("WORKER_ASSIGNMENT_FUTURE_PRIMARY_PERIOD_CONFLICT");
@@ -1420,7 +1439,7 @@ export class WorkersRepository {
     excludeId: string | null,
     connection: DatabaseConnection,
   ) {
-    const rows = await this.database.query<any>(
+    const rows = await this.database.query<{ id: string } & DbRow>(
       `SELECT id FROM worker_primary_project_periods
        WHERE organization_id = ? AND worker_id = ?
          AND starts_on <= COALESCE(?, '9999-12-31')
@@ -1439,7 +1458,9 @@ export class WorkersRepository {
     if (rows[0]) throw new Error("WORKER_PRIMARY_PERIOD_OVERLAP");
   }
 
-  private mapPrimaryPeriod(row: any): WorkerPrimaryProjectPeriod {
+  private mapPrimaryPeriod(
+    row: PrimaryPeriodDetailRow,
+  ): WorkerPrimaryProjectPeriod {
     return {
       id: row.id,
       organizationId: row.organization_id,
